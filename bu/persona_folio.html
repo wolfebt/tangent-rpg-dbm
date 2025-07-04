@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Persona Folio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="app-header flex justify-between items-center gap-4">
+        <div class="flex-1">
+             <a href="database_manager.html" class="btn btn-secondary">Back to Manager</a>
+        </div>
+        <div class="text-center px-4">
+            <h1 class="text-xl font-bold text-gray-100 whitespace-nowrap">TANGENT SFF RPG</h1>
+            <p class="text-xs text-gray-400 uppercase">PERSONA FOLIO</p>
+        </div>
+        <div class="flex-1"></div>
+    </header>
+
+    <main class="w-full pt-16">
+        <div id="folio-container" class="p-4 md:p-8">
+            <!-- Persona Folio will be rendered here -->
+        </div>
+    </main>
+
+    <!-- Modals and Inputs needed by the folio -->
+    <div id="custom-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-[60] p-4 hidden modal-backdrop">
+        <div class="modal-content w-full max-w-lg p-8">
+            <h2 id="custom-modal-title" class="text-2xl font-bold mb-4 text-center"></h2>
+            <div id="modal-choices" class="flex flex-col gap-2 max-h-96 overflow-y-auto mt-4"></div>
+            <div class="flex justify-center gap-4 flex-wrap mt-4">
+                <button id="modal-ok-btn" class="btn btn-primary" style="display: none;">OK</button>
+                <button id="custom-modal-cancel-btn" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirm-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4 hidden modal-backdrop">
+        <div class="modal-content w-full max-w-md p-8">
+            <h2 id="confirm-title" class="text-xl font-bold mb-4">Are you sure?</h2>
+            <p id="confirm-message" class="text-gray-400 mb-6">This action cannot be undone.</p>
+            <div class="flex justify-end gap-2">
+                <button id="confirm-cancel-btn" class="btn btn-secondary">CANCEL</button>
+                <button id="confirm-ok-btn" class="btn btn-danger">CONFIRM</button>
+            </div>
+        </div>
+    </div>
+     <div id="error-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4 hidden modal-backdrop">
+        <div class="modal-content w-full max-w-md p-8">
+            <h2 class="text-xl font-bold mb-4 text-red-500">Error</h2>
+            <p id="error-message" class="text-gray-400 mb-6">Something went wrong.</p>
+            <div class="flex justify-end">
+                <button id="error-ok-btn" class="btn btn-primary">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="json-file-input" class="hidden" accept=".json">
+
+    <script type="module" src="persona_folio.js"></script>
+</body>
+</html>

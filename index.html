@@ -7,454 +7,118 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-        /* --- Global Theme --- */
-        :root {
-            --bg-main: #212121; --bg-section: #333333; --bg-header: #1f2937; --bg-input: #424242;
-            --bg-input-focus: #616161; --bg-hover: #4f4f4f; --bg-danger: #b71c1c; --bg-danger-hover: #d32f2f;
-            --text-light: #f5f5f5; --text-dark: #212121; --text-subtle: #9e9e9e; --border-main: #9e9e9e;
-            --border-subtle: #616161; --border-focus: #f5f5f5; --btn-primary-bg: #4f4f4f;
-            --btn-primary-border: #9e9e9e; --btn-primary-hover-bg: #616161; --btn-primary-hover-border: #f5f5f5;
-            --btn-danger-bg: #b71c1c; --btn-danger-border: #9e9e9e; --btn-danger-hover-bg: #d32f2f;
-            --btn-danger-hover-border: #f5f5f5; --font-body: 'Roboto Condensed', sans-serif; --font-display: 'Roboto', sans-serif;
-            --header-height: 4rem; --sidebar-width: 220px;
-        }
-        body { background-color: var(--bg-main); color: var(--text-light); font-family: 'Inter', sans-serif; padding-top: var(--header-height); overflow-x: hidden; min-height: 100vh; display: flex; flex-direction: column; }
-        .app-header { position: fixed; top: 0; left: 0; right: 0; height: var(--header-height); z-index: 40; background-color: var(--bg-header); border-bottom: 2px solid var(--border-subtle); padding: 0.5rem 1rem; }
-        .app-header h1 { font-family: var(--font-display); }
-        .category-menu-button { background-color: var(--bg-section); border: 2px solid var(--border-main); transition: all 0.2s ease; }
-        .category-menu-button:hover { border-color: var(--border-focus); }
-        .category-dropdown-menu { background-color: var(--bg-section); border: 2px solid var(--border-main); max-height: 70vh; overflow-y: auto; }
-        .category-dropdown-menu a:hover { background-color: var(--bg-hover); }
-        .data-table thead { background-color: var(--bg-section); }
-        .data-table th { color: var(--text-subtle); font-family: var(--font-display); text-transform: uppercase; cursor: pointer; }
-        .data-table tbody { background-color: var(--bg-header); border-color: var(--border-subtle); }
-        .data-table tr { border-bottom: 1px solid var(--border-subtle); }
-        .data-table tr:hover { background-color: var(--bg-hover); }
-        .modal-backdrop { background-color: rgba(0,0,0,0.75); }
-        .modal-content { background-color: var(--bg-section); border: 2px solid var(--border-main); }
-        .modal-content h2 { font-family: var(--font-display); text-transform: uppercase; }
-        .global-form-label { color: var(--text-subtle); text-transform: uppercase; font-size: 0.8rem; margin-bottom: 0.25rem; display: block; }
-        .global-form-input { background-color: var(--bg-input); border: 1px solid var(--border-main); color: var(--text-light); width: 100%; padding: 0.5rem 0.75rem; border-radius: 0.25rem; transition: all 0.2s ease; }
-        .global-form-input:focus { outline: none; border-color: var(--border-focus); background-color: var(--bg-input-focus); }
-        .global-form-input.display-only-input { background-color: var(--bg-header); cursor: default; border-color: var(--border-subtle); }
-        .wiki-link { color: #63b3ed; text-decoration: underline; cursor: pointer; }
-        .wiki-link:hover { color: #90cdf4; }
-        .main-content-wrapper { flex-grow: 1; display: flex; flex-direction: row; align-items: stretch; width: 100%; }
-        .wiki-sidebar { position: fixed; left: 0; top: var(--header-height); bottom: 0; width: var(--sidebar-width); flex-shrink: 0; background-color: var(--bg-section); border-right: 2px solid var(--border-main); padding: 0.5rem; overflow-y: auto; z-index: 30; box-sizing: border-box; }
-        .wiki-sidebar h3 { font-family: var(--font-display); text-transform: uppercase; font-size: 1rem; margin-bottom: 0.5rem; color: var(--text-light); }
-        .wiki-sidebar ul { list-style: none; padding: 0; font-size: 0.85rem; }
-        .wiki-sidebar a { display: block; padding: 0.15rem 0.3rem; color: var(--text-light); text-decoration: none; border-radius: 0.25rem; }
-        .wiki-sidebar a:hover { background-color: var(--bg-hover); }
-        .wiki-tree-item { display: flex; align-items: center; gap: 0.5rem; }
-        .toggle-btn { background: none; border: none; color: var(--text-subtle); font-size: 0.8rem; cursor: pointer; padding: 0; width: 1.5rem; text-align: center; }
-        .wiki-tree-children { margin-left: 1rem; border-left: 1px solid var(--border-subtle); padding-left: 0.5rem; }
-        .wiki-content-area-wrapper { flex-grow: 1; margin-left: var(--sidebar-width); display: flex; flex-direction: column; padding: 1.5rem; }
-        .wiki-content { flex-grow: 1; background-color: var(--bg-section); border: 2px solid var(--border-main); border-radius: 0.25rem; padding: 1.5rem; overflow-y: auto; }
-        .wiki-content h2 { font-family: var(--font-display); font-size: 2.5rem; margin-bottom: 1rem; text-transform: uppercase; }
-        .wiki-content h3 { font-family: var(--font-display); font-size: 1.8rem; margin-top: 1.5rem; margin-bottom: 0.75rem; text-transform: uppercase; }
-        .btn { font-family: var(--font-body); font-weight: bold; padding: 0.75rem 1rem; border: 2px solid; border-radius: 5px; cursor: pointer; transition: all 0.2s ease-in-out; text-shadow: 1px 1px 2px #000; text-transform: uppercase; }
-        .btn:hover { text-shadow: none; }
-        .btn-primary { background-color: var(--btn-primary-bg); border-color: var(--btn-primary-border); color: var(--text-light); }
-        .btn-primary:hover { background-color: var(--btn-primary-hover-bg); border-color: var(--btn-primary-hover-border); }
-        .btn-danger { background-color: var(--bg-danger); border-color: var(--btn-danger-border); color: var(--text-light); }
-        .btn-danger:hover { background-color: var(--bg-danger-hover); border-color: var(--btn-danger-hover-border); }
-        .btn-secondary { background-color: var(--bg-section); border-color: var(--text-subtle); color: var(--text-light); }
-        .btn-secondary:hover { background-color: var(--bg-hover); border-color: var(--border-focus); }
-        .form-select-arrow { -webkit-appearance: none; -moz-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239CA3AF' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em; }
-        .loader { border: 2px solid #f3f3f3; border-top: 2px solid #6b7280; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .persona-folio-container { font-family: var(--font-body); max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.5rem; text-transform: none; }
-        .persona-folio-container .main-section { border: 2px solid var(--border-main); padding: 1.5rem; background-color: var(--bg-input); border-radius: 8px; }
-        .persona-folio-container .sheet-header { display: flex; justify-content: space-between; align-items: center; font-family: var(--font-display); border-bottom: 2px solid var(--border-subtle); margin-bottom: 1.5rem; padding-bottom: 1rem; }
-        .persona-folio-container .sheet-header h1 { margin: 0; flex-grow: 1; text-align: center; }
-        .file-menu { position: relative; }
-        .file-menu-button { font-family: var(--font-body); font-weight: bold; font-size: 0.9rem; padding: 0.5rem 1rem; border: 2px solid var(--border-main); border-radius: 5px; background-color: var(--bg-section); cursor: pointer; transition: all 0.2s ease-in-out; }
-        .file-menu-dropdown { display: none; position: absolute; right: 0; top: 100%; background-color: var(--bg-section); border: 2px solid var(--border-main); border-radius: 5px; padding: 0.5rem; z-index: 100; min-width: 200px; }
-        .file-menu-dropdown.show { display: block; }
-        .file-menu-dropdown button { display: block; width: 100%; text-align: left; background-color: var(--bg-input); color: var(--text-light); border-radius: 3px; border: none; padding: 0.5rem; cursor: pointer; }
-        .file-menu-dropdown button:hover:not(:disabled) { filter: brightness(1.2); }
-        .persona-folio-container fieldset { border: 2px solid var(--border-main); border-radius: 4px; padding: 1rem; margin: 0 0 1.5rem 0; }
-        .persona-folio-container legend { font-weight: bold; padding: 0 0.5rem; font-family: var(--font-display); text-transform: uppercase; }
-        .persona-folio-container input, .persona-folio-container select, .persona-folio-container textarea { width: 100%; padding: 0.5rem; border: 1.5px solid var(--border-main); border-radius: 4px; background-color: var(--bg-input); color: var(--text-light); font-family: var(--font-body); font-size: 1rem; }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; background-color: var(--bg-input); border-color: var(--border-subtle); }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <main id="main-content" class="w-full">
-        </main>
 
+    <main id="main-content" class="w-full">
+        <!-- App content will be rendered here by script.js -->
+    </main>
+
+    <!-- Modals and other fixed elements -->
     <div id="entry-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4 hidden modal-backdrop">
         <div class="modal-content w-3/4 max-w-6xl max-h-[90vh] overflow-y-auto flex flex-col">
-            <div class="p-8"><div class="flex justify-between items-center mb-6"><h2 id="modal-title" class="text-2xl font-bold">Manage Entry</h2><div class="file-menu"><button id="modal-data-btn" class="file-menu-button">DATA</button><div id="modal-data-dropdown" class="file-menu-dropdown"></div></div></div><form id="entry-form" onsubmit="handleFormSubmit(event)"><div id="form-fields" class="space-y-6"></div></form></div>
-        </div>
-    </div>
-    <div id="confirm-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4 hidden modal-backdrop">
-        <div class="modal-content w-full max-w-md p-8"><h2 id="confirm-title" class="text-xl font-bold mb-4">Are you sure?</h2><p id="confirm-message" class="text-gray-400 mb-6">This action cannot be undone.</p><div class="flex justify-end gap-2"><button id="confirm-cancel-btn" class="btn btn-secondary">CANCEL</button><button id="confirm-ok-btn" class="btn btn-danger">CONFIRM</button></div></div>
-    </div>
-    <div id="error-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4 hidden modal-backdrop">
-        <div class="modal-content w-full max-w-md p-8"><h2 class="text-xl font-bold mb-4 text-red-500">Error</h2><p id="error-message" class="text-gray-400 mb-6">Something went wrong.</p><div class="flex justify-end"><button id="error-ok-btn" class="btn btn-primary">OK</button></div></div>
-    </div>
-    <input type="file" id="json-file-input" class="hidden" accept=".json">
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, getDocs, getDoc, setDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
-
-        // --- Firebase Configuration ---
-        const firebaseConfig = {
-          apiKey: "AIzaSyBA1CC4SXXtWM9UpU1XkAiBFr0RIgrPwGk", // ⚠️ PASTE YOUR GEMINI API KEY HERE
-          authDomain: "tangent-rpg-dbm.firebaseapp.com",
-          projectId: "tangent-rpg-dbm",
-          storageBucket: "tangent-rpg-dbm.appspot.com",
-          messagingSenderId: "559983787369",
-          appId: "1:559983787369:web:d6f3b87daaa82b23d211f8",
-        };
-        const appId = firebaseConfig.appId;
-
-        // --- Firebase Initialization ---
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        // --- Application State ---
-        const appState = {
-            userId: null,
-            editingDocId: null,
-            confirmCallback: null,
-            currentCollection: null,
-        };
-        
-        // --- RPG System Configuration ---
-        const categoryConfig = {
-            other: { label: 'DASHBOARD', viewType: 'button_grid' },
-            persona_folio: { label: 'PERSONA FOLIO', viewType: 'folio_list' },
-            rules_codex: { label: 'RULES CODEX', viewType: 'wiki', fields: { name: { type: 'text', required: true }, description: { type: 'textarea', aiEnabled: true }, mechanic: { type: 'textarea' }, guide: { type: 'textarea' }, note: { type: 'textarea' }, parent: { type: 'select', source: 'rules_codex', label: 'Parent Entry'}, order: { type: 'number', label: 'Order', default: 0 }}},
-            species: { label: 'SPECIES', fields: { name: { type: 'text', required: true }, description: { type: 'textarea', aiEnabled: true }}},
-            factions: { label: 'FACTIONS', fields: { name: { type: 'text', required: true }, description: { type: 'textarea', aiEnabled: true }}},
-            origins: { label: 'ORIGINS', fields: { name: { type: 'text', required: true }, description: { type: 'textarea', aiEnabled: true }}},
-            occupations: { label: 'OCCUPATIONS', fields: { name: { type: 'text', required: true }, description: { type: 'textarea', aiEnabled: true }}},
-            // Add other categories as needed from your original config
-        };
-
-        // --- UI Elements ---
-        const mainContent = document.getElementById('main-content');
-        const entryModal = document.getElementById('entry-modal');
-        const modalTitle = document.getElementById('modal-title');
-        const formFieldsContainer = document.getElementById('form-fields');
-
-        // --- Navigation & Auth ---
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                appState.userId = user.uid;
-                handleNavigation();
-            } else {
-                signInAnonymously(auth).catch(error => console.error("Anonymous sign-in failed:", error));
-            }
-        });
-
-        window.onhashchange = handleNavigation;
-
-        function handleNavigation() {
-            const hash = window.location.hash.substring(1) || 'other';
-            const [view, id] = hash.split('/');
-            renderView(view, id);
-        }
-
-        function navigateTo(view, id = null) {
-            const newHash = id ? `${view}/${id}` : view;
-            if (window.location.hash.substring(1) !== newHash) {
-                window.location.hash = newHash;
-            } else {
-                renderView(view, id);
-            }
-        }
-        
-        function renderView(view, id) {
-            mainContent.innerHTML = ''; // Clear previous content
-            renderAppHeader(view);
-            const config = categoryConfig[view];
-            
-            appState.currentCollection = view;
-
-            if (view === 'persona_folio') {
-                renderPersonaFolioView(id);
-            } else if (config && config.viewType === 'folio_list') {
-                 renderFolioDirectory();
-            } else if (config && config.viewType === 'button_grid') {
-                renderButtonGridView();
-            } else if (config && config.viewType === 'wiki') {
-                // Simplified wiki view placeholder
-                 mainContent.innerHTML += `<div class="p-8"><h2 class="text-3xl font-bold uppercase">${config.label}</h2><p>Wiki view is under construction.</p></div>`;
-            } else if (config) {
-                renderTableView(view, config.label);
-            } else {
-                navigateTo('other'); // Default to dashboard if view is unknown
-            }
-        }
-        
-        function renderAppHeader(activeCategoryKey) {
-            const headerContainer = document.createElement('div');
-            let links = '';
-            Object.keys(categoryConfig).filter(k => k !== 'other').forEach(key => {
-                 links += `<a href="#${key}" class="block px-4 py-2 text-sm text-gray-300 hover:text-white">${categoryConfig[key].label}</a>`;
-            });
-            
-            headerContainer.innerHTML = `
-            <header class="app-header flex justify-between items-center gap-4">
-                <div class="flex-1">
-                     <a href="#other" class="btn btn-secondary">Dashboard</a>
-                </div>
-                <div class="text-center px-4">
-                    <h1 class="text-xl font-bold text-gray-100 whitespace-nowrap">TANGENT SFF RPG</h1>
-                    <p class="text-xs text-gray-400 uppercase">DATABASE MANAGER</p>
-                </div>
-                <div class="flex-1 flex justify-end">
-                    <div class="relative file-menu">
-                        <button class="file-menu-button">${(categoryConfig[activeCategoryKey] || {label: 'Menu'}).label}</button>
-                        <div class="file-menu-dropdown">${links}</div>
+            <div class="p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 id="modal-title" class="text-2xl font-bold">Manage Entry</h2>
+                    <div class="file-menu">
+                        <button id="modal-data-btn" class="file-menu-button">DATA</button>
+                        <div id="modal-data-dropdown" class="file-menu-dropdown">
+                            <!-- Dropdown content is generated dynamically -->
+                        </div>
                     </div>
                 </div>
-            </header>`;
-            mainContent.appendChild(headerContainer);
-            
-            const menuButton = headerContainer.querySelector('.file-menu-button');
-            const dropdown = headerContainer.querySelector('.file-menu-dropdown');
-            menuButton.addEventListener('click', (e) => {
-                e.stopPropagation();
-                dropdown.classList.toggle('show');
-            });
-            document.body.addEventListener('click', () => dropdown.classList.remove('show'), true);
-        }
+                <form id="entry-form" onsubmit="handleFormSubmit(event)">
+                    <div id="form-fields" class="space-y-6">
+                        <!-- Form fields are generated dynamically -->
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div id="summary-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4 hidden modal-backdrop">
+        <div class="modal-content w-full max-w-4xl p-8 max-h-[90vh] overflow-y-auto">
+            <h2 id="summary-title" class="text-2xl font-bold mb-6">Summary</h2>
+            <div id="summary-content" class="space-y-4 text-gray-300 normal-case"></div>
+            <div class="flex justify-end mt-8">
+                <button id="summary-close-btn" class="btn btn-primary">Close</button>
+            </div>
+        </div>
+    </div>
 
-        // --- View Renderers ---
-        function renderButtonGridView() {
-            let buttonsHtml = '';
-            for (const key in categoryConfig) {
-                buttonsHtml += `<a href="#${key}" class="btn btn-primary">${categoryConfig[key].label}</a>`;
-            }
-            mainContent.innerHTML += `<div class="p-8 grid grid-cols-2 md:grid-cols-4 gap-4">${buttonsHtml}</div>`;
-        }
+    <div id="confirm-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4 hidden modal-backdrop">
+        <div class="modal-content w-full max-w-md p-8">
+            <h2 class="text-xl font-bold mb-4">Are you sure?</h2>
+            <p id="confirm-message" class="text-gray-400 mb-6">This action cannot be undone.</p>
+            <div class="flex justify-end gap-2">
+                <button id="confirm-cancel-btn" class="btn btn-secondary">CANCEL</button>
+                <button id="confirm-ok-btn" class="btn btn-danger">CONFIRM</button>
+            </div>
+        </div>
+    </div>
 
-        async function renderTableView(collectionKey, title) {
-            const content = document.createElement('div');
-            content.className = 'p-8';
-            content.innerHTML = `
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-3xl font-bold uppercase">${title}</h2>
-                    <button id="add-new-entry-btn" class="btn btn-primary">Add New</button>
-                </div>
-                <div class="shadow-lg rounded-lg overflow-x-auto">
-                    <table class="data-table w-full">
-                        <thead id="table-header"></thead>
-                        <tbody id="table-body"></tbody>
-                    </table>
-                </div>`;
-            mainContent.appendChild(content);
+    <div id="unsaved-changes-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4 hidden modal-backdrop">
+        <div class="modal-content w-full max-w-lg p-8">
+            <h2 class="text-xl font-bold mb-4">Unsaved Changes</h2>
+            <p class="text-gray-400 mb-6">You have unsaved changes. Do you want to save them before continuing?</p>
+            <div class="flex justify-end gap-3">
+                <button id="unsaved-cancel-btn" class="btn btn-secondary">CANCEL</button>
+                <button id="unsaved-dismiss-btn" class="btn btn-danger">DISMISS CHANGES</button>
+                <button id="unsaved-save-btn" class="btn btn-primary">SAVE & CONTINUE</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="error-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4 hidden modal-backdrop">
+        <div class="modal-content w-full max-w-md p-8">
+            <h2 class="text-xl font-bold mb-4 text-red-500">Error</h2>
+            <p id="error-message" class="text-gray-400 mb-6">Something went wrong.</p>
+            <div class="flex justify-end">
+                <button id="error-ok-btn" class="btn btn-primary">OK</button>
+            </div>
+        </div>
+    </div>
 
-            document.getElementById('add-new-entry-btn').onclick = () => openModal(null, {}, collectionKey);
-            listenForData(collectionKey);
-        }
+    <div id="help-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4 hidden modal-backdrop">
+        <div class="modal-content w-3/4 max-w-4xl max-h-[90vh] overflow-y-auto p-8">
+            <h2 class="text-3xl font-bold mb-6 text-center">User Guide</h2>
+            <div id="help-content" class="prose prose-invert max-w-none text-gray-300 normal-case space-y-4">
+            </div>
+            <div class="text-center font-bold text-sm pt-8 mt-6 border-t border-gray-600 normal-case" style="color: var(--text-subtle)">
+                Wolfe.BT@TangentLLC
+            </div>
+            <div class="flex justify-end mt-8">
+                <button id="help-close-btn" class="btn btn-primary">Close</button>
+            </div>
+        </div>
+    </div>
 
-        async function renderFolioDirectory() {
-            const content = document.createElement('div');
-            content.className = 'p-8';
-            content.innerHTML = `
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-3xl font-bold uppercase">Persona Folios</h2>
-                    <button id="new-folio-btn" class="btn btn-primary">New Folio</button>
-                </div>
-                <div id="folio-list" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>`;
-            mainContent.appendChild(content);
-            document.getElementById('new-folio-btn').onclick = () => navigateTo('persona_folio');
-            
-            const q = query(collection(db, `artifacts/${appId}/public/data/persona_folio`), orderBy('char-name', 'asc'));
-            onSnapshot(q, (snapshot) => {
-                const list = document.getElementById('folio-list');
-                if(!list) return;
-                list.innerHTML = '';
-                snapshot.forEach(doc => {
-                    const folio = doc.data();
-                    const card = document.createElement('a');
-                    card.href = `#persona_folio/${doc.id}`;
-                    card.className = 'block bg-gray-800 p-4 rounded-lg shadow-lg hover:bg-gray-700';
-                    card.innerHTML = `<h3 class="text-xl font-bold">${folio['char-name'] || 'Unnamed'}</h3><p class="text-sm text-gray-400 mt-2">${folio['char-concept'] || 'No concept.'}</p>`;
-                    list.appendChild(card);
-                });
-            });
-        }
-        
-        async function renderPersonaFolioView(docId) {
-            const container = document.createElement('div');
-            container.className = 'p-4 md:p-8';
-            mainContent.appendChild(container);
+    <div id="custom-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-[60] p-4 hidden modal-backdrop">
+        <div class="modal-content w-full max-w-md p-8 text-center">
+            <p id="modal-text" class="text-gray-200 mb-4 uppercase"></p>
+            <div id="modal-auth-form" class="flex flex-col gap-2" style="display: none;">
+                <input type="email" id="modal-email" placeholder="Email" class="global-form-input">
+                <input type="password" id="modal-password" placeholder="Password" class="global-form-input">
+                <div class="text-red-500 h-5 text-sm" id="modal-error-text"></div>
+            </div>
+            <div id="modal-choices" class="flex flex-col gap-2 max-h-48 overflow-y-auto mt-4"></div>
+            <input type="text" id="modal-input" style="display: none;" class="global-form-input">
+            <div class="flex justify-center gap-4 flex-wrap mt-4">
+                <button id="modal-google-btn" style="display: none;" class="btn btn-primary">
+                    Sign in with Google
+                </button>
+                <button id="modal-register-btn" style="display: none;" class="btn btn-primary">Register</button>
+                <button id="modal-login-btn" style="display: none;" class="btn btn-primary">Login</button>
+                <button id="modal-copy-btn" style="display: none;" class="btn btn-primary">Copy</button>
+                <button id="modal-ok-btn" class="btn btn-primary">OK</button>
+                <button id="modal-cancel-btn" style="display: none;" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <input type="file" id="json-file-input" class="hidden" accept=".json">
 
-            let folioData = {};
-            if(docId) {
-                const docRef = doc(db, `artifacts/${appId}/public/data/persona_folio`, docId);
-                const docSnap = await getDoc(docRef);
-                folioData = docSnap.exists() ? docSnap.data() : {};
-            }
-            
-            container.innerHTML = `
-                <div class="persona-folio-container">
-                    <form id="persona-folio-form">
-                        <div class="sheet-header">
-                            <a href="#persona_folio" class="btn btn-secondary">Back to List</a>
-                            <h1>Persona Folio</h1>
-                            <div class="file-menu">
-                                <button type="button" id="save-folio-btn" class="btn btn-primary">Save Folio</button>
-                            </div>
-                        </div>
-                        <fieldset class="main-section">
-                            <legend>Bio</legend>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div class="input-group"><label for="char-name">Name</label><input type="text" id="char-name" name="char-name" value="${folioData['char-name'] || ''}"></div>
-                                <div class="input-group"><label for="char-concept">Concept</label><input type="text" id="char-concept" name="char-concept" value="${folioData['char-concept'] || ''}"></div>
-                                <div class="input-group"><label for="char-species">Species</label><input type="text" id="char-species" name="char-species" value="${folioData['char-species'] || ''}"></div>
-                                <div class="input-group"><label for="char-occu">Occupation</label><input type="text" id="char-occu" name="char-occu" value="${folioData['char-occu'] || ''}"></div>
-                            </div>
-                        </fieldset>
-                    </form>
-                </div>`;
-            
-            document.getElementById('save-folio-btn').addEventListener('click', async () => {
-                const form = document.getElementById('persona-folio-form');
-                const formData = new FormData(form);
-                const data = Object.fromEntries(formData.entries());
-                
-                try {
-                    const collectionPath = `artifacts/${appId}/public/data/persona_folio`;
-                    if (docId) {
-                        await setDoc(doc(db, collectionPath, docId), data);
-                        alert('Folio Updated!');
-                    } else {
-                        const newDocRef = await addDoc(collection(db, collectionPath), data);
-                        alert('Folio Created!');
-                        navigateTo('persona_folio', newDocRef.id);
-                    }
-                } catch (error) {
-                    showError(`Failed to save folio. Check console and security rules. Error: ${error.message}`);
-                }
-            });
-        }
-
-        // --- Data Handling & Modals ---
-        function listenForData(collectionKey) {
-            const q = query(collection(db, `artifacts/${appId}/public/data/${collectionKey}`), orderBy('name', 'asc'));
-            onSnapshot(q, (snapshot) => {
-                const tableHeader = document.getElementById('table-header');
-                const tableBody = document.getElementById('table-body');
-                if(!tableBody) return;
-                
-                tableBody.innerHTML = '';
-                if (snapshot.empty) {
-                    tableBody.innerHTML = `<tr><td colspan="2" class="text-center p-4">No entries found.</td></tr>`;
-                    return;
-                }
-                
-                const firstDocData = snapshot.docs[0].data();
-                const headers = Object.keys(firstDocData).filter(k => typeof firstDocData[k] === 'string' || typeof firstDocData[k] === 'number').slice(0, 4);
-                if (tableHeader) tableHeader.innerHTML = `<tr>${headers.map(h => `<th class="px-6 py-3 text-left">${h.replace(/_/g, ' ')}</th>`).join('')}</tr>`;
-                
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    const row = document.createElement('tr');
-                    row.className = 'cursor-pointer hover:bg-gray-700';
-                    row.onclick = () => openModal(doc.id, data, collectionKey);
-                    row.innerHTML = headers.map(header => `<td class="px-6 py-4 whitespace-nowrap">${data[header] || ''}</td>`).join('');
-                    tableBody.appendChild(row);
-                });
-            });
-        }
-
-        async function openModal(docId, data, collectionKey) {
-            appState.editingDocId = docId;
-            const config = categoryConfig[collectionKey] || {};
-            modalTitle.textContent = `${docId ? 'Edit' : 'Add'} ${config.label || collectionKey}`;
-
-            let fieldsHtml = '';
-            const fields = config.fields || { name: { type: 'text' }, description: { type: 'textarea' } };
-            for (const key in fields) {
-                const value = data[key] || '';
-                fieldsHtml += `<div><label for="${key}" class="global-form-label">${key.replace(/_/g, ' ')}</label>`;
-                fieldsHtml += fields[key].type === 'textarea'
-                    ? `<textarea id="${key}" name="${key}" class="global-form-input" rows="4">${value}</textarea>`
-                    : `<input type="text" id="${key}" name="${key}" value="${value}" class="global-form-input">`;
-                fieldsHtml += `</div>`;
-            }
-            formFieldsContainer.innerHTML = fieldsHtml;
-
-            const dropdown = document.getElementById('modal-data-dropdown');
-            dropdown.innerHTML = `
-                <button type="submit" form="entry-form" class="w-full text-left">Save</button>
-                <button type="button" id="modal-delete-btn" class="w-full text-left text-red-400 ${!docId ? 'hidden' : ''}">Delete</button>
-                <button type="button" id="modal-cancel-btn" class="w-full text-left">Cancel</button>
-            `;
-            
-            document.getElementById('modal-cancel-btn').onclick = closeModal;
-            if(docId) {
-                document.getElementById('modal-delete-btn').onclick = () => deleteEntry(docId, collectionKey);
-            }
-            
-            entryModal.classList.remove('hidden');
-        }
-
-        window.handleFormSubmit = async (event) => {
-            event.preventDefault();
-            const formData = new FormData(event.target);
-            const data = Object.fromEntries(formData.entries());
-            const collectionPath = `artifacts/${appId}/public/data/${appState.currentCollection}`;
-            try {
-                if (appState.editingDocId) {
-                    await setDoc(doc(db, collectionPath, appState.editingDocId), data, { merge: true });
-                } else {
-                    await addDoc(collection(db, collectionPath), data);
-                }
-                closeModal();
-            } catch (error) {
-                showError(`Failed to save. Check console and security rules. Error: ${error.message}`);
-            }
-        };
-
-        function deleteEntry(docId, collectionKey) {
-            showConfirm("Are you sure you want to delete this entry?", async () => {
-                try {
-                    await deleteDoc(doc(db, `artifacts/${appId}/public/data/${collectionKey}`, docId));
-                    closeModal();
-                } catch (error) {
-                    showError(`Failed to delete. Check console and security rules. Error: ${error.message}`);
-                }
-            });
-        }
-        
-        function closeModal() {
-            entryModal.classList.add('hidden');
-            appState.editingDocId = null;
-        }
-
-        function showError(message) {
-            const modal = document.getElementById('error-modal');
-            modal.querySelector('#error-message').textContent = message;
-            modal.classList.remove('hidden');
-            modal.querySelector('#error-ok-btn').onclick = () => modal.classList.add('hidden');
-        }
-
-        function showConfirm(message, onConfirm) {
-            const modal = document.getElementById('confirm-modal');
-            modal.querySelector('#confirm-message').textContent = message;
-            appState.confirmCallback = onConfirm;
-            modal.classList.remove('hidden');
-        }
-
-        document.getElementById('confirm-ok-btn').onclick = () => {
-            if (appState.confirmCallback) appState.confirmCallback();
-            document.getElementById('confirm-modal').classList.add('hidden');
-        };
-        document.getElementById('confirm-cancel-btn').onclick = () => {
-            document.getElementById('confirm-modal').classList.add('hidden');
-        };
-    </script>
+    <script type="module" src="script.js"></script>
 </body>
 </html>
