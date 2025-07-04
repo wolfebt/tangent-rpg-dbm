@@ -1,0 +1,23 @@
+    rules_version = '2';
+    service cloud.firestore {
+      match /databases/{database}/documents {
+
+        // Public data (game rules, items, species, etc.) is readable by anyone,
+        // but only authenticated users (like you, the admin) can write to it.
+        match /artifacts/{appId}/public/data/{category}/{docId} {
+          allow read: if true;
+          allow write: if request.auth != null && request.auth.token.email != null; // Or use a specific admin UID
+        }
+
+        // Persona Folios are private.
+        // A user can only read and write their own character sheets.
+        match /artifacts/{appId}/users/{userId}/persona_folio/{folioId} {
+           allow read, write: if request.auth != null && request.auth.uid == userId;
+        }
+
+        // Default deny all other access
+        match /{path=**} {
+          allow read, write: if false;
+        }
+      }
+    }

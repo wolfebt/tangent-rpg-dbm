@@ -1,12 +1,18 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, addDoc, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, addDoc, collection, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
 // --- Firebase Configuration ---
-// NOTE: This assumes firebaseConfig and appId are available globally or are replaced during a build step.
-// For a real-world scenario, you might use environment variables.
-const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "YOUR_API_KEY", authDomain: "...", projectId: "..." };
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-tangent-rpg-app';
+const firebaseConfig = {
+  apiKey: "AIzaSyBA1CC4SXXtWM9UpU1XkAiBFr0RIgrPwGk",
+  authDomain: "tangent-rpg-dbm.firebaseapp.com",
+  projectId: "tangent-rpg-dbm",
+  storageBucket: "tangent-rpg-dbm.appspot.com",
+  messagingSenderId: "559983787369",
+  appId: "1:559983787369:web:d6f3b87daaa82b23d211f8",
+  measurementId: "G-G6NC09PXPC"
+};
+const appId = firebaseConfig.appId;
 
 // --- Firebase Initialization ---
 const app = initializeApp(firebaseConfig);
@@ -65,7 +71,7 @@ function renderPersonaFolioView(container, folioData = {}) {
                             <button type="button" id="save-to-db-btn">Save to Database</button>
                             <button type="button" id="local-save-btn">Save to File</button>
                             <button type="button" id="local-load-btn">Load from File</button>
-                            <button type="button" id="back-to-manager-btn">Back to Manager</button>
+                            <a href="database_manager.html" class="btn btn-secondary !w-full !text-left !px-2 !py-1">Back to Manager</a>
                         </div>
                     </div>
                 </header>
@@ -93,7 +99,8 @@ function renderPersonaFolioView(container, folioData = {}) {
                     </fieldset>
                 </section>
                 
-                </form>
+                <!-- Other sections like attributes, stats, skills, etc. -->
+            </form>
         </div>
     `;
 

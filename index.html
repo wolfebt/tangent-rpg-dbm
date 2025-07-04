@@ -12,7 +12,8 @@
 <body>
 
     <main id="main-content" class="w-full">
-        </main>
+        <!-- Main content will be rendered here by JavaScript -->
+    </main>
 
 
     <div id="entry-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4 hidden modal-backdrop">
@@ -117,8 +118,16 @@
         import { getFirestore, doc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, getDocs, getDoc, setDoc, setLogLevel, serverTimestamp, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
         // --- Firebase Configuration ---
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "YOUR_API_KEY", authDomain: "...", projectId: "..." };
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-tangent-rpg-app';
+        const firebaseConfig = {
+          apiKey: "AIzaSyBA1CC4SXXtWM9UpU1XkAiBFr0RIgrPwGk",
+          authDomain: "tangent-rpg-dbm.firebaseapp.com",
+          projectId: "tangent-rpg-dbm",
+          storageBucket: "tangent-rpg-dbm.appspot.com",
+          messagingSenderId: "559983787369",
+          appId: "1:559983787369:web:d6f3b87daaa82b23d211f8",
+          measurementId: "G-G6NC09PXPC"
+        };
+        const appId = firebaseConfig.appId;
 
         // --- Firebase Initialization ---
         const app = initializeApp(firebaseConfig);
@@ -1179,7 +1188,8 @@
                     <a href="persona_folio.html" class="btn btn-primary">New Folio</a>
                 </div>
                 <div id="folio-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    </div>
+                    <!-- Folio cards will be inserted here -->
+                </div>
             `;
             listenForFolios();
         }
@@ -1453,10 +1463,13 @@
         function renderWikiView(container) { /* `container` is now `contentArea` from renderCategoryView */
             container.innerHTML = `
                 <div class="wiki-sidebar" id="wiki-sidebar">
-                    <h3>Rules Codex</h3> <button id="add-wiki-entry-btn" class="btn btn-primary w-full mb-4">Add New Entry</button>
+                    <h3>Rules Codex</h3> <!-- Changed title here -->
+                    <button id="add-wiki-entry-btn" class="btn btn-primary w-full mb-4">Add New Entry</button>
                     <ul id="wiki-directory-list"></ul>
                 </div>
-                <div class="wiki-content-area-wrapper"> <div class="flex justify-end gap-2 mb-4"> <button id="wiki-edit-btn" class="btn btn-secondary" style="display:none;">Edit</button>
+                <div class="wiki-content-area-wrapper"> <!-- New wrapper for main content and buttons -->
+                    <div class="flex justify-end gap-2 mb-4"> <!-- Buttons here -->
+                        <button id="wiki-edit-btn" class="btn btn-secondary" style="display:none;">Edit</button>
                         <button id="wiki-delete-btn" class="btn btn-danger" style="display:none;">Delete</button>
                     </div>
                     <div class="wiki-content" id="wiki-content">
