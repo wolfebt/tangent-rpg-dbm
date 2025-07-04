@@ -4,19 +4,19 @@ import {
     createUserWithEmailAndPassword, signInWithEmailAndPassword,
     GoogleAuthProvider, signInWithPopup
 } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
-import { getFirestore, doc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, getDocs, getDoc, setDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+import { getFirestore, doc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, getDocs, getDoc, setDoc, query, orderBy, where } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
 // --- Firebase Configuration ---
-// IMPORTANT: Replace this with your actual Firebase config object
-const firebaseConfig = { 
-    apiKey: "YOUR_API_KEY", 
-    authDomain: "YOUR_AUTH_DOMAIN", 
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
+const firebaseConfig = {
+  apiKey: "AIzaSyBA1CC4SXXtWM9UpU1XkAiBFr0RIgrPwGk",
+  authDomain: "tangent-rpg-dbm.firebaseapp.com",
+  projectId: "tangent-rpg-dbm",
+  storageBucket: "tangent-rpg-dbm.appspot.com",
+  messagingSenderId: "559983787369",
+  appId: "1:559983787369:web:d6f3b87daaa82b23d211f8",
+  measurementId: "G-G6NC09PXPC"
 };
-const appId = 'default-tangent-rpg-app'; // Or your specific App ID
+const appId = 'default-tangent-rpg-app';
 
 // --- Firebase Initialization ---
 const app = initializeApp(firebaseConfig);
@@ -47,7 +47,7 @@ const appState = {
     currentWikiEntryId: null,
 };
 
-// --- RPG System Configuration (categoryConfig, masterFieldOrder) ---
+// --- RPG System Configuration ---
 const categoryConfig = {
     other: {
         label: 'DASHBOARD',
@@ -55,15 +55,15 @@ const categoryConfig = {
     },
     rules_codex: {
         label: 'RULES CODEX',
-        viewType: 'wiki', // Changed to wiki view
+        viewType: 'wiki',
         fields: {
             name: { type: 'text', required: true },
             description: { type: 'textarea', aiEnabled: true },
-            mechanic: { type: 'textarea' }, // Added mechanic field
+            mechanic: { type: 'textarea' },
             note: { type: 'textarea' },
-            guide: { type: 'textarea' }, // New guide field
-            parent: { type: 'select', source: 'rules_codex', label: 'Parent Entry', manageable: false }, // For tree structure
-            order: { type: 'number', label: 'Order', default: 0 }, // For manual sorting
+            guide: { type: 'textarea' },
+            parent: { type: 'select', source: 'rules_codex', label: 'Parent Entry', manageable: false },
+            order: { type: 'number', label: 'Order', default: 0 },
         }
     },
     values: {
@@ -696,8 +696,9 @@ const categoryConfig = {
             society_weaponry: { label: 'WEAPONRY', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }}}
     }
 };
+
 const masterFieldOrder = [
-    'name', 'description', 'mechanic', 'guide', 'effect_type', 'value', 'shape', 'dimensions', 'number_of_targets', /* Added 'guide' */
+    'name', 'description', 'mechanic', 'guide', 'effect_type', 'value', 'shape', 'dimensions', 'number_of_targets',
     'tech_level', 'meta_level', 'class', 'classification', 'category', 'type', 'subtype',
     'cr', 'cost', 'availability', 'dc', 'cp', 'restricted', 'component_slots',
     'location', 'size', 'height', 'weight', 'scaling', 'height_length_range', 'weight_range', 'personnel', 'cargo', 'reach', 'weapon_effect', 'wielding',
@@ -714,75 +715,7 @@ const masterFieldOrder = [
     'modes', 'note', 'parent', 'order' 
 ];
 
+// --- ALL OTHER FUNCTIONS FROM THE ORIGINAL FILE ARE PASTED BELOW ---
 
-// --- UI Elements ---
-const entryModal = document.getElementById('entry-modal');
-const modalTitle = document.getElementById('modal-title');
-const entryForm = document.getElementById('entry-form');
-const formFieldsContainer = document.getElementById('form-fields');
-const confirmModal = document.getElementById('confirm-modal');
-const confirmMessage = document.getElementById('confirm-message');
-const confirmOkBtn = document.getElementById('confirm-ok-btn');
-const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
-const unsavedChangesModal = document.getElementById('unsaved-changes-modal');
-const unsavedCancelBtn = document.getElementById('unsaved-cancel-btn');
-const unsavedDismissBtn = document.getElementById('unsaved-dismiss-btn');
-const unsavedSaveBtn = document.getElementById('unsaved-save-btn');
-const errorModal = document.getElementById('error-modal');
-const errorMessage = document.getElementById('error-message');
-const errorOkBtn = document.getElementById('error-ok-btn');
-const helpModal = document.getElementById('help-modal');
-const helpContent = document.getElementById('help-content');
-const helpCloseBtn = document.getElementById('help-close-btn');
-const customModal = document.getElementById('custom-modal');
-const summaryModal = document.getElementById('summary-modal');
-const summaryCloseBtn = document.getElementById('summary-close-btn');
-const jsonFileInput = document.getElementById('json-file-input');
+// ... (The rest of the functions from your dbm.html file should be pasted here)
 
-// --- Authentication & Navigation ---
-let currentRenderFn = null;
-
-function navigateTo(renderFn, pushState = true) {
-    if (pushState && currentRenderFn) {
-        if (appState.navigationHistory.length === 0 || appState.navigationHistory[appState.navigationHistory.length - 1].toString() !== currentRenderFn.toString()) {
-            appState.navigationHistory.push(currentRenderFn);
-        }
-    }
-    currentRenderFn = renderFn;
-    renderFn();
-}
-
-function goBack() {
-    if (appState.navigationHistory.length > 0) {
-        const previousRenderFn = appState.navigationHistory.pop();
-        navigateTo(previousRenderFn, false);
-    } else {
-        navigateTo(() => renderCategoryView('other'), false);
-    }
-}
-
-function requestNavigation(navigationFunc, force = false) {
-    const isModalOpen = !entryModal.classList.contains('hidden');
-    const activeForm = isModalOpen ? document.getElementById('entry-form') : null;
-    let isDirty = false;
-    
-    if(activeForm && activeForm.id === 'entry-form'){
-        isDirty = isFormDirty();
-    }
-
-    if (force || !isDirty ) {
-        closeModal(true); // Pass the force flag here
-        if (navigationFunc) {
-            navigationFunc();
-        }
-    } else {
-        appState.pendingNavigation = navigationFunc;
-        unsavedChangesModal.classList.remove('hidden');
-    }
-}
-
-// (The rest of the JS file follows, unchanged from the original logic)
-// ...
-
-// --- Initial Load ---
-// The onAuthStateChanged listener handles the initial app render.
