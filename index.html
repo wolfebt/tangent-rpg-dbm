@@ -104,7 +104,7 @@
 
         // --- Firebase Configuration ---
         const firebaseConfig = {
-          apiKey: "AIzaSyBA1CC4SXXtWM9UpU1XkAiBFr0RIgrPwGk", // Replace with your actual API key
+          apiKey: "AIzaSyBA1CC4SXXtWM9UpU1XkAiBFr0RIgrPwGk", // ⚠️ PASTE YOUR GEMINI API KEY HERE
           authDomain: "tangent-rpg-dbm.firebaseapp.com",
           projectId: "tangent-rpg-dbm",
           storageBucket: "tangent-rpg-dbm.appspot.com",
@@ -126,7 +126,7 @@
             currentCollection: null,
         };
         
-        // --- RPG System Configuration (abbreviated for brevity) ---
+        // --- RPG System Configuration ---
         const categoryConfig = {
             other: { label: 'DASHBOARD', viewType: 'button_grid' },
             persona_folio: { label: 'PERSONA FOLIO', viewType: 'folio_list' },
@@ -135,80 +135,76 @@
             factions: { label: 'FACTIONS', fields: { name: { type: 'text', required: true }, description: { type: 'textarea', aiEnabled: true }}},
             origins: { label: 'ORIGINS', fields: { name: { type: 'text', required: true }, description: { type: 'textarea', aiEnabled: true }}},
             occupations: { label: 'OCCUPATIONS', fields: { name: { type: 'text', required: true }, description: { type: 'textarea', aiEnabled: true }}},
-            // ... Add other categories as needed
+            // Add other categories as needed from your original config
         };
 
         // --- UI Elements ---
         const mainContent = document.getElementById('main-content');
         const entryModal = document.getElementById('entry-modal');
         const modalTitle = document.getElementById('modal-title');
-        const entryForm = document.getElementById('entry-form');
         const formFieldsContainer = document.getElementById('form-fields');
 
-        // --- Authentication ---
+        // --- Navigation & Auth ---
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 appState.userId = user.uid;
-                if (!window.location.hash) {
-                    navigateTo('other');
-                } else {
-                    const hash = window.location.hash.substring(1);
-                    const [view, id] = hash.split('/');
-                    navigateTo(view, id);
-                }
+                handleNavigation();
             } else {
                 signInAnonymously(auth).catch(error => console.error("Anonymous sign-in failed:", error));
             }
         });
 
-        window.onhashchange = () => {
-            const hash = window.location.hash.substring(1);
-            const [view, id] = hash.split('/');
-            navigateTo(view || 'other', id);
-        };
+        window.onhashchange = handleNavigation;
 
-        function navigateTo(view, id = null) {
-            window.location.hash = id ? `${view}/${id}` : view;
+        function handleNavigation() {
+            const hash = window.location.hash.substring(1) || 'other';
+            const [view, id] = hash.split('/');
             renderView(view, id);
         }
 
+        function navigateTo(view, id = null) {
+            const newHash = id ? `${view}/${id}` : view;
+            if (window.location.hash.substring(1) !== newHash) {
+                window.location.hash = newHash;
+            } else {
+                renderView(view, id);
+            }
+        }
+        
         function renderView(view, id) {
-            mainContent.innerHTML = '';
+            mainContent.innerHTML = ''; // Clear previous content
             renderAppHeader(view);
             const config = categoryConfig[view];
-            if (!config) {
-                view = 'other'; // Default to dashboard
-            }
-
+            
             appState.currentCollection = view;
 
-            if (view === 'persona_folio' && id) {
+            if (view === 'persona_folio') {
                 renderPersonaFolioView(id);
-            } else if (config.viewType === 'folio_list') {
-                renderFolioDirectory();
-            } else if (config.viewType === 'button_grid') {
+            } else if (config && config.viewType === 'folio_list') {
+                 renderFolioDirectory();
+            } else if (config && config.viewType === 'button_grid') {
                 renderButtonGridView();
-            } else if (config.viewType === 'wiki') {
-                renderWikiView();
-            } else {
+            } else if (config && config.viewType === 'wiki') {
+                // Simplified wiki view placeholder
+                 mainContent.innerHTML += `<div class="p-8"><h2 class="text-3xl font-bold uppercase">${config.label}</h2><p>Wiki view is under construction.</p></div>`;
+            } else if (config) {
                 renderTableView(view, config.label);
+            } else {
+                navigateTo('other'); // Default to dashboard if view is unknown
             }
         }
         
         function renderAppHeader(activeCategoryKey) {
-            const headerContainer = document.createElement('header');
-            headerContainer.className = 'app-header flex justify-between items-center gap-4';
+            const headerContainer = document.createElement('div');
             let links = '';
-            for (const key in categoryConfig) {
-                if (key !== 'other') { // Exclude dashboard from dropdown to make it the main link
-                    links += `<a href="#${key}" class="block px-4 py-2 text-sm text-gray-300 hover:text-white">${categoryConfig[key].label}</a>`;
-                }
-            }
+            Object.keys(categoryConfig).filter(k => k !== 'other').forEach(key => {
+                 links += `<a href="#${key}" class="block px-4 py-2 text-sm text-gray-300 hover:text-white">${categoryConfig[key].label}</a>`;
+            });
+            
             headerContainer.innerHTML = `
+            <header class="app-header flex justify-between items-center gap-4">
                 <div class="flex-1">
-                    <div class="relative file-menu">
-                        <a href="#other" class="btn btn-secondary">Dashboard</a>
-                    </div>
+                     <a href="#other" class="btn btn-secondary">Dashboard</a>
                 </div>
                 <div class="text-center px-4">
                     <h1 class="text-xl font-bold text-gray-100 whitespace-nowrap">TANGENT SFF RPG</h1>
@@ -220,16 +216,16 @@
                         <div class="file-menu-dropdown">${links}</div>
                     </div>
                 </div>
-            `;
+            </header>`;
             mainContent.appendChild(headerContainer);
-            // Add click listeners for dropdown
+            
             const menuButton = headerContainer.querySelector('.file-menu-button');
             const dropdown = headerContainer.querySelector('.file-menu-dropdown');
             menuButton.addEventListener('click', (e) => {
                 e.stopPropagation();
                 dropdown.classList.toggle('show');
             });
-            document.body.addEventListener('click', () => dropdown.classList.remove('show'));
+            document.body.addEventListener('click', () => dropdown.classList.remove('show'), true);
         }
 
         // --- View Renderers ---
@@ -258,7 +254,6 @@
             mainContent.appendChild(content);
 
             document.getElementById('add-new-entry-btn').onclick = () => openModal(null, {}, collectionKey);
-            
             listenForData(collectionKey);
         }
 
@@ -268,10 +263,11 @@
             content.innerHTML = `
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-3xl font-bold uppercase">Persona Folios</h2>
-                    <a href="#persona_folio" class="btn btn-primary">New Folio</a>
+                    <button id="new-folio-btn" class="btn btn-primary">New Folio</button>
                 </div>
                 <div id="folio-list" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>`;
             mainContent.appendChild(content);
+            document.getElementById('new-folio-btn').onclick = () => navigateTo('persona_folio');
             
             const q = query(collection(db, `artifacts/${appId}/public/data/persona_folio`), orderBy('char-name', 'asc'));
             onSnapshot(q, (snapshot) => {
@@ -298,13 +294,7 @@
             if(docId) {
                 const docRef = doc(db, `artifacts/${appId}/public/data/persona_folio`, docId);
                 const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    folioData = docSnap.data();
-                } else {
-                    showError("Folio not found.");
-                    navigateTo('persona_folio'); // Go back to list
-                    return;
-                }
+                folioData = docSnap.exists() ? docSnap.data() : {};
             }
             
             container.innerHTML = `
@@ -319,14 +309,14 @@
                         </div>
                         <fieldset class="main-section">
                             <legend>Bio</legend>
-                            <div class="grid grid-cols-2 gap-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div class="input-group"><label for="char-name">Name</label><input type="text" id="char-name" name="char-name" value="${folioData['char-name'] || ''}"></div>
                                 <div class="input-group"><label for="char-concept">Concept</label><input type="text" id="char-concept" name="char-concept" value="${folioData['char-concept'] || ''}"></div>
                                 <div class="input-group"><label for="char-species">Species</label><input type="text" id="char-species" name="char-species" value="${folioData['char-species'] || ''}"></div>
                                 <div class="input-group"><label for="char-occu">Occupation</label><input type="text" id="char-occu" name="char-occu" value="${folioData['char-occu'] || ''}"></div>
                             </div>
                         </fieldset>
-                        </form>
+                    </form>
                 </div>`;
             
             document.getElementById('save-folio-btn').addEventListener('click', async () => {
@@ -342,16 +332,15 @@
                     } else {
                         const newDocRef = await addDoc(collection(db, collectionPath), data);
                         alert('Folio Created!');
-                        navigateTo('persona_folio', newDocRef.id); // Navigate to the new folio
+                        navigateTo('persona_folio', newDocRef.id);
                     }
                 } catch (error) {
-                    console.error("Error saving folio:", error);
-                    showError("Failed to save folio. Check console and security rules.");
+                    showError(`Failed to save folio. Check console and security rules. Error: ${error.message}`);
                 }
             });
         }
 
-        // --- Data Handling ---
+        // --- Data Handling & Modals ---
         function listenForData(collectionKey) {
             const q = query(collection(db, `artifacts/${appId}/public/data/${collectionKey}`), orderBy('name', 'asc'));
             onSnapshot(q, (snapshot) => {
@@ -365,23 +354,16 @@
                     return;
                 }
                 
-                // Render header
                 const firstDocData = snapshot.docs[0].data();
                 const headers = Object.keys(firstDocData).filter(k => typeof firstDocData[k] === 'string' || typeof firstDocData[k] === 'number').slice(0, 4);
-                tableHeader.innerHTML = `<tr>${headers.map(h => `<th class="px-6 py-3 text-left">${h.replace(/_/g, ' ')}</th>`).join('')}</tr>`;
+                if (tableHeader) tableHeader.innerHTML = `<tr>${headers.map(h => `<th class="px-6 py-3 text-left">${h.replace(/_/g, ' ')}</th>`).join('')}</tr>`;
                 
-                // Render body
                 snapshot.forEach(doc => {
                     const data = doc.data();
                     const row = document.createElement('tr');
                     row.className = 'cursor-pointer hover:bg-gray-700';
                     row.onclick = () => openModal(doc.id, data, collectionKey);
-                    
-                    let cells = '';
-                    headers.forEach(header => {
-                        cells += `<td class="px-6 py-4 whitespace-nowrap">${data[header] || ''}</td>`;
-                    });
-                    row.innerHTML = cells;
+                    row.innerHTML = headers.map(header => `<td class="px-6 py-4 whitespace-nowrap">${data[header] || ''}</td>`).join('');
                     tableBody.appendChild(row);
                 });
             });
@@ -393,21 +375,17 @@
             modalTitle.textContent = `${docId ? 'Edit' : 'Add'} ${config.label || collectionKey}`;
 
             let fieldsHtml = '';
-            const fields = config.fields || { name: { type: 'text' }, description: { type: 'textarea' } }; // Default fields
+            const fields = config.fields || { name: { type: 'text' }, description: { type: 'textarea' } };
             for (const key in fields) {
-                const field = fields[key];
                 const value = data[key] || '';
                 fieldsHtml += `<div><label for="${key}" class="global-form-label">${key.replace(/_/g, ' ')}</label>`;
-                if (field.type === 'textarea') {
-                    fieldsHtml += `<textarea id="${key}" name="${key}" class="global-form-input" rows="4">${value}</textarea>`;
-                } else {
-                    fieldsHtml += `<input type="text" id="${key}" name="${key}" value="${value}" class="global-form-input">`;
-                }
+                fieldsHtml += fields[key].type === 'textarea'
+                    ? `<textarea id="${key}" name="${key}" class="global-form-input" rows="4">${value}</textarea>`
+                    : `<input type="text" id="${key}" name="${key}" value="${value}" class="global-form-input">`;
                 fieldsHtml += `</div>`;
             }
             formFieldsContainer.innerHTML = fieldsHtml;
 
-            // Setup modal buttons
             const dropdown = document.getElementById('modal-data-dropdown');
             dropdown.innerHTML = `
                 <button type="submit" form="entry-form" class="w-full text-left">Save</button>
@@ -428,7 +406,6 @@
             const formData = new FormData(event.target);
             const data = Object.fromEntries(formData.entries());
             const collectionPath = `artifacts/${appId}/public/data/${appState.currentCollection}`;
-
             try {
                 if (appState.editingDocId) {
                     await setDoc(doc(db, collectionPath, appState.editingDocId), data, { merge: true });
@@ -437,8 +414,7 @@
                 }
                 closeModal();
             } catch (error) {
-                console.error("Error saving entry:", error);
-                showError("Failed to save. Check console and security rules.");
+                showError(`Failed to save. Check console and security rules. Error: ${error.message}`);
             }
         };
 
@@ -448,8 +424,7 @@
                     await deleteDoc(doc(db, `artifacts/${appId}/public/data/${collectionKey}`, docId));
                     closeModal();
                 } catch (error) {
-                    console.error("Error deleting entry:", error);
-                    showError("Failed to delete. Check console and security rules.");
+                    showError(`Failed to delete. Check console and security rules. Error: ${error.message}`);
                 }
             });
         }
@@ -459,7 +434,6 @@
             appState.editingDocId = null;
         }
 
-        // --- Modals & Helpers ---
         function showError(message) {
             const modal = document.getElementById('error-modal');
             modal.querySelector('#error-message').textContent = message;
