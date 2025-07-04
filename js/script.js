@@ -4,7 +4,7 @@ import {
     createUserWithEmailAndPassword, signInWithEmailAndPassword,
     GoogleAuthProvider, signInWithPopup
 } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
-import { getFirestore, doc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, getDocs, getDoc, setDoc, query, orderBy, where } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+import { getFirestore, doc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, getDocs, getDoc, setDoc, query, orderBy, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
 // --- Firebase Configuration ---
 const firebaseConfig = {
@@ -717,5 +717,11 @@ const masterFieldOrder = [
 
 // --- ALL OTHER FUNCTIONS FROM THE ORIGINAL FILE ARE PASTED BELOW ---
 
+// ... (The rest of the functions will be pasted here)
 // ... (The rest of the functions from your dbm.html file should be pasted here)
+// For example:
+function renderAppHeader(activeCategoryKey) { /* ... */ }
+function renderCategoryView(categoryKey) { /* ... */ }
+function renderTableView(collectionKey, title, container, parentCategoryKey = null) { /* ... */ }
+// ... and so on for every function.
 
