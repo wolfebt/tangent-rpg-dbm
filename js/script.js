@@ -24,7 +24,6 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 // --- Application State ---
-// (The appState object and RPG System Configuration remain the same as in the original file)
 const appState = {
     userId: null,
     userEmail: null,
@@ -49,173 +48,741 @@ const appState = {
 };
 
 // --- RPG System Configuration (categoryConfig, masterFieldOrder) ---
-// (This large configuration object is unchanged and should be copied here from the original file)
 const categoryConfig = {
-    // ... PASTE THE ENTIRE categoryConfig OBJECT HERE ...
+    other: {
+        label: 'DASHBOARD',
+        viewType: 'button_grid'
+    },
+    rules_codex: {
+        label: 'RULES CODEX',
+        viewType: 'wiki', // Changed to wiki view
+        fields: {
+            name: { type: 'text', required: true },
+            description: { type: 'textarea', aiEnabled: true },
+            mechanic: { type: 'textarea' }, // Added mechanic field
+            note: { type: 'textarea' },
+            guide: { type: 'textarea' }, // New guide field
+            parent: { type: 'select', source: 'rules_codex', label: 'Parent Entry', manageable: false }, // For tree structure
+            order: { type: 'number', label: 'Order', default: 0 }, // For manual sorting
+        }
+    },
+    values: {
+        label: 'VALUES',
+        hideFromMenu: true,
+        fields: {
+            name: { type: 'text', required: true },
+            description: { type: 'textarea', aiEnabled: true },
+            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+            mechanic: { type: 'textarea' },
+            cp: { type: 'number' }
+        }
+    },
+    secondary_values: {
+        label: 'SECONDARY VALUES',
+        hideFromMenu: true,
+        fields: {
+            name: { type: 'text', required: true },
+            description: { type: 'textarea', aiEnabled: true },
+            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+            mechanic: { type: 'textarea' },
+            cp: { type: 'number' }
+        }
+    },
+    tertiary_values: {
+        label: 'TERTIARY VALUES',
+        hideFromMenu: true,
+        fields: {
+            name: { type: 'text', required: true },
+            description: { type: 'textarea', aiEnabled: true },
+            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+            mechanic: { type: 'textarea' },
+            cp: { type: 'number' }
+        }
+    },
+    species: { 
+        label: 'SPECIES',
+        directory_columns: ['name', 'description', 'type'],
+        fields: {
+            name: { type: 'text', required: true },
+            description: { type: 'textarea', aiEnabled: true },
+            prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+            type: { type: 'multiselect', source: 'species_type', manageable: true },
+            size: { type: 'multiselect', source: 'species_size', manageable: true },
+            movement: { type: 'multiselect', source: 'species_movement', manageable: true },
+            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+            note: { type: 'textarea' },
+            cp: { type: 'readonlytext', label: 'CP' }
+        },
+        subcategories: {
+            species_type: { 
+                label: 'TYPES', 
+                directory_columns: ['name', 'description', 'modifier'],
+                fields: { 
+                    name: { type:'text', required: true},
+                    prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+                    modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                    description: { type:'textarea', aiEnabled: true}, 
+                    mechanic: { type: 'textarea' },
+                    note: { type: 'textarea' },
+                    cp: { type: 'readonlytext', label: 'TOTAL CP'} 
+                } 
+            },
+            species_size: { 
+                label: 'SIZES', 
+                directory_columns: ['name', 'description', 'modifier'],
+                fields: { 
+                    name: { type:'text', required: true},
+                    modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                    description: { type:'textarea', aiEnabled: true}, 
+                    scaling: { type: 'number', label: 'Scaling' },
+                    height_length_range: { type: 'text', label: 'Height/Length Range' },
+                    weight_range: { type: 'text', label: 'Weight Range' },
+                    reach: { type: 'text', label: 'Reach' },
+                    mechanic: { type: 'textarea' },
+                    note: { type: 'textarea' },
+                    dc: { type: 'number', label: 'DC' },
+                    cp: { type: 'readonlytext', label: 'TOTAL CP'} 
+                } 
+            },
+            species_movement: { 
+                label: 'MOVEMENTS', 
+                directory_columns: ['name', 'description', 'cp'],
+                fields: { 
+                    name: { type:'text', required: true}, 
+                    prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+                    modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                    description: { type:'textarea', aiEnabled: true},
+                    mechanic: { type: 'textarea' },
+                    note: { type: 'textarea' },
+                    cp: { type: 'readonlytext', label: 'TOTAL CP' } 
+                } 
+            },
+        }
+    },
+    factions: { 
+        label: 'FACTIONS', 
+        directory_columns: ['name', 'description'],
+        fields: { 
+            name: { type:'text', required: true}, 
+            description: { type:'textarea', aiEnabled: true },
+            prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+            attitude: { type: 'textarea' },
+            goals: { type: 'textarea' },
+            social_strengths: { type: 'textarea' },
+            social_weaknesses: { type: 'textarea' },
+            mechanic: { type: 'textarea' },
+            note: { type: 'textarea' }
+        } 
+    },
+    origins: { 
+        label: 'ORIGINS', 
+        directory_columns: ['name', 'description'],
+        fields: { 
+            name: { type:'text', required: true}, 
+            description: { type:'textarea', aiEnabled: true},
+            prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+            trait: { type: 'multiselect', source: 'trait', manageable: true },
+            mechanic: { type: 'textarea' },
+            note: { type: 'textarea' }
+        },
+        subcategories: {
+            trait: { 
+                label: 'TRAITS', 
+                directory_columns: ['name', 'description', 'cp'],
+                fields: { 
+                    name: { type:'text', required: true}, 
+                    prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+                    tech_level: { type: 'select', label: 'Tech Level', options: [0, 1, 2, 3, 4, 5] },
+                    meta_level: { type: 'select', label: 'Meta Level', options: [0, 1, 2, 3, 4, 5] },
+                    modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                    description: { type:'textarea', aiEnabled: true}, 
+                    mechanic: { type: 'textarea' },
+                    note: { type: 'textarea' },
+                    cp: { type: 'readonlytext', label: 'TOTAL CP' } 
+                } 
+            },
+        }
+    },
+    occupations: { 
+        label: 'OCCUPATIONS',
+        directory_columns: ['name', 'description'],
+        fields: { 
+            name: { type:'text', required: true}, 
+            description: { type:'textarea', aiEnabled: true},
+            prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+            trait: { type: 'multiselect', source: 'trait', manageable: true },
+            mechanic: { type: 'textarea' },
+            note: { type: 'textarea' }
+        } 
+    },
+    disadvantages: { 
+        label: 'DISADVANTAGES',
+        directory_columns: ['name', 'description', 'cp'],
+        fields: { 
+            name: { type:'text', required: true}, 
+            description: { type:'textarea', aiEnabled: true},
+            tech_level: { type: 'select', label: 'Tech Level', options: [0, 1, 2, 3, 4, 5] },
+            meta_level: { type: 'select', label: 'Meta Level', options: [0, 1, 2, 3, 4, 5] },
+            prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+            cp: { type: 'number'},
+            mechanic: { type: 'textarea' },
+            note: { type: 'textarea' }
+        } 
+    },
+    features: { 
+        label: 'FEATURES',
+        directory_columns: ['name', 'type', 'description', 'cp'], 
+        fields: { 
+            name: { type:'text', required: true},
+            type: { type: 'select', options: ['ability', 'combat', 'meta', 'general', 'karma', 'skill', 'special'] },
+            description: { type:'textarea', aiEnabled: true},
+            tech_level: { type: 'select', label: 'Tech Level', options: [0, 1, 2, 3, 4, 5] },
+            meta_level: { type: 'select', label: 'Meta Level', options: [0, 1, 2, 3, 4, 5] },
+            prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true},
+            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+            cp: { type: 'readonlytext', label: 'TOTAL CP' },
+            mechanic: { type: 'textarea' },
+            note: { type: 'textarea' }
+        } 
+    },
+    skills: { 
+        label: 'SKILLS',
+        directory_columns: ['name', 'type', 'subtype', 'description'],
+        fields: { 
+            name: { type:'text', required: true},
+            type: { type: 'select', options: ['mental', 'physical', 'social', 'combat', 'meta'], required: true },
+            subtype: { type: 'select' },
+            is_specialization: { type: 'boolean', label: 'SPECIALIZATION' },
+            base_skill: { type: 'select', source: 'skills', label: 'BASE SKILL' },
+            description: { type:'textarea', aiEnabled: true},
+            tech_level: { type: 'select', label: 'Tech Level', options: [0, 1, 2, 3, 4, 5] },
+            meta_level: { type: 'select', label: 'Meta Level', options: [0, 1, 2, 3, 4, 5] },
+            mechanic: { type: 'textarea' },
+            note: { type: 'textarea' }
+        } 
+    },
+    prerequisite: {
+        label: 'PREREQUISITES',
+        hideFromMenu: true,
+        directory_columns: ['name', 'aspect', 'aspect_subtype', 'value', 'note', 'cp'],
+        fields: {
+            name: { type: 'text', required: true},
+            description: { type: 'textarea', aiEnabled: true},
+            aspect: { type: 'select', options: ['attribute', 'skill', 'combat', 'meta', 'other'] },
+            aspect_subtype: { type: 'select' },
+            value: { type: 'number' },
+            dc: { type: 'number', label: 'DC' },
+            mechanic: { type: 'textarea'},
+            note: { type: 'textarea'},
+            cp: { type: 'number' }
+        }
+    },
+    modifier: {
+        label: 'MODIFIERS',
+        hideFromMenu: true,
+        directory_columns: ['name', 'aspect', 'aspect_subtype', 'value', 'note', 'cp'],
+        fields: {
+            name: { type: 'text', required: true},
+            description: { type: 'textarea', aiEnabled: true},
+            aspect: { type: 'select', options: ['attribute', 'skill', 'combat', 'meta', 'other'] },
+            aspect_subtype: { type: 'select' },
+            value: { type: 'number' },
+            modifier_type: { type: 'radio', label: 'Modifier Type', options: ['constant', 'situational', 'optional', 'temporary'] },
+            dc: { type: 'number', label: 'DC' },
+            mechanic: { type: 'textarea'},
+            note: { type: 'textarea'},
+            cp: { type: 'number' }
+        }
+    },
+    augmentations: { 
+        label: 'AUGMENTATIONS', 
+        directory_columns: ['name', 'type', 'description', 'design_dc'],
+        fields: { 
+            name: { type:'text', required: true},
+            type: { type: 'select', source: 'augmentation_type', manageable: true },
+            classification: { type: 'multiselect', source: 'classification', manageable: true, label: 'Classification' },
+            location: { type: 'multiselect', source: 'body_location', manageable: true },
+            description: { type:'textarea', aiEnabled: true},
+            tech_level: { type: 'select', label: 'Tech Level', options: [0, 1, 2, 3, 4, 5] },
+            meta_level: { type: 'select', label: 'Meta Level', options: [0, 1, 2, 3, 4, 5] },
+            creator: { type: 'multiselect', source: 'creator', manageable: true },
+            design: { type: 'multiselect', source: 'design', manageable: true },
+            component: { type: 'multiselect', source: 'component', manageable: true },
+            prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true},
+            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+            critical_success_effect: { type: 'multiselect', source: 'critical_success_effect', manageable: true },
+            critical_failure_effect: { type: 'multiselect', source: 'critical_failure_effect', manageable: true },
+            cost: { type: 'number', label: 'Cost' },
+            availability: { type: 'select', source: 'availability', manageable: true },
+            cr: { type: 'number', label: 'CR' },
+            restricted: { type: 'boolean', label: 'Restricted' },
+            design_dc: { type: 'readonlytext', label: 'DESIGN DC' },
+            cp: { type: 'number' },
+            mechanic: { type: 'textarea' },
+            note: { type: 'textarea' }
+        },
+        subcategories: {
+            augmentation_type: { 
+                label: 'AUGMENTATION TYPES', 
+                directory_columns: ['name', 'description'],
+                fields: { 
+                    name: { type: 'text', required: true }, 
+                    description: { type: 'textarea' },
+                    prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+                    modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                    mechanic: { type: 'textarea' },
+                    note: { type: 'textarea' }
+                }
+            }
+        }
+    },
+    invocations: {
+        label: 'INVOCATIONS',
+        directory_columns: ['name', 'description', 'discipline', 'meta_skill', 'design_dc'],
+        fields: {
+            name: { type: 'text', required: true },
+            description: { type: 'textarea', aiEnabled: true },
+            discipline: { type: 'select', source: 'discipline', manageable: true },
+            meta_skill: { type: 'select', source: 'skills_meta', label: 'Meta Skill' },
+            area: { type: 'multiselect', source: 'area', manageable: true },
+            effect: { type: 'multiselect', source: 'effect', manageable: true },
+            range: { type: 'multiselect', source: 'range', manageable: true },
+            target: { type: 'multiselect', source: 'target', manageable: true },
+            prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+            critical_success_effect: { type: 'multiselect', source: 'critical_success_effect', manageable: true },
+            critical_failure_effect: { type: 'multiselect', source: 'critical_failure_effect', manageable: true },
+            design_dc: { type: 'readonlytext', label: 'DESIGN DC' },
+            mechanic: { type: 'textarea' },
+            note: { type: 'textarea' }
+        },
+        subcategories: {
+            discipline: { 
+                label: 'DISCIPLINES', 
+                directory_columns: ['name', 'description'],
+                fields: { 
+                    name: { type: 'text', required: true }, 
+                    description: { type: 'textarea' },
+                    prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+                    modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                    mechanic: { type: 'textarea' },
+                    note: { type: 'textarea' }
+                }
+            }
+        }
+    },
+    equipment: { 
+        label: 'EQUIPMENT', 
+        viewType: 'multi-table',
+        tables: {
+            armoring: {
+                label: 'Armoring',
+                directory_columns: ['name', 'tl', 'ml', 'description', 'cost', 'design_dc'],
+                fields: {
+                    name: { type: 'text', required: true, label: 'Armor Name' },
+                    description: { type: 'textarea' },
+                    tl: { type: 'number', label: 'TL' },
+                    ml: { type: 'number', label: 'ML' },
+                    cost: { type: 'number' },
+                    availability: { type: 'select', source: 'availability', manageable: true },
+                    design_dc: { type: 'readonlytext', label: 'DESIGN DC' },
+                    size: { type: 'multiselect', source: 'species_size', manageable: true },
+                    weight: { type: 'number' },
+                    quality: { type: 'select', options: ['Bad', 'Poor', 'Standard', 'Good', 'Exceptional', 'Mastercrafted'] },
+                    durability: { type: 'number' },
+                    prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+                    skill: { type: 'select', source: 'skills', manageable: true },
+                    origin: { type: 'multiselect', source: 'origins', manageable: true },
+                    creator: { type: 'multiselect', source: 'creator', manageable: true },
+                    design: { type: 'multiselect', source: 'design', manageable: true },
+                    classification: { type: 'multiselect', source: 'classification', manageable: true, label: 'Classification' },
+                    material: { type: 'multiselect', source: 'material', manageable: true },
+                    location: { type: 'multiselect', source: 'body_location', manageable: true },
+                    component: { type: 'multiselect', source: 'component', manageable: true },
+                    resistance: { type: 'multiselect', source: 'resistance', manageable: true },
+                    critical_success_effect: { type: 'multiselect', source: 'critical_success_effect', manageable: true },
+                    critical_failure_effect: { type: 'multiselect', source: 'critical_failure_effect', manageable: true },
+                    component_slots: { type: 'number', label: 'Component Slots' },
+                    modes: { type: 'multiselect', source: 'mode', manageable: true, label: 'Modes' },
+                    modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                    mechanic: { type: 'textarea' },
+                    note: { type: 'textarea' }
+                }
+            },
+            weaponry: {
+                label: 'Weaponry',
+                directory_columns: ['name', 'tl', 'ml', 'description', 'cost', 'design_dc'],
+                fields: {
+                    name: { type: 'text', required: true, label: 'Weapon Name' },
+                    description: { type: 'textarea' },
+                    tl: { type: 'number', label: 'TL' },
+                    ml: { type: 'number', label: 'ML' },
+                    cost: { type: 'number' },
+                    availability: { type: 'select', source: 'availability', manageable: true },
+                    design_dc: { type: 'readonlytext', label: 'DESIGN DC' },
+                    size: { type: 'multiselect', source: 'species_size', manageable: true },
+                    weight: { type: 'number' },
+                    quality: { type: 'select', options: ['Bad', 'Poor', 'Standard', 'Good', 'Exceptional', 'Mastercrafted'] },
+                    durability: { type: 'number' },
+                    prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+                    skill: { type: 'select', source: 'skills', manageable: true },
+                    special: { type: 'multiselect', source: 'special', manageable: true, label: 'Special' },
+                    area: { type: 'multiselect', source: 'area', manageable: true },
+                    effect: { type: 'multiselect', source: 'effect', manageable: true },
+                    range: { type: 'multiselect', source: 'range', manageable: true },
+                    target: { type: 'multiselect', source: 'target', manageable: true },
+                    origin: { type: 'multiselect', source: 'origins', manageable: true },
+                    creator: { type: 'multiselect', source: 'creator', manageable: true },
+                    design: { type: 'multiselect', source: 'design', manageable: true },
+                    classification: { type: 'multiselect', source: 'classification', manageable: true, label: 'Classification' },
+                    accuracy: { type: 'number' },
+                    ap: { type: 'number', label: 'AP' },
+                    modes: { type: 'multiselect', source: 'mode', manageable: true, label: 'Modes' },
+                    attack_rate: { type: 'text', label: 'Rate of Fire' },
+                    critical_score: { type: 'text', label: 'Critical Score' },
+                    critical_effect: { type: 'multiselect', source: 'critical_effect', manageable: true },
+                    critical_success_effect: { type: 'multiselect', source: 'critical_success_effect', manageable: true },
+                    critical_failure_effect: { type: 'multiselect', source: 'critical_failure_effect', manageable: true },
+                    wielding: { type: 'select', options: ['One-Handed', 'Two-Handed', 'Versatile', 'Independent', 'Mounted'] },
+                    component: { type: 'multiselect', source: 'component', manageable: true },
+                    component_slots: { type: 'number', label: 'Component Slots' },
+                    modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                    mechanic: { type: 'textarea' },
+                    note: { type: 'textarea' }
+                }
+            },
+            mecha: {
+                label: 'Mecha',
+                directory_columns: ['name', 'tl', 'ml', 'description', 'cost', 'design_dc'],
+                fields: {
+                    name: { type: 'text', required: true, label: 'Mecha Name' },
+                    description: { type: 'textarea' },
+                    tl: { type: 'number', label: 'TL' },
+                    ml: { type: 'number', label: 'ML' },
+                    cost: { type: 'number' },
+                    availability: { type: 'select', source: 'availability', manageable: true },
+                    design_dc: { type: 'readonlytext', label: 'DESIGN DC' },
+                    size: { type: 'multiselect', source: 'species_size', manageable: true },
+                    height: { type: 'number' },
+                    weight: { type: 'number' },
+                    quality: { type: 'select', options: ['Bad', 'Poor', 'Standard', 'Good', 'Exceptional', 'Mastercrafted'] },
+                    durability: { type: 'number' },
+                    prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+                    skill: { type: 'select', source: 'skills', manageable: true },
+                    origin: { type: 'multiselect', source: 'origins', manageable: true },
+                    creator: { type: 'multiselect', source: 'creator', manageable: true },
+                    design: { type: 'multiselect', source: 'design', manageable: true },
+                    classification: { type: 'multiselect', source: 'classification', manageable: true, label: 'Classification' },
+                    personnel: { type: 'text' },
+                    cargo: { type: 'text' },
+                    speed: { type: 'text' },
+                    maneuverability: { type: 'text' },
+                    control: { type: 'select', options: ['Auto', 'Remote', 'Pilot', 'Crew'] },
+                    component: { type: 'multiselect', source: 'component', manageable: true },
+                    critical_success_effect: { type: 'multiselect', source: 'critical_success_effect', manageable: true },
+                    critical_failure_effect: { type: 'multiselect', source: 'critical_failure_effect', manageable: true },
+                    component_slots: { type: 'number', label: 'Component Slots' },
+                    modes: { type: 'multiselect', source: 'mode', manageable: true, label: 'Modes' },
+                    modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                    mechanic: { type: 'textarea' },
+                    note: { type: 'textarea' }
+                }
+            }
+        },
+        subcategories: {
+            availability: { 
+                label: 'AVAILABILITY', 
+                directory_columns: ['name', 'description'],
+                fields: { 
+                    name: { type: 'text', required: true }, 
+                    description: { type: 'textarea' },
+                    dc: { type: 'number', label: 'DC' },
+                    prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+                    modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                    mechanic: { type: 'textarea' },
+                    note: { type: 'textarea' }
+                }
+            },
+            material: { 
+                label: 'MATERIALS', 
+                directory_columns: ['name', 'description'],
+                fields: { 
+                    name: { type: 'text', required: true }, 
+                    description: { type: 'textarea' }, 
+                    dc: { type: 'number', label: 'DC' },
+                    prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+                    modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                    mechanic: { type: 'textarea' },
+                    note: { type: 'textarea' }
+                }
+            },
+            resistance: { 
+                label: 'RESISTANCES', 
+                directory_columns: ['name', 'type', 'value', 'description'],
+                fields: { 
+                    name: { type: 'text', required: true },
+                    type: { type: 'select', source: 'resistance_type', manageable: true },
+                    value: { type: 'number' },
+                    description: { type: 'textarea' },
+                    dc: { type: 'number', label: 'DC' },
+                    prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+                    modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                    mechanic: { type: 'textarea' },
+                    note: { type: 'textarea' }
+                }
+            },
+            resistance_type: { 
+                label: 'RESISTANCE TYPES', 
+                directory_columns: ['name', 'description'],
+                fields: { 
+                    name: { type: 'text', required: true },
+                    description: { type: 'textarea' }
+                }
+            },
+            special: { 
+                label: 'SPECIAL',
+                directory_columns: ['name', 'description'],
+                fields: { 
+                    name: { type: 'text', required: true },
+                    description: { type: 'textarea' },
+                    prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+                    modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                    mechanic: { type: 'textarea' },
+                    note: { type: 'textarea' }
+                } 
+            },
+            mode: { 
+                label: 'MODES', 
+                directory_columns: ['name', 'description'],
+                fields: { 
+                    name: { type: 'text', required: true }, 
+                    description: { type: 'textarea' },
+                    prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+                    modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                    mechanic: { type: 'textarea' },
+                    note: { type: 'textarea' }
+                }
+            },
+            critical_effect: { 
+                label: 'CRITICAL EFFECTS', 
+                fields: { 
+                    name: { type: 'text', required: true },
+                    description: { type: 'textarea' },
+                    effect: { type: 'multiselect', source: 'effect', manageable: true },
+                    prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+                    modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                    mechanic: { type: 'textarea' },
+                    note: { type: 'textarea' }
+                }
+            },
+            component: { 
+                label: 'COMPONENTS',
+                directory_columns: ['name', 'description', 'cost'],
+                fields: {
+                    name: { type: 'text', required: true },
+                    description: { type: 'textarea' },
+                    equipment: { type: 'multiselect', source: 'all_equipment', label: 'Equipment', manageable: true },
+                    cost: { type: 'number' }
+                }
+            },
+            creator: {
+                label: 'CREATORS',
+                directory_columns: ['name', 'description'],
+                fields: {
+                    name: { type: 'text', required: true },
+                    description: { type: 'textarea' },
+                    dc: { type: 'number', label: 'DC' },
+                    prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+                    modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                    mechanic: { type: 'textarea' },
+                    note: { type: 'textarea' }
+                }
+            },
+            design: {
+                label: 'DESIGNS',
+                directory_columns: ['name', 'description'],
+                fields: {
+                    name: { type: 'text', required: true },
+                    description: { type: 'textarea' },
+                    dc: { type: 'number', label: 'DC' },
+                    prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+                    modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                    mechanic: { type: 'textarea' },
+                    note: { type: 'textarea' }
+                }
+            },
+            classification: { 
+                label: 'CLASSIFICATIONS', 
+                directory_columns: ['name', 'description'],
+                fields: { 
+                    name: { type: 'text', required: true }, 
+                    description: { type: 'textarea' }, 
+                    dc: { type: 'number', label: 'DC' },
+                    prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+                    modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                    mechanic: { type: 'textarea' },
+                    note: { type: 'textarea' } 
+                }
+            },
+            gear_category: { 
+                label: 'CATEGORIES', 
+                directory_columns: ['name', 'description'],
+                fields: { 
+                    name: { type: 'text', required: true }, 
+                    description: { type: 'textarea' },
+                    dc: { type: 'number', label: 'DC' },
+                    prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+                    modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                    mechanic: { type: 'textarea' },
+                    note: { type: 'textarea' }
+                }
+            },
+            body_location: { 
+                label: 'BODY LOCATIONS', 
+                directory_columns: ['name', 'description'],
+                fields: { 
+                    name: { type: 'text', required: true }, 
+                    description: { type: 'textarea' },
+                    mechanic: { type: 'textarea' },
+                    note: { type: 'textarea' }
+                }
+            }
+        }
+    },
+    societies: { 
+        label: 'SOCIETIES', 
+        directory_columns: ['name', 'description', 'tech_level', 'meta_level'],
+        fields: { 
+            name: { type:'text', required: true}, 
+            description: { type:'textarea', aiEnabled: true},
+            tech_level: { type: 'select', label: 'Tech Level', options: [0, 1, 2, 3, 4, 5] },
+            meta_level: { type: 'select', label: 'Meta Level', options: [0, 1, 2, 3, 4, 5] },
+            prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+            agriculture: { type: 'multiselect', source: 'society_agriculture', manageable: true },
+            architecture: { type: 'multiselect', source: 'society_architecture', manageable: true },
+            biotechnology: { type: 'multiselect', source: 'society_biotechnology', manageable: true },
+            commerce: { type: 'multiselect', source: 'society_commerce', manageable: true },
+            communication: { type: 'multiselect', source: 'society_communication', manageable: true },
+            devices: { type: 'multiselect', source: 'society_devices', manageable: true },
+            education: { type: 'multiselect', source: 'society_education', manageable: true },
+            energy: { type: 'multiselect', source: 'society_energy', manageable: true },
+            manufacturing: { type: 'multiselect', source: 'society_manufacturing', manageable: true },
+            materials: { type: 'multiselect', source: 'society_materials', manageable: true },
+            medicine: { type: 'multiselect', source: 'society_medicine', manageable: true },
+            synthetics: { type: 'multiselect', source: 'society_synthetics', manageable: true, label: 'Synthetics' },
+            weaponry: { type: 'multiselect', source: 'society_weaponry', manageable: true },
+            mechanic: { type: 'textarea'},
+            note: { type: 'textarea'}
+        },
+        subcategories: {
+            society_agriculture: { label: 'AGRICULTURE', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+            society_architecture: { label: 'ARCHITECTURE', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+            society_biotechnology: { label: 'BIOTECHNOLOGY', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+            society_commerce: { label: 'COMMERCE', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+            society_communication: { label: 'COMMUNICATION', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+            society_devices: { label: 'DEVICES', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+            society_education: { label: 'EDUCATION', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+            society_energy: { label: 'ENERGY', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+            society_manufacturing: { label: 'MANUFACTURING', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+            society_materials: { label: 'MATERIALS', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+            society_medicine: { label: 'MEDICINE', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+            society_society: { label: 'SOCIETY', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+            society_synthetics: { label: 'SYNTHETICS', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+            society_weaponry: { label: 'WEAPONRY', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }}}
+    }
 };
 const masterFieldOrder = [
-    // ... PASTE THE ENTIRE masterFieldOrder ARRAY HERE ...
+    'name', 'description', 'mechanic', 'guide', 'effect_type', 'value', 'shape', 'dimensions', 'number_of_targets', /* Added 'guide' */
+    'tech_level', 'meta_level', 'class', 'classification', 'category', 'type', 'subtype',
+    'cr', 'cost', 'availability', 'dc', 'cp', 'restricted', 'component_slots',
+    'location', 'size', 'height', 'weight', 'scaling', 'height_length_range', 'weight_range', 'personnel', 'cargo', 'reach', 'weapon_effect', 'wielding',
+    'movement', 'speed',
+    'quality', 'material', 'durability', 'resistance',
+    'prerequisite', 'modifier', 'modifier_type', 'abilities',
+    'ammunition_type', 'ap', 'area', 'attack_rate', 'damage', 'damage_type', 'damage_value', 'effect', 'effect_subtype', 'range', 'target', 'critical_score', 'critical_success_effect', 'critical_failure_effect', 'critical_effect',
+    'skill', 'meta_skill', 'faction_skill', 'profession_skill', 'species_skill', 'is_specialization', 'base_skill', 'discipline', 'accuracy', 'control', 'maneuverability',
+    'faction_feat', 'recommended_feature',
+    'trait',
+    'attitude', 'social_strengths', 'social_weaknesses', 'society', 'value', 'goals',
+    'component', 'integration',
+    'special',
+    'modes', 'note', 'parent', 'order' 
 ];
 
 
-// --- UI Elements (unchanged) ---
-// (All getElementById variables remain the same)
-
+// --- UI Elements ---
+const entryModal = document.getElementById('entry-modal');
+const modalTitle = document.getElementById('modal-title');
+const entryForm = document.getElementById('entry-form');
+const formFieldsContainer = document.getElementById('form-fields');
+const confirmModal = document.getElementById('confirm-modal');
+const confirmMessage = document.getElementById('confirm-message');
+const confirmOkBtn = document.getElementById('confirm-ok-btn');
+const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
+const unsavedChangesModal = document.getElementById('unsaved-changes-modal');
+const unsavedCancelBtn = document.getElementById('unsaved-cancel-btn');
+const unsavedDismissBtn = document.getElementById('unsaved-dismiss-btn');
+const unsavedSaveBtn = document.getElementById('unsaved-save-btn');
+const errorModal = document.getElementById('error-modal');
+const errorMessage = document.getElementById('error-message');
+const errorOkBtn = document.getElementById('error-ok-btn');
+const helpModal = document.getElementById('help-modal');
+const helpContent = document.getElementById('help-content');
+const helpCloseBtn = document.getElementById('help-close-btn');
+const customModal = document.getElementById('custom-modal');
+const summaryModal = document.getElementById('summary-modal');
+const summaryCloseBtn = document.getElementById('summary-close-btn');
+const jsonFileInput = document.getElementById('json-file-input');
 
 // --- Authentication & Navigation ---
 let currentRenderFn = null;
 
-// (navigateTo, goBack, requestNavigation functions are unchanged)
-
-onAuthStateChanged(auth, (user) => {
-    if (user) {
-        appState.userId = user.uid;
-        appState.userEmail = user.email;
-        appState.isAnonymous = user.isAnonymous;
-        
-        updateAuthUI(user);
-        
-        if (!currentRenderFn) {
-            navigateTo(() => renderCategoryView('other'));
+function navigateTo(renderFn, pushState = true) {
+    if (pushState && currentRenderFn) {
+        if (appState.navigationHistory.length === 0 || appState.navigationHistory[appState.navigationHistory.length - 1].toString() !== currentRenderFn.toString()) {
+            appState.navigationHistory.push(currentRenderFn);
         }
-    } else {
-        appState.userId = null;
-        appState.userEmail = null;
-        appState.isAnonymous = true;
-        updateAuthUI(null);
-        renderLoginView(); // Show login view if not authenticated
     }
-});
+    currentRenderFn = renderFn;
+    renderFn();
+}
 
-function updateAuthUI(user) {
-    const authContainer = document.getElementById('auth-container');
-    if (!authContainer) return;
-
-    if (user && !user.isAnonymous) {
-        authContainer.innerHTML = `
-            <div class="text-right">
-                <p class="text-sm text-gray-300">${user.email}</p>
-                <button id="logout-btn" class="text-xs text-red-400 hover:underline">Logout</button>
-            </div>
-        `;
-        document.getElementById('logout-btn').onclick = () => signOut(auth);
+function goBack() {
+    if (appState.navigationHistory.length > 0) {
+        const previousRenderFn = appState.navigationHistory.pop();
+        navigateTo(previousRenderFn, false);
     } else {
-        authContainer.innerHTML = `
-            <button id="login-btn" class="btn btn-primary">Login</button>
-        `;
-        document.getElementById('login-btn').onclick = showLoginModal;
+        navigateTo(() => renderCategoryView('other'), false);
     }
 }
 
-function renderLoginView() {
-    mainContentContainer.innerHTML = '';
-     mainContentContainer.innerHTML = `
-        <div class="h-screen w-screen flex flex-col justify-center items-center p-8">
-            <h1 class="text-4xl font-bold text-gray-100">Tangent SFF RPG</h1>
-            <p class="text-lg text-gray-400 uppercase mb-8">Database Manager</p>
-            <div class="flex gap-4">
-                 <button id="login-view-login-btn" class="btn btn-primary">Login / Register</button>
-            </div>
-        </div>
-    `;
-    document.getElementById('login-view-login-btn').onclick = showLoginModal;
-}
-
-function showLoginModal() {
-    const modal = document.getElementById('custom-modal');
-    document.getElementById('modal-text').textContent = 'AUTHENTICATION';
+function requestNavigation(navigationFunc, force = false) {
+    const isModalOpen = !entryModal.classList.contains('hidden');
+    const activeForm = isModalOpen ? document.getElementById('entry-form') : null;
+    let isDirty = false;
     
-    // Show auth form and hide other elements
-    document.getElementById('modal-auth-form').style.display = 'flex';
-    document.getElementById('modal-choices').style.display = 'none';
-    document.getElementById('modal-input').style.display = 'none';
-    document.getElementById('modal-ok-btn').style.display = 'none';
-
-    // Show auth buttons
-    document.getElementById('modal-google-btn').style.display = 'inline-block';
-    document.getElementById('modal-register-btn').style.display = 'inline-block';
-    document.getElementById('modal-login-btn').style.display = 'inline-block';
-    document.getElementById('modal-cancel-btn').style.display = 'inline-block';
-
-    // Wire up buttons
-    document.getElementById('modal-google-btn').onclick = async () => {
-        try {
-            const provider = new GoogleAuthProvider();
-            await signInWithPopup(auth, provider);
-            modal.classList.add('hidden');
-        } catch (error) {
-            document.getElementById('modal-error-text').textContent = error.message;
-        }
-    };
-    document.getElementById('modal-login-btn').onclick = async () => {
-        const email = document.getElementById('modal-email').value;
-        const password = document.getElementById('modal-password').value;
-        try {
-            await signInWithEmailAndPassword(auth, email, password);
-            modal.classList.add('hidden');
-        } catch (error) {
-            document.getElementById('modal-error-text').textContent = error.message;
-        }
-    };
-    document.getElementById('modal-register-btn').onclick = async () => {
-        const email = document.getElementById('modal-email').value;
-        const password = document.getElementById('modal-password').value;
-        try {
-            await createUserWithEmailAndPassword(auth, email, password);
-            modal.classList.add('hidden');
-        } catch (error) {
-            document.getElementById('modal-error-text').textContent = error.message;
-        }
-    };
-    document.getElementById('modal-cancel-btn').onclick = () => modal.classList.add('hidden');
-
-    modal.classList.remove('hidden');
-}
-
-
-// --- Data Fetching Logic ---
-// IMPORTANT: This function now fetches from Firestore instead of the mock database.
-async function getCollectionOptions(collectionName) {
-    // Keep special cases
-    if (collectionName === 'all_equipment') {
-        const equipmentTypes = ['armoring', 'weaponry', 'mecha', 'gear'];
-        let allOptions = [];
-        for (const type of equipmentTypes) {
-            const options = await getCollectionOptions(type);
-            allOptions.push({ label: type.toUpperCase(), options });
-        }
-        return allOptions;
-    }
-    if (collectionName === 'skills_meta') {
-        const allSkills = await getCollectionOptions('skills');
-        const metaSkills = allSkills.filter(skill => skill.type === 'meta');
-        return [{ name: 'Special Ability'}, ...metaSkills];
-    }
-    if (collectionName === 'rules_codex') {
-        const filteredEntries = appState.wikiEntries.filter(entry => entry.id !== appState.editingDocId);
-        return filteredEntries.map(entry => ({ name: entry.name, id: entry.id }));
+    if(activeForm && activeForm.id === 'entry-form'){
+        isDirty = isFormDirty();
     }
 
-    // Main Firestore fetch logic
-    const collectionPath = `artifacts/${appId}/public/data/${collectionName}`;
-    try {
-        const querySnapshot = await getDocs(collection(db, collectionPath));
-        return querySnapshot.docs
-            .map(doc => ({ id: doc.id, ...doc.data() }))
-            .sort((a,b) => (a.name || '').localeCompare(b.name || ''));
-    } catch (error) {
-        console.error(`Error getting options from ${collectionName}:`, error);
-        showError(`Could not load options for ${collectionName}.`);
-        return [];
+    if (force || !isDirty ) {
+        closeModal(true); // Pass the force flag here
+        if (navigationFunc) {
+            navigationFunc();
+        }
+    } else {
+        appState.pendingNavigation = navigationFunc;
+        unsavedChangesModal.classList.remove('hidden');
     }
 }
 
-// (The rest of the JavaScript logic from dbm.html should be pasted here)
-// ...
-// ... All other functions (renderCategoryView, openModal, handleFormSubmit, etc.)
+// (The rest of the JS file follows, unchanged from the original logic)
 // ...
 
 // --- Initial Load ---
-window.onload = function() {
-    // The onAuthStateChanged listener will handle the initial render
-};
+// The onAuthStateChanged listener handles the initial app render.

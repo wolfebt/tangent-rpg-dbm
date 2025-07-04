@@ -5,12 +5,16 @@ import { initializeApp } from "firebase/app";
 import { getFirestore, collection, addDoc, doc, setDoc } from "firebase/firestore";
 
 // IMPORTANT: Replace this with your actual Firebase config object
-const firebaseConfig = { 
-    apiKey: "YOUR_API_KEY", 
-    authDomain: "YOUR_AUTH_DOMAIN", 
-    projectId: "YOUR_PROJECT_ID",
-    // ... add the rest of your config properties
+const firebaseConfig = {
+  apiKey: "AIzaSyBA1CC4SXXtWM9UpU1XkAiBFr0RIgrPwGk",
+  authDomain: "tangent-rpg-dbm.firebaseapp.com",
+  projectId: "tangent-rpg-dbm",
+  storageBucket: "tangent-rpg-dbm.firebasestorage.app",
+  messagingSenderId: "559983787369",
+  appId: "1:559983787369:web:d6f3b87daaa82b23d211f8",
+  measurementId: "G-G6NC09PXPC"
 };
+
 const appId = 'default-tangent-rpg-app'; // Or your specific App ID
 
 // This is the mock database from your original file.
