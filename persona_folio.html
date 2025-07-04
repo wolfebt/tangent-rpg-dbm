@@ -10,9 +10,22 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div id="folio-container" class="p-4 md:p-8">
-        <!-- Persona Folio will be rendered here -->
-    </div>
+    <header class="app-header flex justify-between items-center gap-4">
+        <div class="flex-1">
+             <a href="database_manager.html" class="btn btn-secondary">Back to Manager</a>
+        </div>
+        <div class="text-center px-4">
+            <h1 class="text-xl font-bold text-gray-100 whitespace-nowrap">TANGENT SFF RPG</h1>
+            <p class="text-xs text-gray-400 uppercase">PERSONA FOLIO</p>
+        </div>
+        <div class="flex-1"></div>
+    </header>
+
+    <main class="w-full pt-16">
+        <div id="folio-container" class="p-4 md:p-8">
+            <!-- Persona Folio will be rendered here -->
+        </div>
+    </main>
 
     <!-- Modals and Inputs needed by the folio -->
     <div id="custom-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-[60] p-4 hidden modal-backdrop">
@@ -33,6 +46,15 @@
             <div class="flex justify-end gap-2">
                 <button id="confirm-cancel-btn" class="btn btn-secondary">CANCEL</button>
                 <button id="confirm-ok-btn" class="btn btn-danger">CONFIRM</button>
+            </div>
+        </div>
+    </div>
+     <div id="error-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4 hidden modal-backdrop">
+        <div class="modal-content w-full max-w-md p-8">
+            <h2 class="text-xl font-bold mb-4 text-red-500">Error</h2>
+            <p id="error-message" class="text-gray-400 mb-6">Something went wrong.</p>
+            <div class="flex justify-end">
+                <button id="error-ok-btn" class="btn btn-primary">OK</button>
             </div>
         </div>
     </div>

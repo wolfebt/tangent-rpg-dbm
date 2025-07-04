@@ -12,8 +12,7 @@
 <body>
 
     <main id="main-content" class="w-full">
-        <!-- Main content will be rendered here by JavaScript -->
-    </main>
+        </main>
 
 
     <div id="entry-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4 hidden modal-backdrop">
@@ -1117,8 +1116,6 @@
             mainContentContainer.appendChild(headerContainer);
         }
 
-        // --- NEW/FIXED FUNCTIONS START ---
-
         function getSingularLabel(label) {
             if (!label) return '';
             label = label.toUpperCase();
@@ -1179,18 +1176,11 @@
             container.innerHTML = `
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-3xl font-bold uppercase">Persona Folios</h2>
-                    <button id="new-folio-btn" class="btn btn-primary">New Folio</button>
+                    <a href="persona_folio.html" class="btn btn-primary">New Folio</a>
                 </div>
                 <div id="folio-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <!-- Folio cards will be inserted here -->
-                </div>
+                    </div>
             `;
-
-            document.getElementById('new-folio-btn').onclick = () => {
-                // Navigate to the folio page with no ID to indicate a new character
-                window.location.href = `persona_folio.html`;
-            };
-
             listenForFolios();
         }
 
@@ -1213,16 +1203,13 @@
                 snapshot.forEach(doc => {
                     const folio = doc.data();
                     const docId = doc.id;
-                    const card = document.createElement('div');
-                    card.className = 'bg-gray-800 p-4 rounded-lg shadow-lg cursor-pointer hover:bg-gray-700 transition-all duration-200 transform hover:scale-105';
+                    const card = document.createElement('a');
+                    card.href = `persona_folio.html?id=${docId}`;
+                    card.className = 'block bg-gray-800 p-4 rounded-lg shadow-lg hover:bg-gray-700 transition-all duration-200 transform hover:scale-105 no-underline text-white';
                     card.innerHTML = `
                         <h3 class="text-xl font-bold truncate">${folio['char-name'] || 'Unnamed Folio'}</h3>
                         <p class="text-sm text-gray-400 mt-2 h-10 overflow-hidden">${folio['char-concept'] ? folio['char-concept'].substring(0, 100) + (folio['char-concept'].length > 100 ? '...' : '') : 'No concept.'}</p>
                     `;
-                    card.onclick = () => {
-                        // Navigate to the folio page, passing the docId as a URL parameter
-                        window.location.href = `persona_folio.html?id=${docId}`;
-                    };
                     folioListContainer.appendChild(card);
                 });
             }, error => {
@@ -1231,8 +1218,6 @@
             });
         }
         
-        // --- NEW/FIXED FUNCTIONS END ---
-
         function renderCategoryView(categoryKey) {
             appState.currentCollection = categoryKey;
             
@@ -1247,15 +1232,12 @@
 
             const config = categoryConfig[categoryKey];
             const contentArea = document.createElement('div');
-            contentArea.style.flexGrow = '1'; /* Ensure it fills space */
+            contentArea.style.flexGrow = '1';
 
             if (categoryKey !== 'rules_codex' && categoryKey !== 'persona_folio') {
-                /* Apply padding only for non-wiki views */
                 contentArea.className = 'p-8 md:p-16 pt-24 md:pt-24';
             } else if (categoryKey === 'rules_codex') {
-                /* For wiki view, contentArea will be the direct container for wiki-sidebar and wiki-content */
-                /* No padding on contentArea itself here. */
-                contentArea.style.display = 'flex'; /* Make it a flex container for sidebar and wiki-content */
+                contentArea.style.display = 'flex';
                 contentArea.style.flexDirection = 'row';
                 contentArea.style.alignItems = 'stretch';
             } else if (categoryKey === 'persona_folio') {
@@ -1269,8 +1251,8 @@
                 renderMultiTableView(categoryKey, config, contentArea);
             } else if (config.viewType === 'button_grid') {
                 renderButtonGridView(contentArea);
-            } else if (config.viewType === 'wiki') { /* Handle new wiki view */
-                renderWikiView(contentArea); // Pass contentArea to renderWikiView
+            } else if (config.viewType === 'wiki') {
+                renderWikiView(contentArea);
             }
             else {
                 renderTableView(categoryKey, config.label, contentArea);
@@ -1280,30 +1262,25 @@
 
         function renderButtonGridView(container) {
             container.innerHTML = '<h2 class="text-3xl font-bold truncate uppercase mb-6">Dashboard</h2>';
-            // Modified grid classes for more compact layout
             const grid = document.createElement('div');
             grid.className = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3';
             
-            // Modified combinedGroup and group padding
             const combinedGroup = document.createElement('div');
             combinedGroup.className = "border border-gray-600 p-3 rounded-lg flex flex-col gap-3";
             
-            // Persona Folio Header
             const folioTitle = document.createElement('h3');
             folioTitle.className = 'text-xl font-bold uppercase cursor-pointer hover:underline text-left';
             folioTitle.textContent = categoryConfig['persona_folio'].label;
             folioTitle.onclick = () => {
-                requestNavigation(() => navigateTo(() => renderCategoryView('persona_folio')));
+                navigateTo(() => renderCategoryView('persona_folio'));
             };
             combinedGroup.appendChild(folioTitle);
             
-            // Rules Codex Header
             const rulesTitle = document.createElement('h3');
             rulesTitle.className = 'text-xl font-bold uppercase cursor-pointer hover:underline text-left';
             rulesTitle.textContent = categoryConfig['rules_codex'].label;
             rulesTitle.onclick = (e) => {
-                e.preventDefault();
-                requestNavigation(() => navigateTo(() => renderCategoryView('rules_codex')));
+                navigateTo(() => renderCategoryView('rules_codex'));
             };
             combinedGroup.appendChild(rulesTitle);
 
@@ -1317,13 +1294,13 @@
                 if (!parentConfig) return;
 
                 const group = document.createElement('div');
-                group.className = "border border-gray-600 p-3 rounded-lg flex flex-col"; /* Modified padding */
+                group.className = "border border-gray-600 p-3 rounded-lg flex flex-col";
 
                 const title = document.createElement('h3');
                 title.className = 'text-xl font-bold uppercase cursor-pointer hover:underline text-left';
                 title.textContent = parentConfig.label;
                 title.onclick = () => {
-                    requestNavigation(() => navigateTo(() => renderCategoryView(parentKey)));
+                    navigateTo(() => renderCategoryView(parentKey));
                 };
                 group.appendChild(title);
                 
@@ -1419,12 +1396,12 @@
             link.onclick = (e) => {
                 e.preventDefault(); e.stopPropagation();
                 if (parentKey === 'equipment' && categoryConfig[parentKey].tables[key]) {
-                    requestNavigation(() => navigateTo(() => renderCategoryView(parentKey)));
+                    navigateTo(() => renderCategoryView(parentKey));
                     setTimeout(()=> {
                         document.querySelector(`button[data-tab-key='${key}']`)?.click();
                     }, 50);
                 } else {
-                    requestNavigation(() => navigateTo(() => renderManagementView(key, parentKey)));
+                    navigateTo(() => renderManagementView(key, parentKey));
                 }
             };
             return link;
@@ -1476,13 +1453,10 @@
         function renderWikiView(container) { /* `container` is now `contentArea` from renderCategoryView */
             container.innerHTML = `
                 <div class="wiki-sidebar" id="wiki-sidebar">
-                    <h3>Rules Codex</h3> <!-- Changed title here -->
-                    <button id="add-wiki-entry-btn" class="btn btn-primary w-full mb-4">Add New Entry</button>
+                    <h3>Rules Codex</h3> <button id="add-wiki-entry-btn" class="btn btn-primary w-full mb-4">Add New Entry</button>
                     <ul id="wiki-directory-list"></ul>
                 </div>
-                <div class="wiki-content-area-wrapper"> <!-- New wrapper for main content and buttons -->
-                    <div class="flex justify-end gap-2 mb-4"> <!-- Buttons here -->
-                        <button id="wiki-edit-btn" class="btn btn-secondary" style="display:none;">Edit</button>
+                <div class="wiki-content-area-wrapper"> <div class="flex justify-end gap-2 mb-4"> <button id="wiki-edit-btn" class="btn btn-secondary" style="display:none;">Edit</button>
                         <button id="wiki-delete-btn" class="btn btn-danger" style="display:none;">Delete</button>
                     </div>
                     <div class="wiki-content" id="wiki-content">
@@ -2847,7 +2821,7 @@
                 });
             }
         };
-
+        
         window.onload = function() {
             /* Entry point */
             if (appState.userId) {
