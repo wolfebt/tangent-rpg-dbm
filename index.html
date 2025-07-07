@@ -54,20 +54,49 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.4);
             text-shadow: none;
         }
+        
+        /* --- NEW: Auth Styles --- */
+        /* Positions the auth block in the top right corner */
+        #auth-status-container {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            z-index: 10;
+        }
+        /* A generic style for the login/logout button on this page */
+        .auth-button {
+            background-color: var(--bg-section);
+            border: 1px solid var(--border-main);
+            color: var(--text-light);
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-family: var(--font-body);
+            font-weight: 700;
+            text-transform: uppercase;
+            transition: all 0.2s ease;
+        }
+        .auth-button:hover {
+            background-color: var(--btn-primary-hover-bg);
+            border-color: var(--border-focus);
+        }
     </style>
 </head>
-<body class="flex flex-col h-screen">
+<body class="flex flex-col h-screen relative">
+
+    <!-- NEW: Auth Status Container -->
+    <!-- This empty header will be populated by our auth.js script -->
+    <header id="auth-status-container"></header>
 
     <!-- Main content container -->
     <main class="flex-grow flex flex-col items-center justify-center text-center p-4">
         
         <!-- Heading -->
-        <header class="mb-12">
+        <div class="mb-12">
             <h1 class="brand-heading text-6xl md:text-8xl">TANGENT</h1>
             <h2 class="text-xl md:text-2xl text-gray-300 mt-2 font-light tracking-wider">
                 Science Fiction and Fantasy Role Playing Game
             </h2>
-        </header>
+        </div>
 
         <!-- Navigation Buttons -->
         <nav class="w-full max-w-sm flex flex-col gap-6">
@@ -87,6 +116,20 @@
             Tangent SFF RPG by Wolfe.BT@TangentLLC
         </p>
     </footer>
+    
+    <!-- NEW: Firebase Auth Logic -->
+    <!-- The script is type="module" to allow for `import` statements -->
+    <script type="module">
+        // Import the reusable function from our new auth module.
+        import { renderAuthStatus } from './auth.js';
+
+        // Wait for the DOM to be fully loaded before trying to find elements.
+        document.addEventListener('DOMContentLoaded', () => {
+            const authContainer = document.getElementById('auth-status-container');
+            // Render the auth status, applying the 'auth-button' class to any generated buttons.
+            renderAuthStatus(authContainer, 'auth-button');
+        });
+    </script>
 
 </body>
 </html>
