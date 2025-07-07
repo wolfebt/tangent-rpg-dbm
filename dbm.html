@@ -1843,7 +1843,7 @@
             container.innerHTML = `
                 <div class="wiki-sidebar" id="wiki-sidebar">
                     <h3>Rules Codex</h3>
-                    <button id="add-wiki-entry-btn" class="btn btn-primary w-full mb-4 auth-required">Add New Entry</button>
+                    <div id="wiki-sidebar-controls" class="mb-4"></div>
                     <ul id="wiki-directory-list"></ul>
                 </div>
                 <div class="wiki-content-area-wrapper">
@@ -1860,11 +1860,28 @@
                 </div>
             `;
 
-            document.getElementById('add-wiki-entry-btn').addEventListener('click', () => {
-                appState.currentCollection = 'rules_codex';
-                appState.currentSubcollection = null;
-                openModal(null, {}, true);
-            });
+            const sidebarControls = document.getElementById('wiki-sidebar-controls');
+
+            if (appState.isAnonymous) {
+                sidebarControls.innerHTML = `
+                    <p class="text-xs text-center text-gray-500 p-2 border border-dashed border-gray-600 rounded-md">
+                        Please <a href="#" id="wiki-login-link" class="underline font-bold">log in</a> to add or edit entries.
+                    </p>
+                `;
+                document.getElementById('wiki-login-link').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    handleLogin();
+                });
+            } else {
+                sidebarControls.innerHTML = `
+                    <button id="add-wiki-entry-btn" class="btn btn-primary w-full">Add New Entry</button>
+                `;
+                document.getElementById('add-wiki-entry-btn').addEventListener('click', () => {
+                    appState.currentCollection = 'rules_codex';
+                    appState.currentSubcollection = null;
+                    openModal(null, {}, true);
+                });
+            }
 
             document.getElementById('wiki-edit-btn').addEventListener('click', () => {
                 if (appState.currentWikiEntryId) {
@@ -1881,18 +1898,6 @@
                     deleteEntry(appState.currentWikiEntryId);
                 }
             });
-
-            if (appState.isAnonymous) {
-                const sidebar = document.getElementById('wiki-sidebar');
-                const loginPrompt = document.createElement('p');
-                loginPrompt.className = 'text-xs text-center text-gray-500 p-2 border border-dashed border-gray-600 rounded-md mb-4';
-                loginPrompt.innerHTML = 'Please <a href="#" id="wiki-login-link" class="underline font-bold">log in</a> to add or edit entries.';
-                sidebar.prepend(loginPrompt);
-                document.getElementById('wiki-login-link').addEventListener('click', (e) => {
-                    e.preventDefault();
-                    handleLogin();
-                });
-            }
             
             listenForWikiEntries();
             updateUIAfterAuthChange();
@@ -3185,7 +3190,7 @@
                         html += `<ol class="list-decimal list-inside space-y-1 mt-1 ml-8">`;
                         listStack.push({ type: 'ol', indent });
                     }
-                    html += `<li>${trimmedLine.replace(/^\d+\. /, '')}</li>`;
+                    html += `<li>${trimmedLine.replace(/^\\d+\. /, '')}</li>`;
                 } else {
                     while (listStack.length > 0) {
                         html += `</li></${listStack.pop().type}>`;
