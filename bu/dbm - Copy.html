@@ -473,6 +473,7 @@
         import { getFirestore, doc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, getDocs, getDoc, setDoc, setLogLevel, serverTimestamp, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
         // --- Firebase Configuration ---
+        // <<< MODIFICATION: Updated with your specific project keys.
         const firebaseConfig = {
           apiKey: "AIzaSyBA1CC4SXXtWM9UpU1XkAiBFr0RIgrPwGk",
           authDomain: "tangent-rpg-dbm.firebaseapp.com",
@@ -1236,11 +1237,7 @@
                 await signInWithPopup(auth, provider);
             } catch (error) {
                 console.error("Error during Google sign-in:", error);
-                if (error.code === 'auth/unauthorized-domain') {
-                    showError("This domain is not authorized for Google Sign-In. Please add it to the authorized domains in your Firebase Authentication settings.");
-                } else {
-                    showError("Could not sign in with Google. Please try again.");
-                }
+                showError("Could not sign in with Google. Please try again.");
             }
         }
 
@@ -1282,18 +1279,6 @@
             authRequiredElements.forEach(el => {
                 el.style.display = appState.isAnonymous ? 'none' : '';
             });
-
-            // Update interactivity of table titles based on auth state
-            const allTableTitles = document.querySelectorAll('h2[id^="table-title-"]');
-            allTableTitles.forEach(title => {
-                if (appState.isAnonymous) {
-                    title.style.cursor = 'default';
-                    title.classList.remove('hover:underline');
-                } else {
-                    title.style.cursor = 'pointer';
-                    title.classList.add('hover:underline');
-                }
-            });
         }
 
         onAuthStateChanged(auth, async (user) => {
@@ -1323,11 +1308,7 @@
                 appState.userId = null;
                 signInAnonymously(auth).catch(err => {
                     console.error("Failed to re-establish anonymous session:", err);
-                    if (err.code === 'auth/admin-restricted-operation') {
-                        showError("CRITICAL ERROR: Anonymous sign-in is not enabled in your Firebase project. Please go to Authentication -> Sign-in method in the Firebase console and enable the 'Anonymous' provider.");
-                    } else {
-                        showError("Your session has ended. Please refresh the page.");
-                    }
+                    showError("Your session has ended. Please refresh the page.");
                 });
             }
         });
@@ -1540,6 +1521,7 @@
             }
             else {
                 renderTableView(categoryKey, config.label, contentArea);
+                listenForData(categoryKey);
             }
         }
 
@@ -1682,86 +1664,6 @@
             return link;
         }
 
-        function renderTableView(collectionKey, title, container, parentCategoryKey = null) {
-            appState.currentCollection = parentCategoryKey || collectionKey;
-            appState.currentSubcollection = parentCategoryKey ? collectionKey : null;
-
-            const config = getActiveConfig(collectionKey);
-            if (!config) {
-                showError(`Configuration for "${collectionKey}" not found.`);
-                return;
-            }
-
-            container.innerHTML = `
-                <div class="flex flex-col sm:flex-row justify-between sm:items-center my-4 gap-4">
-                    <div class="flex-grow min-w-0">
-                        <h2 id="table-title-${collectionKey}" class="text-3xl font-bold truncate uppercase">${title}</h2>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <input type="text" id="search-input" placeholder="Search by name..." class="global-form-input !w-auto" value="${appState.searchTerm}">
-                        <button id="add-new-btn" class="btn btn-primary auth-required">ADD NEW</button>
-                    </div>
-                </div>
-                <div class="shadow-lg rounded-lg overflow-x-auto">
-                    <table class="data-table min-w-full">
-                        <thead id="table-header-${collectionKey}"></thead>
-                        <tbody id="table-body-${collectionKey}"></tbody>
-                    </table>
-                </div>
-            `;
-            
-            const titleElement = container.querySelector(`#table-title-${collectionKey}`);
-            if (titleElement) {
-                titleElement.addEventListener('click', () => {
-                    if (!appState.isAnonymous) {
-                        openModal(null, {}, true);
-                    }
-                });
-            }
-
-            const addNewBtn = container.querySelector('#add-new-btn');
-            if (addNewBtn) {
-                addNewBtn.addEventListener('click', () => {
-                    openModal(null, {}, true);
-                });
-            }
-
-            const searchInput = container.querySelector('#search-input');
-            if (searchInput) {
-                let debounceTimer;
-                searchInput.addEventListener('input', (e) => {
-                    clearTimeout(debounceTimer);
-                    debounceTimer = setTimeout(() => {
-                        appState.searchTerm = e.target.value;
-                        listenForData(collectionKey);
-                    }, 300);
-                });
-            }
-            
-            listenForData(collectionKey);
-            updateUIAfterAuthChange();
-        }
-
-        function renderManagementView(collectionKey, parentCollectionKey) {
-            if (!appState.authReady) return;
-
-            const mainCollectionForHeader = parentCollectionKey || collectionKey;
-            mainContentContainer.innerHTML = '';
-            renderAppHeader(mainCollectionForHeader);
-
-            const config = getActiveConfig(collectionKey);
-            if (!config) {
-                showError(`Configuration for "${collectionKey}" not found.`);
-                return;
-            }
-
-            const container = document.createElement('div');
-            container.className = 'p-8 md:p-16 pt-8 md:pt-8';
-            mainContentContainer.appendChild(container);
-
-            renderTableView(collectionKey, config.label, container, parentCollectionKey);
-        }
-
         function renderMultiTableView(parentCategoryKey, config, container) {
             container.innerHTML = '';
             const tables = config.tables;
@@ -1771,7 +1673,38 @@
                 tableContainer.className = 'mb-12';
                 container.appendChild(tableContainer);
                 renderTableView(tableKey, tableConfig.label, tableContainer, parentCategoryKey);
+                listenForData(tableKey);
             }
+        }
+
+        function renderTabContent(tabKey, tabConfig, container) {
+            appState.currentSubcollection = tabKey;
+            
+            container.innerHTML = '';
+            const viewContainer = document.createElement('div');
+            
+            viewContainer.innerHTML = `
+                <div class="flex flex-col sm:flex-row justify-between sm:items-center my-4 gap-4">
+                    <div class="flex-grow min-w-0">
+                        <h2 id="table-title-${tabKey}" class="text-3xl font-bold truncate uppercase cursor-pointer hover:underline">${tabConfig.label}</h2>
+                    </div>
+                </div>
+                <div class="shadow-lg rounded-lg overflow-x-auto">
+                    <table class="data-table min-w-full">
+                        <thead id="table-header-${tabKey}">
+                        </thead>
+                        <tbody id="table-body-${tabKey}">
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            container.appendChild(viewContainer);
+            document.getElementById(`table-title-${tabKey}`).addEventListener('click', () => {
+                appState.currentSubcollection = tabKey;
+                openModal();
+            });
+            
+            listenForData(tabKey);
         }
         
         function renderWikiView(container) {
@@ -2339,17 +2272,6 @@
             return `<div>${buttonHtml || labelHtml}${fieldHtml}</div>`;
         }
         
-        function getSingularLabel(label) {
-            if (!label) return '';
-            if (label.toUpperCase().endsWith('IES')) {
-                return label.slice(0, -3) + 'Y';
-            }
-            if (label.toUpperCase().endsWith('S')) {
-                return label.slice(0, -1);
-            }
-            return label;
-        }
-
         async function openModal(docId = null, data = {}, isEditMode = true) {
             appState.editingDocId = docId;
             const collectionKey = appState.currentSubcollection || appState.currentCollection;

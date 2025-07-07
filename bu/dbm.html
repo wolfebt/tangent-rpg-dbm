@@ -347,11 +347,14 @@
             width: 16px; height: 16px; animation: spin 1s linear infinite;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .auth-required {
+            display: none;
+        }
     </style>
 </head>
 <body>
 
-    <!-- Removed the outer div with padding -->
     <main id="main-content" class="w-full">
     </main>
 
@@ -367,7 +370,7 @@
                             </div>
                     </div>
                 </div>
-                <form id="entry-form" onsubmit="handleFormSubmit(event)">
+                <form id="entry-form">
                     <div id="form-fields" class="space-y-6">
                     </div>
                 </form>
@@ -470,8 +473,16 @@
         import { getFirestore, doc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, getDocs, getDoc, setDoc, setLogLevel, serverTimestamp, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
         // --- Firebase Configuration ---
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "YOUR_API_KEY", authDomain: "...", projectId: "..." };
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-tangent-rpg-app';
+        const firebaseConfig = {
+          apiKey: "AIzaSyBA1CC4SXXtWM9UpU1XkAiBFr0RIgrPwGk",
+          authDomain: "tangent-rpg-dbm.firebaseapp.com",
+          projectId: "tangent-rpg-dbm",
+          storageBucket: "tangent-rpg-dbm.appspot.com",
+          messagingSenderId: "559983787369",
+          appId: "1:559983787369:web:d6f3b87daaa82b23d211f8",
+          measurementId: "G-G6NC09PXPC"
+        };
+        const appId = firebaseConfig.projectId;
 
         // --- Firebase Initialization ---
         const app = initializeApp(firebaseConfig);
@@ -482,6 +493,7 @@
         const appState = {
             userId: null,
             isAnonymous: true,
+            authReady: false,
             currentCollection: null,
             currentSubcollection: null,
             editingDocId: null,
@@ -497,8 +509,9 @@
             searchTerm: '',
             sortBy: 'name',
             sortDirection: 'asc',
-            wikiEntries: [], // Store all wiki entries for directory and linking
-            currentWikiEntryId: null, // Track the currently displayed wiki entry
+            wikiEntries: [],
+            currentWikiEntryId: null,
+            activeListenerUnsubscribe: null, 
         };
 
         // --- RPG System Configuration ---
@@ -509,15 +522,15 @@
             },
             rules_codex: {
                 label: 'RULES CODEX',
-                viewType: 'wiki', // Changed to wiki view
+                viewType: 'wiki',
                 fields: {
                     name: { type: 'text', required: true },
                     description: { type: 'textarea', aiEnabled: true },
-                    mechanic: { type: 'textarea' }, // Added mechanic field
+                    mechanic: { type: 'textarea' },
                     note: { type: 'textarea' },
-                    guide: { type: 'textarea' }, // New guide field
-                    parent: { type: 'select', source: 'rules_codex', label: 'Parent Entry', manageable: false }, // For tree structure
-                    order: { type: 'number', label: 'Order', default: 0 }, // For manual sorting
+                    guide: { type: 'textarea' },
+                    parent: { type: 'select', source: 'rules_codex', label: 'Parent Entry', manageable: false },
+                    order: { type: 'number', label: 'Order', default: 0 },
                 }
             },
             values: {
@@ -1217,39 +1230,91 @@
             }
         }
 
-        let initialAuthAttempted = false;
-        async function handleAuthentication() {
-            initialAuthAttempted = true;
+        async function handleLogin() {
+            const provider = new GoogleAuthProvider();
             try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
+                await signInWithPopup(auth, provider);
             } catch (error) {
-                try {
-                    await signInAnonymously(auth);
-                } catch (anonError) {
-                    console.error("Anonymous sign-in also failed:", anonError);
-                    showError("Could not authenticate. Please refresh the page.");
-                }
+                console.error("Error during Google sign-in:", error);
+                showError("Could not sign in with Google. Please try again.");
             }
         }
 
-        onAuthStateChanged(auth, (user) => {
+        async function handleLogout() {
+            try {
+                await signOut(auth);
+            } catch (error) {
+                console.error("Error signing out:", error);
+                showError("An error occurred while signing out.");
+            }
+        }
+
+        function updateUIAfterAuthChange() {
+            const authContainer = document.getElementById('auth-container');
+            const userIdDisplay = document.getElementById('userIdDisplay');
+
+            if (authContainer) {
+                authContainer.innerHTML = ''; 
+                if (appState.isAnonymous) {
+                    const loginButton = document.createElement('button');
+                    loginButton.className = 'btn btn-primary !py-1 !px-3';
+                    loginButton.textContent = 'LOGIN';
+                    loginButton.addEventListener('click', handleLogin);
+                    authContainer.appendChild(loginButton);
+                } else {
+                    const logoutButton = document.createElement('button');
+                    logoutButton.className = 'btn btn-secondary !py-1 !px-3';
+                    logoutButton.textContent = 'LOGOUT';
+                    logoutButton.addEventListener('click', handleLogout);
+                    authContainer.appendChild(logoutButton);
+                }
+            }
+            
+            if(userIdDisplay) {
+                 userIdDisplay.textContent = appState.isAnonymous ? 'ANONYMOUS' : (auth.currentUser?.email || appState.userId);
+            }
+
+            const authRequiredElements = document.querySelectorAll('.auth-required');
+            authRequiredElements.forEach(el => {
+                el.style.display = appState.isAnonymous ? 'none' : '';
+            });
+        }
+
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
                 appState.userId = user.uid;
                 appState.isAnonymous = user.isAnonymous;
-                // Populate rulesCodexMap after authentication
-                populateRulesCodexMap();
-                if (!currentRenderFn) {
-                    navigateTo(() => renderCategoryView('other'));
+
+                if (!appState.authReady) {
+                    appState.authReady = true;
+                    try {
+                        await populateRulesCodexMap();
+                        navigateTo(() => renderCategoryView('other'));
+                    } catch (error) {
+                         if (error.code === 'permission-denied') {
+                            showError("CRITICAL ERROR: Firestore rules are not set up for public read. Please update your Firestore security rules to allow read access.");
+                        } else {
+                            showError(`An unexpected error occurred during startup: ${error.message}`);
+                        }
+                        console.error("Startup Error:", error);
+                    }
+                } else {
+                    updateUIAfterAuthChange();
+                    if (currentRenderFn) currentRenderFn(); 
                 }
-            } else if (!initialAuthAttempted) {
-                handleAuthentication();
+            } else {
+                appState.isAnonymous = true;
+                appState.userId = null;
+                signInAnonymously(auth).catch(err => {
+                    console.error("Failed to re-establish anonymous session:", err);
+                    if (err.code === 'auth/admin-restricted-operation') {
+                        showError("CRITICAL ERROR: Anonymous sign-in is not enabled in your Firebase project. Please go to Authentication -> Sign-in method in the Firebase console and enable the 'Anonymous' provider.");
+                    } else {
+                        showError("Your session has ended. Please refresh the page.");
+                    }
+                });
             }
         });
-
         
         function getFormDataObject(formElement) {
             const form = formElement || document.getElementById('entry-form');
@@ -1304,11 +1369,6 @@
 
             requestNavigation(navigateToManagementView, true);
         }
-
-        function handleNavigateToEquipment() {
-            requestNavigation(() => navigateTo(() => renderCategoryView('equipment')));
-        }
-        window.handleNavigateToEquipment = handleNavigateToEquipment;
         
         // --- Navigation & View Rendering ---
 
@@ -1356,16 +1416,15 @@
             const dropdownList = document.createElement('div');
             dropdownList.className = 'py-1';
 
-            // "Dashboard" Link first
             const dashboardLink = document.createElement('a');
             dashboardLink.href = '#';
             dashboardLink.className = 'block px-4 py-2 text-sm text-gray-300 hover:text-white font-bold';
             dashboardLink.textContent = 'DASHBOARD';
-            dashboardLink.onclick = (e) => {
+            dashboardLink.addEventListener('click', (e) => {
                 e.preventDefault();
                 requestNavigation(() => navigateTo(() => renderCategoryView('other')));
                 dropdownMenu.classList.add('hidden');
-            };
+            });
             dropdownList.appendChild(dashboardLink);
 
             const mainCategories = Object.keys(categoryConfig).filter(key => !categoryConfig[key].hideFromMenu && key !== 'other');
@@ -1375,20 +1434,20 @@
                 link.href = '#';
                 link.className = 'block px-4 py-2 text-sm text-gray-300 hover:text-white';
                 link.textContent = categoryConfig[key].label.toUpperCase();
-                link.onclick = (e) => {
+                link.addEventListener('click', (e) => {
                     e.preventDefault();
                     requestNavigation(() => navigateTo(() => renderCategoryView(key)));
                     dropdownMenu.classList.add('hidden');
-                };
+                });
                 dropdownList.appendChild(link);
             });
 
 
             dropdownMenu.appendChild(dropdownList);
 
-            menuButton.onclick = () => {
+            menuButton.addEventListener('click', () => {
                 dropdownMenu.classList.toggle('hidden');
-            };
+            });
             
             dropdownContainer.appendChild(menuButton);
             dropdownContainer.appendChild(dropdownMenu);
@@ -1408,24 +1467,30 @@
             const userIdDiv = document.createElement('div');
             userIdDiv.className = 'text-right';
             userIdDiv.innerHTML = `
-                <p class="text-xs text-gray-500">USER ID:</p>
-                <p id="userIdDisplay" class="text-sm font-semibold bg-gray-700 rounded-md px-2 py-0.5 inline-block break-all" style="color: var(--text-subtle); background-color: var(--bg-header);">${appState.userId || ''}</p>
+                <p class="text-xs text-gray-500">USER:</p>
+                <p id="userIdDisplay" class="text-sm font-semibold bg-gray-700 rounded-md px-2 py-0.5 inline-block break-all" style="color: var(--text-subtle); background-color: var(--bg-header);"></p>
             `;
             rightCol.appendChild(userIdDiv);
 
-            const guideButton = document.createElement('button'); /* Renamed helpButton to guideButton */
-            guideButton.id = 'guide-btn'; /* Changed ID to guide-btn */
+            const authContainer = document.createElement('div');
+            authContainer.id = 'auth-container';
+            rightCol.appendChild(authContainer);
+
+            const guideButton = document.createElement('button');
+            guideButton.id = 'guide-btn';
             guideButton.className = 'p-1 rounded-full hover:bg-gray-700 transition-colors underline';
-            guideButton.textContent = "Guide"; /* Changed text to Guide */
-            guideButton.onclick = () => { helpModal.classList.remove('hidden'); };
+            guideButton.textContent = "Guide";
+            guideButton.addEventListener('click', () => { helpModal.classList.remove('hidden'); });
             rightCol.appendChild(guideButton);
 
             headerContainer.appendChild(rightCol);
             
-            mainContentContainer.appendChild(headerContainer);
+            mainContentContainer.prepend(headerContainer);
+            updateUIAfterAuthChange();
         }
 
         function renderCategoryView(categoryKey) {
+            if (!appState.authReady) return; 
             appState.currentCollection = categoryKey;
             
             if (categoryKey !== 'equipment') {
@@ -1439,15 +1504,12 @@
 
             const config = categoryConfig[categoryKey];
             const contentArea = document.createElement('div');
-            contentArea.style.flexGrow = '1'; /* Ensure it fills space */
+            contentArea.style.flexGrow = '1';
 
             if (categoryKey !== 'rules_codex') {
-                /* Apply padding only for non-wiki views */
-                contentArea.className = 'p-8 md:p-16 pt-24 md:pt-24';
+                contentArea.className = 'p-8 md:p-16 pt-8 md:pt-8';
             } else {
-                /* For wiki view, contentArea will be the direct container for wiki-sidebar and wiki-content */
-                /* No padding on contentArea itself here. */
-                contentArea.style.display = 'flex'; /* Make it a flex container for sidebar and wiki-content */
+                contentArea.style.display = 'flex';
                 contentArea.style.flexDirection = 'row';
                 contentArea.style.alignItems = 'stretch';
             }
@@ -1457,33 +1519,29 @@
                 renderMultiTableView(categoryKey, config, contentArea);
             } else if (config.viewType === 'button_grid') {
                 renderButtonGridView(contentArea);
-            } else if (config.viewType === 'wiki') { /* Handle new wiki view */
-                renderWikiView(contentArea); // Pass contentArea to renderWikiView
+            } else if (config.viewType === 'wiki') {
+                renderWikiView(contentArea);
             }
             else {
                 renderTableView(categoryKey, config.label, contentArea);
-                listenForData(categoryKey);
             }
         }
 
         function renderButtonGridView(container) {
             container.innerHTML = '<h2 class="text-3xl font-bold truncate uppercase mb-6">Dashboard</h2>';
-            // Modified grid classes for more compact layout
             const grid = document.createElement('div');
             grid.className = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3';
             
-            // Modified combinedGroup and group padding
             const combinedGroup = document.createElement('div');
             combinedGroup.className = "border border-gray-600 p-3 rounded-lg flex flex-col gap-3";
             
-            // Rules Codex Header
             const rulesTitle = document.createElement('h3');
             rulesTitle.className = 'text-xl font-bold uppercase cursor-pointer hover:underline text-left';
             rulesTitle.textContent = categoryConfig['rules_codex'].label;
-            rulesTitle.onclick = (e) => {
+            rulesTitle.addEventListener('click', (e) => {
                 e.preventDefault();
                 requestNavigation(() => navigateTo(() => renderCategoryView('rules_codex')));
-            };
+            });
             combinedGroup.appendChild(rulesTitle);
 
             grid.appendChild(combinedGroup);
@@ -1496,14 +1554,14 @@
                 if (!parentConfig) return;
 
                 const group = document.createElement('div');
-                group.className = "border border-gray-600 p-3 rounded-lg flex flex-col"; /* Modified padding */
+                group.className = "border border-gray-600 p-3 rounded-lg flex flex-col";
 
                 const title = document.createElement('h3');
                 title.className = 'text-xl font-bold uppercase cursor-pointer hover:underline text-left';
                 title.textContent = parentConfig.label;
-                title.onclick = () => {
+                title.addEventListener('click', () => {
                     requestNavigation(() => navigateTo(() => renderCategoryView(parentKey)));
-                };
+                });
                 group.appendChild(title);
                 
                 const subcatContainer = document.createElement('div');
@@ -1531,7 +1589,6 @@
                     }
                 }
 
-                // Apply specific removals and renames
                 if (parentKey === 'societies') {
                     allSubLinks.delete('society_society');
                     allSubLinks.delete('prerequisite');
@@ -1595,7 +1652,7 @@
             link.href = '#';
             link.textContent = label.toUpperCase();
             link.className = `block text-sm hover:underline hover:text-white ${isBold ? 'text-gray-300 font-semibold' : 'text-gray-400'}`;
-            link.onclick = (e) => {
+            link.addEventListener('click', (e) => {
                 e.preventDefault(); e.stopPropagation();
                 if (parentKey === 'equipment' && categoryConfig[parentKey].tables[key]) {
                     requestNavigation(() => navigateTo(() => renderCategoryView(parentKey)));
@@ -1605,7 +1662,7 @@
                 } else {
                     requestNavigation(() => navigateTo(() => renderManagementView(key, parentKey)));
                 }
-            };
+            });
             return link;
         }
 
@@ -1618,7 +1675,6 @@
                 tableContainer.className = 'mb-12';
                 container.appendChild(tableContainer);
                 renderTableView(tableKey, tableConfig.label, tableContainer, parentCategoryKey);
-                listenForData(tableKey);
             }
         }
 
@@ -1644,25 +1700,25 @@
                 </div>
             `;
             container.appendChild(viewContainer);
-            document.getElementById(`table-title-${tabKey}`).onclick = () => {
+            document.getElementById(`table-title-${tabKey}`).addEventListener('click', () => {
                 appState.currentSubcollection = tabKey;
                 openModal();
-            };
+            });
             
             listenForData(tabKey);
         }
         
-        function renderWikiView(container) { /* `container` is now `contentArea` from renderCategoryView */
+        function renderWikiView(container) {
             container.innerHTML = `
                 <div class="wiki-sidebar" id="wiki-sidebar">
-                    <h3>Rules Codex</h3> <!-- Changed title here -->
-                    <button id="add-wiki-entry-btn" class="btn btn-primary w-full mb-4">Add New Entry</button>
+                    <h3>Rules Codex</h3>
+                    <button id="add-wiki-entry-btn" class="btn btn-primary w-full mb-4 auth-required">Add New Entry</button>
                     <ul id="wiki-directory-list"></ul>
                 </div>
-                <div class="wiki-content-area-wrapper"> <!-- New wrapper for main content and buttons -->
-                    <div class="flex justify-end gap-2 mb-4"> <!-- Buttons here -->
-                        <button id="wiki-edit-btn" class="btn btn-secondary" style="display:none;">Edit</button>
-                        <button id="wiki-delete-btn" class="btn btn-danger" style="display:none;">Delete</button>
+                <div class="wiki-content-area-wrapper">
+                    <div class="flex justify-end gap-2 mb-4">
+                        <button id="wiki-edit-btn" class="btn btn-secondary auth-required" style="display:none;">Edit</button>
+                        <button id="wiki-delete-btn" class="btn btn-danger auth-required" style="display:none;">Delete</button>
                     </div>
                     <div class="wiki-content" id="wiki-content">
                         <h2 id="wiki-entry-title">Select an Entry</h2>
@@ -1673,33 +1729,30 @@
                 </div>
             `;
 
-            const addEntryBtn = document.getElementById('add-wiki-entry-btn');
-            addEntryBtn.onclick = () => {
+            document.getElementById('add-wiki-entry-btn').addEventListener('click', () => {
                 appState.currentCollection = 'rules_codex';
                 appState.currentSubcollection = null;
-                openModal(null, {}, true); // Open in edit mode for new entry
-            };
+                openModal(null, {}, true);
+            });
 
-            const wikiEditBtn = document.getElementById('wiki-edit-btn');
-            const wikiDeleteBtn = document.getElementById('wiki-delete-btn');
-
-            wikiEditBtn.onclick = () => {
+            document.getElementById('wiki-edit-btn').addEventListener('click', () => {
                 if (appState.currentWikiEntryId) {
                     const entry = appState.wikiEntries.find(e => e.id === appState.currentWikiEntryId);
                     if (entry) {
                         appState.currentCollection = 'rules_codex';
-                        openModal(entry.id, entry, true); // Open in edit mode
+                        openModal(entry.id, entry, true);
                     }
                 }
-            };
+            });
 
-            wikiDeleteBtn.onclick = () => {
+            document.getElementById('wiki-delete-btn').addEventListener('click', () => {
                 if (appState.currentWikiEntryId) {
                     deleteEntry(appState.currentWikiEntryId);
                 }
-            };
-
-            listenForWikiEntries(); // Start listening for rules_codex data
+            });
+            
+            listenForWikiEntries();
+            updateUIAfterAuthChange();
         }
 
         async function renderWikiDirectory(container, entries, parent = null, level = 0) {
@@ -1715,15 +1768,13 @@
                 const itemContent = document.createElement('div');
                 itemContent.className = 'wiki-tree-item';
 
-                let toggleBtn = '';
+                let toggleBtnHtml = `<span class="toggle-btn"></span>`;
                 if (hasChildren) {
-                    toggleBtn = `<button class="toggle-btn" data-toggle-id="${entry.id}">&#9658;</button>`; // Right arrow
-                } else {
-                    toggleBtn = `<span class="toggle-btn"></span>`; // Placeholder for alignment
+                    toggleBtnHtml = `<button class="toggle-btn" data-toggle-id="${entry.id}">&#9658;</button>`;
                 }
 
                 itemContent.innerHTML = `
-                    ${toggleBtn}
+                    ${toggleBtnHtml}
                     <a href="#" class="wiki-tree-item-content" data-entry-id="${entry.id}">${entry.name}</a>
                 `;
                 li.appendChild(itemContent);
@@ -1731,34 +1782,34 @@
                 if (hasChildren) {
                     const childrenContainer = document.createElement('div');
                     childrenContainer.id = `children-${entry.id}`;
-                    childrenContainer.style.display = 'none'; // Hidden by default
+                    childrenContainer.style.display = 'none';
                     childrenContainer.appendChild(await renderWikiDirectory(null, entries, entry.name, level + 1));
                     li.appendChild(childrenContainer);
 
                     const toggleButton = itemContent.querySelector('.toggle-btn');
-                    toggleButton.onclick = () => {
+                    toggleButton.addEventListener('click', () => {
                         const isHidden = childrenContainer.style.display === 'none';
                         childrenContainer.style.display = isHidden ? 'block' : 'none';
-                        toggleButton.innerHTML = isHidden ? '&#9660;' : '&#9658;'; // Down or right arrow
-                    };
+                        toggleButton.innerHTML = isHidden ? '&#9660;' : '&#9658;';
+                    });
                 }
 
                 const link = itemContent.querySelector('a');
-                link.onclick = (e) => {
+                link.addEventListener('click', (e) => {
                     e.preventDefault();
                     displayWikiEntry(entry.id);
-                };
+                });
 
                 ul.appendChild(li);
             }
             if (container) {
+                container.innerHTML = '';
                 container.appendChild(ul);
             }
             return ul;
         }
 
         async function displayWikiEntry(docId) {
-            const wikiContentDiv = document.getElementById('wiki-content');
             const wikiTitle = document.getElementById('wiki-entry-title');
             const wikiBody = document.getElementById('wiki-entry-body');
             const wikiEditBtn = document.getElementById('wiki-edit-btn');
@@ -1766,8 +1817,8 @@
 
             wikiTitle.textContent = 'Loading...';
             wikiBody.innerHTML = '<p class="text-center text-gray-400">Loading entry...</p>';
-            wikiEditBtn.style.display = 'none';
-            wikiDeleteBtn.style.display = 'none';
+            if(wikiEditBtn) wikiEditBtn.style.display = 'none';
+            if(wikiDeleteBtn) wikiDeleteBtn.style.display = 'none';
             appState.currentWikiEntryId = null;
 
             try {
@@ -1777,28 +1828,18 @@
                     wikiTitle.textContent = entry.name.toUpperCase();
                     let contentHtml = '';
 
-                    if (entry.description) {
-                        contentHtml += `<p>${parseWikiLinks(entry.description)}</p>`;
-                    }
-                    if (entry.mechanic) { /* Display mechanic field */
-                        contentHtml += `<h3>Mechanics</h3><p>${parseWikiLinks(entry.mechanic)}</p>`;
-                    }
-                    if (entry.guide) { /* Display guide field */
-                        contentHtml += `<h3>Guide</h3><p>${parseWikiLinks(entry.guide)}</p>`;
-                    }
-                    if (entry.note) {
-                        contentHtml += `<h3>Notes</h3><p>${parseWikiLinks(entry.note)}</p>`;
-                    }
-                    if (!contentHtml) {
-                        contentHtml = '<p class="text-gray-400">No content available for this entry.</p>';
-                    }
+                    if (entry.description) contentHtml += `<p>${parseWikiLinks(entry.description)}</p>`;
+                    if (entry.mechanic) contentHtml += `<h3>Mechanics</h3><p>${parseWikiLinks(entry.mechanic)}</p>`;
+                    if (entry.guide) contentHtml += `<h3>Guide</h3><p>${parseWikiLinks(entry.guide)}</p>`;
+                    if (entry.note) contentHtml += `<h3>Notes</h3><p>${parseWikiLinks(entry.note)}</p>`;
+                    if (!contentHtml) contentHtml = '<p class="text-gray-400">No content available for this entry.</p>';
+                    
                     wikiBody.innerHTML = contentHtml;
                     appState.currentWikiEntryId = docId;
 
-                    // Show edit/delete buttons if the user is authenticated and not anonymous
-                    if (appState.userId && !appState.isAnonymous) {
-                        wikiEditBtn.style.display = 'inline-block';
-                        wikiDeleteBtn.style.display = 'inline-block';
+                    if (!appState.isAnonymous) {
+                        if(wikiEditBtn) wikiEditBtn.style.display = 'inline-block';
+                        if(wikiDeleteBtn) wikiDeleteBtn.style.display = 'inline-block';
                     }
 
                 } else {
@@ -1812,9 +1853,9 @@
                 wikiBody.innerHTML = '<p class="text-red-400">An error occurred while loading the entry.</p>';
             }
         }
-        window.displayWikiEntry = displayWikiEntry; // Make global for wiki links
-
+        
         async function getCollectionOptions(collectionName) {
+            if (!appState.authReady) return [];
             if (collectionName === 'all_equipment') {
                 const equipmentTypes = ['armoring', 'weaponry', 'mecha', 'gear'];
                 let allOptions = [];
@@ -1829,9 +1870,7 @@
                 const metaSkills = allSkills.filter(skill => skill.type === 'meta');
                 return [{ name: 'Special Ability'}, ...metaSkills];
             }
-            // For rules_codex as a source for 'parent' field
             if (collectionName === 'rules_codex') {
-                // Ensure we don't list the current entry as its own parent
                 const filteredEntries = appState.wikiEntries.filter(entry => entry.id !== appState.editingDocId);
                 return filteredEntries.map(entry => ({ name: entry.name, id: entry.id }));
             }
@@ -1869,11 +1908,10 @@
             return null;
         }
 
-        // Global map to store rules codex entries for quick lookup
         let rulesCodexMap = new Map();
 
-        // Function to fetch and populate rulesCodexMap
         async function populateRulesCodexMap() {
+            if (!appState.authReady) return;
             const collectionPath = `artifacts/${appId}/public/data/rules_codex`;
             try {
                 const querySnapshot = await getDocs(collection(db, collectionPath));
@@ -1882,35 +1920,24 @@
                 appState.wikiEntries.forEach(entry => {
                     rulesCodexMap.set(entry.name, entry.id);
                 });
-                console.log("Rules Codex Map populated:", rulesCodexMap);
-
-                // Re-render wiki directory after map is populated
-                if (appState.currentCollection === 'rules_codex') {
-                    const wikiSidebar = document.getElementById('wiki-directory-list');
-                    if (wikiSidebar) {
-                        wikiSidebar.innerHTML = '';
-                        renderWikiDirectory(wikiSidebar, appState.wikiEntries);
-                        // If no entry is selected, display the first one
-                        if (!appState.currentWikiEntryId && appState.wikiEntries.length > 0) {
-                            displayWikiEntry(appState.wikiEntries[0].id);
-                        }
-                    }
-                }
-
             } catch (error) {
                 console.error("Error populating Rules Codex Map:", error);
-                showError("Could not load Rules Codex entries. Please check Firebase permissions.");
+                // This error will be caught by the caller in the onAuthStateChanged handler
+                throw error;
             }
         }
 
-        // Function to listen for real-time updates to rules_codex
         function listenForWikiEntries() {
-            if (!appState.userId) return; // Ensure user is authenticated
+            if (!appState.userId) return; 
+
+            if (appState.activeListenerUnsubscribe) {
+                appState.activeListenerUnsubscribe();
+            }
 
             const collectionPath = `artifacts/${appId}/public/data/rules_codex`;
             const q = query(collection(db, collectionPath));
 
-            onSnapshot(q, (snapshot) => {
+            appState.activeListenerUnsubscribe = onSnapshot(q, (snapshot) => {
                 appState.wikiEntries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 rulesCodexMap.clear();
                 appState.wikiEntries.forEach(entry => {
@@ -1919,13 +1946,11 @@
 
                 const wikiSidebar = document.getElementById('wiki-directory-list');
                 if (wikiSidebar) {
-                    wikiSidebar.innerHTML = '';
                     renderWikiDirectory(wikiSidebar, appState.wikiEntries);
-                    // If an entry was previously selected, re-display it to update links/content
-                    if (appState.currentWikiEntryId) {
+                    
+                    if (appState.currentWikiEntryId && appState.wikiEntries.some(e => e.id === appState.currentWikiEntryId)) {
                         displayWikiEntry(appState.currentWikiEntryId);
                     } else if (appState.wikiEntries.length > 0) {
-                        // If no entry was selected, display the first one
                         displayWikiEntry(appState.wikiEntries[0].id);
                     }
                 }
@@ -1951,7 +1976,7 @@
             const tr = document.createElement('tr');
             tr.className = 'cursor-pointer';
             tr.dataset.id = docId;
-            tr.onclick = () => {
+            tr.addEventListener('click', () => {
                 const parentConfigKey = Object.keys(categoryConfig).find(key => 
                     (categoryConfig[key].tables && categoryConfig[key].tables[collectionKey]) ||
                     (categoryConfig[key].subcategories && categoryConfig[key].subcategories[collectionKey])
@@ -1964,10 +1989,10 @@
                     appState.currentCollection = collectionKey;
                     appState.currentSubcollection = null;
                 }
-                // Rules Codex entries open in read-only mode by default from table view
-                const isRulesCodex = (collectionKey === 'rules_codex');
-                openModal(docId, data, !isRulesCodex); // Pass isEditMode: true if not rules_codex, else false
-            };
+
+                const canEdit = !appState.isAnonymous;
+                openModal(docId, data, canEdit);
+            });
 
             columnsToShow.forEach(fieldKey => {
                 const td = document.createElement('td');
@@ -1999,6 +2024,10 @@
         function listenForData(collectionName) {
             if (!appState.userId) return;
 
+            if (appState.activeListenerUnsubscribe) {
+                appState.activeListenerUnsubscribe();
+            }
+
             const collectionPath = `artifacts/${appId}/public/data/${collectionName}`;
             let q = collection(db, collectionPath);
 
@@ -2029,7 +2058,7 @@
                 const fieldConfig = fields[fieldKey] || {};
                 th.innerHTML = `<span>${(fieldConfig.label || fieldKey.replace(/_/g, ' ')).toUpperCase()}</span>`;
                 th.dataset.sortKey = fieldKey;
-                th.onclick = () => {
+                th.addEventListener('click', () => {
                     if (appState.sortBy === fieldKey) {
                         appState.sortDirection = appState.sortDirection === 'asc' ? 'desc' : 'asc';
                     } else {
@@ -2037,12 +2066,12 @@
                         appState.sortDirection = 'asc';
                     }
                     listenForData(collectionName);
-                };
+                });
                 tr.appendChild(th);
             });
             tableHeader.appendChild(tr);
 
-            onSnapshot(q, (snapshot) => {
+            appState.activeListenerUnsubscribe = onSnapshot(q, (snapshot) => {
                 if (!tableBody) return;
                 
                 tableBody.innerHTML = '';
@@ -2060,7 +2089,6 @@
                     tableBody.appendChild(newRow);
                 });
 
-                // Re-populate rulesCodexMap if rules_codex collection is being listened to
                 if (collectionName === 'rules_codex') {
                     populateRulesCodexMap();
                 }
@@ -2208,7 +2236,6 @@
         }
 
         function createReadonlyTextField(fieldKey, savedValue) {
-            // This field is always readonly, so no need for isEditMode check here for its own readonly state
             return `<input type="text" id="${fieldKey}" name="${fieldKey}" value="${savedValue || 0}" class="global-form-input cursor-not-allowed display-only-input" readonly>`;
         }
 
@@ -2216,26 +2243,19 @@
             const labelText = (fieldConfig.label || fieldKey.replace(/_/g, ' ')).toUpperCase();
             let labelHtml = `<label for="${fieldKey}" class="global-form-label">${labelText}</label>`;
 
+            let buttonHtml = '';
             if (fieldConfig.manageable) {
-                let onclickAction;
-                if (fieldConfig.source === 'all_equipment') {
-                    onclickAction = `window.handleNavigateToEquipment()`;
-                } else {
-                    onclickAction = `window.handleManageClick('${fieldConfig.source}')`;
-                }
-
-                labelHtml = `
-                    <button type="button" onclick="${onclickAction}" class="flex items-center gap-2 text-sm font-medium mb-1 underline hover:text-white w-full justify-start global-form-label" ${isEditMode ? '' : 'disabled'}>
-                        <span>${labelText}</span>
-                    </button>`;
+                buttonHtml = `<button type="button" data-manage-source="${fieldConfig.source}" class="flex items-center gap-2 text-sm font-medium mb-1 underline hover:text-white w-full justify-start global-form-label" ${isEditMode ? '' : 'disabled'}>
+                                <span>${labelText}</span>
+                              </button>`;
+                labelHtml = '';
             } else if (fieldConfig.aiEnabled) {
-                    labelHtml = `
-                        <div class="flex justify-between items-center">
-                            <label for="${fieldKey}" class="global-form-label">${labelText}</label>
-                            <button type="button" id="generate-description-btn" onclick="window.generateDescription('${collectionKey}')" class="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors underline" ${isEditMode ? '' : 'style="display:none;"'}>
-                                GENERATE
-                            </button>
-                        </div>`;
+                labelHtml = `<div class="flex justify-between items-center">
+                                <label for="${fieldKey}" class="global-form-label">${labelText}</label>
+                                <button type="button" id="generate-description-btn" class="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors underline auth-required" ${isEditMode ? '' : 'style="display:none;"'}>
+                                    GENERATE
+                                </button>
+                             </div>`;
             }
 
             let fieldHtml = '';
@@ -2246,11 +2266,11 @@
                 case 'multiselect': fieldHtml = await createMultiselectField(fieldKey, fieldConfig, savedValue, isEditMode); break;
                 case 'json_list': fieldHtml = createJsonListField(fieldKey, savedValue, isEditMode); break;
                 case 'textarea': fieldHtml = createTextareaField(fieldKey, savedValue, isEditMode); break;
-                case 'readonlytext': fieldHtml = createReadonlyTextField(fieldKey, savedValue); break; /* Always readonly */
+                case 'readonlytext': fieldHtml = createReadonlyTextField(fieldKey, savedValue); break;
                 case 'number': fieldHtml = createNumberField(fieldKey, savedValue, isEditMode); break;
                 default: fieldHtml = createTextField(fieldKey, savedValue, isEditMode);
             }
-            return `<div>${labelHtml}${fieldHtml}</div>`;
+            return `<div>${buttonHtml || labelHtml}${fieldHtml}</div>`;
         }
         
         async function openModal(docId = null, data = {}, isEditMode = true) {
@@ -2287,22 +2307,18 @@
             const modalDataBtn = document.getElementById('modal-data-btn');
             const modalDataDropdown = document.getElementById('modal-data-dropdown');
 
-            // Clear existing buttons first
             modalDataDropdown.innerHTML = '';
 
-            // Conditionally add 'Edit' or 'Save' button
-            if (!isEditMode) {
+            if (!isEditMode && !appState.isAnonymous) {
                 const editButton = document.createElement('button');
                 editButton.type = 'button';
-                editButton.id = 'modal-edit-btn';
                 editButton.textContent = 'Edit';
-                editButton.onclick = () => openModal(docId, data, true); /* Re-open in edit mode */
+                editButton.addEventListener('click', () => openModal(docId, data, true));
                 modalDataDropdown.appendChild(editButton);
-            } else {
+            } else if (isEditMode) {
                 const saveButton = document.createElement('button');
                 saveButton.type = 'submit';
-                saveButton.setAttribute('form', 'entry-form'); /* Fix: Use setAttribute for 'form' */
-                saveButton.id = 'modal-save-btn';
+                saveButton.setAttribute('form', 'entry-form');
                 saveButton.textContent = 'Save';
                 modalDataDropdown.appendChild(saveButton);
             }
@@ -2317,25 +2333,28 @@
                     </div>
                 </div>
                 <button type="button" id="modal-cancel-btn">Cancel</button>
-                <button type="button" id="modal-delete-btn" class="text-red-400 hover:bg-red-800">Delete</button>
+                <button type="button" id="modal-delete-btn" class="text-red-400 hover:bg-red-800 auth-required">Delete</button>
             `;
 
-            modalDataBtn.onclick = (e) => {
+            modalDataBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 modalDataDropdown.classList.toggle('show');
-            }
+            });
             
-            document.getElementById('modal-summary-btn').onclick = () => showSummaryModal('modal');
-            document.getElementById('modal-cancel-btn').onclick = () => closeModal();
-            const deleteBtn = document.getElementById('modal-delete-btn');
-            deleteBtn.onclick = () => deleteEntry(docId);
-            deleteBtn.classList.toggle('hidden', !docId || !isEditMode); /* Hide delete if no docId or not in edit mode */
-            document.getElementById('modal-local-save-btn').onclick = () => saveLocal(entryForm, collectionKey);
-            document.getElementById('modal-local-load-btn').onclick = () => loadLocal(entryForm);
+            document.getElementById('modal-summary-btn').addEventListener('click', () => showSummaryModal('modal'));
+            document.getElementById('modal-cancel-btn').addEventListener('click', () => closeModal());
+            document.getElementById('modal-delete-btn').addEventListener('click', () => deleteEntry(docId));
+            document.getElementById('modal-local-save-btn').addEventListener('click', () => saveLocal(entryForm, collectionKey));
+            document.getElementById('modal-local-load-btn').addEventListener('click', () => loadLocal(entryForm));
+            document.getElementById('entry-form').addEventListener('submit', handleFormSubmit);
 
-
-            window.handleManageClick = handleManageClick;
-            window.generateDescription = generateDescription;
+            formFieldsContainer.querySelectorAll('button[data-manage-source]').forEach(button => {
+                button.addEventListener('click', () => handleManageClick(button.dataset.manageSource));
+            });
+            const genDescBtn = document.getElementById('generate-description-btn');
+            if(genDescBtn) {
+                genDescBtn.addEventListener('click', () => generateDescription(collectionKey));
+            }
             
             const textareas = formFieldsContainer.querySelectorAll('textarea');
             const autosize = (el) => {
@@ -2352,7 +2371,7 @@
 
             for (const fieldKey of Object.keys(config.fields)) {
                 const fieldConfig = config.fields[fieldKey];
-                if (fieldConfig.type === 'json_list' && isEditMode) { /* Only setup editor if in edit mode */
+                if (fieldConfig.type === 'json_list' && isEditMode) {
                     await setupJsonListEditor(fieldKey, fieldConfig);
                 }
             }
@@ -2414,13 +2433,12 @@
                     subtypeSelect.value = currentSubtypeValue;
                 };
 
-                if(aspectSelect && isEditMode){ /* Only add listener if in edit mode */
+                if(aspectSelect && isEditMode){
                     aspectSelect.addEventListener('change', updateSubtypeOptions);
                     await updateSubtypeOptions();
                 }
             }
 
-            // Dynamic fields for 'MANAGE AREA'
             if (collectionKey === 'area') {
                 const shapeSelect = formFieldsContainer.querySelector('#shape');
                 const dimensionsFieldContainer = formFieldsContainer.querySelector('#dimensions')?.parentElement;
@@ -2487,13 +2505,13 @@
                         shapeSelect.disabled = true;
                         shapeSelect.classList.add('display-only-input');
                     }
-                    updateDimensionsField(); /* Initial call */
+                    updateDimensionsField();
                 }
             }
             
             setupDynamicCalculations(formFieldsContainer);
             appState.initialFormState = getFormState(entryForm);
-
+            updateUIAfterAuthChange();
         }
 
         function setupDynamicCalculations(formContainer) {
@@ -2523,7 +2541,6 @@
 
             const allSelectableInputs = formContainer.querySelectorAll('select, input[type=checkbox]');
             allSelectableInputs.forEach(input => {
-                // Only add event listeners if in edit mode
                 if (!input.readOnly && !input.disabled) { 
                     input.addEventListener('change', updateTotals);
                 }
@@ -2559,11 +2576,11 @@
                     removeBtn.type = 'button';
                     removeBtn.innerHTML = '&times;';
                     removeBtn.className = 'ml-4 font-bold text-red-500 hover:text-red-300';
-                    removeBtn.onclick = () => {
+                    removeBtn.addEventListener('click', () => {
                         items.splice(index, 1);
                         textarea.value = JSON.stringify(items);
                         redrawList();
-                    };
+                    });
                     itemEl.appendChild(removeBtn);
                     listContainer.appendChild(itemEl);
                 });
@@ -2573,7 +2590,7 @@
                 addBtn.type = 'button';
                 addBtn.textContent = 'ADD REQUIREMENT';
                 addBtn.className = 'btn btn-secondary w-full !py-1 !text-xs';
-                addBtn.onclick = () => showAddForm();
+                addBtn.addEventListener('click', () => showAddForm());
                 editorContainer.appendChild(addBtn);
             };
             
@@ -2608,8 +2625,8 @@
                 
                 editorContainer.appendChild(formContainer);
 
-                document.getElementById('prereq-cancel-btn').onclick = () => redrawList();
-                document.getElementById('prereq-add-btn').onclick = () => {
+                document.getElementById('prereq-cancel-btn').addEventListener('click', () => redrawList());
+                document.getElementById('prereq-add-btn').addEventListener('click', () => {
                     const nameInput = document.getElementById('prereq-name-input');
                     const valueInput = document.getElementById('prereq-value-input');
                     const value = (fieldConfig.source === 'feature') ? 1 : (valueInput ? Number(valueInput.value) : 1);
@@ -2619,7 +2636,7 @@
                         textarea.value = JSON.stringify(items);
                         redrawList();
                     }
-                };
+                });
             };
 
             redrawList();
@@ -2645,7 +2662,10 @@
 
         async function handleFormSubmit(e) {
             e.preventDefault();
-            if (!appState.userId) return false;
+            if (!appState.userId || appState.isAnonymous) {
+                showError("You must be logged in to save changes.");
+                return false;
+            };
 
             const collectionKey = appState.currentSubcollection || appState.currentCollection;
             
@@ -2716,14 +2736,16 @@
         }
         
         function deleteEntry(docId) {
-            if (!appState.userId) return;
+            if (!appState.userId || appState.isAnonymous) {
+                showError("You must be logged in to delete entries.");
+                return;
+            };
             showConfirmModal(`ARE YOU SURE YOU WANT TO DELETE THIS ENTRY? THIS ACTION CANNOT BE UNDONE.`, async () => {
                 closeModal();
                 const collectionKey = appState.currentSubcollection || appState.currentCollection;
                 const collectionPath = `artifacts/${appId}/public/data/${collectionKey}`;
                 try {
                     await deleteDoc(doc(db, collectionPath, docId));
-                    // If the deleted entry was the currently displayed wiki entry, clear the display
                     if (collectionKey === 'rules_codex' && appState.currentWikiEntryId === docId) {
                         document.getElementById('wiki-entry-title').textContent = 'Select an Entry';
                         document.getElementById('wiki-entry-body').innerHTML = '<p class="text-gray-400">Please select an entry from the left sidebar or create a new one.</p>';
@@ -2794,7 +2816,6 @@
                     const descriptionTextarea = document.getElementById('description');
                     if(descriptionTextarea) {
                         descriptionTextarea.value = text;
-                        // Trigger autosize
                         const autosize = (el) => {
                             setTimeout(() => {
                                 el.style.height = 'auto';
@@ -2814,21 +2835,19 @@
                 btn.disabled = false;
             }
         }
-        window.generateDescription = generateDescription;
         
-        // Function to parse text for wiki-style links and replace them with clickable anchors
         function parseWikiLinks(text) {
+            if (!text) return '';
             return text.replace(/\[\[(.*?)\]\]/g, (match, p1) => {
                 const entryName = p1.trim();
                 const docId = rulesCodexMap.get(entryName);
                 if (docId) {
                     return `<a href="#" class="wiki-link" data-linked-id="${docId}" data-linked-name="${entryName}">${entryName}</a>`;
                 }
-                return entryName; /* If no matching entry, just display the text without a link */
+                return entryName;
             });
         }
 
-        // Event listener for clicks on wiki-links within the modal
         entryModal.addEventListener('click', async (event) => {
             if (event.target.classList.contains('wiki-link')) {
                 event.preventDefault();
@@ -2840,11 +2859,9 @@
                     try {
                         const docSnap = await getDoc(doc(db, collectionPath, linkedDocId));
                         if (docSnap.exists()) {
-                            // Close current modal first if it's not the main one
                             if (appState.editingDocId !== linkedDocId) {
-                                closeModal(true); /* Force close current modal */
+                                closeModal(true); 
                             }
-                            // Open the linked document in read-only mode
                             openModal(linkedDocId, docSnap.data(), false); 
                         } else {
                             showError(`Linked entry "${linkedDocName}" not found.`);
@@ -2859,10 +2876,10 @@
 
 
         // --- Event Listeners ---
-        confirmOkBtn.onclick = () => { if (appState.confirmCallback) appState.confirmCallback(); hideConfirmModal(); };
-        confirmCancelBtn.onclick = hideConfirmModal;
-        unsavedCancelBtn.onclick = hideUnsavedChangesModal;
-        unsavedDismissBtn.onclick = () => {
+        confirmOkBtn.addEventListener('click', () => { if (appState.confirmCallback) appState.confirmCallback(); hideConfirmModal(); });
+        confirmCancelBtn.addEventListener('click', hideConfirmModal);
+        unsavedCancelBtn.addEventListener('click', hideUnsavedChangesModal);
+        unsavedDismissBtn.addEventListener('click', () => {
             closeModal(true);
             if(appState.pendingNavigation) {
                 appState.pendingNavigation();
@@ -2870,9 +2887,9 @@
                 appState.navigationContext = null;
             }
             hideUnsavedChangesModal();
-        }
-        unsavedSaveBtn.onclick = async () => {
-            const success = await handleFormSubmit(new Event('submit',{bubbles:true}));
+        });
+        unsavedSaveBtn.addEventListener('click', async () => {
+            const success = await handleFormSubmit(new Event('submit',{bubbles:true, cancelable: true}));
 
             if(success && appState.pendingNavigation) {
                 appState.pendingNavigation();
@@ -2880,13 +2897,13 @@
                 appState.navigationContext = null;
             }
             hideUnsavedChangesModal();
-        }
+        });
 
-        errorOkBtn.onclick = hideErrorModal;
-        helpCloseBtn.onclick = () => { helpModal.classList.add('hidden'); };
-        summaryCloseBtn.onclick = () => { summaryModal.classList.add('hidden'); };
+        errorOkBtn.addEventListener('click', hideErrorModal);
+        helpCloseBtn.addEventListener('click', () => { helpModal.classList.add('hidden'); });
+        summaryCloseBtn.addEventListener('click', () => { summaryModal.classList.add('hidden'); });
         
-        window.onclick = (event) => {
+        window.addEventListener('click', (event) => {
             if (event.target == entryModal || event.target == confirmModal || event.target == errorModal || event.target == unsavedChangesModal || event.target == helpModal || event.target == customModal || event.target == summaryModal) {
                 if (event.target === entryModal) {
                     appState.navigationContext = null;
@@ -2922,14 +2939,14 @@
             if (modalDataBtn && modalDataDropdown && !modalDataBtn.contains(event.target) && !modalDataDropdown.contains(event.target)) {
                 modalDataDropdown.classList.remove('show');
             }
-        };
+        });
 
-        const helpMarkdown = ``; /* Cleared content */
+        const helpMarkdown = ``; 
         
         function convertMarkdownToHtml(markdown) {
             const lines = markdown.trim().split('\n');
             let html = '';
-            let listStack = []; /* To track open <ul> or <ol> */
+            let listStack = []; 
 
             for (const line of lines) {
                 if (line.trim() === '') continue;
@@ -2938,11 +2955,9 @@
                 const indent = indentMatch ? indentMatch[1].length : 0;
                 let trimmedLine = line.trim();
 
-                /* Close lists when de-denting */
                 while (listStack.length > 0 && indent < listStack[listStack.length - 1].indent) {
                     html += `</${listStack.pop().type}>`;
                     if (listStack.length > 0 && html.endsWith('</li>')) {
-                        /* Don't close the li if it's the last one in the parent */
                     } else {
                         html += '</li>';
                     }
@@ -2961,20 +2976,18 @@
                         listStack.push({ type: 'ul', indent });
                     }
                     let content = trimmedLine.substring(2).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-                    html += `<li>${content}`; /* Don't self-close */
+                    html += `<li>${content}`;
                 } else if (trimmedLine.match(/^\d+\. /)) {
                     if (listStack.length === 0 || indent > listStack[listStack.length - 1].indent || listStack[listStack.length-1].type !== 'ol') {
                         if (listStack.length > 0 && indent <= listStack[listStack.length-1].indent) {
                             html += `</${listStack.pop().type}></li>`;
                         }
-                        /* This assumes numbered lists are always nested inside bullet points. */
-                        html = html.slice(0, -5); /* remove last </li> */
+                        html = html.slice(0, -5);
                         html += `<ol class="list-decimal list-inside space-y-1 mt-1 ml-8">`;
                         listStack.push({ type: 'ol', indent });
                     }
                     html += `<li>${trimmedLine.replace(/^\d+\. /, '')}</li>`;
                 } else {
-                    /* Close any open lists before a paragraph */
                     while (listStack.length > 0) {
                         html += `</li></${listStack.pop().type}>`;
                     }
@@ -2982,37 +2995,15 @@
                 }
             }
             
-            /* Close any remaining open lists */
             while (listStack.length > 0) {
                 html += `</li></${listStack.pop().type}>`;
             }
 
-            /* Final replacements for inline elements */
             return html.replace(/`([^`]+)`/g, '<code class="bg-gray-700 text-gray-300 rounded px-1 py-0.5">$1</code>');
         }
 
         helpContent.innerHTML = convertMarkdownToHtml(helpMarkdown);
 
-        window.folioManager = {
-            openSubManager: (collectionKey) => {
-                const parentKey = Object.keys(categoryConfig).find(key => 
-                    (categoryConfig[key].subcategories && categoryConfig[key].subcategories[collectionKey])
-                ) || collectionKey;
-                
-                requestNavigation(() => {
-                    navigateTo(() => renderManagementView(collectionKey, parentKey));
-                });
-            }
-        };
-
-        window.onload = function() {
-            /* Entry point */
-            if (appState.userId) {
-                navigateTo(() => renderCategoryView('other'));
-            }
-        };
     </script>
 </body>
 </html>
-
-
