@@ -1904,10 +1904,11 @@
         }
 
         async function renderWikiDirectory(container, entries, parent = null, level = 0) {
+            if (!container) return;
             const ul = document.createElement('ul');
             ul.className = `space-y-1 ${level > 0 ? 'wiki-tree-children' : ''}`;
 
-            const children = entries.filter(entry => entry.parent === parent).sort((a, b) => (a.order || 0) - (b.order || 0) || a.name.localeCompare(b.name));
+            const children = entries.filter(entry => (entry.parent || null) === parent).sort((a, b) => (a.order || 0) - (b.order || 0) || a.name.localeCompare(b.name));
 
             for (const entry of children) {
                 const li = document.createElement('li');
@@ -1931,11 +1932,12 @@
                     const childrenContainer = document.createElement('div');
                     childrenContainer.id = `children-${entry.id}`;
                     childrenContainer.style.display = 'none';
-                    childrenContainer.appendChild(await renderWikiDirectory(null, entries, entry.name, level + 1));
+                    await renderWikiDirectory(childrenContainer, entries, entry.name, level + 1);
                     li.appendChild(childrenContainer);
 
                     const toggleButton = itemContent.querySelector('.toggle-btn');
-                    toggleButton.addEventListener('click', () => {
+                    toggleButton.addEventListener('click', (e) => {
+                        e.stopPropagation();
                         const isHidden = childrenContainer.style.display === 'none';
                         childrenContainer.style.display = isHidden ? 'block' : 'none';
                         toggleButton.innerHTML = isHidden ? '&#9660;' : '&#9658;';
@@ -1950,11 +1952,8 @@
 
                 ul.appendChild(li);
             }
-            if (container) {
-                container.innerHTML = '';
-                container.appendChild(ul);
-            }
-            return ul;
+            container.innerHTML = '';
+            container.appendChild(ul);
         }
 
         async function displayWikiEntry(docId) {
@@ -2084,26 +2083,29 @@
 
             const collectionPath = `artifacts/${appId}/public/data/rules_codex`;
             const q = query(collection(db, collectionPath));
+            const wikiSidebar = document.getElementById('wiki-directory-list');
+            if(wikiSidebar) wikiSidebar.innerHTML = '<li>Loading entries...</li>';
 
             appState.activeListenerUnsubscribe = onSnapshot(q, (snapshot) => {
                 appState.wikiEntries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 rulesCodexMap.clear();
-                appState.wikiEntries.forEach(entry => {
-                    rulesCodexMap.set(entry.name, entry.id);
-                });
+                appState.wikiEntries.forEach(entry => rulesCodexMap.set(entry.name, entry.id));
 
-                const wikiSidebar = document.getElementById('wiki-directory-list');
                 if (wikiSidebar) {
-                    renderWikiDirectory(wikiSidebar, appState.wikiEntries);
-                    
-                    if (appState.currentWikiEntryId && appState.wikiEntries.some(e => e.id === appState.currentWikiEntryId)) {
-                        displayWikiEntry(appState.currentWikiEntryId);
-                    } else if (appState.wikiEntries.length > 0) {
-                        displayWikiEntry(appState.wikiEntries[0].id);
+                    if (snapshot.empty) {
+                        wikiSidebar.innerHTML = '<li>No entries found.</li>';
+                    } else {
+                        renderWikiDirectory(wikiSidebar, appState.wikiEntries, null);
+                        if (appState.currentWikiEntryId && appState.wikiEntries.some(e => e.id === appState.currentWikiEntryId)) {
+                            displayWikiEntry(appState.currentWikiEntryId);
+                        } else if (appState.wikiEntries.length > 0) {
+                           // displayWikiEntry(appState.wikiEntries[0].id);
+                        }
                     }
                 }
             }, error => {
                 console.error("Error listening for wiki entries:", error);
+                if(wikiSidebar) wikiSidebar.innerHTML = '<li class="text-red-500">Error loading entries.</li>';
                 showError("Failed to load wiki entries. Check console for details.");
             });
         }
@@ -2877,6 +2879,11 @@
 
             const data = getFormDataObject(entryForm);
             
+            // --- Data Normalization ---
+            if (data.parent === '') {
+                data.parent = null;
+            }
+
             // --- Validation ---
             for (const fieldKey in config.fields) {
                 const fieldConfig = config.fields[fieldKey];
@@ -3107,6 +3114,13 @@
         helpCloseBtn.addEventListener('click', () => { helpModal.classList.add('hidden'); });
         summaryCloseBtn.addEventListener('click', () => { summaryModal.classList.add('hidden'); });
         
+        document.addEventListener('click', e => {
+            if (e.target.id === 'modal-data-btn') {
+                e.stopPropagation();
+                document.getElementById('modal-data-dropdown')?.classList.toggle('show');
+            }
+        });
+
         window.addEventListener('click', (event) => {
             if (event.target == entryModal || event.target == confirmModal || event.target == errorModal || event.target == unsavedChangesModal || event.target == helpModal || event.target == customModal || event.target == summaryModal) {
                 if (event.target === entryModal) {
