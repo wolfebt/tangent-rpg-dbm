@@ -2509,6 +2509,7 @@
         async function openModal(docId = null, data = {}, isEditMode = true) {
             appState.editingDocId = docId;
             const collectionKey = appState.currentSubcollection || appState.currentCollection;
+            entryForm.dataset.collectionKey = collectionKey;
             
             const config = getActiveConfig(collectionKey);
             
@@ -2944,12 +2945,19 @@
                 showError("You must be logged in to save changes.");
                 return false;
             };
+            
+            const form = e.target;
+            const collectionKey = form.dataset.collectionKey;
 
-            const collectionKey = appState.currentSubcollection || appState.currentCollection;
+            if (!collectionKey) {
+                console.error("No collectionKey found on form dataset. Aborting save.");
+                showError("A critical error occurred. Could not determine where to save the data.");
+                return false;
+            }
             
             const config = getActiveConfig(collectionKey);
 
-            const data = getFormDataObject(entryForm);
+            const data = getFormDataObject(form);
             
             // --- Data Normalization ---
             if (data.parent === '') {
