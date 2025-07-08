@@ -262,8 +262,7 @@
         import { 
             getAuth, onAuthStateChanged, signOut, 
             GoogleAuthProvider, signInWithPopup,
-            signInAnonymously,
-            signInWithCustomToken
+            signInAnonymously 
         } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
         import { 
             getFirestore, collection, getDocs, doc, setDoc, addDoc, getDoc, query, where 
@@ -303,10 +302,6 @@
             invocations: { label: 'INVOCATIONS' },
             equipment: { label: 'EQUIPMENT' },
             associates: { label: 'ASSOCIATES' },
-            weaponry: { label: 'WEAPONRY' },
-            armoring: { label: 'ARMORING' },
-            gear: { label: 'GEAR' },
-            mecha: { label: 'MECHA' },
         };
 
         // --- Application State ---
@@ -318,17 +313,16 @@
             confirmCallback: null,
             allModifiersCache: null, // Cache for modifier definitions
         };
-        
-        let isAppInitialized = false;
+
+        // --- Authentication Promise ---
+        let authReadyPromiseResolver;
+        const authReadyPromise = new Promise(resolve => {
+            authReadyPromiseResolver = resolve;
+        });
 
         // --- Firebase Functions ---
         async function getCollectionOptions(collectionName) {
-            // No longer need to wait for a promise here, as this function
-            // will only be called after authentication is confirmed.
-            if (!appState.authReady) {
-                console.error("getCollectionOptions called before auth is ready.");
-                return [];
-            }
+            await authReadyPromise;
 
             if (collectionName === 'equipment') {
                 const equipmentTypes = ['armoring', 'weaponry', 'mecha', 'gear'];
@@ -719,81 +713,6 @@
             calculatePerceptionScores();
         }
 
-        async function recalculateCP() {
-            const totalCpInput = document.getElementById('total-cp');
-            const spentCpDisplay = document.getElementById('spent-cp');
-            const remainingCpDisplay = document.getElementById('remaining-cp');
-            const grantedDisplay = document.getElementById('granted-items-display');
-
-            if (!totalCpInput || !spentCpDisplay || !remainingCpDisplay || !grantedDisplay) return;
-
-            let totalCP = parseInt(totalCpInput.value) || 0;
-            let spentCP = 0;
-            let grantedItems = [];
-
-            const costSources = [
-                { type: 'single', elementId: 'char-species', collection: 'species' },
-                { type: 'single', elementId: 'char-occu', collection: 'occupations' },
-                { type: 'single', elementId: 'char-origin', collection: 'origins' },
-                { type: 'single', elementId: 'char-faction', collection: 'factions' },
-                { type: 'multi', elementId: 'features-data', collection: 'features' },
-                { type: 'multi', elementId: 'disadvantages-data', collection: 'disadvantages' },
-                { type: 'multi', elementId: 'augmentations-data', collection: 'augmentations' },
-                { type: 'multi', elementId: 'invocations-data', collection: 'invocations' },
-                { type: 'multi', elementId: 'equipment-data', collection: 'equipment' },
-            ];
-
-            for (const source of costSources) {
-                const dbItems = await getCollectionOptions(source.collection);
-                let selectedNames = [];
-                const element = document.getElementById(source.elementId);
-
-                if (!element) continue;
-
-                if (source.type === 'single') {
-                    if (element.value) selectedNames.push(element.value);
-                } else {
-                    if (element.value) {
-                        try { selectedNames = JSON.parse(element.value); } catch (e) {}
-                    }
-                }
-
-                for (const name of selectedNames) {
-                    const itemData = dbItems.find(item => item.name === name);
-                    if (itemData) {
-                        const cost = parseInt(itemData.cp_cost) || 0;
-                        if (cost === 0 && itemData.trait) {
-                            grantedItems.push({name: itemData.name, source: source.collection, traits: itemData.trait});
-                        } else {
-                            spentCP += cost;
-                        }
-                    }
-                }
-            }
-            
-            spentCpDisplay.textContent = spentCP;
-            const remainingCP = totalCP - spentCP;
-            remainingCpDisplay.textContent = remainingCP;
-            document.getElementById('remaining-cp-display').textContent = remainingCP;
-
-
-            grantedDisplay.innerHTML = '';
-            if (grantedItems.length > 0) {
-                const grantedHtml = grantedItems.map(item => `
-                    <div>
-                        <strong class="uppercase">${item.name} (${item.source})</strong>
-                        <ul class="list-disc pl-5 text-gray-400">
-                            ${item.traits.map(trait => `<li>${trait}</li>`).join('')}
-                        </ul>
-                    </div>
-                `).join('');
-                grantedDisplay.innerHTML = grantedHtml;
-            } else {
-                grantedDisplay.innerHTML = '<p class="text-gray-400">No granted items.</p>';
-            }
-        }
-
-
         async function initializePersonaFolio(folioData = {}) {
             const sheet = document.getElementById('persona-folio-form');
             if(!sheet) return;
@@ -859,8 +778,7 @@
                     calculateAttributeTotal(primaryId);
                 });
             }
-            await recalculateAllModifiers();
-            await recalculateCP();
+            recalculateAllModifiers();
         }
 
         function populateSkillGroup(container, groupName, groupData) {
@@ -1495,7 +1413,6 @@
                 targetInput.value = value;
                 targetInput.dispatchEvent(new Event('change', { bubbles: true }));
             }
-            recalculateCP();
         }
 
         function renderItemList(container, items, targetId) {
@@ -1514,7 +1431,6 @@
                     items.splice(index, 1);
                     document.getElementById(`${targetId}-data`).value = JSON.stringify(items);
                     renderItemList(container, items, targetId);
-                    recalculateCP();
                 };
                 itemEl.appendChild(removeBtn);
                 container.appendChild(itemEl);
@@ -1643,17 +1559,6 @@
                          <div class="actor-display">
                              <div id="actor-display-header">PERSONA FOLIO</div>
                          </div>
-                         <div id="cp-tracker" class="text-center">
-                            <label class="font-bold uppercase">Creation Points</label>
-                            <div class="flex items-center justify-center gap-2">
-                                <button type="button" id="cp-down-btn" class="btn btn-secondary !p-1 text-lg leading-none">-</button>
-                                <input type="number" id="total-cp" name="total-cp" class="w-24 text-center text-xl" value="150" step="50">
-                                <button type="button" id="cp-up-btn" class="btn btn-secondary !p-1 text-lg leading-none">+</button>
-                            </div>
-                            <div class="text-xs mt-1">
-                                <span id="spent-cp">0</span> / <span id="remaining-cp-display">150</span>
-                            </div>
-                        </div>
                          <h1>Tangent SFF RPG</h1>
                          <div class="file-menu">
                              <button type="button" class="file-menu-button">DATA</button>
@@ -1689,14 +1594,6 @@
                              </div>
                          </fieldset>
                      </section>
-                     
-                     <section class="main-section" id="granted-items-section">
-                        <fieldset><legend>Granted Items</legend>
-                            <div id="granted-items-display" class="single-column-grid space-y-1 text-sm">
-                                <p class="text-gray-400">No granted items.</p>
-                            </div>
-                        </fieldset>
-                    </section>
 
                      <section class="main-section" id="attributes-stats-section">
                          <fieldset><legend>Attributes</legend>
@@ -1881,12 +1778,7 @@
                          <fieldset>
                              <legend>Equipment</legend>
                             <div id="equipment-display" class="single-column-grid"></div>
-                            <div class="grid grid-cols-2 gap-2 mt-4">
-                                <button type="button" data-target-list="equipment" data-browse-path="weaponry" class="btn btn-secondary w-full">Add Weaponry</button>
-                                <button type="button" data-target-list="equipment" data-browse-path="armoring" class="btn btn-secondary w-full">Add Armoring</button>
-                                <button type="button" data-target-list="equipment" data-browse-path="gear" class="btn btn-secondary w-full">Add Gear</button>
-                                <button type="button" data-target-list="equipment" data-browse-path="mecha" class="btn btn-secondary w-full">Add Mecha</button>
-                            </div>
+                            <button type="button" data-target-list="equipment" data-browse-path="equipment" class="btn btn-secondary mt-4 w-full">Add Equipment</button>
                             <input type="hidden" id="equipment-data" name="equipment">
                          </fieldset>
                      </section>
@@ -1932,18 +1824,6 @@
             document.getElementById('add-armor-btn').addEventListener('click', showArmorSelectionModal);
             document.getElementById('add-note-btn').addEventListener('click', addNoteToList);
 
-            document.getElementById('cp-up-btn').addEventListener('click', () => {
-                const totalCpInput = document.getElementById('total-cp');
-                totalCpInput.value = (parseInt(totalCpInput.value) || 0) + 50;
-                recalculateCP();
-            });
-            document.getElementById('cp-down-btn').addEventListener('click', () => {
-                const totalCpInput = document.getElementById('total-cp');
-                totalCpInput.value = (parseInt(totalCpInput.value) || 0) - 50;
-                recalculateCP();
-            });
-            document.getElementById('total-cp').addEventListener('change', recalculateCP);
-
             const sheet = document.getElementById('persona-folio-form');
             if (sheet) {
                 sheet.addEventListener('click', (event) => {
@@ -1957,7 +1837,6 @@
                     if (event.target.matches('#char-species, #char-occu, #char-origin, #char-faction')) {
                         updateAllTraits();
                         recalculateAllModifiers();
-                        recalculateCP();
                     }
                 });
             }
@@ -1979,10 +1858,8 @@
         async function handleLogout() {
             try {
                 await signOut(auth);
-                // After logging out, Firebase will trigger onAuthStateChanged with user=null
-                // which will then sign in anonymously and re-initialize the app.
-                isAppInitialized = false; // Allow re-initialization
-                document.getElementById('folio-container').innerHTML = ''; // Clear the view
+                // Optionally, clear the sheet or show a logged-out message
+                renderPersonaFolioView(document.getElementById('folio-container'), {});
             } catch (error) {
                 console.error("Error signing out:", error);
             }
@@ -2008,47 +1885,32 @@
             }
         }
 
-        async function initializeMainApp(user) {
-            // If the app is already initialized, just update the auth state and UI
-            if (isAppInitialized) {
-                appState.userId = user.uid;
-                appState.isAnonymous = user.isAnonymous;
-                updateUIAfterAuthChange();
-                return;
-            }
-            
-            // Mark the app as initialized to prevent re-rendering
-            isAppInitialized = true;
-            appState.userId = user.uid;
-            appState.isAnonymous = user.isAnonymous;
-            appState.authReady = true;
-
-            // Initial render of the entire folio view
-            renderPersonaFolioView(document.getElementById('folio-container'), {});
-        }
-
-        // Main entry point for the application
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                // If a user object exists, initialize the main application logic
-                await initializeMainApp(user);
+                appState.userId = user.uid;
+                appState.isAnonymous = user.isAnonymous;
             } else {
-                // If no user is signed in, attempt to sign in.
-                try {
-                    // Use the provided custom token if available, otherwise sign in anonymously
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-                    // onAuthStateChanged will be called again by Firebase after a successful sign-in,
-                    // which will then trigger the initializeMainApp function.
-                } catch (error) {
-                    console.error("Authentication failed:", error);
-                    document.body.innerHTML = '<div class="text-red-500 p-8 text-center">Authentication failed. Please refresh the page to try again.</div>';
-                }
+                appState.userId = null;
+                appState.isAnonymous = true;
+                // Fallback to anonymous sign-in if user logs out or session expires
+                await signInAnonymously(auth).catch(err => {
+                    console.error("Anonymous sign-in failed", err);
+                });
             }
+            
+            if (!appState.authReady) {
+                appState.authReady = true;
+                authReadyPromiseResolver(); // Signal that auth is ready
+            }
+
+            updateUIAfterAuthChange();
         });
+
+
+        // --- Initial Render ---
+        window.onload = function() {
+            renderPersonaFolioView(document.getElementById('folio-container'), {});
+        };
 
     </script>
 </body>
