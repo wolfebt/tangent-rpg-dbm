@@ -558,16 +558,11 @@
             userId: null,
             isAnonymous: true,
             authReady: false,
-            currentCollection: null,
-            currentSubcollection: null,
             editingDocId: null,
             confirmCallback: null,
             initialFormState: null,
             pendingNavigation: null,
             navigationContext: null,
-            currentFolioData: null,
-            activeFormForLoad: null,
-            activeEquipmentTab: 'armoring',
             navigationHistory: [],
             navigationFuture: [],
             currentView: null, // e.g., { view: 'renderCategoryView', args: ['species'] }
@@ -1636,15 +1631,8 @@
 
         function renderCategoryView(categoryKey) {
             if (!appState.authReady) return; 
-            appState.currentCollection = categoryKey;
             
-            if (categoryKey !== 'equipment') {
-                appState.activeEquipmentTab = 'armoring';
-            }
-            
-            appState.currentSubcollection = null;
             mainContentContainer.innerHTML = ''; 
-            
             renderAppHeader(categoryKey);
 
             const config = categoryConfig[categoryKey];
@@ -1812,9 +1800,6 @@
         }
 
         function renderTableView(collectionKey, title, container, parentCategoryKey = null) {
-            appState.currentCollection = parentCategoryKey || collectionKey;
-            appState.currentSubcollection = parentCategoryKey ? collectionKey : null;
-
             const config = getActiveConfig(collectionKey);
             if (!config) {
                 showError(`Configuration for "${collectionKey}" not found.`);
@@ -1827,8 +1812,8 @@
                         <h2 id="table-title-${collectionKey}" class="text-3xl font-bold truncate uppercase">${title}</h2>
                     </div>
                     <div class="flex items-center gap-2">
-                        <input type="text" id="search-input" placeholder="Search by name..." class="global-form-input !w-auto" value="${appState.searchTerm}">
-                        <button id="add-new-btn" class="btn btn-primary auth-required">ADD NEW</button>
+                        <input type="text" id="search-input-${collectionKey}" placeholder="Search by name..." class="global-form-input !w-auto" value="${appState.searchTerm}">
+                        <button id="add-new-btn-${collectionKey}" class="btn btn-primary auth-required">ADD NEW</button>
                     </div>
                 </div>
                 <div class="shadow-lg rounded-lg overflow-x-auto">
@@ -1841,29 +1826,21 @@
             
             const titleElement = container.querySelector(`#table-title-${collectionKey}`);
             if (titleElement) {
-                const keyForListener = collectionKey;
-                const parentKeyForListener = parentCategoryKey;
                 titleElement.addEventListener('click', () => {
                     if (!appState.isAnonymous) {
-                        appState.currentCollection = parentKeyForListener || keyForListener;
-                        appState.currentSubcollection = parentKeyForListener ? keyForListener : null;
-                        openModal(null, {}, true);
+                        openModal(collectionKey, null, {}, true);
                     }
                 });
             }
 
-            const addNewBtn = container.querySelector('#add-new-btn');
+            const addNewBtn = container.querySelector(`#add-new-btn-${collectionKey}`);
             if (addNewBtn) {
-                const keyForListener = collectionKey;
-                const parentKeyForListener = parentCategoryKey;
                 addNewBtn.addEventListener('click', () => {
-                    appState.currentCollection = parentKeyForListener || keyForListener;
-                    appState.currentSubcollection = parentKeyForListener ? keyForListener : null;
-                    openModal(null, {}, true);
+                    openModal(collectionKey, null, {}, true);
                 });
             }
 
-            const searchInput = container.querySelector('#search-input');
+            const searchInput = container.querySelector(`#search-input-${collectionKey}`);
             if (searchInput) {
                 let debounceTimer;
                 searchInput.addEventListener('input', (e) => {
@@ -1949,9 +1926,7 @@
                     <button id="add-wiki-entry-btn" class="btn btn-primary w-full">Add New Entry</button>
                 `;
                 document.getElementById('add-wiki-entry-btn').addEventListener('click', () => {
-                    appState.currentCollection = 'rules_codex';
-                    appState.currentSubcollection = null;
-                    openModal(null, {}, true);
+                    openModal('rules_codex', null, {}, true);
                 });
             }
 
@@ -1959,15 +1934,14 @@
                 if (appState.currentWikiEntryId) {
                     const entry = appState.wikiEntries.find(e => e.id === appState.currentWikiEntryId);
                     if (entry) {
-                        appState.currentCollection = 'rules_codex';
-                        openModal(entry.id, entry, true);
+                        openModal('rules_codex', entry.id, entry, true);
                     }
                 }
             });
 
             document.getElementById('wiki-delete-btn').addEventListener('click', () => {
                 if (appState.currentWikiEntryId) {
-                    deleteEntry(appState.currentWikiEntryId);
+                    deleteEntry('rules_codex', appState.currentWikiEntryId);
                 }
             });
             
@@ -2199,21 +2173,8 @@
             tr.className = 'cursor-pointer';
             tr.dataset.id = docId;
             tr.addEventListener('click', () => {
-                const parentConfigKey = Object.keys(categoryConfig).find(key => 
-                    (categoryConfig[key].tables && categoryConfig[key].tables[collectionKey]) ||
-                    (categoryConfig[key].subcategories && categoryConfig[key].subcategories[collectionKey])
-                );
-
-                if (parentConfigKey) {
-                    appState.currentCollection = parentConfigKey;
-                    appState.currentSubcollection = collectionKey;
-                } else {
-                    appState.currentCollection = collectionKey;
-                    appState.currentSubcollection = null;
-                }
-
                 const canEdit = !appState.isAnonymous;
-                openModal(docId, data, canEdit);
+                openModal(collectionKey, docId, data, canEdit);
             });
 
             columnsToShow.forEach(fieldKey => {
@@ -2506,9 +2467,8 @@
             return label;
         }
 
-        async function openModal(docId = null, data = {}, isEditMode = true) {
+        async function openModal(collectionKey, docId = null, data = {}, isEditMode = true) {
             appState.editingDocId = docId;
-            const collectionKey = appState.currentSubcollection || appState.currentCollection;
             entryForm.dataset.collectionKey = collectionKey;
             
             const config = getActiveConfig(collectionKey);
@@ -2534,7 +2494,7 @@
                         appState.currentCollection = parentCollection;
                         appState.currentSubcollection = parentSubcollection;
                         appState.navigationContext = null; 
-                        openModal(docId, data, true);
+                        openModal(parentSubcollection || parentCollection, docId, data, true);
                     };
 
                     if (isFormDirty()) {
@@ -2577,7 +2537,7 @@
             if (!isEditMode && !appState.isAnonymous) {
                 const editButton = document.createElement('button');
                 editButton.textContent = 'Edit';
-                editButton.addEventListener('click', () => openModal(docId, data, true));
+                editButton.addEventListener('click', () => openModal(collectionKey, docId, data, true));
                 modalDataDropdown.appendChild(editButton);
             } else if (isEditMode) {
                 const saveButton = document.createElement('button');
@@ -2614,7 +2574,7 @@
             deleteButton.id = 'modal-delete-btn';
             deleteButton.className = 'text-red-400 hover:bg-red-800 auth-required';
             deleteButton.textContent = 'Delete';
-            deleteButton.addEventListener('click', () => deleteEntry(docId));
+            deleteButton.addEventListener('click', () => deleteEntry(collectionKey, docId));
             modalDataDropdown.appendChild(deleteButton);
 
 
@@ -2939,14 +2899,13 @@
             if(entryModal) entryModal.classList.add('hidden');
         }
 
-        async function handleFormSubmit(e) {
-            e.preventDefault();
+        async function saveCurrentForm() {
             if (!appState.userId || appState.isAnonymous) {
                 showError("You must be logged in to save changes.");
                 return false;
             };
             
-            const form = e.target;
+            const form = document.getElementById('entry-form');
             const collectionKey = form.dataset.collectionKey;
 
             if (!collectionKey) {
@@ -2956,54 +2915,28 @@
             }
             
             const config = getActiveConfig(collectionKey);
-
             const data = getFormDataObject(form);
             
-            // --- Data Normalization ---
-            if (data.parent === '') {
-                data.parent = null;
-            }
-
-            // --- Validation ---
+            // --- Data Normalization & Validation ---
             for (const fieldKey in config.fields) {
                 const fieldConfig = config.fields[fieldKey];
                 const fieldElement = document.getElementById(fieldKey);
                 
-                if (fieldConfig.required) {
-                    if (!data[fieldKey] || (typeof data[fieldKey] === 'string' && data[fieldKey].trim() === "")) {
-                        showError(`${fieldConfig.label || fieldKey} is required.`);
-                        if (fieldElement) {
-                            fieldElement.classList.add('!border-red-500');
-                            fieldElement.focus();
-                            fieldElement.addEventListener('input', () => {
-                                fieldElement.classList.remove('!border-red-500');
-                            }, { once: true });
-                        }
-                        return false;
-                    }
-                }
-            }
-            
-            if(data.is_specialization) {
-                data.is_specialization = data.is_specialization === 'true';
-                if (data.is_specialization && !data.base_skill) {
-                    showError("Base Skill is required for a specialization.");
-                    const baseSkillField = document.getElementById('base_skill');
-                    if (baseSkillField) {
-                        baseSkillField.classList.add('!border-red-500');
-                        baseSkillField.focus();
-                        baseSkillField.addEventListener('change', () => {
-                            baseSkillField.classList.remove('!border-red-500');
-                        }, { once: true });
+                if (fieldConfig.required && (!data[fieldKey] || (typeof data[fieldKey] === 'string' && data[fieldKey].trim() === ""))) {
+                    showError(`${fieldConfig.label || fieldKey} is required.`);
+                    if (fieldElement) {
+                        fieldElement.classList.add('!border-red-500');
+                        fieldElement.focus();
+                        fieldElement.addEventListener('input', () => fieldElement.classList.remove('!border-red-500'), { once: true });
                     }
                     return false;
                 }
-            }
-            if(data.is_specialization === false) {
-                data.base_skill = '';
-            }
-            if(data.restricted) {
-                data.restricted = data.restricted === 'true'
+                if (fieldConfig.type === 'boolean') {
+                    data[fieldKey] = data[fieldKey] === 'true';
+                }
+                 if (data.parent === '') {
+                    data.parent = null;
+                }
             }
 
             const collectionPath = `artifacts/${appId}/public/data/${collectionKey}`;
@@ -3014,26 +2947,33 @@
                     await addDoc(collection(db, collectionPath), data);
                 }
                 
-                const shouldStayOpen = !!appState.pendingNavigation;
-                if(!shouldStayOpen) {
-                    closeModal(true);
-                }
-                return true;
+                appState.initialFormState = getFormState(form);
+                return true; // Indicate success
             } catch (error) {
                 console.error("Error saving data:", error);
                 showError("Error saving data. Check console for details.");
-                return false;
+                return false; // Indicate failure
+            }
+        }
+
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            const success = await saveCurrentForm();
+            if (success) {
+                 const shouldStayOpen = !!appState.pendingNavigation;
+                if(!shouldStayOpen) {
+                    closeModal(true);
+                }
             }
         }
         
-        function deleteEntry(docId) {
+        function deleteEntry(collectionKey, docId) {
             if (!appState.userId || appState.isAnonymous) {
                 showError("You must be logged in to delete entries.");
                 return;
             };
             showConfirmModal(`ARE YOU SURE YOU WANT TO DELETE THIS ENTRY? THIS ACTION CANNOT BE UNDONE.`, async () => {
                 closeModal();
-                const collectionKey = appState.currentSubcollection || appState.currentCollection;
                 const collectionPath = `artifacts/${appId}/public/data/${collectionKey}`;
                 try {
                     await deleteDoc(doc(db, collectionPath, docId));
@@ -3153,7 +3093,7 @@
                             if (appState.editingDocId !== linkedDocId) {
                                 closeModal(true); 
                             }
-                            openModal(linkedDocId, docSnap.data(), false); 
+                            openModal('rules_codex', linkedDocId, docSnap.data(), false); 
                         } else {
                             showError(`Linked entry "${linkedDocName}" not found.`);
                         }
@@ -3180,9 +3120,9 @@
             hideUnsavedChangesModal();
         });
         unsavedSaveBtn.addEventListener('click', async () => {
-            const success = await handleFormSubmit(new Event('submit',{bubbles:true, cancelable: true}));
-
+            const success = await saveCurrentForm();
             if(success && appState.pendingNavigation) {
+                closeModal(true);
                 navigateTo(appState.pendingNavigation);
                 appState.pendingNavigation = null;
                 appState.navigationContext = null;
