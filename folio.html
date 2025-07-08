@@ -478,13 +478,13 @@
             const metaInput = document.getElementById('perception-meta');
             if (metaInput) metaInput.value = commonBase + attuneRank + attuneMod;
 
-            const insightRank = getValue('skill-manipulation-insight-rank');
-            const insightMod = getValue('skill-manipulation-insight-mod');
+            const insightRank = getValue('skill-social-manipulation-insight-rank');
+            const insightMod = getValue('skill-social-manipulation-insight-mod');
             const socialInput = document.getElementById('perception-social');
             if (socialInput) socialInput.value = commonBase + insightRank + insightMod;
 
-            const technologyRank = getValue('skill-knowledge-technology-rank');
-            const technologyMod = getValue('skill-knowledge-technology-mod');
+            const technologyRank = getValue('skill-mental-knowledge-technology-rank');
+            const technologyMod = getValue('skill-mental-knowledge-technology-mod');
             const techInput = document.getElementById('perception-tech');
             if (techInput) techInput.value = commonBase + technologyRank + technologyMod;
         }
@@ -613,7 +613,7 @@
                 calculateSpecializationTotal(specRow);
             });
             
-            if (['mental-alertness', 'meta-attune', 'manipulation-insight', 'knowledge-technology'].includes(skillId)) {
+            if (['mental-alertness', 'meta-attune', 'social-manipulation-insight', 'mental-knowledge-technology'].includes(skillId)) {
                 calculatePerceptionScores();
             }
         }
@@ -789,6 +789,14 @@
                 const skillRowsContainer = document.createElement('div');
                 skillRowsContainer.className = 'skill-rows-container';
                 skillRowsContainer.dataset.group = groupName.toLowerCase();
+                groupData.skills.forEach(skillName => {
+                    const skillId = `${groupName}-${skillName}`.toLowerCase().replace(/\s+/g, '-');
+                    const skillRow = createSkillRow(skillName, skillId);
+                    if (skillName === 'Alertness') {
+                        skillRow.querySelector('.skill-base-select').outerHTML = `<input type="number" id="skill-${skillId}-base" name="skill-${skillId}-base" class="skill-base-input" readonly placeholder="0">`;
+                    }
+                    skillRowsContainer.appendChild(skillRow);
+                });
                 groupDiv.appendChild(skillRowsContainer);
             }
             
@@ -802,6 +810,11 @@
                     const subcatRowsContainer = document.createElement('div');
                     subcatRowsContainer.className = 'skill-rows-container';
                     subcatRowsContainer.dataset.group = `${groupName.toLowerCase()}-${subcatName.toLowerCase()}`;
+                    
+                    groupData.subcategories[subcatName].forEach(skillName => {
+                        const skillId = `${groupName}-${subcatName}-${skillName}`.toLowerCase().replace(/\s+/g, '-');
+                        subcatRowsContainer.appendChild(createSkillRow(skillName, skillId));
+                    });
                     groupDiv.appendChild(subcatRowsContainer);
                 }
             }
@@ -1341,7 +1354,14 @@
             
             modalChoices.innerHTML = '';
 
-            const currentSelections = JSON.parse(document.getElementById(`${targetListKey}-data`)?.value || '[]');
+            const dataInput = document.getElementById(`${targetListKey}-data`);
+            const isMultiSelect = !!dataInput;
+
+            let currentSelections = [];
+            if (isMultiSelect) {
+                 currentSelections = JSON.parse(dataInput.value || '[]');
+            }
+
             const availableItems = items.filter(item => !currentSelections.includes(item.name));
 
             if (availableItems.length === 0) {
@@ -1352,7 +1372,7 @@
                     btn.textContent = item.name.toUpperCase();
                     btn.className = 'btn btn-primary w-full text-left';
                     btn.onclick = () => {
-                        handleItemSelection(targetListKey, item.name, true);
+                        handleItemSelection(targetListKey, item.name, isMultiSelect);
                         modal.classList.add('hidden');
                     };
                     modalChoices.appendChild(btn);
