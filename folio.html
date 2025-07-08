@@ -264,13 +264,15 @@
             GoogleAuthProvider, signInWithPopup,
             signInAnonymously 
         } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
-        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+        import { 
+            getFirestore, collection, getDocs, doc, setDoc, addDoc, getDoc, query, where 
+        } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
         // --- Firebase Configuration ---
         const firebaseConfig = typeof __firebase_config !== 'undefined' 
             ? JSON.parse(__firebase_config) 
             : {
-                // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+                // Fallback config for local development
                 apiKey: "AIzaSyBA1CC4SXXtWM9UpU1XkAiBFr0RIgrPwGk",
                 authDomain: "tangent-rpg-dbm.firebaseapp.com",
                 projectId: "tangent-rpg-dbm",
@@ -284,6 +286,8 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : firebaseConfig.projectId;
+
 
         // --- RPG System Configuration (from Database Manager) ---
         const categoryConfig = {
@@ -330,8 +334,7 @@
                 return allOptions.sort((a,b) => a.name.localeCompare(b.name));
             }
             
-            // **FIXED**: Hardcode the project ID directly into the path to avoid environment conflicts.
-            const collectionPath = `artifacts/${firebaseConfig.projectId}/public/data/${collectionName}`;
+            const collectionPath = `artifacts/${appId}/public/data/${collectionName}`;
             
             try {
                 const querySnapshot = await getDocs(collection(db, collectionPath));
@@ -408,7 +411,11 @@
                         }
                     }
                 } else if(elements.value !== undefined) {
-                    elements.value = data[key];
+                     if (elements.length > 1 && elements.type !== 'radio' && elements.type !== 'checkbox') {
+                        // Handle NodeList for elements like radio buttons if needed
+                     } else {
+                        elements.value = data[key];
+                     }
                 }
             }
 
@@ -1452,10 +1459,101 @@
             modal.classList.remove('hidden');
         }
 
+        async function saveToDb() {
+            if (!appState.userId || appState.isAnonymous) {
+                showCustomAlert("Please log in to save to the cloud.");
+                return;
+            }
+
+            const charName = document.getElementById('char-name').value;
+            if (!charName) {
+                showCustomAlert("Please enter a character name before saving.");
+                return;
+            }
+
+            const data = getPersonaFolioFormData();
+            const docId = document.getElementById('character-doc-id').value || charName.replace(/\s+/g, '_');
+            const personaRef = doc(db, `artifacts/${appId}/users/${appState.userId}/personas`, docId);
+
+            try {
+                await setDoc(personaRef, data, { merge: true });
+                document.getElementById('character-doc-id').value = docId;
+                showCustomAlert("Character Saved Successfully!");
+            } catch (error) {
+                console.error("Error saving character:", error);
+                showCustomAlert("Could not save character. Check console for details.");
+            }
+        }
+
+        async function showCharacterLoadModal() {
+            if (!appState.userId || appState.isAnonymous) {
+                showCustomAlert("Please log in to load from the cloud.");
+                return;
+            }
+
+            const modal = document.getElementById('custom-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalChoices = document.getElementById('modal-choices');
+            const cancelBtn = document.getElementById('modal-cancel-btn');
+
+            modalTitle.textContent = 'LOAD CHARACTER';
+            modalChoices.innerHTML = '<p class="text-center">Loading...</p>';
+            cancelBtn.style.display = 'block';
+            modal.classList.remove('hidden');
+            
+            const collectionRef = collection(db, `artifacts/${appId}/users/${appState.userId}/personas`);
+            try {
+                const querySnapshot = await getDocs(collectionRef);
+                modalChoices.innerHTML = '';
+                if (querySnapshot.empty) {
+                    modalChoices.innerHTML = '<p class="text-gray-400 text-center">No characters found in the cloud.</p>';
+                } else {
+                    querySnapshot.forEach((doc) => {
+                        const charData = doc.data();
+                        const btn = document.createElement('button');
+                        btn.textContent = charData['char-name'] || doc.id;
+                        btn.className = 'btn btn-primary w-full text-left';
+                        btn.onclick = () => {
+                            loadCharacterById(doc.id);
+                            modal.classList.add('hidden');
+                        };
+                        modalChoices.appendChild(btn);
+                    });
+                }
+            } catch (error) {
+                console.error("Error loading characters:", error);
+                modalChoices.innerHTML = '<p class="text-red-500 text-center">Could not load characters.</p>';
+            }
+
+            cancelBtn.onclick = () => modal.classList.add('hidden');
+        }
+
+        async function loadCharacterById(docId) {
+             if (!appState.userId) return;
+             const personaRef = doc(db, `artifacts/${appId}/users/${appState.userId}/personas`, docId);
+             try {
+                const docSnap = await getDoc(personaRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    renderPersonaFolioView(document.getElementById('folio-container'), data);
+                    const docIdInput = document.getElementById('character-doc-id');
+                    if(docIdInput) docIdInput.value = docId;
+
+                } else {
+                    showCustomAlert("Character not found.");
+                }
+             } catch(error) {
+                console.error("Error loading character:", error);
+                showCustomAlert("Failed to load character.");
+             }
+        }
+
+
         function renderPersonaFolioView(container, folioData = {}) {
             container.innerHTML = `
              <div class="persona-folio-container">
                  <form id="persona-folio-form" onsubmit="return false;">
+                    <input type="hidden" id="character-doc-id" name="character-doc-id" value="${folioData['character-doc-id'] || ''}">
                      <header class="sheet-header">
                          <div id="auth-container" class="absolute left-4 top-4"></div>
                          <div class="actor-display">
@@ -1465,6 +1563,9 @@
                          <div class="file-menu">
                              <button type="button" class="file-menu-button">DATA</button>
                              <div class="file-menu-dropdown">
+                                 <button type="button" id="cloud-save-btn">Save to Cloud</button>
+                                 <button type="button" id="cloud-load-btn">Load from Cloud</button>
+                                 <hr class="border-gray-600 my-1">
                                  <button type="button" id="local-save-btn">Save to File</button>
                                  <button type="button" id="local-load-btn">Load from File</button>
                              </div>
@@ -1610,12 +1711,15 @@
                                  <div id="invocations-display" class="single-column-grid"></div>
                                  <button type="button" data-target-list="invocations" data-browse-path="invocations" class="btn btn-secondary mt-4 w-full">Add Invocation</button>
                                  <input type="hidden" id="invocations-data" name="invocations">
-                                <hr class="border-t-2 border-gray-600 my-4">
-                                <h5 class="skill-subcategory-header">Special Abilities</h5>
-                                 <div id="special_abilities-display" class="single-column-grid"></div>
-                                 <button type="button" data-target-list="special_abilities" data-browse-path="features" class="btn btn-secondary mt-4 w-full">Add Special Ability</button>
-                                 <input type="hidden" id="special_abilities-data" name="special_abilities">
                              </fieldset>
+                     </section>
+
+                     <section class="main-section" id="special-abilities-section">
+                         <fieldset><legend>Special Abilities</legend>
+                             <div id="special_abilities-display" class="single-column-grid"></div>
+                             <button type="button" data-target-list="special_abilities" data-browse-path="invocations" class="btn btn-secondary mt-4 w-full">Add Special Ability</button>
+                             <input type="hidden" id="special_abilities-data" name="special_abilities">
+                         </fieldset>
                      </section>
 
                      <section class="main-section" id="combat-section">
@@ -1712,6 +1816,9 @@
             });
             document.getElementById('local-save-btn').onclick = saveLocal;
             document.getElementById('local-load-btn').onclick = loadLocal;
+            document.getElementById('cloud-save-btn').onclick = saveToDb;
+            document.getElementById('cloud-load-btn').onclick = showCharacterLoadModal;
+
 
             document.getElementById('add-attack-btn').addEventListener('click', showAttackSelectionModal);
             document.getElementById('add-armor-btn').addEventListener('click', showArmorSelectionModal);
@@ -1722,7 +1829,7 @@
                 sheet.addEventListener('click', (event) => {
                     const target = event.target;
                     if (target.dataset.browsePath) {
-                        const targetList = target.id || target.dataset.targetList || target.name;
+                        const targetList = target.dataset.targetList || target.id;
                         showDirectoryModal(targetList, target.dataset.browsePath);
                     }
                 });
@@ -1751,6 +1858,8 @@
         async function handleLogout() {
             try {
                 await signOut(auth);
+                // Optionally, clear the sheet or show a logged-out message
+                renderPersonaFolioView(document.getElementById('folio-container'), {});
             } catch (error) {
                 console.error("Error signing out:", error);
             }
@@ -1781,6 +1890,9 @@
                 appState.userId = user.uid;
                 appState.isAnonymous = user.isAnonymous;
             } else {
+                appState.userId = null;
+                appState.isAnonymous = true;
+                // Fallback to anonymous sign-in if user logs out or session expires
                 await signInAnonymously(auth).catch(err => {
                     console.error("Anonymous sign-in failed", err);
                 });
