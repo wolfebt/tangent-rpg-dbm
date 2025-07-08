@@ -45,33 +45,15 @@
             border-bottom: 2px solid var(--border-subtle); margin-bottom: 1.5rem; padding-bottom: 1rem; 
         }
         .persona-folio-container .sheet-header h1 { margin: 0; color: var(--text-light); flex-grow: 1; text-align: center; }
-        
-        /* MODIFIED: Replaced .actor-display with a more generic auth container style */
-        /* This container will hold the login/logout status. */
-        #auth-status-container {
-            width: 250px; /* Give it a fixed width to balance the header */
-            text-align: left;
-            display: flex;
-            justify-content: flex-start;
-            min-height: 50px; /* Ensure it has height even when empty */
-            align-items: center;
+        .persona-folio-container .actor-display {
+            width: 200px; text-align: left; display: flex; flex-direction: column; justify-content: center; min-height: 50px;
         }
-        /* This class will be passed to the auth module to style the button */
-        .folio-auth-button {
-            font-family: var(--font-body); font-weight: bold; font-size: 0.9rem; padding: 0.75rem 1rem; 
-            border: 2px solid var(--text-light); border-radius: 5px; background-color: var(--bg-section); color: #ffffff; 
-            cursor: pointer; transition: all 0.2s ease-in-out; text-shadow: 1px 1px 2px #000;
-        }
-        .folio-auth-button:hover {
-            background-color: #eeeeee; color: #212121; border-color: #eeeeee; text-shadow: none;
-        }
-
         .persona-folio-container #actor-display-header { font-size: 1.2em; font-weight: bold; color: var(--text-light); }
         .persona-folio-container .creator-credit {
             text-align: center; margin-top: 1.5rem; font-size: 0.8rem; color: var(--text-light);
             font-family: var(--font-display); letter-spacing: 2px;
         }
-        .file-menu { position: relative; width: 250px; display:flex; justify-content: flex-end; } /* Give fixed width for balance */
+        .file-menu { position: relative; }
         .file-menu-button {
             font-family: var(--font-body); font-weight: bold; font-size: 0.9rem; padding: 0.75rem 1rem; 
             border: 2px solid var(--text-light); border-radius: 5px; background-color: var(--bg-section); color: #ffffff; 
@@ -248,8 +230,7 @@
 <body>
 
     <div id="folio-container">
-        <!-- The entire folio view will be rendered here by JavaScript -->
-    </div>
+        </div>
     
     <div id="custom-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-[60] p-4 hidden modal-backdrop">
         <div class="modal-content w-full max-w-lg p-8">
@@ -276,114 +257,103 @@
     <input type="file" id="json-file-input" class="hidden" accept=".json">
 
     <script type="module">
-        // NEW: Import the shared authentication logic
-        import { renderAuthStatus } from './auth.js';
-    
-        // --- Mock Data Store (your existing data) ---
-        const mockDatabase = {
-            directory: {
-                'Bio': {
-                    'Species': { type: 'collection', id: 'species' },
-                    'Occupations': { type: 'collection', id: 'occupations' },
-                    'Origins': { type: 'collection', id: 'origins' },
-                    'Factions': { type: 'collection', id: 'factions' }
-                },
-                'Character': {
-                    'Features': { type: 'collection', id: 'features' },
-                    'Disadvantages': { type: 'collection', id: 'disadvantages' },
-                    'Augmentations': { type: 'collection', id: 'augmentations' }
-                },
-                'Meta': {
-                    'Invocations': { type: 'collection', id: 'invocations' },
-                },
-                'Gear': {
-                    'Equipment': { type: 'collection', id: 'equipment' },
-                    'Associates': { type: 'collection', id: 'associates' }
-                }
-            },
-            species: [
-                { id: 'human', name: 'Human', description: 'The adaptable and numerous humans.', cp: 0, trait: ['Bonus Feature', 'Adaptable'] },
-                { id: 'elf', name: 'Elf', description: 'Graceful and long-lived.', cp: 10, trait: ['Keen Senses', 'Ageless'] },
-                { id: 'dwarf', name: 'Dwarf', description: 'Stout and resilient.', cp: 5, trait: ['Tough', 'Darkvision'], dr: 1 },
-            ],
-            occupations: [
-                { id: 'soldier', name: 'Soldier', description: 'A trained warrior.', trait: ['Weapon Specialization'], modifier: [{ aspect: 'skill', aspect_subtype: 'Ranged', value: 1 }] },
-                { id: 'scholar', name: 'Scholar', description: 'A learned academic.', trait: ['Knowledgeable'], modifier: [{ aspect: 'skill', aspect_subtype: 'Academics', value: 1 }] },
-                { id: 'rogue', name: 'Rogue', description: 'A cunning scoundrel.', trait: ['Backstab'], modifier: [{ aspect: 'skill', aspect_subtype: 'Stealth', value: 1 }] },
-            ],
-            origins: [
-                { id: 'noble', name: 'Noble', description: 'Born to a life of privilege.', trait: ['Wealthy'] },
-                { id: 'commoner', name: 'Commoner', description: 'From humble beginnings.', trait: ['Resilient'] },
-            ],
-            factions: [
-                { id: 'federation', name: 'Federation', description: 'The dominant galactic power.' },
-                { id: 'alliance', name: 'Alliance', description: 'A rebellious coalition.' },
-            ],
-            features: [
-                { id: 'tough', name: 'Tough', cp: 5, modifier: [{ aspect: 'attribute', aspect_subtype: 'attr-constitution', value: 1 }] },
-                { id: 'agile', name: 'Agile', cp: 5, modifier: [{ aspect: 'attribute', aspect_subtype: 'attr-agility', value: 1 }] },
-                { id: 'smart', name: 'Smart', cp: 5, modifier: [{ aspect: 'attribute', aspect_subtype: 'attr-intellect', value: 1 }] },
-                { id: 'fast-reflexes', name: 'Fast Reflexes', cp: 5, modifier: [{ aspect: 'stat', aspect_subtype: 'initiative', value: 2 }] }
-            ],
-            disadvantages: [
-                { id: 'clumsy', name: 'Clumsy', cp: -5, modifier: [{ aspect: 'attribute', aspect_subtype: 'attr-agility', value: -1 }] },
-                { id: 'unlucky', name: 'Unlucky', cp: -5 },
-            ],
-            augmentations: [
-                { id: 'cyber-eye', name: 'Cyber-Eye', modifier: [{ aspect: 'skill', aspect_subtype: 'Alertness', value: 2 }] },
-                { id: 'cyber-arm', name: 'Cyber-Arm', modifier: [{ aspect: 'attribute', aspect_subtype: 'attr-strength', value: 2 }] },
-                { id: 'subdermal-plating', name: 'Subdermal Plating', dr: 2, er: 1 },
-            ],
-            invocations: [
-                { id: 'fireball', name: 'Fireball', damage: "3d6", skill_used: "Attune" },
-                { id: 'psionic-blast', name: 'Psionic Blast', damage: "2d10", skill_used: "Attune" },
-            ],
-            equipment: [
-                { id: 'medkit', name: 'Medkit' },
-                { id: 'datapad', name: 'Datapad' },
-                { id: 'rations', name: 'Field Rations (1 week)' },
-                { id: 'laser-pistol', name: 'Laser Pistol', damage: "2d6", skill_used: "Ranged" },
-                { id: 'vibro-knife', name: 'Vibro-Knife', damage: "1d6+STR", skill_used: "Melee" },
-                { id: 'combat-armor', name: 'Combat Armor', dr: 5, er: 2 },
-            ],
-            associates: [
-                { id: 'informant', name: 'Shady Informant' },
-                { id: 'mechanic', name: 'Reliable Mechanic' },
-                { id: 'bodyguard', name: 'Loyal Bodyguard' }
-            ],
-            skills: [
-                { name: 'Acrobatics', type: 'physical' },
-                { name: 'Athletics', type: 'physical' },
-                { name: 'Computers', type: 'mental', subtype: 'Knowledge' },
-                { name: 'Diplomacy', type: 'social', subtype: 'Manipulation' },
-                { name: 'Melee', type: 'combat', subtype: 'Archaic' },
-                { name: 'Ranged', type: 'combat', subtype: 'Archaic' },
-                { name: 'Attune', type: 'meta' },
-                { name: 'Firearms', type: 'combat', subtype: 'Modern', is_specialization: true, base_skill: 'Ranged' }
-            ]
+        // Import Firebase modules
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+        import { 
+            getAuth, onAuthStateChanged, signOut, 
+            GoogleAuthProvider, signInWithPopup,
+            signInAnonymously 
+        } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+
+        // --- Firebase Configuration ---
+        const firebaseConfig = typeof __firebase_config !== 'undefined' 
+            ? JSON.parse(__firebase_config) 
+            : {
+                // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+                apiKey: "AIzaSyBA1CC4SXXtWM9UpU1XkAiBFr0RIgrPwGk",
+                authDomain: "tangent-rpg-dbm.firebaseapp.com",
+                projectId: "tangent-rpg-dbm",
+                storageBucket: "tangent-rpg-dbm.appspot.com",
+                messagingSenderId: "559983787369",
+                appId: "1:559983787369:web:477e741d39d16d8fd211f8",
+                measurementId: "G-RNTCSYY7HD"
+              };
+
+        // --- Firebase Initialization ---
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // --- RPG System Configuration (from Database Manager) ---
+        const categoryConfig = {
+            species: { label: 'SPECIES' },
+            factions: { label: 'FACTIONS' },
+            origins: { label: 'ORIGINS' },
+            occupations: { label: 'OCCUPATIONS' },
+            disadvantages: { label: 'DISADVANTAGES' },
+            features: { label: 'FEATURES' },
+            skills: { label: 'SKILLS' },
+            augmentations: { label: 'AUGMENTATIONS' },
+            invocations: { label: 'INVOCATIONS' },
+            equipment: { label: 'EQUIPMENT' },
+            associates: { label: 'ASSOCIATES' },
         };
 
-        // --- Mock Functions (to replace Firestore calls) ---
-        async function getCollectionOptions(collectionName) {
-            return JSON.parse(JSON.stringify(mockDatabase[collectionName] || []));
-        }
-
-        function getDbPath(path) {
-            return path.split('.').reduce((obj, key) => (obj && obj[key] !== 'undefined') ? obj[key] : undefined, mockDatabase);
-        }
-
-        // --- Application State (Simplified) ---
+        // --- Application State ---
         const appState = {
+            userId: null,
+            isAnonymous: true,
+            authReady: false,
             initialFormState: null,
-            currentFolioData: null,
             confirmCallback: null,
+            allModifiersCache: null, // Cache for modifier definitions
         };
 
-        // --- All existing JavaScript functions for the folio ---
-        // (getPersonaFolioFormData, populatePersonaFolioForm, etc.)
-        // ...
-        // (The many functions that power your folio page are assumed to be here)
-        // ...
+        // --- Authentication Promise ---
+        let authReadyPromiseResolver;
+        const authReadyPromise = new Promise(resolve => {
+            authReadyPromiseResolver = resolve;
+        });
+
+        // --- Firebase Functions ---
+        async function getCollectionOptions(collectionName) {
+            await authReadyPromise;
+
+            if (collectionName === 'equipment') {
+                const equipmentTypes = ['armoring', 'weaponry', 'mecha', 'gear'];
+                let allOptions = [];
+                for (const type of equipmentTypes) {
+                    const options = await getCollectionOptions(type);
+                    allOptions.push(...options);
+                }
+                return allOptions.sort((a,b) => a.name.localeCompare(b.name));
+            }
+            
+            // **FIXED**: Hardcode the project ID directly into the path to avoid environment conflicts.
+            const collectionPath = `artifacts/${firebaseConfig.projectId}/public/data/${collectionName}`;
+            
+            try {
+                const querySnapshot = await getDocs(collection(db, collectionPath));
+                return querySnapshot.docs
+                    .map(doc => ({ id: doc.id, ...doc.data() }))
+                    .sort((a,b) => (a.name || '').localeCompare(b.name || ''));
+            } catch (error) {
+                console.error(`FirebaseError reading '${collectionName}'. Path: '${collectionPath}'. Please ensure this path exists in your Firestore database and that your security rules allow read access.`, error);
+                showCustomAlert(`Could not load data for ${collectionName}. Check console (F12) for details.`);
+                return [];
+            }
+        }
+
+
+        // --- NEW: Cache modifier data on startup ---
+        async function cacheAllModifiers() {
+            appState.allModifiersCache = await getCollectionOptions('modifier');
+        }
+
+
+        // --- Persona Folio Logic (Adapted for Firebase) ---
+
         function getPersonaFolioFormData() {
             const form = document.getElementById('persona-folio-form');
             if (!form) return {};
@@ -443,8 +413,7 @@
             }
 
             const name = data['char-name'] || 'UNNAMED';
-            const nameHeader = document.getElementById('actor-display-header');
-            if (nameHeader) nameHeader.textContent = name.toUpperCase();
+            document.getElementById('actor-display-header').textContent = name.toUpperCase();
             updateAllTraits();
         }
 
@@ -482,43 +451,997 @@
             reader.readAsText(file);
             event.target.value = null;
         };
-        // ... all other functions from your original file ...
+        
+        const primaryToSubAttributeMap = {
+            'attr-strength': 'attr-might',
+            'attr-agility': 'attr-reflex',
+            'attr-constitution': 'attr-fortitude',
+            'attr-intellect': 'attr-logic',
+            'attr-wisdom': 'attr-will',
+            'attr-charisma': 'attr-etiquette',
+        };
+
+        function calculatePerceptionScores() {
+            const getValue = (id) => parseInt(document.getElementById(id)?.value) || 0;
+            
+            const alertnessTotal = getValue('skill-mental-alertness-total');
+            const perceptionInput = document.getElementById('perception');
+            if (perceptionInput) perceptionInput.value = alertnessTotal;
+
+            const intellectTotal = getValue('attr-intellect-total');
+            const wisdomTotal = getValue('attr-wisdom-total');
+            const alertnessMod = getValue('skill-mental-alertness-mod');
+            const commonBase = intellectTotal + wisdomTotal + alertnessMod;
+
+            const attuneRank = getValue('skill-meta-attune-rank');
+            const attuneMod = getValue('skill-meta-attune-mod');
+            const metaInput = document.getElementById('perception-meta');
+            if (metaInput) metaInput.value = commonBase + attuneRank + attuneMod;
+
+            const insightRank = getValue('skill-manipulation-insight-rank');
+            const insightMod = getValue('skill-manipulation-insight-mod');
+            const socialInput = document.getElementById('perception-social');
+            if (socialInput) socialInput.value = commonBase + insightRank + insightMod;
+
+            const technologyRank = getValue('skill-knowledge-technology-rank');
+            const technologyMod = getValue('skill-knowledge-technology-mod');
+            const techInput = document.getElementById('perception-tech');
+            if (techInput) techInput.value = commonBase + technologyRank + technologyMod;
+        }
+
+        function calculateAlertness() {
+            const intellectTotal = parseInt(document.getElementById('attr-intellect-total')?.value) || 0;
+            const wisdomTotal = parseInt(document.getElementById('attr-wisdom-total')?.value) || 0;
+            const alertnessRow = document.querySelector('[data-skill-id="mental-alertness"]');
+            if (!alertnessRow) return;
+
+            const baseInput = alertnessRow.querySelector('.skill-base-input');
+            if (baseInput) {
+                baseInput.value = intellectTotal + wisdomTotal;
+            }
+
+            calculateSkillTotal(alertnessRow);
+        }
+
+        function calculateInitiative() {
+            const reflexTotalInput = document.getElementById('attr-reflex-total');
+            const initiativeBaseInput = document.getElementById('initiative-base');
+            const initiativeModInput = document.getElementById('initiative-mod');
+            const initiativeTotalInput = document.getElementById('initiative-total');
+
+            if (!reflexTotalInput || !initiativeBaseInput || !initiativeModInput || !initiativeTotalInput) {
+                return;
+            }
+
+            const base = parseInt(reflexTotalInput.value) || 0;
+            const mod = parseInt(initiativeModInput.value) || 0;
+
+            initiativeBaseInput.value = base;
+            initiativeTotalInput.value = base + mod;
+        }
+
+        function calculateAttributeTotal(attributeBaseId) {
+            const valueInput = document.getElementById(attributeBaseId);
+            const modInput = document.getElementById(`${attributeBaseId}-mod`);
+            const totalInput = document.getElementById(`${attributeBaseId}-total`);
+
+            if (!valueInput || !modInput || !totalInput) return;
+
+            const value = parseInt(valueInput.value) || 0;
+            const mod = parseInt(modInput.value) || 0;
+            const total = value + mod;
+            totalInput.value = total;
+
+            if (attributeBaseId === 'attr-intellect' || attributeBaseId === 'attr-wisdom') {
+                calculateAlertness();
+            }
+
+            if (attributeBaseId === 'attr-reflex') {
+                calculateInitiative();
+            }
+
+            const subAttributeId = primaryToSubAttributeMap[attributeBaseId];
+            if (subAttributeId) {
+                const subValueInput = document.getElementById(subAttributeId);
+                if (subValueInput) {
+                    const primaryValue = parseInt(valueInput.value) || 0;
+                    subValueInput.value = (primaryValue * 2) + 2;
+                    calculateAttributeTotal(subAttributeId);
+                }
+            }
+
+            document.querySelectorAll('.skill-row:not(.header)').forEach(skillRow => {
+                const baseSelect = skillRow.querySelector('.skill-base-select');
+                if (baseSelect && baseSelect.value === attributeBaseId) {
+                    calculateSkillTotal(skillRow);
+                }
+            });
+            calculatePerceptionScores();
+        }
+
+        function calculateSpecializationTotal(specRow) {
+            if (!specRow) return;
+            const parentSkillId = specRow.dataset.parentSkill;
+            const parentRow = document.querySelector(`.skill-row[data-skill-id="${parentSkillId}"]`);
+            if (!parentRow) return;
+
+            const rank = parseInt(specRow.querySelector('.skill-rank')?.value) || 0;
+            const mod = parseInt(specRow.querySelector('.skill-mod')?.value) || 0;
+            const parentTotal = parseInt(parentRow.querySelector('.skill-total')?.value) || 0;
+
+            const baseInput = specRow.querySelector('.spec-base-input');
+            const totalInput = specRow.querySelector('.spec-total');
+            
+            if (baseInput) baseInput.value = parentTotal;
+            if (totalInput) totalInput.value = rank + parentTotal + mod;
+        }
+
+        function calculateSkillTotal(skillRow) {
+            if (!skillRow || skillRow.classList.contains('header') || skillRow.classList.contains('specialization')) return;
+
+            const rankInput = skillRow.querySelector('.skill-rank');
+            const baseSelect = skillRow.querySelector('.skill-base-select');
+            const baseInput = skillRow.querySelector('.skill-base-input');
+            const modInput = skillRow.querySelector('.skill-mod');
+            const totalInput = skillRow.querySelector('.skill-total');
+            
+            if (!rankInput || (!baseSelect && !baseInput) || !modInput || !totalInput) {
+                return;
+            }
+
+            const rank = parseInt(rankInput.value) || 0;
+            const mod = parseInt(modInput.value) || 0;
+            let baseValue = 0;
+
+            if (baseInput) {
+                baseValue = parseInt(baseInput.value) || 0;
+            } else if (baseSelect) {
+                const selectedBaseAttrId = baseSelect.value;
+                if (selectedBaseAttrId) {
+                    const attrTotalInput = document.getElementById(`${selectedBaseAttrId}-total`); 
+                    if (attrTotalInput) {
+                        baseValue = parseInt(attrTotalInput.value) || 0;
+                    }
+                }
+            }
+            
+            const total = rank + baseValue + mod;
+            totalInput.value = total;
+            
+            const skillId = skillRow.dataset.skillId;
+            document.querySelectorAll(`.specialization-row[data-parent-skill="${skillId}"]`).forEach(specRow => {
+                calculateSpecializationTotal(specRow);
+            });
+            
+            if (['mental-alertness', 'meta-attune', 'manipulation-insight', 'knowledge-technology'].includes(skillId)) {
+                calculatePerceptionScores();
+            }
+        }
+        
+        async function recalculateAllModifiers() {
+            // Ensure the modifier cache is populated
+            if (!appState.allModifiersCache) {
+                await cacheAllModifiers();
+            }
+
+            document.querySelectorAll('.attribute-mod, .skill-mod, #initiative-mod').forEach(input => {
+                input.value = 0;
+            });
+            
+            const modifiers = {};
+
+            const modifierSources = [
+                { type: 'single', collection: 'occupations', elementId: 'char-occu' },
+                { type: 'multi', collection: 'features', elementId: 'features-data' },
+                { type: 'multi', collection: 'disadvantages', elementId: 'disadvantages-data' },
+                { type: 'multi', collection: 'augmentations', elementId: 'augmentations-data' },
+            ];
+
+            for (const source of modifierSources) {
+                const dbItems = await getCollectionOptions(source.collection);
+                let selectedNames = [];
+
+                if (source.type === 'single') {
+                    const el = document.getElementById(source.elementId);
+                    if (el && el.value) {
+                        selectedNames.push(el.value);
+                    }
+                } else {
+                    const el = document.getElementById(source.elementId);
+                    if (el && el.value) {
+                        try {
+                            selectedNames = JSON.parse(el.value);
+                        } catch (e) { /* ignore */ }
+                    }
+                }
+
+                for (const name of selectedNames) {
+                    const itemData = dbItems.find(item => item.name === name);
+                    if (itemData && Array.isArray(itemData.modifier)) {
+                        for (const modName of itemData.modifier) {
+                            // **FIXED LOGIC**: Look up modifier details from the cache
+                            const modDetails = appState.allModifiersCache.find(m => m.name === modName);
+                            if (modDetails) {
+                                const key = modDetails.aspect_subtype;
+                                if (!modifiers[key]) {
+                                    modifiers[key] = 0;
+                                }
+                                modifiers[key] += modDetails.value;
+                            }
+                        }
+                    }
+                }
+            }
+
+            for (const key in modifiers) {
+                const value = modifiers[key];
+
+                const statModInput = document.getElementById(`${key}-mod`);
+                if(statModInput) {
+                    statModInput.value = (parseInt(statModInput.value) || 0) + value;
+                    continue;
+                }
+
+                const attrModInput = document.getElementById(`attr-${key}-mod`);
+                if (attrModInput) {
+                    attrModInput.value = (parseInt(attrModInput.value) || 0) + value;
+                    continue;
+                }
+
+                document.querySelectorAll('.skill-row:not(.header)').forEach(row => {
+                    const label = row.querySelector('label');
+                    if (label && label.textContent.toLowerCase() === key.toLowerCase()) {
+                        const skillModInput = row.querySelector('.skill-mod');
+                        if (skillModInput) {
+                            skillModInput.value = (parseInt(skillModInput.value) || 0) + value;
+                        }
+                    }
+                });
+            }
+
+            Object.keys(primaryToSubAttributeMap).forEach(calculateAttributeTotal);
+            document.querySelectorAll('.skill-row:not(.header)').forEach(calculateSkillTotal);
+            calculateInitiative();
+            calculateAlertness();
+            calculatePerceptionScores();
+        }
+
+        async function initializePersonaFolio(folioData = {}) {
+            const sheet = document.getElementById('persona-folio-form');
+            if(!sheet) return;
+            
+            const skillData = {
+                "Physical": { "skills": ["Acrobatics", "Athletics", "Piloting", "Stealth"] },
+                "Mental": { "skills": ["Alertness"], "subcategories": { "Knowledge": ["Academics", "Appraisal", "Computers", "Culture", "History", "Investigation", "Language", "Medicine", "Nature", "Navigation", "Nobility", "Physics", "Religion", "Science", "Survival", "Tactics", "Technology"], "Vocation": ["Administrator", "Alchemist", "Ambassador", "Architect", "Archivist", "Armorer", "Artist", "Artificer", "Broker", "Celebrity", "Constable", "Courtesan", "Culinarian", "Demolitionist", "Electrician", "Engineer", "Groundskeeper", "Handler", "Laborer", "Mechanic", "Researcher", "Salvager", "Soldier", "Tailor", "Transporter", "Weaponsmith"]}},
+                "Social": { "subcategories": { "Manipulation": ["Insight", "Bluff", "Diplomacy", "Intimidate", "Streetwise"], "Expression": ["Acting", "Comedy", "Dancing", "Disguise", "Keyboard", "Legerdemain", "Oratory", "Percussion", "Singing", "String", "Style", "Wind"]}},
+                "Combat": { "subcategories": { "Archaic": ["Defense", "Melee", "Ranged", "Unarmed"], "Modern": ["Ballistic", "Heavy Weapons"],"Advanced": ["Energy", "Heavy Energy"]}}
+            };
+            const skillOrder = ['Physical', 'Mental', 'Social', 'Combat'];
+            const skillsContainer = document.getElementById('skills-list');
+            
+            if(skillsContainer) skillsContainer.innerHTML = '';
+
+            skillOrder.forEach(groupName => {
+                const groupData = skillData[groupName];
+                if (groupData) {
+                    populateSkillGroup(skillsContainer, groupName, groupData);
+                }
+            });
+
+            const metaData = { "Dimension": ["Summoning", "Teleport"], "Energy": ["Elemental", "Force"], "Entropy": ["Chaos", "Order"], "Illusion": ["Phantasmal", "Shadow"], "Matter": ["Enhancement", "Transmutation"], "Mental": ["Projection", "Sense"] };
+            populateMeta(metaData);
+            
+            if (folioData && Object.keys(folioData).length > 0) {
+                populatePersonaFolioForm(folioData);
+            } else {
+                renderAttackRows([]);
+                renderArmorRows([]);
+                renderNoteRows([]);
+            }
+
+            appState.initialFormState = JSON.stringify(getPersonaFolioFormData());
+
+            document.getElementById('add-skill-btn').addEventListener('click', showAddSkillModal);
+
+            sheet.addEventListener('input', (e) => {
+                const target = e.target;
+                const specRow = target.closest('.specialization-row');
+                if (specRow) {
+                    calculateSpecializationTotal(specRow);
+                    return;
+                }
+
+                const skillRow = target.closest('.skill-row');
+                if (skillRow) {
+                    calculateSkillTotal(skillRow);
+                }
+                
+                if (target.matches('.attribute-value')) {
+                    const baseId = e.target.id;
+                    calculateAttributeTotal(baseId);
+                }
+            });
+
+            Object.keys(primaryToSubAttributeMap).forEach(primaryId => {
+                calculateAttributeTotal(primaryId);
+            });
+            
+            if (folioData) {
+                Object.keys(primaryToSubAttributeMap).forEach(primaryId => {
+                    calculateAttributeTotal(primaryId);
+                });
+            }
+            recalculateAllModifiers();
+        }
+
+        function populateSkillGroup(container, groupName, groupData) {
+            if (!container || !groupData) return;
+
+            const groupDiv = document.createElement('div');
+            groupDiv.className = 'skill-group';
+
+            const header = document.createElement('h4');
+            header.className = 'skill-group-header';
+            header.textContent = groupName.trim();
+            groupDiv.appendChild(header);
+
+            if (groupData.skills) {
+                const skillRowsContainer = document.createElement('div');
+                skillRowsContainer.className = 'skill-rows-container';
+                skillRowsContainer.dataset.group = groupName.toLowerCase();
+                groupDiv.appendChild(skillRowsContainer);
+            }
+            
+            if (groupData.subcategories) {
+                for (const subcatName in groupData.subcategories) {
+                    const subcatHeader = document.createElement('h5');
+                    subcatHeader.className = 'skill-subcategory-header';
+                    subcatHeader.textContent = subcatName;
+                    groupDiv.appendChild(subcatHeader);
+
+                    const subcatRowsContainer = document.createElement('div');
+                    subcatRowsContainer.className = 'skill-rows-container';
+                    subcatRowsContainer.dataset.group = `${groupName.toLowerCase()}-${subcatName.toLowerCase()}`;
+                    groupDiv.appendChild(subcatRowsContainer);
+                }
+            }
+            container.appendChild(groupDiv);
+        }
+
+        function populateMeta(metaData) {
+            const container = document.getElementById('meta-skills-list');
+            if(!container) return;
+            container.innerHTML = '';
+
+            const headerRow = document.createElement('div');
+            headerRow.className = 'skill-row header';
+            headerRow.innerHTML = `<span>Skill</span><span>Rank</span><span>Base</span><span>Mod</span><span>Total</span>`;
+            container.appendChild(headerRow);
+            
+            const attuneContainer = document.createElement('div');
+            attuneContainer.className = 'skill-rows-container';
+            attuneContainer.dataset.group = 'meta';
+            const attuneRow = createSkillRow("Attune", "meta-attune");
+            attuneContainer.appendChild(attuneRow);
+            container.appendChild(attuneContainer);
+
+            const metaOrder = ["Dimension", "Energy", "Entropy", "Illusion", "Matter", "Mental"];
+
+            metaOrder.forEach(subcatName => {
+                const skills = metaData[subcatName];
+                if (skills && skills.length > 0) {
+                    const subcatHeader = document.createElement('h5');
+                    subcatHeader.className = 'skill-subcategory-header';
+                    subcatHeader.textContent = subcatName;
+                    container.appendChild(subcatHeader);
+                    
+                    const subcatRowsContainer = document.createElement('div');
+                    subcatRowsContainer.className = 'skill-rows-container';
+                    subcatRowsContainer.dataset.group = `meta-${subcatName.toLowerCase()}`;
+                    
+                    skills.forEach(skillName => {
+                         const skillId = `meta-${subcatName}-${skillName}`.toLowerCase().replace(/\s+/g, '-');
+                         subcatRowsContainer.appendChild(createSkillRow(skillName, skillId));
+                    });
+                    container.appendChild(subcatRowsContainer);
+                }
+            });
+        }
+
+        function createSkillRow(skillName, skillId) {
+            const row = document.createElement('div');
+            row.className = 'skill-row';
+            row.dataset.skillId = skillId;
+            const attributeOptions = [{ value: 'attr-strength', text: 'Strength' }, { value: 'attr-agility', text: 'Agility' },{ value: 'attr-constitution', text: 'Constitution' }, { value: 'attr-intellect', text: 'Intellect' },{ value: 'attr-wisdom', text: 'Wisdom' }, { value: 'attr-charisma', text: 'Charisma' }];
+            let optionsHtml = '<option value="">--</option>' + attributeOptions.map(opt => `<option value="${opt.value}">${opt.text}</option>`).join('');
+            
+            row.innerHTML = `
+                <label for="skill-${skillId}-rank">${skillName}</label>
+                <input type="number" id="skill-${skillId}-rank" name="skill-${skillId}-rank" class="skill-rank" placeholder="0">
+                <select id="skill-${skillId}-base" name="skill-${skillId}-base" class="skill-base-select">${optionsHtml}</select>
+                <input type="number" id="skill-${skillId}-mod" name="skill-${skillId}-mod" class="skill-mod" placeholder="0" readonly>
+                <input type="number" id="skill-${skillId}-total" name="skill-${skillId}-total" class="skill-total" readonly value="0">`;
+            return row;
+        };
+        
+        function createSpecializationRow(specName, specId, parentSkillId) {
+            const row = document.createElement('div');
+            row.className = 'skill-row specialization';
+            row.dataset.specId = specId;
+            row.dataset.parentSkill = parentSkillId;
+            row.innerHTML = `
+                <input type="text" class="skill-name-input" name="${specId}-name" value="${specName}" readonly>
+                <input type="number" class="skill-rank" name="${specId}-rank" placeholder="0">
+                <input type="number" class="spec-base-input" name="${specId}-base" readonly placeholder="0">
+                <input type="number" class="skill-mod" name="${specId}-mod" placeholder="0" readonly>
+                <input type="number" class="spec-total" name="${specId}-total" readonly value="0">
+            `;
+            return row;
+        }
+
+        async function showAddSkillModal() {
+            const modal = document.getElementById('custom-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalChoices = document.getElementById('modal-choices');
+            const cancelBtn = document.getElementById('modal-cancel-btn');
+
+            modalTitle.textContent = 'ADD SKILL';
+            modalChoices.innerHTML = ''; 
+
+            const allSkills = await getCollectionOptions('skills');
+            const existingSkillElements = document.querySelectorAll('.skill-row:not(.header) label, .skill-row.specialization .skill-name-input');
+            const existingSkillNames = Array.from(existingSkillElements).map(el => el.textContent || el.value);
+
+            allSkills.sort((a, b) => a.name.localeCompare(b.name)).forEach(skill => {
+                const isAdded = existingSkillNames.includes(skill.name);
+
+                const skillRow = document.createElement('div');
+                skillRow.className = 'grid grid-cols-3 gap-2 items-center w-full';
+                
+                const skillNameEl = document.createElement('span');
+                skillNameEl.textContent = skill.name;
+                skillNameEl.className = `text-left ${isAdded ? 'text-gray-500' : ''}`;
+
+                const valueInput = document.createElement('input');
+                valueInput.type = 'number';
+                valueInput.placeholder = 'Rank';
+                valueInput.className = 'global-form-input !text-sm !py-1 !px-2';
+                valueInput.disabled = isAdded;
+
+                const addButton = document.createElement('button');
+                addButton.textContent = 'Add';
+                addButton.className = 'btn btn-primary !text-xs !py-1 !px-2';
+                addButton.disabled = isAdded;
+
+                if (!isAdded) {
+                    addButton.onclick = async () => {
+                        const rank = parseInt(valueInput.value);
+                        if (rank > 0) {
+                            await addSkillToSheet(skill, rank);
+                            modal.classList.add('hidden');
+                        } else {
+                            valueInput.classList.add('!border-red-500');
+                            setTimeout(() => valueInput.classList.remove('!border-red-500'), 1000);
+                        }
+                    };
+                }
+
+                skillRow.appendChild(skillNameEl);
+                skillRow.appendChild(valueInput);
+                skillRow.appendChild(addButton);
+                modalChoices.appendChild(skillRow);
+            });
+
+            cancelBtn.style.display = 'block';
+            cancelBtn.onclick = () => modal.classList.add('hidden');
+            document.getElementById('modal-ok-btn').style.display = 'none';
+
+            modal.classList.remove('hidden');
+        }
+
+        async function addSkillToSheet(skillData, rank) {
+            if (skillData.is_specialization) {
+                const baseSkillName = skillData.base_skill;
+                const allSkillRows = document.querySelectorAll('.skill-row:not(.specialization)');
+                let parentRow = null;
+                allSkillRows.forEach(row => {
+                    const label = row.querySelector('label');
+                    if (label && label.textContent === baseSkillName) {
+                        parentRow = row;
+                    }
+                });
+
+                if (parentRow) {
+                    const parentSkillId = parentRow.dataset.skillId;
+                    const specId = `spec-${parentSkillId}-${Date.now()}`;
+                    const specRow = createSpecializationRow(skillData.name, specId, parentSkillId);
+                    
+                    let lastElement = parentRow;
+                    let nextSibling = parentRow.nextElementSibling;
+                    while(nextSibling && nextSibling.classList.contains('specialization') && nextSibling.dataset.parentSkill === parentSkillId) {
+                        lastElement = nextSibling;
+                        nextSibling = nextSibling.nextElementSibling;
+                    }
+                    lastElement.insertAdjacentElement('afterend', specRow);
+
+                    const rankInput = specRow.querySelector('.skill-rank');
+                    if(rankInput) rankInput.value = rank;
+
+                    calculateSpecializationTotal(specRow);
+                } else {
+                    showCustomAlert(`Base skill "${baseSkillName}" not found on sheet. Please add it first.`);
+                }
+            } else {
+                const skillId = `${skillData.type}-${skillData.name}`.toLowerCase().replace(/\s+/g, '-');
+                if (document.querySelector(`[data-skill-id="${skillId}"]`)) {
+                    showCustomAlert(`Skill "${skillData.name}" is already on the sheet.`);
+                    return;
+                }
+                
+                const subtype = skillData.subtype ? `-${skillData.subtype.toLowerCase()}` : '';
+                const containerSelector = `[data-group="${skillData.type}${subtype}"]`;
+                let container = document.querySelector(containerSelector);
+
+                if (!container) {
+                    container = document.querySelector(`[data-group="${skillData.type}"]`);
+                }
+                
+                if (container) {
+                    const newRow = createSkillRow(skillData.name, skillId);
+                    container.appendChild(newRow);
+
+                    const rankInput = newRow.querySelector('.skill-rank');
+                    if(rankInput) rankInput.value = rank;
+
+                    calculateSkillTotal(newRow);
+                } else {
+                    console.error(`Could not find container for skill:`, skillData);
+                }
+            }
+        }
+
+        async function showAttackSelectionModal() {
+            const equipmentDataInput = document.getElementById('equipment-data');
+            const invocationsDataInput = document.getElementById('invocations-data');
+
+            let currentEquipment = [];
+            let currentInvocations = [];
+
+            try {
+                if (equipmentDataInput && equipmentDataInput.value) currentEquipment = JSON.parse(equipmentDataInput.value);
+                if (invocationsDataInput && invocationsDataInput.value) currentInvocations = JSON.parse(invocationsDataInput.value);
+            } catch(e) {
+                console.error("Could not parse equipment/invocations data", e);
+            }
+            
+            const allEquipment = await getCollectionOptions('weaponry');
+            const allInvocations = await getCollectionOptions('invocations');
+
+            const availableAttacks = [];
+            
+            currentEquipment.forEach(name => {
+                const item = allEquipment.find(eq => eq.name === name && eq.damage);
+                if (item) availableAttacks.push({ ...item, source: 'Equipment' });
+            });
+
+            currentInvocations.forEach(name => {
+                const item = allInvocations.find(inv => inv.name === name && inv.damage);
+                if (item) availableAttacks.push({ ...item, source: 'Invocations' });
+            });
+
+            if (availableAttacks.length === 0) {
+                showCustomAlert("No available attacks from equipment or invocations.");
+                return;
+            }
+
+            const modal = document.getElementById('custom-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalChoices = document.getElementById('modal-choices');
+            const cancelBtn = document.getElementById('modal-cancel-btn');
+            const okBtn = document.getElementById('modal-ok-btn');
+
+            modalTitle.textContent = "SELECT ATTACK";
+            modalChoices.innerHTML = ''; 
+            cancelBtn.style.display = 'block';
+            okBtn.style.display = 'none';
+
+            availableAttacks.forEach(attack => {
+                const btn = document.createElement('button');
+                btn.textContent = `${attack.name.toUpperCase()} (${attack.source})`;
+                btn.className = 'btn btn-secondary w-full'; 
+                btn.onclick = () => {
+                    addAttackToList(attack);
+                    modal.classList.add('hidden');
+                };
+                modalChoices.appendChild(btn);
+            });
+            
+            modalChoices.style.display = 'flex';
+            modal.classList.remove('hidden');
+
+            cancelBtn.onclick = () => {
+                modal.classList.add('hidden');
+            };
+        }
+
+        function addAttackToList(attackData) {
+            const attacksDataInput = document.getElementById('attacks-data');
+            let currentAttacks = [];
+            try {
+                if (attacksDataInput.value) currentAttacks = JSON.parse(attacksDataInput.value);
+            } catch(e) {}
+
+            const newAttack = {
+                name: attackData.name,
+                score: attackData.skill || '',
+                damage: attackData.damage || '',
+                notes: ''
+            };
+
+            currentAttacks.push(newAttack);
+            attacksDataInput.value = JSON.stringify(currentAttacks);
+            renderAttackRows(currentAttacks);
+        }
+
+        function renderAttackRows(attacks = []) {
+            const container = document.getElementById('attack-rows');
+            if (!container) return;
+            
+            while(container.children.length > 1) {
+                container.removeChild(container.lastChild);
+            }
+
+            attacks.forEach((attack, index) => {
+                const row = document.createElement('div');
+                row.className = 'attack-grid';
+                row.innerHTML = `
+                    <input type="text" value="${attack.name}" readonly>
+                    <input type="text" value="${attack.score}" readonly>
+                    <input type="text" value="${attack.damage}" readonly>
+                    <input type="text" placeholder="Notes...">
+                    <button type="button" class="btn btn-danger btn-sm p-1 leading-none">&times;</button>
+                `;
+                container.appendChild(row);
+
+                row.querySelector('button').addEventListener('click', () => {
+                    attacks.splice(index, 1);
+                    document.getElementById('attacks-data').value = JSON.stringify(attacks);
+                    renderAttackRows(attacks);
+                });
+            });
+        }
+
+        async function showArmorSelectionModal() {
+            const speciesInput = document.getElementById('char-species');
+            const equipmentDataInput = document.getElementById('equipment-data');
+            const augmentationsDataInput = document.getElementById('augmentations-data');
+
+            let currentEquipment = [];
+            let currentAugmentations = [];
+
+            try {
+                if (equipmentDataInput && equipmentDataInput.value) currentEquipment = JSON.parse(equipmentDataInput.value);
+                if (augmentationsDataInput && augmentationsDataInput.value) currentAugmentations = JSON.parse(augmentationsDataInput.value);
+            } catch(e) {}
+            
+            const allSpecies = await getCollectionOptions('species');
+            const allEquipment = await getCollectionOptions('armoring');
+            const allAugmentations = await getCollectionOptions('augmentations');
+
+            const availableArmor = [];
+            
+            if (speciesInput && speciesInput.value) {
+                const species = allSpecies.find(s => s.name === speciesInput.value && (s.dr || s.er));
+                if (species) availableArmor.push({ ...species, source: 'Species' });
+            }
+
+            currentEquipment.forEach(name => {
+                const item = allEquipment.find(eq => eq.name === name && (eq.dr || eq.er));
+                if (item) availableArmor.push({ ...item, source: 'Equipment' });
+            });
+
+            currentAugmentations.forEach(name => {
+                const item = allAugmentations.find(aug => aug.name === name && (aug.dr || aug.er));
+                if (item) availableArmor.push({ ...item, source: 'Augmentations' });
+            });
+
+            if (availableArmor.length === 0) {
+                showCustomAlert("No available armor from species, equipment, or augmentations.");
+                return;
+            }
+
+            const modal = document.getElementById('custom-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalChoices = document.getElementById('modal-choices');
+            const cancelBtn = document.getElementById('modal-cancel-btn');
+            const okBtn = document.getElementById('modal-ok-btn');
+
+            modalTitle.textContent = "SELECT ARMOR";
+            modalChoices.innerHTML = ''; 
+            cancelBtn.style.display = 'block';
+            okBtn.style.display = 'none';
+
+            availableArmor.forEach(armor => {
+                const btn = document.createElement('button');
+                btn.textContent = `${armor.name.toUpperCase()} (${armor.source})`;
+                btn.className = 'btn btn-secondary w-full'; 
+                btn.onclick = () => {
+                    addArmorToList(armor);
+                    modal.classList.add('hidden');
+                };
+                modalChoices.appendChild(btn);
+            });
+            
+            modalChoices.style.display = 'flex';
+            modal.classList.remove('hidden');
+
+            cancelBtn.onclick = () => {
+                modal.classList.add('hidden');
+            };
+        }
+
+        function addArmorToList(armorData) {
+            const armorDataInput = document.getElementById('armor-data');
+            let currentArmor = [];
+            try {
+                if (armorDataInput.value) currentArmor = JSON.parse(armorDataInput.value);
+            } catch(e) {}
+
+            const newArmor = {
+                name: armorData.name,
+                dr: armorData.dr || 0,
+                er: armorData.er || 0,
+                notes: armorData.source || ''
+            };
+
+            currentArmor.push(newArmor);
+            armorDataInput.value = JSON.stringify(currentArmor);
+            renderArmorRows(currentArmor);
+        }
+
+        function renderArmorRows(armorList = []) {
+            const container = document.getElementById('armor-rows');
+            if (!container) return;
+            
+            while(container.children.length > 1) {
+                container.removeChild(container.lastChild);
+            }
+
+            armorList.forEach((armor, index) => {
+                const row = document.createElement('div');
+                row.className = 'armor-grid';
+                row.innerHTML = `
+                    <input type="text" value="${armor.name}" readonly>
+                    <input type="text" value="${armor.dr}" readonly>
+                    <input type="text" value="${armor.er}" readonly>
+                    <input type="text" value="${armor.notes}" readonly>
+                    <button type="button" class="btn btn-danger btn-sm p-1 leading-none">&times;</button>
+                `;
+                container.appendChild(row);
+
+                row.querySelector('button').addEventListener('click', () => {
+                    armorList.splice(index, 1);
+                    document.getElementById('armor-data').value = JSON.stringify(armorList);
+                    renderArmorRows(armorList);
+                });
+            });
+        }
+
+        function addNoteToList() {
+            const notesDataInput = document.getElementById('notes-data');
+            let currentNotes = [];
+            try {
+                if(notesDataInput.value) currentNotes = JSON.parse(notesDataInput.value);
+            } catch(e) {}
+
+            currentNotes.push({ text: '' });
+            notesDataInput.value = JSON.stringify(currentNotes);
+            renderNoteRows(currentNotes);
+        }
+
+        function renderNoteRows(notes = []) {
+            const container = document.getElementById('notes-list');
+            if (!container) return;
+            container.innerHTML = '';
+
+            if (notes.length === 0) {
+                    addNoteToList();
+                    return;
+            }
+
+            notes.forEach((note, index) => {
+                const row = document.createElement('div');
+                row.className = 'flex items-center gap-2';
+                
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = note.text;
+                input.className = 'flex-grow';
+                input.oninput = () => {
+                    notes[index].text = input.value;
+                    document.getElementById('notes-data').value = JSON.stringify(notes);
+                };
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.innerHTML = '&times;';
+                removeBtn.className = 'btn btn-danger btn-sm p-1 leading-none';
+                removeBtn.onclick = () => {
+                    notes.splice(index, 1);
+                    document.getElementById('notes-data').value = JSON.stringify(notes);
+                    renderNoteRows(notes);
+                };
+
+                row.appendChild(input);
+                row.appendChild(removeBtn);
+                container.appendChild(row);
+            });
+        }
+
+
+        async function updateTraitsDisplay(collectionName, selectElement, textareaId) {
+            const selectedName = selectElement.value;
+            const textarea = document.getElementById(textareaId);
+            if (!textarea) return;
+
+            textarea.value = '';
+            if (!selectedName) return;
+
+            try {
+                const options = await getCollectionOptions(collectionName);
+                const selectedOption = options.find(opt => opt.name === selectedName);
+                if (!selectedOption || !selectedOption.trait) return;
+
+                textarea.value = selectedOption.trait.join('\n');
+
+            } catch (error) {
+                console.error(`Error updating traits for ${collectionName}:`, error);
+            }
+        };
+
         function updateAllTraits() {
-            // This is a placeholder for your existing function
+            updateTraitsDisplay('species', document.getElementById('char-species'), 'species-traits-display');
+            updateTraitsDisplay('occupations', document.getElementById('char-occu'), 'occupation-traits-display');
+            updateTraitsDisplay('origins', document.getElementById('char-origin'), 'origin-traits-display');
+            updateTraitsDisplay('factions', document.getElementById('char-faction'), 'faction-traits-display');
         }
-        function renderAttackRows() {}
-        function renderArmorRows() {}
-        function renderNoteRows() {}
-        function renderItemList() {}
-        function showCustomAlert(msg) { alert(msg); }
-        function initializePersonaFolio(folioData) {
-            // This is a placeholder for your existing function
-            populatePersonaFolioForm(folioData);
+
+        function showConfirmModal(message, onConfirm) {
+            const confirmModal = document.getElementById('confirm-modal');
+            const confirmMessage = document.getElementById('confirm-message');
+            const confirmOkBtn = document.getElementById('confirm-ok-btn');
+            const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
+
+            confirmMessage.textContent = message;
+            appState.confirmCallback = onConfirm;
+
+            confirmOkBtn.onclick = () => {
+                if (appState.confirmCallback) appState.confirmCallback();
+                confirmModal.classList.add('hidden');
+            };
+            confirmCancelBtn.onclick = () => {
+                confirmModal.classList.add('hidden');
+            };
+
+            confirmModal.classList.remove('hidden');
         }
-        function showAttackSelectionModal(){}
-        function showArmorSelectionModal(){}
-        function addNoteToList(){}
-        function showDirectoryModal(){}
 
+        async function showDirectoryModal(targetListKey, startPathKey) {
+            const modal = document.getElementById('custom-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalChoices = document.getElementById('modal-choices');
+            const cancelBtn = document.getElementById('modal-cancel-btn');
 
-        /**
-         * MODIFIED: This function now renders the auth container and calls the logic from auth.js to populate it.
-         * It builds the entire HTML structure for the folio page.
-         * @param {HTMLElement} container - The main element to render the folio into.
-         * @param {object} folioData - The character data to populate the form with.
-         */
+            modalTitle.textContent = `BROWSE: ${categoryConfig[startPathKey]?.label || startPathKey.toUpperCase()}`;
+            modalChoices.innerHTML = '<p class="text-center">Loading...</p>';
+            cancelBtn.style.display = 'block';
+            modal.classList.remove('hidden');
+
+            const items = await getCollectionOptions(startPathKey);
+            
+            modalChoices.innerHTML = '';
+
+            const currentSelections = JSON.parse(document.getElementById(`${targetListKey}-data`)?.value || '[]');
+            const availableItems = items.filter(item => !currentSelections.includes(item.name));
+
+            if (availableItems.length === 0) {
+                modalChoices.innerHTML = '<p class="text-gray-400 text-center">No available items to add.</p>';
+            } else {
+                availableItems.forEach(item => {
+                    const btn = document.createElement('button');
+                    btn.textContent = item.name.toUpperCase();
+                    btn.className = 'btn btn-primary w-full text-left';
+                    btn.onclick = () => {
+                        handleItemSelection(targetListKey, item.name, true);
+                        modal.classList.add('hidden');
+                    };
+                    modalChoices.appendChild(btn);
+                });
+            }
+
+            cancelBtn.onclick = () => modal.classList.add('hidden');
+        }
+        
+        function handleItemSelection(targetId, value, isMultiSelect) {
+            if (isMultiSelect) {
+                const displayContainer = document.getElementById(`${targetId}-display`);
+                const dataInput = document.getElementById(`${targetId}-data`);
+
+                let currentValues = [];
+                if (dataInput.value) {
+                    try {
+                        currentValues = JSON.parse(dataInput.value);
+                    } catch (e) {
+                        currentValues = [];
+                    }
+                }
+
+                if (!currentValues.includes(value)) {
+                    currentValues.push(value);
+                    dataInput.value = JSON.stringify(currentValues);
+                    renderItemList(displayContainer, currentValues, targetId);
+                }
+            } else {
+                const targetInput = document.getElementById(targetId);
+                targetInput.value = value;
+                targetInput.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        }
+
+        function renderItemList(container, items, targetId) {
+            if (!container) return;
+            container.innerHTML = '';
+            items.forEach((item, index) => {
+                const itemEl = document.createElement('div');
+                itemEl.className = 'flex justify-between items-center bg-gray-700 p-2 rounded';
+                itemEl.textContent = item;
+                
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.innerHTML = '&times;';
+                removeBtn.className = 'font-bold text-red-500 hover:text-red-300 ml-4';
+                removeBtn.onclick = () => {
+                    items.splice(index, 1);
+                    document.getElementById(`${targetId}-data`).value = JSON.stringify(items);
+                    renderItemList(container, items, targetId);
+                };
+                itemEl.appendChild(removeBtn);
+                container.appendChild(itemEl);
+            });
+            recalculateAllModifiers();
+        }
+
+        function showCustomAlert(text) {
+            const modal = document.getElementById('custom-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalChoices = document.getElementById('modal-choices');
+            const okBtn = document.getElementById('modal-ok-btn');
+            const cancelBtn = document.getElementById('modal-cancel-btn');
+
+            modalTitle.textContent = text.toUpperCase();
+            modalChoices.innerHTML = '';
+            modalChoices.style.display = 'none';
+            
+            okBtn.style.display = 'inline-block';
+            cancelBtn.style.display = 'none';
+            
+            okBtn.onclick = () => {
+                modal.classList.add('hidden');
+            };
+
+            modal.classList.remove('hidden');
+        }
+
         function renderPersonaFolioView(container, folioData = {}) {
             container.innerHTML = `
              <div class="persona-folio-container">
                  <form id="persona-folio-form" onsubmit="return false;">
                      <header class="sheet-header">
-                         <!-- NEW: Auth Status Container. This will be populated by the auth module. -->
-                         <div id="auth-status-container">
-                            <!-- The old actor display header is removed, as auth status will live here -->
+                         <div id="auth-container" class="absolute left-4 top-4"></div>
+                         <div class="actor-display">
+                             <div id="actor-display-header">PERSONA FOLIO</div>
                          </div>
-                         
                          <h1>Tangent SFF RPG</h1>
-
                          <div class="file-menu">
                              <button type="button" class="file-menu-button">DATA</button>
                              <div class="file-menu-dropdown">
@@ -528,19 +1451,231 @@
                          </div>
                      </header>
                      
-                     <!-- The rest of the persona folio form (your existing HTML structure) -->
                      <section class="main-section" id="bio-section">
-                        <fieldset><legend>Bio</legend>
+                         <fieldset><legend>Bio</legend>
                              <div class="space-y-4">
                                  <div class="input-group"><label for="char-name">Name</label><input type="text" id="char-name" name="char-name"></div>
                                  <div class="input-group"><label for="char-concept">Concept</label><input type="text" id="char-concept" name="char-concept"></div>
-                                 <!-- ... other bio fields ... -->
+                                 <div class="input-group"><label for="char-species">Species</label><input type="text" id="char-species" name="char-species" data-browse-path="species" readonly class="cursor-pointer" placeholder="-- SELECT --"></div>
+                                 <div class="input-group"><label for="char-occu">Occupation</label><input type="text" id="char-occu" name="char-occu" data-browse-path="occupations" readonly class="cursor-pointer" placeholder="-- SELECT --"></div>
+                                 <div class="input-group"><label for="char-origin">Origin</label><input type="text" id="char-origin" name="char-origin" data-browse-path="origins" readonly class="cursor-pointer" placeholder="-- SELECT --"></div>
+                                 <div class="input-group"><label for="char-faction">Faction</label><input type="text" id="char-faction" name="char-faction" data-browse-path="factions" readonly class="cursor-pointer" placeholder="-- SELECT --"></div>
                              </div>
                          </fieldset>
-                         <!-- ... other fieldsets ... -->
+                         <fieldset><legend>Facade</legend>
+                             <div class="space-y-4">
+                                 <div class="input-group"><label for="char-age">Age</label><input type="text" id="char-age" name="char-age"></div>
+                                 <div class="input-group"><label for="char-gender">Gender</label><input type="text" id="char-gender" name="char-gender"></div>
+                                 <div class="input-group"><label for="char-height">Height</label><input type="text" id="char-height" name="char-height"></div>
+                                 <div class="input-group"><label for="char-weight">Weight</label><input type="text" id="char-weight" name="char-weight"></div>
+                                 <div class="input-group"><label for="char-style">Description / Style</label><textarea id="char-style" name="char-style" rows="2"></textarea></div>
+                                 <div class="input-group"><label for="char-motive">Personality / Motive</label><textarea id="char-motive" name="char-motive" rows="2"></textarea></div>
+                             </div>
+                         </fieldset>
                      </section>
 
-                     <!-- ... all other sections ... -->
+                     <section class="main-section" id="attributes-stats-section">
+                         <fieldset><legend>Attributes</legend>
+                             <div class="space-y-1">
+                                 <div class="grid grid-cols-5 gap-x-2 text-center font-bold text-xs uppercase">
+                                     <span class="col-span-2 text-left">Attribute</span>
+                                     <span>Value</span>
+                                     <span>Mod</span>
+                                     <span>Total</span>
+                                 </div>
+                                 ${[
+                                     { name: 'Strength', id: 'attr-strength' }, { name: 'Might', id: 'attr-might', sub: true },
+                                     { name: 'Agility', id: 'attr-agility' }, { name: 'Reflex', id: 'attr-reflex', sub: true },
+                                     { name: 'Constitution', id: 'attr-constitution' }, { name: 'Fortitude', id: 'attr-fortitude', sub: true },
+                                     { name: 'Intellect', id: 'attr-intellect' }, { name: 'Logic', id: 'attr-logic', sub: true },
+                                     { name: 'Wisdom', id: 'attr-wisdom' }, { name: 'Will', id: 'attr-will', sub: true },
+                                     { name: 'Charisma', id: 'attr-charisma' }, { name: 'Etiquette', id: 'attr-etiquette', sub: true }
+                                 ].map(attr => `
+                                     <div class="grid grid-cols-5 gap-x-2 items-center ${!attr.sub ? 'primary-attribute-row' : ''} ${attr.sub ? 'mb-2' : ''}">
+                                         <label for="${attr.id}" class="col-span-2 ${attr.sub ? 'italic pl-4' : 'text-lg font-semibold'}">${attr.name}</label>
+                                         <input type="number" id="${attr.id}" name="${attr.id}" class="attribute-value text-center ${attr.sub ? 'w-16 mx-auto' : ''}" value="0" ${attr.sub ? 'readonly' : ''}>
+                                         <input type="number" id="${attr.id}-mod" name="${attr.id}-mod" class="attribute-mod italic text-center" value="0" readonly>
+                                         <input type="number" id="${attr.id}-total" name="${attr.id}-total" class="attribute-total font-bold text-center ${!attr.sub ? 'text-lg' : ''} ${attr.sub ? 'w-16 mx-auto' : ''}" readonly value="0">
+                                     </div>
+                                     ${attr.sub ? '<div class="col-span-5 border-b-2 border-gray-500 my-2"></div>' : ''}
+                                 `).join('')}
+                             </div>
+                         </fieldset>
+                         <fieldset><legend>Stats</legend>
+                             <div class="space-y-4">
+                                 <div class="grid grid-cols-4 gap-x-2 items-center">
+                                     <label for="initiative-total" class="col-span-1 font-bold">Initiative</label>
+                                     <input type="number" id="initiative-base" name="initiative-base" class="text-center" readonly>
+                                     <input type="number" id="initiative-mod" name="initiative-mod" class="text-center" value="0" readonly>
+                                     <input type="number" id="initiative-total" name="initiative-total" class="font-bold text-center" readonly>
+                                 </div>
+                                 <div class="grid grid-cols-4 gap-x-2 text-center text-xs -mt-3 pb-2">
+                                     <span></span>
+                                     <span class="text-gray-400">Base</span>
+                                     <span class="text-gray-400">Mod</span>
+                                     <span class="text-gray-400">Total</span>
+                                 </div>
+                                 <div class="input-group"><label for="health">Health</label><input type="number" id="health" name="health"></div>
+                                 <div class="input-group"><label for="vitality">Vitality</label><input type="number" id="vitality" name="vitality"></div>
+                             </div>
+                         </fieldset>
+                         <fieldset><legend>Ratings</legend>
+                             <div class="space-y-4">
+                                 <div class="input-group"><label for="karma">Karma</label><input type="number" id="karma" name="karma"></div>
+                                 <div class="input-group"><label for="plot-points">Plot Points</label><input type="number" id="plot-points" name="plot-points"></div>
+                                 <div class="border-b border-gray-600"></div>
+                                 <div class="input-group"><label for="tech-level">Tech Level</label><input type="text" id="tech-level" name="tech-level" readonly></div>
+                                 <div class="border-b border-gray-600"></div>
+                                 <div class="input-group"><label for="wealth">Wealth</label><input type="text" id="wealth" name="wealth"></div>
+                             </div>
+                         </fieldset>
+                         <fieldset><legend>Perception</legend>
+                             <div class="space-y-4">
+                                 <div class="input-group">
+                                     <label for="perception">Perception</label>
+                                     <input type="number" id="perception" name="perception" readonly>
+                                 </div>
+                                 <div class="pl-4 space-y-4 border-l-2 border-gray-600 ml-2">
+                                     <div class="input-group">
+                                         <label for="perception-meta" class="text-sm italic">Meta</label>
+                                         <input type="number" id="perception-meta" name="perception-meta" readonly>
+                                     </div>
+                                     <div class="input-group">
+                                         <label for="perception-social" class="text-sm italic">Social</label>
+                                         <input type="number" id="perception-social" name="perception-social" readonly>
+                                     </div>
+                                     <div class="input-group">
+                                         <label for="perception-tech" class="text-sm italic">Technical</label>
+                                         <input type="number" id="perception-tech" name="perception-tech" readonly>
+                                     </div>
+                                 </div>
+                             </div>
+                         </fieldset>
+                         <fieldset><legend>Traits</legend>
+                             <div class="single-column-grid space-y-4">
+                                 <div class="trait-group">
+                                     <h5>Species</h5>
+                                     <textarea id="species-traits-display" name="species-traits-display" readonly rows="2"></textarea>
+                                 </div>
+                                 <div class="trait-group">
+                                     <h5>Origin</h5>
+                                     <textarea id="origin-traits-display" name="origin-traits-display" readonly rows="2"></textarea>
+                                 </div>
+                                 <div class="trait-group">
+                                     <h5>Occupation</h5>
+                                     <textarea id="occupation-traits-display" name="occupation-traits-display" readonly rows="2"></textarea>
+                                 </div>
+                                 <div class="trait-group">
+                                     <h5>Faction</h5>
+                                     <textarea id="faction-traits-display" name="faction-traits-display" readonly rows="2"></textarea>
+                                 </div>
+                             </div>
+                         </fieldset>
+                     </section>
+
+                     <section class="main-section" id="skills-section">
+                             <fieldset><legend>Skills</legend>
+                                 <div id="skills-list" class="skills-column space-y-8"></div>
+                                 <div class="flex gap-2 mt-4 pt-4 border-t border-gray-700">
+                                     <button type="button" id="add-skill-btn" class="btn btn-secondary w-full">Add Skill</button>
+                                 </div>
+                             </fieldset>
+                     </section>
+                     
+                     <section class="main-section" id="meta-section">
+                             <fieldset><legend>Meta</legend>
+                                <div id="meta-skills-list" class="space-y-4"></div>
+                                <hr class="border-t-2 border-gray-600 my-4">
+                                <h5 class="skill-subcategory-header">Invocations</h5>
+                                 <div id="invocations-display" class="single-column-grid"></div>
+                                 <button type="button" data-target-list="invocations" data-browse-path="invocations" class="btn btn-secondary mt-4 w-full">Add Invocation</button>
+                                 <input type="hidden" id="invocations-data" name="invocations">
+                                <hr class="border-t-2 border-gray-600 my-4">
+                                <h5 class="skill-subcategory-header">Special Abilities</h5>
+                                 <div id="special_abilities-display" class="single-column-grid"></div>
+                                 <button type="button" data-target-list="special_abilities" data-browse-path="features" class="btn btn-secondary mt-4 w-full">Add Special Ability</button>
+                                 <input type="hidden" id="special_abilities-data" name="special_abilities">
+                             </fieldset>
+                     </section>
+
+                     <section class="main-section" id="combat-section">
+                         <fieldset><legend>Combat</legend>
+                             <div id="attack-rows">
+                                 <div class="attack-grid">
+                                     <div class="attack-header">Attack</div>
+                                     <div class="attack-header">Score</div>
+                                     <div class="attack-header">Damage</div>
+                                     <div class="attack-header">Notes</div>
+                                     <div></div>
+                                 </div>
+                             </div>
+                             <input type="hidden" id="attacks-data" name="attacks">
+                             <button type="button" id="add-attack-btn" class="btn btn-secondary mt-4 w-full">Add Attack</button>
+                             
+                             <hr class="my-6 border-t-2 border-gray-600">
+
+                             <div id="armor-rows">
+                                 <div class="armor-grid">
+                                     <div class="armor-header">Armor</div>
+                                     <div class="armor-header">DR</div>
+                                     <div class="armor-header">ER</div>
+                                     <div class="armor-header">Notes</div>
+                                     <div></div>
+                                 </div>
+                             </div>
+                             <input type="hidden" id="armor-data" name="armor">
+                             <button type="button" id="add-armor-btn" class="btn btn-secondary mt-4 w-full">Add Armor</button>
+                         </fieldset>
+                     </section>
+
+                    <section class="main-section">
+                         <fieldset><legend>Features</legend>
+                             <div id="features-display" class="single-column-grid"></div>
+                             <button type="button" data-target-list="features" data-browse-path="features" class="btn btn-secondary mt-4 w-full">Add Feature</button>
+                             <input type="hidden" id="features-data" name="features">
+                         </fieldset>
+                    </section>
+                    <section class="main-section">
+                         <fieldset><legend>Disadvantages</legend>
+                             <div id="disadvantages-display" class="single-column-grid"></div>
+                             <button type="button" data-target-list="disadvantages" data-browse-path="disadvantages" class="btn btn-secondary mt-4 w-full">Add Disadvantage</button>
+                             <input type="hidden" id="disadvantages-data" name="disadvantages">
+                         </fieldset>
+                    </section>
+                    <section class="main-section">
+                         <fieldset><legend>Augmentations</legend>
+                             <div id="augmentations-display" class="single-column-grid"></div>
+                             <button type="button" data-target-list="augmentations" data-browse-path="augmentations" class="btn btn-secondary mt-4 w-full">Add Augmentation</button>
+                             <input type="hidden" id="augmentations-data" name="augmentations">
+                         </fieldset>
+                    </section>
+
+                     <section class="main-section">
+                         <fieldset>
+                             <legend>Equipment</legend>
+                            <div id="equipment-display" class="single-column-grid"></div>
+                            <button type="button" data-target-list="equipment" data-browse-path="equipment" class="btn btn-secondary mt-4 w-full">Add Equipment</button>
+                            <input type="hidden" id="equipment-data" name="equipment">
+                         </fieldset>
+                     </section>
+                     
+                     <section class="main-section">
+                         <fieldset>
+                             <legend>Associates</legend>
+                            <div id="associates-display" class="single-column-grid"></div>
+                            <button type="button" data-target-list="associates" data-browse-path="associates" class="btn btn-secondary mt-4 w-full">Add Associate</button>
+                            <input type="hidden" id="associates-data" name="associates">
+                         </fieldset>
+                     </section>
+
+                     <section class="main-section" id="notes-section">
+                         <fieldset><legend>Notes</legend>
+                             <div id="notes-list" class="single-column-grid space-y-2">
+                             </div>
+                             <input type="hidden" id="notes-data" name="notes">
+                             <button type="button" id="add-note-btn" class="btn btn-secondary mt-4 w-full">Add Note</button>
+                         </fieldset>
+                     </section>
                      
                      <footer class="creator-credit">
                          WOLFE.BT@TANGENTLLC
@@ -549,62 +1684,99 @@
                </div>
             `;
             
-            // NEW: Render the auth status after the header has been added to the DOM.
-            // We pass a custom class ('folio-auth-button') to make the button style match the "DATA" button.
-            const authContainer = document.getElementById('auth-status-container');
-            if (authContainer) {
-                renderAuthStatus(authContainer, 'folio-auth-button');
-            }
-
-            // --- Re-attach all your existing event listeners after rendering ---
             const fileMenuButton = document.querySelector('.persona-folio-container .file-menu-button');
             const fileMenuDropdown = document.querySelector('.persona-folio-container .file-menu-dropdown');
-            if(fileMenuButton) {
-                fileMenuButton.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    if(fileMenuDropdown) fileMenuDropdown.classList.toggle('show');
-                });
-            }
-            
-            const localSaveBtn = document.getElementById('local-save-btn');
-            if(localSaveBtn) localSaveBtn.onclick = saveLocal;
-            
-            const localLoadBtn = document.getElementById('local-load-btn');
-            if(localLoadBtn) localLoadBtn.onclick = loadLocal;
-            
-            // Add other listeners if they exist in your full code
-            // Example:
-            // document.getElementById('add-attack-btn').addEventListener('click', showAttackSelectionModal);
-            // document.getElementById('add-armor-btn').addEventListener('click', showArmorSelectionModal);
-            // document.getElementById('add-note-btn').addEventListener('click', addNoteToList);
+            fileMenuButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                fileMenuDropdown.classList.toggle('show');
+            });
+            document.getElementById('local-save-btn').onclick = saveLocal;
+            document.getElementById('local-load-btn').onclick = loadLocal;
+
+            document.getElementById('add-attack-btn').addEventListener('click', showAttackSelectionModal);
+            document.getElementById('add-armor-btn').addEventListener('click', showArmorSelectionModal);
+            document.getElementById('add-note-btn').addEventListener('click', addNoteToList);
 
             const sheet = document.getElementById('persona-folio-form');
             if (sheet) {
                 sheet.addEventListener('click', (event) => {
                     const target = event.target;
                     if (target.dataset.browsePath) {
-                        const targetList = target.id || target.dataset.targetList;
-                        const isMulti = !!target.dataset.targetList;
-                        showDirectoryModal(targetList, target.dataset.browsePath, isMulti);
+                        const targetList = target.id || target.dataset.targetList || target.name;
+                        showDirectoryModal(targetList, target.dataset.browsePath);
                     }
                 });
                 sheet.addEventListener('change', (event) => {
                     if (event.target.matches('#char-species, #char-occu, #char-origin, #char-faction')) {
                         updateAllTraits();
-                        // recalculateAllModifiers(); // Assuming you have this function
+                        recalculateAllModifiers();
                     }
                 });
             }
-
-
-            // Initialize the form with data
+            updateUIAfterAuthChange();
             initializePersonaFolio(folioData);
         }
 
+        // --- Authentication ---
+        async function handleLogin() {
+            const provider = new GoogleAuthProvider();
+            try {
+                await signInWithPopup(auth, provider);
+            } catch (error) {
+                console.error("Error during Google sign-in:", error);
+                showCustomAlert("Could not sign in with Google.");
+            }
+        }
+
+        async function handleLogout() {
+            try {
+                await signOut(auth);
+            } catch (error) {
+                console.error("Error signing out:", error);
+            }
+        }
+        
+        function updateUIAfterAuthChange() {
+            const authContainer = document.getElementById('auth-container');
+            if (!authContainer) return;
+
+            authContainer.innerHTML = ''; 
+            if (appState.isAnonymous) {
+                const loginButton = document.createElement('button');
+                loginButton.className = 'btn btn-primary !py-1 !px-3';
+                loginButton.textContent = 'LOGIN';
+                loginButton.addEventListener('click', handleLogin);
+                authContainer.appendChild(loginButton);
+            } else {
+                const logoutButton = document.createElement('button');
+                logoutButton.className = 'btn btn-secondary !py-1 !px-3';
+                logoutButton.textContent = 'LOGOUT';
+                logoutButton.addEventListener('click', handleLogout);
+                authContainer.appendChild(logoutButton);
+            }
+        }
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                appState.userId = user.uid;
+                appState.isAnonymous = user.isAnonymous;
+            } else {
+                await signInAnonymously(auth).catch(err => {
+                    console.error("Anonymous sign-in failed", err);
+                });
+            }
+            
+            if (!appState.authReady) {
+                appState.authReady = true;
+                authReadyPromiseResolver(); // Signal that auth is ready
+            }
+
+            updateUIAfterAuthChange();
+        });
+
+
         // --- Initial Render ---
-        // This is the entry point when the page loads.
         window.onload = function() {
-            // The initial render now correctly sets up the auth-aware header
             renderPersonaFolioView(document.getElementById('folio-container'), {});
         };
 
