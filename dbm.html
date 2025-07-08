@@ -1278,9 +1278,7 @@
         
         function navigateTo(renderFn, pushState = true) {
             if (pushState && currentRenderFn) {
-                if (appState.navigationHistory.length === 0 || appState.navigationHistory[appState.navigationHistory.length - 1].toString() !== currentRenderFn.toString()) {
-                    appState.navigationHistory.push(currentRenderFn);
-                }
+                appState.navigationHistory.push(currentRenderFn);
             }
             currentRenderFn = renderFn;
             renderFn();
@@ -1777,8 +1775,12 @@
             
             const titleElement = container.querySelector(`#table-title-${collectionKey}`);
             if (titleElement) {
+                const keyForListener = collectionKey;
+                const parentKeyForListener = parentCategoryKey;
                 titleElement.addEventListener('click', () => {
                     if (!appState.isAnonymous) {
+                        appState.currentCollection = parentKeyForListener || keyForListener;
+                        appState.currentSubcollection = parentKeyForListener ? keyForListener : null;
                         openModal(null, {}, true);
                     }
                 });
@@ -1786,7 +1788,11 @@
 
             const addNewBtn = container.querySelector('#add-new-btn');
             if (addNewBtn) {
+                const keyForListener = collectionKey;
+                const parentKeyForListener = parentCategoryKey;
                 addNewBtn.addEventListener('click', () => {
+                    appState.currentCollection = parentKeyForListener || keyForListener;
+                    appState.currentSubcollection = parentKeyForListener ? keyForListener : null;
                     openModal(null, {}, true);
                 });
             }
@@ -2545,10 +2551,10 @@
             modalDataDropdown.appendChild(deleteButton);
 
 
-            modalDataBtn.addEventListener('click', (e) => {
+            modalDataBtn.onclick = (e) => {
                 e.stopPropagation();
                 modalDataDropdown.classList.toggle('show');
-            });
+            };
             
             document.getElementById('modal-local-save-btn').addEventListener('click', () => saveLocal(entryForm, collectionKey));
             document.getElementById('modal-local-load-btn').addEventListener('click', () => loadLocal(entryForm));
@@ -3114,13 +3120,6 @@
         helpCloseBtn.addEventListener('click', () => { helpModal.classList.add('hidden'); });
         summaryCloseBtn.addEventListener('click', () => { summaryModal.classList.add('hidden'); });
         
-        document.addEventListener('click', e => {
-            if (e.target.id === 'modal-data-btn') {
-                e.stopPropagation();
-                document.getElementById('modal-data-dropdown')?.classList.toggle('show');
-            }
-        });
-
         window.addEventListener('click', (event) => {
             if (event.target == entryModal || event.target == confirmModal || event.target == errorModal || event.target == unsavedChangesModal || event.target == helpModal || event.target == customModal || event.target == summaryModal) {
                 if (event.target === entryModal) {
