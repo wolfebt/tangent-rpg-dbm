@@ -569,7 +569,8 @@
             activeFormForLoad: null,
             activeEquipmentTab: 'armoring',
             navigationHistory: [],
-            currentView: null,
+            navigationFuture: [],
+            currentView: null, // e.g., { view: 'renderCategoryView', args: ['species'] }
             searchTerm: '',
             sortBy: 'name',
             sortDirection: 'asc',
@@ -1274,24 +1275,74 @@
         const jsonFileInput = document.getElementById('json-file-input');
 
         // --- Authentication & Navigation---
-        let currentRenderFn = null;
+        const viewFunctions = { renderCategoryView, renderManagementView };
         
-        function navigateTo(renderFn, pushState = true) {
-            if (pushState && currentRenderFn) {
-                appState.navigationHistory.push(currentRenderFn);
+        function navigateTo(viewDescriptor, pushState = true) {
+            if (pushState && appState.currentView) {
+                appState.navigationHistory.push(appState.currentView);
+                appState.navigationFuture = []; // Clear future on new navigation
             }
-            currentRenderFn = renderFn;
-            renderFn();
+            appState.currentView = viewDescriptor;
+
+            const { view, args } = viewDescriptor;
+            if (viewFunctions[view]) {
+                viewFunctions[view](...args);
+            }
+
+            try {
+                sessionStorage.setItem('navigationHistory', JSON.stringify(appState.navigationHistory));
+                sessionStorage.setItem('navigationFuture', JSON.stringify(appState.navigationFuture));
+                sessionStorage.setItem('currentView', JSON.stringify(appState.currentView));
+            } catch (e) {
+                console.warn("Could not save navigation state to sessionStorage.", e);
+            }
+
+            updateNavButtonsState();
         }
 
         function goBack() {
             if (appState.navigationHistory.length > 0) {
-                const previousRenderFn = appState.navigationHistory.pop();
-                navigateTo(previousRenderFn, false);
-            } else {
-                navigateTo(() => renderCategoryView('other'), false);
+                if (appState.currentView) {
+                    appState.navigationFuture.unshift(appState.currentView);
+                }
+                const previousView = appState.navigationHistory.pop();
+                navigateTo(previousView, false);
             }
         }
+
+        function goForward() {
+            if (appState.navigationFuture.length > 0) {
+                if (appState.currentView) {
+                    appState.navigationHistory.push(appState.currentView);
+                }
+                const nextView = appState.navigationFuture.shift();
+                navigateTo(nextView, false);
+            }
+        }
+
+        function updateNavButtonsState() {
+            const backBtn = document.getElementById('back-btn');
+            const forwardBtn = document.getElementById('forward-btn');
+            if (backBtn) {
+                backBtn.disabled = appState.navigationHistory.length === 0;
+            }
+            if (forwardBtn) {
+                forwardBtn.disabled = appState.navigationFuture.length === 0;
+            }
+        }
+
+        function requestNavigation(viewDescriptor) {
+            if (isFormDirty()) {
+                appState.pendingNavigation = viewDescriptor;
+                unsavedChangesModal.classList.remove('hidden');
+            } else {
+                closeModal(true);
+                if (viewDescriptor) {
+                    navigateTo(viewDescriptor);
+                }
+            }
+        }
+
 
         async function handleLogin() {
             const provider = new GoogleAuthProvider();
@@ -1368,7 +1419,18 @@
                     appState.authReady = true;
                     try {
                         await populateRulesCodexMap();
-                        navigateTo(() => renderCategoryView('other'));
+                        
+                        const savedHistory = sessionStorage.getItem('navigationHistory');
+                        const savedFuture = sessionStorage.getItem('navigationFuture');
+                        const savedView = sessionStorage.getItem('currentView');
+
+                        if (savedView) {
+                            appState.navigationHistory = savedHistory ? JSON.parse(savedHistory) : [];
+                            appState.navigationFuture = savedFuture ? JSON.parse(savedFuture) : [];
+                            navigateTo(JSON.parse(savedView), false);
+                        } else {
+                            navigateTo({ view: 'renderCategoryView', args: ['other'] });
+                        }
                     } catch (error) {
                          if (error.code === 'permission-denied') {
                             showError("CRITICAL ERROR: Firestore rules are not set up for public read. Please update your Firestore security rules to allow read access.");
@@ -1379,7 +1441,10 @@
                     }
                 } else {
                     updateUIAfterAuthChange();
-                    if (currentRenderFn) currentRenderFn(); 
+                    if (appState.currentView) {
+                        const { view, args } = appState.currentView;
+                        if(viewFunctions[view]) viewFunctions[view](...args);
+                    }
                 }
             } else {
                 appState.isAnonymous = true;
@@ -1418,6 +1483,7 @@
         }
 
         function isFormDirty() {
+            if (!entryModal || entryModal.classList.contains('hidden')) return false;
             if (appState.initialFormState === null) return false;
             return appState.initialFormState !== getFormState(document.getElementById('entry-form'));
         }
@@ -1431,47 +1497,27 @@
                 data: getFormDataObject(document.getElementById('entry-form'))
             };
 
-            const navigateToManagementView = () => {
-                const parentForSource = Object.keys(categoryConfig).find(key => 
-                    (categoryConfig[key].subcategories && categoryConfig[key].subcategories[sourceKey])
-                ) || sourceKey;
+            const parentForSource = Object.keys(categoryConfig).find(key => 
+                (categoryConfig[key].subcategories && categoryConfig[key].subcategories[sourceKey])
+            ) || sourceKey;
 
-                const isSubcategory = !!(categoryConfig[parentForSource]?.subcategories?.[sourceKey]);
-                
-                if (isSubcategory || categoryConfig[sourceKey]) {
-                    navigateTo(() => renderManagementView(sourceKey, parentForSource));
-                } else {
-                    appState.currentSubcollection = null; 
-                    navigateTo(() => renderManagementView(sourceKey, appState.navigationContext.parentCollection));
-                }
-            };
-
-            requestNavigation(navigateToManagementView, true);
+            const viewDescriptor = { view: 'renderManagementView', args: [sourceKey, parentForSource] };
+            
+            if (isFormDirty()) {
+                appState.pendingNavigation = viewDescriptor;
+                unsavedChangesModal.classList.remove('hidden');
+            } else {
+                closeModal(true);
+                navigateTo(viewDescriptor);
+            }
         }
         
         // --- Navigation & View Rendering ---
-
-        function requestNavigation(navigationFunc, force = false) {
-            const isModalOpen = !entryModal.classList.contains('hidden');
-            const activeForm = isModalOpen ? document.getElementById('entry-form') : null;
-            let isDirty = false;
-            
-            if(activeForm && activeForm.id === 'entry-form'){
-                isDirty = isFormDirty();
-            }
-
-            if (force || !isDirty ) {
-                closeModal(true); // Pass the force flag here
-                if (navigationFunc) {
-                    navigationFunc();
-                }
-            } else {
-                appState.pendingNavigation = navigationFunc;
-                unsavedChangesModal.classList.remove('hidden');
-            }
-        }
         
         function renderAppHeader(activeCategoryKey) {
+            const existingHeader = document.querySelector('.app-header');
+            if(existingHeader) existingHeader.remove();
+
             const headerContainer = document.createElement('header');
             headerContainer.className = 'app-header flex justify-between items-center gap-4';
 
@@ -1485,7 +1531,7 @@
             menuButton.id = 'category-menu-button';
             menuButton.className = 'category-menu-button font-bold py-1 px-2 rounded-lg inline-flex items-center w-full max-w-xs justify-between';
             menuButton.innerHTML = `
-                <span>${categoryConfig[activeCategoryKey].label.toUpperCase()}</span>
+                <span>${categoryConfig[activeCategoryKey]?.label.toUpperCase() || 'DASHBOARD'}</span>
             `;
 
             const dropdownMenu = document.createElement('div');
@@ -1501,7 +1547,7 @@
             dashboardLink.textContent = 'DASHBOARD';
             dashboardLink.addEventListener('click', (e) => {
                 e.preventDefault();
-                requestNavigation(() => navigateTo(() => renderCategoryView('other')));
+                requestNavigation({ view: 'renderCategoryView', args: ['other'] });
                 dropdownMenu.classList.add('hidden');
             });
             dropdownList.appendChild(dashboardLink);
@@ -1515,7 +1561,7 @@
                 link.textContent = categoryConfig[key].label.toUpperCase();
                 link.addEventListener('click', (e) => {
                     e.preventDefault();
-                    requestNavigation(() => navigateTo(() => renderCategoryView(key)));
+                    requestNavigation({ view: 'renderCategoryView', args: [key] });
                     dropdownMenu.classList.add('hidden');
                 });
                 dropdownList.appendChild(link);
@@ -1534,10 +1580,29 @@
             headerContainer.appendChild(leftCol);
 
             const centerCol = document.createElement('div');
-            centerCol.className = 'text-center px-4';
-            centerCol.innerHTML = `
+            centerCol.className = 'flex-grow flex justify-center items-center gap-4';
+
+            const backButton = document.createElement('button');
+            backButton.id = 'back-btn';
+            backButton.className = 'btn btn-secondary !p-2 disabled:opacity-50 disabled:cursor-not-allowed';
+            backButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/></svg>`;
+            backButton.addEventListener('click', goBack);
+
+            const titleContainer = document.createElement('div');
+            titleContainer.className = 'text-center';
+            titleContainer.innerHTML = `
                 <h1 class="text-xl font-bold text-gray-100 whitespace-nowrap">TANGENT SFF RPG</h1>
                 <p class="text-xs text-gray-400 uppercase">DATABASE MANAGER</p>`;
+
+            const forwardButton = document.createElement('button');
+            forwardButton.id = 'forward-btn';
+            forwardButton.className = 'btn btn-secondary !p-2 disabled:opacity-50 disabled:cursor-not-allowed';
+            forwardButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"/></svg>`;
+            forwardButton.addEventListener('click', goForward);
+
+            centerCol.appendChild(backButton);
+            centerCol.appendChild(titleContainer);
+            centerCol.appendChild(forwardButton);
             headerContainer.appendChild(centerCol);
             
             const rightCol = document.createElement('div');
@@ -1564,8 +1629,9 @@
 
             headerContainer.appendChild(rightCol);
             
-            mainContentContainer.prepend(headerContainer);
+            document.body.prepend(headerContainer);
             updateUIAfterAuthChange();
+            updateNavButtonsState();
         }
 
         function renderCategoryView(categoryKey) {
@@ -1619,7 +1685,7 @@
             rulesTitle.textContent = categoryConfig['rules_codex'].label;
             rulesTitle.addEventListener('click', (e) => {
                 e.preventDefault();
-                requestNavigation(() => navigateTo(() => renderCategoryView('rules_codex')));
+                navigateTo({ view: 'renderCategoryView', args: ['rules_codex'] });
             });
             combinedGroup.appendChild(rulesTitle);
 
@@ -1639,7 +1705,7 @@
                 title.className = 'text-xl font-bold uppercase cursor-pointer hover:underline text-left';
                 title.textContent = parentConfig.label;
                 title.addEventListener('click', () => {
-                    requestNavigation(() => navigateTo(() => renderCategoryView(parentKey)));
+                    navigateTo({ view: 'renderCategoryView', args: [parentKey] });
                 });
                 group.appendChild(title);
                 
@@ -1734,12 +1800,12 @@
             link.addEventListener('click', (e) => {
                 e.preventDefault(); e.stopPropagation();
                 if (parentKey === 'equipment' && categoryConfig[parentKey].tables[key]) {
-                    requestNavigation(() => navigateTo(() => renderCategoryView(parentKey)));
+                    navigateTo({ view: 'renderCategoryView', args: [parentKey] });
                     setTimeout(()=> {
                         document.querySelector(`button[data-tab-key='${key}']`)?.click();
                     }, 50);
                 } else {
-                    requestNavigation(() => navigateTo(() => renderManagementView(key, parentKey)));
+                    navigateTo({ view: 'renderManagementView', args: [key, parentKey] });
                 }
             });
             return link;
@@ -3099,7 +3165,7 @@
         unsavedDismissBtn.addEventListener('click', () => {
             closeModal(true);
             if(appState.pendingNavigation) {
-                appState.pendingNavigation();
+                navigateTo(appState.pendingNavigation);
                 appState.pendingNavigation = null;
                 appState.navigationContext = null;
             }
@@ -3109,7 +3175,7 @@
             const success = await handleFormSubmit(new Event('submit',{bubbles:true, cancelable: true}));
 
             if(success && appState.pendingNavigation) {
-                appState.pendingNavigation();
+                navigateTo(appState.pendingNavigation);
                 appState.pendingNavigation = null;
                 appState.navigationContext = null;
             }
@@ -3124,6 +3190,7 @@
             if (event.target == entryModal || event.target == confirmModal || event.target == errorModal || event.target == unsavedChangesModal || event.target == helpModal || event.target == customModal || event.target == summaryModal) {
                 if (event.target === entryModal) {
                     appState.navigationContext = null;
+                    closeModal();
                 }
                 if (event.target == customModal) {
                     customModal.classList.add('hidden');
@@ -3131,13 +3198,10 @@
                 if (event.target == summaryModal) {
                     summaryModal.classList.add('hidden');
                 }
-                requestNavigation(closeModal);
-                hideConfirmModal();
-                hideErrorModal();
-                hideUnsavedChangesModal();
-                if (event.target == helpModal) {
-                    helpModal.classList.add('hidden');
-                }
+                if (event.target == confirmModal) hideConfirmModal();
+                if (event.target == errorModal) hideErrorModal();
+                if (event.target == unsavedChangesModal) hideUnsavedChangesModal();
+                if (event.target == helpModal) helpModal.classList.add('hidden');
             }
             const menuButton = document.getElementById('category-menu-button');
             const dropdownMenu = document.getElementById('category-dropdown-menu');
@@ -3158,7 +3222,51 @@
             }
         });
 
-        const helpMarkdown = ``; 
+        const helpMarkdown = `
+### **Welcome to the Tangent SFF RPG Database Manager!**
+This tool is designed to help you create, manage, and browse all the data for your Sci-Fi Fantasy RPG campaign. From species and factions to equipment and esoteric invocations, everything you need to build your universe is right here.
+
+### **Getting Started: Authentication**
+* **Anonymous Users:** By default, you are an anonymous user. You can browse all public data in a read-only mode. This is great for players or anyone who just wants to explore the game's content.
+* **Logged-in Users:** To add, edit, or delete entries, you must log in. Click the **LOGIN** button in the top-right corner and sign in with a Google account. Once logged in, you'll have full creative control over the database.
+
+### **Navigating the App**
+#### **Header Controls**
+* **Main Menu (Top-Left):** Click the dropdown menu (it shows the current category, like 'DASHBOARD') to quickly jump to any main data category.
+* **Back/Forward Arrows (Top-Center):** Use these arrows to move through your viewing history, just like in a web browser. Your history is saved for your session, so even if you refresh the page, you can go back to where you were.
+* **User Info & Login/Logout (Top-Right):** See your current status (Anonymous or your email) and log in or out.
+* **Guide Button:** Click this to view the user guide you're reading right now!
+
+#### **Views**
+* **Dashboard:** This is the main landing page. It provides a grid of all major categories. Click any category title to go to its main data table, or click a sub-category link to manage related data (e.g., clicking 'TRAITS' under 'ORIGINS').
+* **Table View:** Most categories are displayed as a table.
+    * Click any column header to sort the data by that column.
+    * Use the search bar to filter entries by name.
+    * Click any row to open the details modal for that entry.
+* **Wiki View (Rules Codex):** The Rules Codex uses a special wiki-style interface.
+    * The sidebar on the left shows a hierarchical tree of all rules entries. Click an entry to view its content on the right.
+    * Use the toggle arrows (\`▸\`) to expand or collapse parent entries.
+    * If logged in, you can use the \`Add New Entry\` button to create new articles.
+
+### **Managing Data (Logged-in Users Only)**
+#### **The Entry Modal**
+This is where all the magic happens. You can open it by clicking a table row or by clicking an \`ADD NEW\` button.
+* **Viewing Data:** When you first click a row, the modal opens in view-only mode.
+* **Editing Data:** To make changes, click the **DATA** button in the top-right of the modal and select \`Edit\`. The fields will become editable.
+* **Saving Data:** After making changes, click the **DATA** button and select \`Save\`.
+* **Deleting Data:** To permanently remove an entry, click the **DATA** button and select \`Delete\`. You will be asked to confirm this action.
+* **Canceling:** To close the modal without saving, click \`Cancel\` from the DATA menu or click the faded backdrop.
+
+#### **Special Features**
+* **Managing Sub-Categories:** Inside the modal, some fields have an underlined label (e.g., \`MODIFIER\`). This is a "Manage" button. Clicking it will take you to the data table for that sub-category, allowing you to add or edit options for dropdowns and multi-select fields throughout the app.
+* **AI-Powered Descriptions:** For fields like \`Description\`, you'll see a \`GENERATE\` button. Click this to use AI to write a creative and detailed description based on the other data in the form.
+* **Wiki-Linking:** In text areas within the \`Rules Codex\`, you can create links to other entries by wrapping the exact entry name in double square brackets, like this: \`[[Entry Name]]\`. This will automatically create a clickable link in the view.
+
+### **Local Data Backup**
+Inside the modal's **DATA** menu, you'll find a \`Local\` submenu.
+* **Save:** This saves the current form's data as a JSON file to your computer. This is useful for backing up individual entries or creating templates.
+* **Load:** This will open a file picker, allowing you to select a previously saved JSON file and load its data into the current form.
+`; 
         
         function convertMarkdownToHtml(markdown) {
             const lines = markdown.trim().split('\n');
@@ -3172,48 +3280,34 @@
                 const indent = indentMatch ? indentMatch[1].length : 0;
                 let trimmedLine = line.trim();
 
+                // Close lists if de-denting
                 while (listStack.length > 0 && indent < listStack[listStack.length - 1].indent) {
-                    html += `</${listStack.pop().type}>`;
-                    if (listStack.length > 0 && html.endsWith('</li>')) {
-                    } else {
-                        html += '</li>';
-                    }
+                     html += `</${listStack.pop().type}>`;
                 }
 
-                if (trimmedLine.startsWith('### ')) {
-                    html += `<h3 class="text-2xl font-bold mt-6 mb-2 text-gray-100">${trimmedLine.substring(4)}</h3>`;
+                if (trimmedLine.startsWith('### **')) {
+                    html += `<h3 class="text-2xl font-bold mt-6 mb-2 text-gray-100">${trimmedLine.substring(5, trimmedLine.length - 2)}</h3>`;
                 } else if (trimmedLine.startsWith('#### **')) {
                     html += `<h4 class="text-lg font-semibold mt-4 mb-1 text-gray-200">${trimmedLine.substring(6, trimmedLine.length - 2)}</h4>`;
                 } else if (trimmedLine.startsWith('* ')) {
-                    if (listStack.length === 0 || indent > listStack[listStack.length - 1].indent || listStack[listStack.length-1].type !== 'ul') {
-                        if (listStack.length > 0 && indent <= listStack[listStack.length-1].indent) {
-                            html += `</${listStack.pop().type}></li>`;
-                        }
-                        html += `<ul class="list-disc list-inside ml-4 space-y-1">`;
+                    if (listStack.length === 0 || listStack[listStack.length - 1].type !== 'ul') {
+                        html += `<ul class="list-disc list-inside ml-4 space-y-2">`;
                         listStack.push({ type: 'ul', indent });
                     }
                     let content = trimmedLine.substring(2).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-                    html += `<li>${content}`;
-                } else if (trimmedLine.match(/^\d+\. /)) {
-                    if (listStack.length === 0 || indent > listStack[listStack.length - 1].indent || listStack[listStack.length-1].type !== 'ol') {
-                        if (listStack.length > 0 && indent <= listStack[listStack.length-1].indent) {
-                            html += `</${listStack.pop().type}></li>`;
-                        }
-                        html = html.slice(0, -5);
-                        html += `<ol class="list-decimal list-inside space-y-1 mt-1 ml-8">`;
-                        listStack.push({ type: 'ol', indent });
-                    }
-                    html += `<li>${trimmedLine.replace(/^\\d+\. /, '')}</li>`;
+                    html += `<li>${content}</li>`;
                 } else {
+                     // Close any open lists if it's a regular paragraph
                     while (listStack.length > 0) {
-                        html += `</li></${listStack.pop().type}>`;
+                        html += `</${listStack.pop().type}>`;
                     }
-                    html += `<p class="mt-2">${trimmedLine}</p>`;
+                    html += `<p class="mt-2">${trimmedLine.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</p>`;
                 }
             }
             
+            // Close any remaining open lists
             while (listStack.length > 0) {
-                html += `</li></${listStack.pop().type}>`;
+                html += `</${listStack.pop().type}>`;
             }
 
             return html.replace(/`([^`]+)`/g, '<code class="bg-gray-700 text-gray-300 rounded px-1 py-0.5">$1</code>');
