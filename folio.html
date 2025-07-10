@@ -6,8 +6,6 @@
     <title>Standalone Persona Folio</title>
     <link rel="icon" href="data:,">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <style>
         /* --- Global Theme --- */
         :root {
@@ -22,14 +20,14 @@
             --text-dark: #212121;
             --border-main: #9e9e9e;
             --border-subtle: #616161;
-            --font-body: 'Roboto Condensed', sans-serif;
-            --font-display: 'Roboto', sans-serif;
+            --font-body: 'Trebuchet MS', sans-serif;
+            --font-display: 'Trebuchet MS', sans-serif;
         }
 
         body {
             background-color: var(--bg-main);
             color: var(--text-light);
-            font-family: 'Inter', sans-serif;
+            font-family: 'Trebuchet MS', sans-serif;
             padding: 2rem;
         }
 
@@ -45,10 +43,7 @@
             display: flex; justify-content: space-between; align-items: center; text-align: center; font-family: var(--font-display); 
             border-bottom: 2px solid var(--border-subtle); margin-bottom: 1.5rem; padding-bottom: 1rem; 
         }
-        .persona-folio-container .sheet-header h1 { margin: 0; color: var(--text-light); flex-grow: 1; text-align: center; }
-        .persona-folio-container .actor-display {
-            width: 200px; text-align: left; display: flex; flex-direction: column; justify-content: center; min-height: 50px;
-        }
+        .persona-folio-container .sheet-header h1 { margin: 0; color: var(--text-light); font-size: 1.5rem; }
         .persona-folio-container #actor-display-header { font-size: 1.2em; font-weight: bold; color: var(--text-light); }
         .persona-folio-container .creator-credit {
             text-align: center; margin-top: 1.5rem; font-size: 0.8rem; color: var(--text-light);
@@ -64,7 +59,7 @@
             background-color: #eeeeee; color: #212121; border-color: #eeeeee; text-shadow: none;
         }
         .file-menu-dropdown {
-            display: none; position: absolute; right: 0; top: 100%;
+            display: none; position: absolute; left: 0; top: 100%;
             background-color: var(--bg-section); border: 2px solid var(--border-main);
             border-radius: 5px; padding: 0.5rem; z-index: 100; min-width: 200px;
         }
@@ -252,6 +247,50 @@
         .tab-panel.active {
             display: block;
         }
+
+        /* Preview & Print Styles */
+        #preview-modal-content {
+            background-color: #fff;
+            color: #000;
+            max-width: 8.5in;
+            padding: 0.5in;
+            font-family: 'Times New Roman', Times, serif;
+        }
+        #preview-modal-content h2, #preview-modal-content h3 {
+            font-family: var(--font-display);
+            border-bottom: 2px solid #ccc;
+            padding-bottom: 0.25rem;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        #preview-modal-content ul {
+            list-style: none;
+            padding: 0;
+        }
+        #preview-modal-content li {
+            padding: 0.1rem 0;
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #preview-modal-content, #preview-modal-content * {
+                visibility: visible;
+            }
+            #preview-modal-content {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                border: none;
+                padding: 0;
+            }
+            #preview-print-btn, #preview-close-btn {
+                display: none;
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -280,6 +319,17 @@
             </div>
         </div>
     </div>
+    
+    <div id="preview-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-[70] p-4 hidden modal-backdrop">
+        <div id="preview-modal-content" class="w-full p-8 rounded-lg shadow-lg relative">
+            <div class="flex justify-end mb-4">
+                <button id="preview-print-btn" class="btn btn-primary mr-2">Print</button>
+                <button id="preview-close-btn" class="btn btn-secondary">Close</button>
+            </div>
+            <div id="preview-content"></div>
+        </div>
+    </div>
+
 
     <input type="file" id="json-file-input" class="hidden" accept=".json">
 
@@ -341,13 +391,32 @@
             confirmCallback: null,
             allModifiersCache: null, // Cache for modifier definitions
             appInitialized: false,
+            allFeatures: [],
+            allOccupations: [],
         };
+        
+        const SESSION_STORAGE_KEY = 'personaFolioData';
 
         // --- Authentication Promise ---
         let authReadyPromiseResolver;
         const authReadyPromise = new Promise(resolve => {
             authReadyPromiseResolver = resolve;
         });
+
+        // --- Session & Data Functions ---
+        function saveToSession() {
+            const data = getPersonaFolioFormData();
+            sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(data));
+        }
+
+        function loadFromSession() {
+            const dataStr = sessionStorage.getItem(SESSION_STORAGE_KEY);
+            return dataStr ? JSON.parse(dataStr) : null;
+        }
+        
+        function clearSession() {
+            sessionStorage.removeItem(SESSION_STORAGE_KEY);
+        }
 
         // --- Firebase Functions ---
         async function getCollectionOptions(collectionName) {
@@ -381,6 +450,9 @@
         // --- NEW: Cache modifier data on startup ---
         async function cacheAllModifiers() {
             appState.allModifiersCache = await getCollectionOptions('modifier');
+            appState.allFeatures = await getCollectionOptions('features');
+            appState.allOccupations = await getCollectionOptions('occupations');
+
         }
 
 
@@ -467,6 +539,7 @@
         }
 
         function loadLocal() {
+            clearSession();
             document.getElementById('json-file-input').click();
         }
 
@@ -478,7 +551,7 @@
             reader.onload = (e) => {
                 try {
                     const data = JSON.parse(e.target.result);
-                    renderPersonaFolioView(document.getElementById('folio-container'), data);
+                    renderPersonaFolioView(document.getElementById('folio-container'), data, false);
                 } catch (err) {
                     showCustomAlert("Could not parse JSON file.");
                     console.error("Error parsing JSON:", err);
@@ -740,6 +813,141 @@
             calculateInitiative();
             calculateAlertness();
             calculatePerceptionScores();
+            calculateCharacterPoints();
+        }
+
+        function calculateCharacterPoints() {
+            if (!appState.allFeatures || !appState.allOccupations) return;
+
+            let spentCP = 0;
+            const data = getPersonaFolioFormData();
+
+            // Get recommended features for the current occupation
+            const selectedOccupationName = data['char-occu'];
+            const selectedOccupation = appState.allOccupations.find(o => o.name === selectedOccupationName);
+            const recommendedFeatures = selectedOccupation?.recommended_features || [];
+
+            // Calculate cost for features, disadvantages, special abilities
+            const itemLists = ['features', 'disadvantages', 'special_abilities'];
+            itemLists.forEach(listKey => {
+                const selectedItems = data[listKey] || [];
+                selectedItems.forEach(itemName => {
+                    // Search across features and invocations (for special abilities)
+                    const itemData = appState.allFeatures.find(f => f.name === itemName) || { cp_cost: 0 };
+                    let cost = itemData.cp_cost || 0;
+
+                    // Apply discount for recommended features
+                    if (listKey === 'features' && recommendedFeatures.includes(itemName)) {
+                        cost = Math.max(0, cost - 1); // Reduce cost by 1, not going below 0
+                    }
+                    spentCP += cost;
+                });
+            });
+
+            // Calculate cost for skill ranks
+            document.querySelectorAll('.skill-rank').forEach(input => {
+                const rank = parseInt(input.value) || 0;
+                spentCP += rank;
+            });
+
+            const totalCpInput = document.getElementById('cp-total');
+            const spentCpInput = document.getElementById('cp-spent');
+            const remainingCpInput = document.getElementById('cp-remaining');
+
+            if (totalCpInput && spentCpInput && remainingCpInput) {
+                const totalCP = parseInt(totalCpInput.value) || 0;
+                spentCpInput.value = spentCP;
+                remainingCpInput.value = totalCP - spentCP;
+            }
+        }
+        
+        function showPreviewModal() {
+            const data = getPersonaFolioFormData();
+            const previewContent = document.getElementById('preview-content');
+            let html = '';
+
+            // Helper to create a list item if value exists
+            const createLi = (label, value) => value ? `<li><strong>${label}:</strong> ${value}</li>` : '';
+
+            // Helper to create a section if it has content
+            const createSection = (title, content) => content.trim() ? `<h3>${title}</h3><ul>${content}</ul>` : '';
+
+            // Bio & Facade
+            let bioContent = '';
+            bioContent += createLi('Name', data['char-name']);
+            bioContent += createLi('Concept', data['char-concept']);
+            bioContent += createLi('Species', data['char-species']);
+            bioContent += createLi('Occupation', data['char-occu']);
+            bioContent += createLi('Origin', data['char-origin']);
+            bioContent += createLi('Faction', data['char-faction']);
+            bioContent += createLi('Age', data['char-age']);
+            bioContent += createLi('Gender', data['char-gender']);
+            bioContent += createLi('Height', data['char-height']);
+            bioContent += createLi('Weight', data['char-weight']);
+            if (data['char-style']) bioContent += `<li><strong>Style:</strong><br>${data['char-style'].replace(/\n/g, '<br>')}</li>`;
+            if (data['char-motive']) bioContent += `<li><strong>Motive:</strong><br>${data['char-motive'].replace(/\n/g, '<br>')}</li>`;
+            html += createSection('Identity', bioContent);
+
+            // Attributes
+            let attrContent = '';
+            document.querySelectorAll('.attribute-total').forEach(input => {
+                const label = document.querySelector(`label[for="${input.id.replace('-total', '')}"]`);
+                if (label && (parseInt(input.value) !== 0 || !input.id.includes('might') && !input.id.includes('reflex') && !input.id.includes('fortitude') && !input.id.includes('logic') && !input.id.includes('will') && !input.id.includes('etiquette'))) {
+                     attrContent += createLi(label.textContent, input.value);
+                }
+            });
+            html += createSection('Attributes', attrContent);
+            
+            // Skills
+            let skillsContent = '';
+            document.querySelectorAll('.skill-row:not(.header)').forEach(row => {
+                const rank = parseInt(row.querySelector('.skill-rank')?.value) || 0;
+                if (rank > 0) {
+                    const name = row.querySelector('label')?.textContent || row.querySelector('.skill-name-input')?.value;
+                    const total = row.querySelector('.skill-total')?.value;
+                    skillsContent += createLi(name, `Rank ${rank} (Total: ${total})`);
+                }
+            });
+            html += createSection('Skills', skillsContent);
+
+            // Features, Disadvantages, etc.
+            const listSections = {
+                'Features': data.features,
+                'Disadvantages': data.disadvantages,
+                'Invocations': data.invocations,
+                'Special Abilities': data.special_abilities,
+                'Augmentations': data.augmentations,
+                'Equipment': data.equipment,
+                'Associates': data.associates,
+            };
+
+            for (const [title, items] of Object.entries(listSections)) {
+                if (items && items.length > 0) {
+                    let listContent = '';
+                    items.forEach(item => listContent += `<li>${item}</li>`);
+                    html += createSection(title, listContent);
+                }
+            }
+            
+            // Combat
+            let combatContent = '';
+            if (data.attacks && data.attacks.length > 0) {
+                combatContent += '<h4>Attacks</h4>';
+                data.attacks.forEach(a => {
+                    combatContent += `<li><strong>${a.name}:</strong> Score ${a.score}, Effect: ${a.damage}</li>`;
+                });
+            }
+             if (data.armor && data.armor.length > 0) {
+                combatContent += '<h4>Armor</h4>';
+                data.armor.forEach(a => {
+                    combatContent += `<li><strong>${a.name}:</strong> Resistance ${a.resistance}</li>`;
+                });
+            }
+            html += createSection('Combat', combatContent);
+
+
+            previewContent.innerHTML = html;
+            document.getElementById('preview-modal').classList.remove('hidden');
         }
 
         async function initializePersonaFolio(folioData = {}) {
@@ -776,27 +984,6 @@
             }
 
             appState.initialFormState = JSON.stringify(getPersonaFolioFormData());
-
-            document.getElementById('add-skill-btn').addEventListener('click', showAddSkillModal);
-
-            sheet.addEventListener('input', (e) => {
-                const target = e.target;
-                const specRow = target.closest('.specialization-row');
-                if (specRow) {
-                    calculateSpecializationTotal(specRow);
-                    return;
-                }
-
-                const skillRow = target.closest('.skill-row');
-                if (skillRow) {
-                    calculateSkillTotal(skillRow);
-                }
-                
-                if (target.matches('.attribute-value')) {
-                    const baseId = e.target.id;
-                    calculateAttributeTotal(baseId);
-                }
-            });
 
             Object.keys(primaryToSubAttributeMap).forEach(primaryId => {
                 calculateAttributeTotal(primaryId);
@@ -1541,6 +1728,7 @@
                         btn.textContent = charData['char-name'] || doc.id;
                         btn.className = 'btn btn-primary w-full text-left';
                         btn.onclick = () => {
+                            clearSession();
                             loadCharacterById(doc.id);
                             modal.classList.add('hidden');
                         };
@@ -1562,7 +1750,7 @@
                 const docSnap = await getDoc(personaRef);
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    renderPersonaFolioView(document.getElementById('folio-container'), data);
+                    renderPersonaFolioView(document.getElementById('folio-container'), data, false); // Don't use session data
                     const docIdInput = document.getElementById('character-doc-id');
                     if(docIdInput) docIdInput.value = docId;
 
@@ -1575,21 +1763,89 @@
              }
         }
 
+        function setupGlobalEventListeners() {
+            const container = document.getElementById('folio-container');
+            if (!container) return;
 
-        function renderPersonaFolioView(container, folioData = {}) {
+            container.addEventListener('click', (event) => {
+                const target = event.target;
+                
+                // Main menu
+                if (target.matches('.file-menu-button')) {
+                    target.nextElementSibling.classList.toggle('show');
+                    return;
+                }
+                if (target.id === 'local-save-btn') saveLocal();
+                if (target.id === 'local-load-btn') loadLocal();
+                if (target.id === 'cloud-save-btn') saveToDb();
+                if (target.id === 'cloud-load-btn') showCharacterLoadModal();
+                if (target.id === 'preview-btn') showPreviewModal();
+
+
+                // Add buttons
+                if (target.id === 'add-attack-btn') showAttackSelectionModal();
+                if (target.id === 'add-armor-btn') showArmorSelectionModal();
+                if (target.id === 'add-note-btn') addNoteToList();
+                if (target.id === 'add-skill-btn') showAddSkillModal();
+                
+                // Browse buttons
+                if (target.dataset.browsePath) {
+                    const targetList = target.dataset.targetList || target.id;
+                    showDirectoryModal(targetList, target.dataset.browsePath);
+                }
+
+                // Tab switching
+                if (target.matches('.tab-btn')) {
+                    const tabsContainer = document.getElementById('tabs-container');
+                    const tabPanelsContainer = document.getElementById('tab-panels');
+                    tabsContainer.querySelector('.active').classList.remove('active');
+                    tabPanelsContainer.querySelector('.active').classList.remove('active');
+                    
+                    target.classList.add('active');
+                    const targetPanelId = target.dataset.tabTarget;
+                    document.querySelector(targetPanelId).classList.add('active');
+                }
+            });
+
+            // Auto-save to session on any input change that could affect data
+            container.addEventListener('input', (event) => {
+                const form = event.target.closest('#persona-folio-form');
+                if (form) {
+                    // Recalculate points on relevant changes
+                    if (event.target.matches('.skill-rank, .attribute-value, #cp-total') || event.target.closest('.single-column-grid')) {
+                         recalculateAllModifiers();
+                    }
+                    saveToSession();
+                }
+            });
+             // Also recalculate on change events for select elements
+            container.addEventListener('change', (event) => {
+                const form = event.target.closest('#persona-folio-form');
+                 if (form) {
+                    if (event.target.matches('#char-occu, .skill-base-select')) {
+                        recalculateAllModifiers();
+                    }
+                    saveToSession();
+                }
+            });
+        }
+
+
+        function renderPersonaFolioView(container, folioData = {}, useSession = true) {
+            
+            const sessionData = useSession ? loadFromSession() : null;
+            const finalData = sessionData || folioData;
+
             container.innerHTML = `
              <div class="persona-folio-container">
                  <form id="persona-folio-form" onsubmit="return false;">
-                    <input type="hidden" id="character-doc-id" name="character-doc-id" value="${folioData['character-doc-id'] || ''}">
+                    <input type="hidden" id="character-doc-id" name="character-doc-id" value="${finalData['character-doc-id'] || ''}">
                      <header class="sheet-header">
-                         <div id="auth-container" class="absolute left-4 top-4"></div>
-                         <div class="actor-display">
-                             <div id="actor-display-header">PERSONA FOLIO</div>
-                         </div>
-                         <h1>Tangent SFF RPG</h1>
-                         <div class="file-menu">
+                         <div class="file-menu" style="min-width: 100px;">
                              <button type="button" class="file-menu-button">DATA</button>
                              <div class="file-menu-dropdown">
+                                 <button type="button" id="preview-btn">Preview</button>
+                                 <hr class="border-gray-600 my-1">
                                  <button type="button" id="cloud-save-btn">Save to Cloud</button>
                                  <button type="button" id="cloud-load-btn">Load from Cloud</button>
                                  <hr class="border-gray-600 my-1">
@@ -1597,6 +1853,11 @@
                                  <button type="button" id="local-load-btn">Load from File</button>
                              </div>
                          </div>
+                         <div class="flex-grow text-center">
+                            <h1>Tangent SFF RPG</h1>
+                            <div id="actor-display-header" class="text-sm uppercase">Persona Folio</div>
+                         </div>
+                         <div id="auth-container" style="min-width: 100px;"></div>
                      </header>
 
                     <div id="tabs-container" class="flex border-b border-gray-600 mb-4">
@@ -1699,6 +1960,22 @@
                                          <div class="input-group"><label for="vitality">Vitality</label><input type="number" id="vitality" name="vitality"></div>
                                      </div>
                                  </fieldset>
+                                  <fieldset><legend>Character Points</legend>
+                                      <div class="grid grid-cols-3 gap-4 text-center">
+                                          <div>
+                                              <label for="cp-total" class="font-bold text-lg">Total</label>
+                                              <input type="number" id="cp-total" name="cp-total" class="text-center text-xl" value="20">
+                                          </div>
+                                          <div>
+                                              <label for="cp-spent" class="font-bold text-lg">Spent</label>
+                                              <input type="number" id="cp-spent" name="cp-spent" class="text-center text-xl" readonly value="0">
+                                          </div>
+                                          <div>
+                                              <label for="cp-remaining" class="font-bold text-lg">Remaining</label>
+                                              <input type="number" id="cp-remaining" name="cp-remaining" class="text-center text-xl" readonly value="20">
+                                          </div>
+                                      </div>
+                                  </fieldset>
                                  <fieldset><legend>Ratings</legend>
                                      <div class="space-y-4">
                                          <div class="input-group"><label for="karma">Karma</label><input type="number" id="karma" name="karma"></div>
@@ -1850,55 +2127,8 @@
                </div>
             `;
             
-            const fileMenuButton = document.querySelector('.persona-folio-container .file-menu-button');
-            const fileMenuDropdown = document.querySelector('.persona-folio-container .file-menu-dropdown');
-            fileMenuButton.addEventListener('click', (e) => {
-                e.stopPropagation();
-                fileMenuDropdown.classList.toggle('show');
-            });
-            document.getElementById('local-save-btn').onclick = saveLocal;
-            document.getElementById('local-load-btn').onclick = loadLocal;
-            document.getElementById('cloud-save-btn').onclick = saveToDb;
-            document.getElementById('cloud-load-btn').onclick = showCharacterLoadModal;
-
-
-            document.getElementById('add-attack-btn').addEventListener('click', showAttackSelectionModal);
-            document.getElementById('add-armor-btn').addEventListener('click', showArmorSelectionModal);
-            document.getElementById('add-note-btn').addEventListener('click', addNoteToList);
-
-            const sheet = document.getElementById('persona-folio-form');
-            if (sheet) {
-                sheet.addEventListener('click', (event) => {
-                    const target = event.target;
-                    if (target.dataset.browsePath) {
-                        const targetList = target.dataset.targetList || target.id;
-                        showDirectoryModal(targetList, target.dataset.browsePath);
-                    }
-                });
-                sheet.addEventListener('change', (event) => {
-                    if (event.target.matches('#char-species, #char-occu, #char-origin, #char-faction')) {
-                        updateAllTraits();
-                        recalculateAllModifiers();
-                    }
-                });
-            }
-
-            // Tab switching logic
-            const tabsContainer = document.getElementById('tabs-container');
-            const tabPanelsContainer = document.getElementById('tab-panels');
-            tabsContainer.addEventListener('click', (e) => {
-                if (e.target.matches('.tab-btn')) {
-                    tabsContainer.querySelector('.active').classList.remove('active');
-                    tabPanelsContainer.querySelector('.active').classList.remove('active');
-                    
-                    e.target.classList.add('active');
-                    const targetPanelId = e.target.dataset.tabTarget;
-                    document.querySelector(targetPanelId).classList.add('active');
-                }
-            });
-
             updateUIAfterAuthChange();
-            initializePersonaFolio(folioData);
+            initializePersonaFolio(finalData);
         }
 
         // --- Authentication ---
@@ -1916,6 +2146,7 @@
             try {
                 await signOut(auth);
                  appState.appInitialized = false; // Allow re-initialization on next sign-in
+                 clearSession();
             } catch (error) {
                 console.error("Error signing out:", error);
             }
@@ -1956,7 +2187,9 @@
                 // Initialize the app only once.
                 if (!appState.appInitialized) {
                     appState.appInitialized = true;
+                    await cacheAllModifiers(); // Cache necessary data first
                     renderPersonaFolioView(document.getElementById('folio-container'), {});
+                    setupGlobalEventListeners();
                 }
                 
                 // Always update the auth UI elements.
@@ -1979,6 +2212,12 @@
                     showCustomAlert("Could not connect to the authentication service.");
                 }
             }
+        });
+
+        // Setup listeners for modals that are always in the DOM
+        document.getElementById('preview-print-btn').addEventListener('click', () => window.print());
+        document.getElementById('preview-close-btn').addEventListener('click', () => {
+            document.getElementById('preview-modal').classList.add('hidden');
         });
 
     </script>
