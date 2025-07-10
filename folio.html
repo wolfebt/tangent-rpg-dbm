@@ -1985,6 +1985,13 @@
             container.addEventListener('input', (event) => {
                 const form = event.target.closest('#persona-folio-form');
                 if (form) {
+                    if (event.target.matches('#char-name')) {
+                        const header = document.getElementById('actor-display-header');
+                        if (header) {
+                            header.textContent = event.target.value.toUpperCase() || 'UNNAMED';
+                        }
+                    }
+
                     if (event.target.matches('.skill-rank, .attribute-value') || event.target.closest('.single-column-grid')) {
                          recalculateAllModifiers();
                     }
@@ -2033,7 +2040,7 @@
                          </div>
                          <div class="flex-grow text-center">
                             <h1>Tangent SFF RPG</h1>
-                            <div id="actor-display-header" class="text-sm uppercase">Persona Folio</div>
+                            <div id="actor-display-header" class="text-sm uppercase"></div>
                          </div>
                          <div class="flex items-center" style="min-width: 100px;">
                             <div id="header-cp-tracker" class="mr-4 text-right">
@@ -2050,7 +2057,7 @@
                         <button class="tab-btn" data-tab-target="#skills-tab">Skills</button>
                         <button class="tab-btn" data-tab-target="#abilities-tab">Abilities</button>
                         <button class="tab-btn" data-tab-target="#combat-gear-tab">Combat & Gear</button>
-                        <button class="tab-btn" data-tab-target="#persona-tab">Persona</button>
+                        <button class="tab-btn" data-tab-target="#other-tab">Other</button>
                     </div>
 
                     <div id="tab-panels">
@@ -2268,7 +2275,7 @@
                                  </fieldset>
                              </section>
                          </div>
-                         <div id="persona-tab" class="tab-panel">
+                         <div id="other-tab" class="tab-panel">
                              <section class="main-section">
                                  <fieldset>
                                      <legend>Associates</legend>
