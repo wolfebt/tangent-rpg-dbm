@@ -373,6 +373,27 @@
         <main id="main-content"></main>
     </div>
 
+    <button id="settings-icon" class="fixed bottom-4 left-4 p-2 bg-gray-700 rounded-full hover:bg-gray-600 transition-colors z-20">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-300"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+    </button>
+
+    <div id="settings-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4 hidden modal-backdrop">
+        <div class="modal-content w-full max-w-lg p-8">
+            <h2 class="text-2xl font-bold mb-6 text-center">Settings</h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="api-key-input" class="global-form-label">Gemini API Key</label>
+                    <input type="password" id="api-key-input" class="global-form-input" placeholder="Enter your API key">
+                    <p class="text-xs text-gray-400 mt-2">Your API key is stored securely in your browser's local storage and is never sent to our servers.</p>
+                </div>
+            </div>
+            <div class="flex justify-end gap-4 mt-8">
+                <button id="settings-cancel-btn" class="btn btn-secondary">Cancel</button>
+                <button id="settings-save-btn" class="btn btn-primary">Save</button>
+            </div>
+        </div>
+    </div>
+
 
     <div id="entry-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4 hidden modal-backdrop">
         <div class="modal-content w-3/4 max-w-6xl max-h-[90vh] overflow-y-auto flex flex-col">
@@ -1091,6 +1112,11 @@
         const summaryModal = document.getElementById('summary-modal');
         const summaryCloseBtn = document.getElementById('summary-close-btn');
         const jsonFileInput = document.getElementById('json-file-input');
+        const settingsIcon = document.getElementById('settings-icon');
+        const settingsModal = document.getElementById('settings-modal');
+        const settingsSaveBtn = document.getElementById('settings-save-btn');
+        const settingsCancelBtn = document.getElementById('settings-cancel-btn');
+        const apiKeyInput = document.getElementById('api-key-input');
 
         // --- Authentication & Navigation---
         
@@ -2652,6 +2678,12 @@
         async function generateDescription(categoryKey) {
             const btn = document.getElementById('generate-description-btn');
             if(!btn) return;
+            
+            const userApiKey = localStorage.getItem('geminiApiKey');
+            if (!userApiKey) {
+                showError("Please enter your Gemini API key in the settings (gear icon) to use this feature.");
+                return;
+            }
 
             const originalContent = btn.innerHTML;
             btn.innerHTML = '<div class="loader"></div>';
@@ -2671,8 +2703,7 @@
                 let chatHistory = [];
                 chatHistory.push({ role: "user", parts: [{ text: prompt }] });
                 const payload = { contents: chatHistory };
-                const apiKey = "" // No API key needed for gemini-2.0-flash
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${userApiKey}`;
                 const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -2778,14 +2809,27 @@
         errorOkBtn.addEventListener('click', hideErrorModal);
         summaryCloseBtn.addEventListener('click', () => { summaryModal.classList.add('hidden'); });
         
+        settingsIcon.addEventListener('click', () => {
+            apiKeyInput.value = localStorage.getItem('geminiApiKey') || '';
+            settingsModal.classList.remove('hidden');
+        });
+        settingsCancelBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
+        settingsSaveBtn.addEventListener('click', () => {
+            localStorage.setItem('geminiApiKey', apiKeyInput.value);
+            settingsModal.classList.add('hidden');
+        });
+
         window.addEventListener('click', (event) => {
-            if (event.target == entryModal || event.target == confirmModal || event.target == errorModal || event.target == unsavedChangesModal || event.target == customModal || event.target == summaryModal) {
+            if (event.target == entryModal || event.target == confirmModal || event.target == errorModal || event.target == unsavedChangesModal || event.target == customModal || event.target == summaryModal || event.target == settingsModal) {
                 if (event.target === entryModal) {
                     appState.navigationContext = null;
                     closeModal();
                 }
                 if (event.target == customModal) {
                     customModal.classList.add('hidden');
+                }
+                 if (event.target == settingsModal) {
+                    settingsModal.classList.add('hidden');
                 }
                 if (event.target == summaryModal) {
                     summaryModal.classList.add('hidden');
