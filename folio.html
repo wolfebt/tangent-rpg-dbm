@@ -262,7 +262,8 @@
         import { 
             getAuth, onAuthStateChanged, signOut, 
             GoogleAuthProvider, signInWithPopup,
-            signInAnonymously 
+            signInAnonymously,
+            signInWithCustomToken
         } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
         import { 
             getFirestore, collection, getDocs, doc, setDoc, addDoc, getDoc, query, where 
@@ -1855,8 +1856,7 @@
         async function handleLogout() {
             try {
                 await signOut(auth);
-                // Optionally, clear the sheet or show a logged-out message
-                renderPersonaFolioView(document.getElementById('folio-container'), {});
+                // The onAuthStateChanged listener will handle UI updates and re-authentication
             } catch (error) {
                 console.error("Error signing out:", error);
             }
@@ -1884,23 +1884,32 @@
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
+                // User is signed in.
                 appState.userId = user.uid;
                 appState.isAnonymous = user.isAnonymous;
+                if (!appState.authReady) {
+                    appState.authReady = true;
+                    authReadyPromiseResolver();
+                }
+                updateUIAfterAuthChange();
             } else {
+                // No user is signed in.
                 appState.userId = null;
                 appState.isAnonymous = true;
-                // Fallback to anonymous sign-in if user logs out or session expires
-                await signInAnonymously(auth).catch(err => {
-                    console.error("Anonymous sign-in failed", err);
-                });
+                // Reset the view if the user logs out
+                renderPersonaFolioView(document.getElementById('folio-container'), {});
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                    // After successful sign-in, onAuthStateChanged will fire again with the new user object.
+                } catch (error) {
+                    console.error("Authentication failed:", error);
+                    showCustomAlert("Could not connect to the authentication service.");
+                }
             }
-            
-            if (!appState.authReady) {
-                appState.authReady = true;
-                authReadyPromiseResolver(); // Signal that auth is ready
-            }
-
-            updateUIAfterAuthChange();
         });
 
 
