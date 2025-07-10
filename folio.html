@@ -555,13 +555,14 @@
 
             const subAttributeId = primaryToSubAttributeMap[attributeBaseId];
             if (subAttributeId) {
-                const subValueInput = document.getElementById(subAttributeId);
-                if (subValueInput) {
-                    const primaryValue = parseInt(valueInput.value) || 0;
-                    subValueInput.value = (primaryValue * 2) + 2;
-                    calculateAttributeTotal(subAttributeId);
-                }
+                 const subValueInput = document.getElementById(subAttributeId);
+                 if (subValueInput) {
+                     const primaryValue = parseInt(valueInput.value) || 0;
+                     subValueInput.value = (primaryValue * 2) + 2;
+                     // We don't need a recursive call here, the main event listener will trigger updates.
+                 }
             }
+
 
             document.querySelectorAll('.skill-row:not(.header)').forEach(skillRow => {
                 const baseSelect = skillRow.querySelector('.skill-base-select');
@@ -720,29 +721,40 @@
         }
 
         async function recalculateCP() {
-            const totalCpInput = document.getElementById('total-cp');
+            const totalCpInput = document.getElementById('total-cp-hidden');
             const spentCpDisplay = document.getElementById('spent-cp');
             const remainingCpDisplay = document.getElementById('remaining-cp');
-            const grantedDisplay = document.getElementById('granted-items-display');
 
-            if (!totalCpInput || !spentCpDisplay || !remainingCpDisplay || !grantedDisplay) return;
+            if (!totalCpInput || !spentCpDisplay || !remainingCpDisplay ) return;
 
             let totalCP = parseInt(totalCpInput.value) || 0;
             let spentCP = 0;
-            let grantedItems = [];
 
+            // 1. Attributes
+            document.querySelectorAll('.attribute-value:not([readonly])').forEach(input => {
+                const value = parseInt(input.value) || 0;
+                spentCP += value * 5; // Only primary attributes are editable and cost CP.
+            });
+            
+            // 2. Skills
+            document.querySelectorAll('.skill-rank').forEach(input => {
+                const rank = parseInt(input.value) || 0;
+                spentCP += rank * 1; // 1 CP per rank
+            });
+
+            // 3. Selections (Features, Disadvantages, etc.)
             const costSources = [
                 { type: 'single', elementId: 'char-species', collection: 'species' },
                 { type: 'single', elementId: 'char-occu', collection: 'occupations' },
                 { type: 'single', elementId: 'char-origin', collection: 'origins' },
                 { type: 'single', elementId: 'char-faction', collection: 'factions' },
-                { type: 'multi', elementId: 'features-data', collection: 'features' },
+                { type: 'multi', elementId: 'features-data', collection: 'features', baseCost: 3 },
                 { type: 'multi', elementId: 'disadvantages-data', collection: 'disadvantages' },
                 { type: 'multi', elementId: 'augmentations-data', collection: 'augmentations' },
                 { type: 'multi', elementId: 'invocations-data', collection: 'invocations' },
                 { type: 'multi', elementId: 'equipment-data', collection: 'equipment' },
             ];
-
+            
             for (const source of costSources) {
                 const dbItems = await getCollectionOptions(source.collection);
                 let selectedNames = [];
@@ -761,36 +773,14 @@
                 for (const name of selectedNames) {
                     const itemData = dbItems.find(item => item.name === name);
                     if (itemData) {
-                        const cost = parseInt(itemData.cp_cost) || 0;
-                        if (cost === 0 && itemData.trait) {
-                            grantedItems.push({name: itemData.name, source: source.collection, traits: itemData.trait});
-                        } else {
-                            spentCP += cost;
-                        }
+                        const cost = parseInt(itemData.cp_cost) || source.baseCost || 0;
+                        spentCP += cost;
                     }
                 }
             }
             
             spentCpDisplay.textContent = spentCP;
-            const remainingCP = totalCP - spentCP;
-            remainingCpDisplay.textContent = remainingCP;
-            document.getElementById('remaining-cp-display').textContent = remainingCP;
-
-
-            grantedDisplay.innerHTML = '';
-            if (grantedItems.length > 0) {
-                const grantedHtml = grantedItems.map(item => `
-                    <div>
-                        <strong class="uppercase">${item.name} (${item.source})</strong>
-                        <ul class="list-disc pl-5 text-gray-400">
-                            ${item.traits.map(trait => `<li>${trait}</li>`).join('')}
-                        </ul>
-                    </div>
-                `).join('');
-                grantedDisplay.innerHTML = grantedHtml;
-            } else {
-                grantedDisplay.innerHTML = '<p class="text-gray-400">No granted items.</p>';
-            }
+            remainingCpDisplay.textContent = totalCP - spentCP;
         }
 
 
@@ -833,6 +823,11 @@
 
             sheet.addEventListener('input', (e) => {
                 const target = e.target;
+                
+                if(target.closest('.attribute-value, .skill-rank')){
+                    recalculateCP();
+                }
+
                 const specRow = target.closest('.specialization-row');
                 if (specRow) {
                     calculateSpecializationTotal(specRow);
@@ -1542,6 +1537,133 @@
 
             modal.classList.remove('hidden');
         }
+        
+        async function getCostBreakdown() {
+            const breakdown = [];
+
+            // Attributes
+            document.querySelectorAll('.attribute-value:not([readonly])').forEach(input => {
+                const value = parseInt(input.value) || 0;
+                if (value > 0) {
+                    const name = input.closest('.grid').querySelector('label').textContent;
+                    breakdown.push({ name: `${name} x${value}`, cost: value * 5, source: 'Attributes' });
+                }
+            });
+
+            // Skills
+            document.querySelectorAll('.skill-rank').forEach(input => {
+                const rank = parseInt(input.value) || 0;
+                if (rank > 0) {
+                    const row = input.closest('.skill-row');
+                    const label = row.querySelector('label, .skill-name-input');
+                    const name = label.value || label.textContent;
+                    breakdown.push({ name: `${name} Rank x${rank}`, cost: rank * 1, source: 'Skills' });
+                }
+            });
+
+            // Other Selections
+            const costSources = [
+                { type: 'single', elementId: 'char-species', collection: 'species' },
+                { type: 'single', elementId: 'char-occu', collection: 'occupations' },
+                { type: 'single', elementId: 'char-origin', collection: 'origins' },
+                { type: 'single', elementId: 'char-faction', collection: 'factions' },
+                { type: 'multi', elementId: 'features-data', collection: 'features', baseCost: 3 },
+                { type: 'multi', elementId: 'disadvantages-data', collection: 'disadvantages' },
+                { type: 'multi', elementId: 'augmentations-data', collection: 'augmentations' },
+                { type: 'multi', elementId: 'invocations-data', collection: 'invocations' },
+                { type: 'multi', elementId: 'equipment-data', collection: 'equipment' },
+            ];
+
+            for (const source of costSources) {
+                const dbItems = await getCollectionOptions(source.collection);
+                let selectedNames = [];
+                const element = document.getElementById(source.elementId);
+
+                if (!element) continue;
+
+                if (source.type === 'single') {
+                    if (element.value) selectedNames.push(element.value);
+                } else {
+                    if (element.value) {
+                        try { selectedNames = JSON.parse(element.value); } catch (e) {}
+                    }
+                }
+
+                for (const name of selectedNames) {
+                    const itemData = dbItems.find(item => item.name === name);
+                    if (itemData) {
+                        const cost = parseInt(itemData.cp_cost) || source.baseCost || 0;
+                        if (cost > 0) {
+                            breakdown.push({ name: itemData.name, cost: cost, source: categoryConfig[source.collection]?.label || source.collection });
+                        }
+                    }
+                }
+            }
+
+            return breakdown;
+        }
+
+        async function showCPEconomyModal() {
+            const modal = document.getElementById('custom-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalChoices = document.getElementById('modal-choices');
+            const okBtn = document.getElementById('modal-ok-btn');
+            const cancelBtn = document.getElementById('modal-cancel-btn');
+
+            modalTitle.textContent = "CP ECONOMY DETAILS";
+            
+            const totalCpHiddenInput = document.getElementById('total-cp-hidden');
+            const currentTotalCp = totalCpHiddenInput.value;
+
+            const costBreakdown = await getCostBreakdown();
+            let purchasedItemsHtml = '<p class="text-gray-400">No CP spent yet.</p>';
+
+            if (costBreakdown.length > 0) {
+                purchasedItemsHtml = '<ul class="list-disc pl-5 space-y-1">';
+                costBreakdown.forEach(item => {
+                    purchasedItemsHtml += `<li><b>${item.name}</b> (${item.source}): ${item.cost} CP</li>`;
+                });
+                purchasedItemsHtml += '</ul>';
+            }
+
+            modalChoices.innerHTML = `
+                <div class="text-left space-y-4">
+                     <div>
+                        <h3 class="font-bold text-xl mb-2 border-b border-gray-500">Base Starting Points</h3>
+                        <div class="input-group">
+                            <label for="modal-total-cp">Total Creation Points:</label>
+                            <input type="number" id="modal-total-cp" class="w-full text-center bg-gray-700 font-bold text-lg" value="${currentTotalCp}" step="50">
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-xl mb-2 border-b border-gray-500">CP Costs</h3>
+                        <ul class="list-disc pl-5">
+                            <li><b>Attributes:</b> 5 CP per point</li>
+                            <li><b>Skill Ranks:</b> 1 CP per rank</li>
+                            <li><b>Features:</b> 3 CP each (unless specified)</li>
+                            <li>Other items have specified costs.</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-xl mb-2 border-b border-gray-500">Purchased Items</h3>
+                        ${purchasedItemsHtml}
+                    </div>
+                </div>
+            `;
+            
+            const modalTotalCpInput = document.getElementById('modal-total-cp');
+            modalTotalCpInput.addEventListener('input', () => {
+                totalCpHiddenInput.value = modalTotalCpInput.value;
+                recalculateCP();
+            });
+
+            modalChoices.style.display = 'block';
+            okBtn.style.display = 'inline-block';
+            cancelBtn.style.display = 'none';
+            okBtn.onclick = () => modal.classList.add('hidden');
+            
+            modal.classList.remove('hidden');
+        }
 
         async function saveToDb() {
             if (!appState.userId || appState.isAnonymous) {
@@ -1638,21 +1760,22 @@
              <div class="persona-folio-container">
                  <form id="persona-folio-form" onsubmit="return false;">
                     <input type="hidden" id="character-doc-id" name="character-doc-id" value="${folioData['character-doc-id'] || ''}">
+                    <input type="hidden" id="total-cp-hidden" name="total-cp-hidden" value="150">
                      <header class="sheet-header">
                          <div id="auth-container" class="absolute left-4 top-4"></div>
                          <div class="actor-display">
                              <div id="actor-display-header">PERSONA FOLIO</div>
                          </div>
-                         <div id="cp-tracker" class="text-center">
-                            <label class="font-bold uppercase">Creation Points</label>
-                            <div class="flex items-center justify-center gap-2">
-                                <button type="button" id="cp-down-btn" class="btn btn-secondary !p-1 text-lg leading-none">-</button>
-                                <input type="number" id="total-cp" name="total-cp" class="w-24 text-center text-xl" value="150" step="50">
-                                <button type="button" id="cp-up-btn" class="btn btn-secondary !p-1 text-lg leading-none">+</button>
+                          <div id="cp-tracker" class="flex items-center gap-2 border-2 border-gray-600 px-3 py-1 rounded-lg">
+                            <div class="text-center">
+                                <span id="spent-cp" class="font-bold text-lg">0</span>
+                                <div class="text-xs -mt-1 text-gray-400">Spent</div>
                             </div>
-                            <div class="text-xs mt-1">
-                                <span id="spent-cp">0</span> / <span id="remaining-cp-display">150</span>
+                             <div class="text-center">
+                                <span id="remaining-cp" class="font-bold text-lg">150</span>
+                                <div class="text-xs -mt-1 text-gray-400">Left</div>
                             </div>
+                            <button type="button" id="cp-info-btn" class="ml-2 text-xl font-bold text-gray-400 hover:text-white">ⓘ</button>
                         </div>
                          <h1>Tangent SFF RPG</h1>
                          <div class="file-menu">
@@ -1721,7 +1844,7 @@
                                          <input type="number" id="${attr.id}-mod" name="${attr.id}-mod" class="attribute-mod italic text-center" value="0" readonly>
                                          <input type="number" id="${attr.id}-total" name="${attr.id}-total" class="attribute-total font-bold text-center ${!attr.sub ? 'text-lg' : ''} ${attr.sub ? 'w-16 mx-auto' : ''}" readonly value="0">
                                      </div>
-                                     ${attr.sub ? '<div class="col-span-5 border-b-2 border-gray-500 my-2"></div>' : ''}
+                                     ${attr.sub ? '' : '<div class="col-span-5 border-b-2 border-gray-500 my-2"></div>'}
                                  `).join('')}
                              </div>
                          </fieldset>
@@ -1931,19 +2054,9 @@
             document.getElementById('add-attack-btn').addEventListener('click', showAttackSelectionModal);
             document.getElementById('add-armor-btn').addEventListener('click', showArmorSelectionModal);
             document.getElementById('add-note-btn').addEventListener('click', addNoteToList);
-
-            document.getElementById('cp-up-btn').addEventListener('click', () => {
-                const totalCpInput = document.getElementById('total-cp');
-                totalCpInput.value = (parseInt(totalCpInput.value) || 0) + 50;
-                recalculateCP();
-            });
-            document.getElementById('cp-down-btn').addEventListener('click', () => {
-                const totalCpInput = document.getElementById('total-cp');
-                totalCpInput.value = (parseInt(totalCpInput.value) || 0) - 50;
-                recalculateCP();
-            });
-            document.getElementById('total-cp').addEventListener('change', recalculateCP);
-
+            
+            document.getElementById('cp-info-btn').addEventListener('click', showCPEconomyModal);
+            
             const sheet = document.getElementById('persona-folio-form');
             if (sheet) {
                 sheet.addEventListener('click', (event) => {
