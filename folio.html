@@ -586,7 +586,6 @@
                 try {
                     const data = JSON.parse(e.target.result);
                     renderPersonaFolioView(document.getElementById('folio-container'), data, false);
-                    // *** FIX: Do NOT re-attach global listeners here. They are attached once on init.
                 } catch (err) {
                     showCustomAlert("Could not parse JSON file.");
                     console.error("Error parsing JSON:", err);
@@ -1827,8 +1826,7 @@
                 const docSnap = await getDoc(personaRef);
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    renderPersonaFolioView(document.getElementById('folio-container'), data, false); // Don't use session data
-                    // *** FIX: Do NOT re-attach global listeners here.
+                    renderPersonaFolioView(document.getElementById('folio-container'), data, false);
                     const docIdInput = document.getElementById('character-doc-id');
                     if(docIdInput) docIdInput.value = docId;
 
@@ -1845,7 +1843,6 @@
             showConfirmModal("Start a new character? Any unsaved changes will be lost.", () => {
                 clearSession();
                 renderPersonaFolioView(document.getElementById('folio-container'), {}, false);
-                 // *** FIX: Do NOT re-attach global listeners here.
             });
         }
 
@@ -1900,10 +1897,8 @@
         }
 
         function setupGlobalEventListeners() {
-            // This function now correctly sets up all listeners ONCE.
-            // It relies on event delegation for the dynamic content inside #folio-container.
+            // This function sets up all listeners ONCE using event delegation.
         
-            // Listener for closing the dropdown menu
             window.addEventListener('click', (event) => {
                 if (!event.target.matches('.file-menu-button')) {
                     const dropdowns = document.querySelectorAll('.file-menu-dropdown');
@@ -1918,29 +1913,21 @@
             const container = document.getElementById('folio-container');
             if (!container) return;
         
-            // Main delegated event listener for the entire character sheet
             container.addEventListener('click', (event) => {
                 const target = event.target;
         
-                // Main menu toggle
                 if (target.matches('.file-menu-button')) {
                     event.stopPropagation();
                     const dropdown = target.nextElementSibling;
-                    if (dropdown) {
-                        dropdown.classList.toggle('show');
-                    }
+                    if (dropdown) dropdown.classList.toggle('show');
                     return;
                 }
         
-                // Hide dropdown after a menu item is clicked
                 if (target.closest('.file-menu-dropdown')) {
                     const dropdown = document.querySelector('.file-menu-dropdown');
-                    if (dropdown) {
-                        dropdown.classList.remove('show');
-                    }
+                    if (dropdown) dropdown.classList.remove('show');
                 }
         
-                // Menu actions
                 if (target.id === 'new-char-btn') newCharacter();
                 if (target.id === 'local-save-btn') saveLocal();
                 if (target.id === 'local-load-btn') loadLocal();
@@ -1948,14 +1935,11 @@
                 if (target.id === 'cloud-load-btn') showCharacterLoadModal();
                 if (target.id === 'preview-btn') showPreviewModal();
                 if (target.id === 'economy-btn') showEconomyModal();
-        
-                // Add buttons
                 if (target.id === 'add-attack-btn') showAttackSelectionModal();
                 if (target.id === 'add-armor-btn') showArmorSelectionModal();
                 if (target.id === 'add-note-btn') addNoteToList();
                 if (target.id === 'add-skill-btn') showAddSkillModal();
                 
-                // Browse buttons for adding items
                 const browseButton = target.closest('[data-browse-path]');
                 if (browseButton) {
                     const targetList = browseButton.dataset.targetList || browseButton.id;
@@ -1966,7 +1950,6 @@
                     }
                 }
         
-                // Tab switching
                 if (target.matches('.tab-btn')) {
                     const tabsContainer = document.getElementById('tabs-container');
                     const tabPanelsContainer = document.getElementById('tab-panels');
@@ -1983,15 +1966,12 @@
                 }
             });
         
-            // Delegated auto-save listener
             container.addEventListener('input', (event) => {
                 const form = event.target.closest('#persona-folio-form');
                 if (form) {
                     if (event.target.matches('#char-name')) {
                         const header = document.getElementById('actor-display-header');
-                        if (header) {
-                            header.textContent = event.target.value.toUpperCase() || 'UNNAMED';
-                        }
+                        if (header) header.textContent = event.target.value.toUpperCase() || 'UNNAMED';
                     }
 
                     if (event.target.matches('.skill-rank, .attribute-value') || event.target.closest('.single-column-grid')) {
@@ -2001,7 +1981,6 @@
                 }
             });
 
-            // Delegated recalculate listener
             container.addEventListener('change', (event) => {
                 const form = event.target.closest('#persona-folio-form');
                  if (form) {
@@ -2323,8 +2302,9 @@
         async function handleLogout() {
             try {
                 await signOut(auth);
-                 appState.appInitialized = false; // Allow re-initialization on next sign-in
-                 clearSession();
+                // *** FIX: Do not modify appInitialized state here.
+                // onAuthStateChanged will handle the UI update.
+                clearSession();
             } catch (error) {
                 console.error("Error signing out:", error);
             }
@@ -2350,9 +2330,10 @@
             }
         }
 
+        // *** FIX: Refactored onAuthStateChanged for robust, one-time initialization.
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                // User is signed in.
+                // User is signed in (either newly or already).
                 appState.userId = user.uid;
                 appState.isAnonymous = user.isAnonymous;
                 
@@ -2362,10 +2343,10 @@
                 }
 
                 if (!appState.appInitialized) {
+                    // This block runs ONLY ONCE per page load.
                     appState.appInitialized = true;
                     await cacheAllData();
                     renderPersonaFolioView(document.getElementById('folio-container'), {});
-                    // *** FIX: Set up all event listeners once the app is initialized.
                     setupGlobalEventListeners();
                 }
                 
@@ -2376,7 +2357,13 @@
                 appState.userId = null;
                 appState.isAnonymous = true;
                 
-                if (!appState.appInitialized) {
+                if (appState.appInitialized) {
+                    // The app was already running, so this is a logout.
+                    // Render an empty sheet. The listeners will persist.
+                    renderPersonaFolioView(document.getElementById('folio-container'), {});
+                } else {
+                    // The app has not run yet, so this is the initial state.
+                    // Try to sign in anonymously. This will re-trigger onAuthStateChanged.
                     try {
                         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                             await signInWithCustomToken(auth, __initial_auth_token);
@@ -2387,9 +2374,6 @@
                         console.error("Authentication failed:", error);
                         showCustomAlert("Could not connect to the authentication service.");
                     }
-                } else {
-                    // This is a logout. Reset the view. Listeners will persist.
-                     renderPersonaFolioView(document.getElementById('folio-container'), {});
                 }
             }
         });
