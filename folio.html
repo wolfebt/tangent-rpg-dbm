@@ -330,6 +330,32 @@
         </div>
     </div>
 
+    <div id="economy-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-[70] p-4 hidden modal-backdrop">
+        <div class="modal-content w-full max-w-2xl p-8">
+            <h2 class="text-2xl font-bold mb-4 text-center">Character Economy</h2>
+            <div class="grid grid-cols-3 gap-4 mb-4">
+                <div class="input-group">
+                    <label for="starting-cp">Starting CP</label>
+                    <input type="number" id="starting-cp" value="150" step="50" class="text-center">
+                </div>
+                 <div class="input-group">
+                    <label>Spent CP</label>
+                    <input type="number" id="economy-spent-cp" class="text-center" readonly>
+                </div>
+                 <div class="input-group">
+                    <label>Remaining CP</label>
+                    <input type="number" id="economy-remaining-cp" class="text-center" readonly>
+                </div>
+            </div>
+            <div id="economy-details" class="space-y-4 max-h-96 overflow-y-auto bg-gray-800 p-4 rounded">
+                <!-- Itemized list will be injected here -->
+            </div>
+            <div class="flex justify-end mt-4">
+                 <button id="economy-close-btn" class="btn btn-secondary">Close</button>
+            </div>
+        </div>
+    </div>
+
 
     <input type="file" id="json-file-input" class="hidden" accept=".json">
 
@@ -393,6 +419,9 @@
             appInitialized: false,
             allFeatures: [],
             allOccupations: [],
+            allSpecies: [],
+            allFactions: [],
+            allOrigins: [],
         };
         
         const SESSION_STORAGE_KEY = 'personaFolioData';
@@ -452,6 +481,9 @@
             appState.allModifiersCache = await getCollectionOptions('modifier');
             appState.allFeatures = await getCollectionOptions('features');
             appState.allOccupations = await getCollectionOptions('occupations');
+            appState.allSpecies = await getCollectionOptions('species');
+            appState.allFactions = await getCollectionOptions('factions');
+            appState.allOrigins = await getCollectionOptions('origins');
         }
 
 
@@ -551,6 +583,7 @@
                 try {
                     const data = JSON.parse(e.target.result);
                     renderPersonaFolioView(document.getElementById('folio-container'), data, false);
+                    setupGlobalEventListeners();
                 } catch (err) {
                     showCustomAlert("Could not parse JSON file.");
                     console.error("Error parsing JSON:", err);
@@ -815,156 +848,149 @@
             calculateCharacterPoints();
         }
 
+        function getAggregatedBonuses() {
+            const data = getPersonaFolioFormData();
+            const allBonusSkillRanks = [];
+            const allBonusFeatures = [];
+            const allRecommendedFeatures = [];
+
+            const sources = [
+                { name: data['char-species'], db: appState.allSpecies },
+                { name: data['char-occu'], db: appState.allOccupations },
+                { name: data['char-origin'], db: appState.allOrigins },
+                { name: data['char-faction'], db: appState.allFactions },
+            ];
+
+            sources.forEach(source => {
+                if (source.name && source.db) {
+                    const item = source.db.find(i => i.name === source.name);
+                    if (item) {
+                        if (item.bonus_skill_ranks) allBonusSkillRanks.push(...item.bonus_skill_ranks);
+                        if (item.bonus_features) allBonusFeatures.push(...item.bonus_features);
+                        if (item.recommended_features) allRecommendedFeatures.push(...item.recommended_features);
+                    }
+                }
+            });
+
+            return { allBonusSkillRanks, allBonusFeatures, allRecommendedFeatures };
+        }
+
         function calculateCharacterPoints() {
-            if (!appState.allFeatures || !appState.allOccupations) return;
+            if (!appState.allFeatures) return;
 
             let spentCP = 0;
+            let economyDetails = {
+                'Attributes': [],
+                'Skills': [],
+                'Features': [],
+                'Disadvantages': [],
+                'Special Abilities': [],
+            };
+
             const data = getPersonaFolioFormData();
+            const { allBonusSkillRanks, allBonusFeatures, allRecommendedFeatures } = getAggregatedBonuses();
 
-            // Get selected occupation and its bonuses
-            const selectedOccupationName = data['char-occu'];
-            const selectedOccupation = appState.allOccupations.find(o => o.name === selectedOccupationName);
-            const recommendedFeatures = selectedOccupation?.recommended_features || [];
-            const bonusFeatures = selectedOccupation?.bonus_features || [];
-            const bonusSkillRanks = selectedOccupation?.bonus_skill_ranks || [];
+            // Attributes
+            document.querySelectorAll('.attribute-value').forEach(input => {
+                if(input.readOnly) return; 
+                const value = parseInt(input.value) || 0;
+                if (value > 0) {
+                    const cost = value * 5;
+                    spentCP += cost;
+                    const label = document.querySelector(`label[for="${input.id}"]`).textContent;
+                    economyDetails['Attributes'].push({name: label, cost: cost});
+                }
+            });
 
-            // Calculate cost for features, disadvantages, special abilities
-            const itemLists = ['features', 'disadvantages', 'special_abilities'];
-            itemLists.forEach(listKey => {
+            // Features, Disadvantages, Special Abilities
+            const itemLists = {
+                features: 'Features',
+                disadvantages: 'Disadvantages',
+                special_abilities: 'Special Abilities'
+            };
+
+            for (const [listKey, categoryName] of Object.entries(itemLists)) {
                 const selectedItems = data[listKey] || [];
                 selectedItems.forEach(itemName => {
-                    // Skip bonus features, they cost 0
-                    if (listKey === 'features' && bonusFeatures.includes(itemName)) {
+                    if (listKey === 'features' && allBonusFeatures.includes(itemName)) {
+                        economyDetails[categoryName].push({ name: `${itemName} (Bonus)`, cost: 0 });
                         return;
                     }
 
-                    const itemData = appState.allFeatures.find(f => f.name === itemName) || { cp_cost: 0 };
-                    let cost = itemData.cp_cost || 0;
+                    const itemData = appState.allFeatures.find(f => f.name === itemName) || { cp_cost: 3 };
+                    let cost = itemData.cp_cost !== undefined ? itemData.cp_cost : 3;
+                    let nameSuffix = '';
 
-                    // Apply discount for recommended features
-                    if (listKey === 'features' && recommendedFeatures.includes(itemName)) {
-                        cost = Math.max(0, cost - 1); // Reduce cost by 1, not going below 0
+                    if (listKey === 'features' && allRecommendedFeatures.includes(itemName)) {
+                        cost = Math.max(0, cost - 1);
+                        nameSuffix = ' (Recommended)';
                     }
                     spentCP += cost;
+                    economyDetails[categoryName].push({ name: itemName + nameSuffix, cost: cost });
                 });
-            });
+            }
 
-            // Calculate cost for skill ranks, accounting for bonuses
+            // Skills
             document.querySelectorAll('.skill-row:not(.header):not(.specialization)').forEach(row => {
                 const label = row.querySelector('label');
                 const skillName = label ? label.textContent : '';
                 const rank = parseInt(row.querySelector('.skill-rank')?.value) || 0;
                 
-                const bonus = bonusSkillRanks.find(b => b.skill === skillName);
-                const bonusRanks = bonus ? bonus.ranks : 0;
-                
-                const paidRanks = Math.max(0, rank - bonusRanks);
-                spentCP += paidRanks;
+                if (rank > 0) {
+                    const bonus = allBonusSkillRanks.find(b => b.skill === skillName);
+                    const bonusRanks = bonus ? bonus.ranks : 0;
+                    const paidRanks = Math.max(0, rank - bonusRanks);
+                    if (paidRanks > 0) {
+                        spentCP += paidRanks;
+                        economyDetails['Skills'].push({ name: `${skillName} (Ranks)`, cost: paidRanks });
+                    }
+                    if (bonusRanks > 0 && rank > 0) {
+                         economyDetails['Skills'].push({ name: `${skillName} (Bonus Ranks)`, cost: 0 });
+                    }
+                }
             });
              document.querySelectorAll('.skill-row.specialization').forEach(row => {
                 const rank = parseInt(row.querySelector('.skill-rank')?.value) || 0;
-                spentCP += rank;
+                 if (rank > 0) {
+                    const name = row.querySelector('.skill-name-input')?.value;
+                    spentCP += rank;
+                    economyDetails['Skills'].push({ name: `${name} (Specialization)`, cost: rank });
+                }
             });
 
+            const totalCpInput = document.getElementById('starting-cp') || {value: 150};
+            const spentCpHeader = document.getElementById('header-spent-cp');
+            const economySpentCp = document.getElementById('economy-spent-cp');
+            const economyRemainingCp = document.getElementById('economy-remaining-cp');
 
-            const totalCpInput = document.getElementById('cp-total');
-            const spentCpInput = document.getElementById('cp-spent');
-            const remainingCpInput = document.getElementById('cp-remaining');
-
-            if (totalCpInput && spentCpInput && remainingCpInput) {
-                const totalCP = parseInt(totalCpInput.value) || 0;
-                spentCpInput.value = spentCP;
-                remainingCpInput.value = totalCP - spentCP;
-            }
+            const totalCP = parseInt(totalCpInput.value) || 150;
+            
+            if(spentCpHeader) spentCpHeader.textContent = `Spent CP: ${spentCP}`;
+            if(economySpentCp) economySpentCp.value = spentCP;
+            if(economyRemainingCp) economyRemainingCp.value = totalCP - spentCP;
+            
+            return economyDetails;
         }
         
-        function showPreviewModal() {
-            const data = getPersonaFolioFormData();
-            const previewContent = document.getElementById('preview-content');
+        function showEconomyModal() {
+            const modal = document.getElementById('economy-modal');
+            const detailsContainer = document.getElementById('economy-details');
+            
+            const economyDetails = calculateCharacterPoints();
+            
             let html = '';
-
-            // Helper to create a list item if value exists
-            const createLi = (label, value) => value ? `<li><strong>${label}:</strong> ${value}</li>` : '';
-
-            // Helper to create a section if it has content
-            const createSection = (title, content) => content.trim() ? `<h3>${title}</h3><ul>${content}</ul>` : '';
-
-            // Bio & Facade
-            let bioContent = '';
-            bioContent += createLi('Name', data['char-name']);
-            bioContent += createLi('Concept', data['char-concept']);
-            bioContent += createLi('Species', data['char-species']);
-            bioContent += createLi('Occupation', data['char-occu']);
-            bioContent += createLi('Origin', data['char-origin']);
-            bioContent += createLi('Faction', data['char-faction']);
-            bioContent += createLi('Age', data['char-age']);
-            bioContent += createLi('Gender', data['char-gender']);
-            bioContent += createLi('Height', data['char-height']);
-            bioContent += createLi('Weight', data['char-weight']);
-            if (data['char-style']) bioContent += `<li><strong>Style:</strong><br>${data['char-style'].replace(/\n/g, '<br>')}</li>`;
-            if (data['char-motive']) bioContent += `<li><strong>Motive:</strong><br>${data['char-motive'].replace(/\n/g, '<br>')}</li>`;
-            html += createSection('Identity', bioContent);
-
-            // Attributes
-            let attrContent = '';
-            document.querySelectorAll('.attribute-total').forEach(input => {
-                const label = document.querySelector(`label[for="${input.id.replace('-total', '')}"]`);
-                if (label && (parseInt(input.value) !== 0 || !input.id.includes('might') && !input.id.includes('reflex') && !input.id.includes('fortitude') && !input.id.includes('logic') && !input.id.includes('will') && !input.id.includes('etiquette'))) {
-                     attrContent += createLi(label.textContent, input.value);
-                }
-            });
-            html += createSection('Attributes', attrContent);
-            
-            // Skills
-            let skillsContent = '';
-            document.querySelectorAll('.skill-row:not(.header)').forEach(row => {
-                const rank = parseInt(row.querySelector('.skill-rank')?.value) || 0;
-                if (rank > 0) {
-                    const name = row.querySelector('label')?.textContent || row.querySelector('.skill-name-input')?.value;
-                    const total = row.querySelector('.skill-total')?.value;
-                    skillsContent += createLi(name, `Rank ${rank} (Total: ${total})`);
-                }
-            });
-            html += createSection('Skills', skillsContent);
-
-            // Features, Disadvantages, etc.
-            const listSections = {
-                'Features': data.features,
-                'Disadvantages': data.disadvantages,
-                'Invocations': data.invocations,
-                'Special Abilities': data.special_abilities,
-                'Augmentations': data.augmentations,
-                'Equipment': data.equipment,
-                'Associates': data.associates,
-            };
-
-            for (const [title, items] of Object.entries(listSections)) {
-                if (items && items.length > 0) {
-                    let listContent = '';
-                    items.forEach(item => listContent += `<li>${item}</li>`);
-                    html += createSection(title, listContent);
+            for(const category in economyDetails) {
+                const items = economyDetails[category];
+                if(items.length > 0) {
+                    html += `<h4 class="font-bold text-lg border-b border-gray-600">${category}</h4><ul>`;
+                    items.forEach(item => {
+                        html += `<li class="flex justify-between"><span>${item.name}</span><span>${item.cost} CP</span></li>`;
+                    });
+                    html += `</ul>`;
                 }
             }
-            
-            // Combat
-            let combatContent = '';
-            if (data.attacks && data.attacks.length > 0) {
-                combatContent += '<h4>Attacks</h4>';
-                data.attacks.forEach(a => {
-                    combatContent += `<li><strong>${a.name}:</strong> Score ${a.score}, Effect: ${a.damage}</li>`;
-                });
-            }
-             if (data.armor && data.armor.length > 0) {
-                combatContent += '<h4>Armor</h4>';
-                data.armor.forEach(a => {
-                    combatContent += `<li><strong>${a.name}:</strong> Resistance ${a.resistance}</li>`;
-                });
-            }
-            html += createSection('Combat', combatContent);
-
-
-            previewContent.innerHTML = html;
-            document.getElementById('preview-modal').classList.remove('hidden');
+            detailsContainer.innerHTML = html;
+            modal.classList.remove('hidden');
         }
 
         async function initializePersonaFolio(folioData = {}) {
@@ -1617,7 +1643,9 @@
                 });
             }
 
-            cancelBtn.onclick = () => modal.classList.add('hidden');
+            cancelBtn.onclick = () => {
+                modal.classList.add('hidden');
+            };
         }
         
         function handleItemSelection(targetId, value, isMultiSelect) {
@@ -1757,7 +1785,9 @@
                 modalChoices.innerHTML = '<p class="text-red-500 text-center">Could not load characters.</p>';
             }
 
-            cancelBtn.onclick = () => modal.classList.add('hidden');
+            cancelBtn.onclick = () => {
+                modal.classList.add('hidden');
+            };
         }
 
         async function loadCharacterById(docId) {
@@ -1768,6 +1798,7 @@
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     renderPersonaFolioView(document.getElementById('folio-container'), data, false); // Don't use session data
+                    setupGlobalEventListeners();
                     const docIdInput = document.getElementById('character-doc-id');
                     if(docIdInput) docIdInput.value = docId;
 
@@ -1797,6 +1828,7 @@
                 if (target.id === 'cloud-save-btn') saveToDb();
                 if (target.id === 'cloud-load-btn') showCharacterLoadModal();
                 if (target.id === 'preview-btn') showPreviewModal();
+                if (target.id === 'economy-btn') showEconomyModal();
 
 
                 // Add buttons
@@ -1829,7 +1861,7 @@
                 const form = event.target.closest('#persona-folio-form');
                 if (form) {
                     // Recalculate points on relevant changes
-                    if (event.target.matches('.skill-rank, .attribute-value, #cp-total') || event.target.closest('.single-column-grid')) {
+                    if (event.target.matches('.skill-rank, .attribute-value') || event.target.closest('.single-column-grid')) {
                          recalculateAllModifiers();
                     }
                     saveToSession();
@@ -1839,7 +1871,7 @@
             container.addEventListener('change', (event) => {
                 const form = event.target.closest('#persona-folio-form');
                  if (form) {
-                    if (event.target.matches('#char-occu, .skill-base-select')) {
+                    if (event.target.matches('#char-occu, #char-species, #char-origin, #char-faction, .skill-base-select')) {
                         recalculateAllModifiers();
                     }
                     saveToSession();
@@ -1874,7 +1906,13 @@
                             <h1>Tangent SFF RPG</h1>
                             <div id="actor-display-header" class="text-sm uppercase">Persona Folio</div>
                          </div>
-                         <div id="auth-container" style="min-width: 100px;"></div>
+                         <div class="flex items-center" style="min-width: 100px;">
+                            <div id="header-cp-tracker" class="mr-4 text-right">
+                                <div id="header-spent-cp" class="font-bold">Spent CP: 0</div>
+                                <button id="economy-btn" class="text-xs text-blue-400 hover:underline">Economy</button>
+                            </div>
+                            <div id="auth-container"></div>
+                         </div>
                      </header>
 
                     <div id="tabs-container" class="flex border-b border-gray-600 mb-4">
@@ -1977,22 +2015,6 @@
                                          <div class="input-group"><label for="vitality">Vitality</label><input type="number" id="vitality" name="vitality"></div>
                                      </div>
                                  </fieldset>
-                                  <fieldset><legend>Character Points</legend>
-                                      <div class="grid grid-cols-3 gap-4 text-center">
-                                          <div>
-                                              <label for="cp-total" class="font-bold text-lg">Total</label>
-                                              <input type="number" id="cp-total" name="cp-total" class="text-center text-xl" value="20">
-                                          </div>
-                                          <div>
-                                              <label for="cp-spent" class="font-bold text-lg">Spent</label>
-                                              <input type="number" id="cp-spent" name="cp-spent" class="text-center text-xl" readonly value="0">
-                                          </div>
-                                          <div>
-                                              <label for="cp-remaining" class="font-bold text-lg">Remaining</label>
-                                              <input type="number" id="cp-remaining" name="cp-remaining" class="text-center text-xl" readonly value="20">
-                                          </div>
-                                      </div>
-                                  </fieldset>
                                  <fieldset><legend>Ratings</legend>
                                      <div class="space-y-4">
                                          <div class="input-group"><label for="karma">Karma</label><input type="number" id="karma" name="karma"></div>
@@ -2236,6 +2258,10 @@
         document.getElementById('preview-close-btn').addEventListener('click', () => {
             document.getElementById('preview-modal').classList.add('hidden');
         });
+        document.getElementById('economy-close-btn').addEventListener('click', () => {
+            document.getElementById('economy-modal').classList.add('hidden');
+        });
+        document.getElementById('starting-cp').addEventListener('input', calculateCharacterPoints);
 
     </script>
 </body>
