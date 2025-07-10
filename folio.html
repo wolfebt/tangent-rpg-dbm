@@ -2277,38 +2277,42 @@
                 appState.userId = user.uid;
                 appState.isAnonymous = user.isAnonymous;
                 
-                // Resolve the promise to unblock any data fetching.
                 if (!appState.authReady) {
                     appState.authReady = true;
                     authReadyPromiseResolver();
                 }
 
-                // Initialize the app only once.
                 if (!appState.appInitialized) {
                     appState.appInitialized = true;
-                    await cacheAllData(); // Cache necessary data first
+                    await cacheAllData();
                     renderPersonaFolioView(document.getElementById('folio-container'), {});
                     setupGlobalEventListeners();
                 }
                 
-                // Always update the auth UI elements.
                 updateUIAfterAuthChange();
 
             } else {
-                // No user is signed in. Attempt to sign in anonymously.
+                // No user is signed in.
                 appState.userId = null;
                 appState.isAnonymous = true;
                 
-                try {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
+                // Only try to sign in if the app hasn't been initialized yet.
+                // This prevents re-triggering auth on logout.
+                if (!appState.appInitialized) {
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (error) {
+                        console.error("Authentication failed:", error);
+                        showCustomAlert("Could not connect to the authentication service.");
                     }
-                    // onAuthStateChanged will be called again with the new user object after sign-in.
-                } catch (error) {
-                    console.error("Authentication failed:", error);
-                    showCustomAlert("Could not connect to the authentication service.");
+                } else {
+                    // If app was initialized, this is a logout. Reset the view.
+                     renderPersonaFolioView(document.getElementById('folio-container'), {});
+                     setupGlobalEventListeners();
                 }
             }
         });
