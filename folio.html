@@ -1842,6 +1842,62 @@
              }
         }
 
+        function newCharacter() {
+            showConfirmModal("Start a new character? Any unsaved changes will be lost.", () => {
+                clearSession();
+                renderPersonaFolioView(document.getElementById('folio-container'), {}, false);
+                setupGlobalEventListeners();
+            });
+        }
+
+        function showPreviewModal() {
+            const data = getPersonaFolioFormData();
+            const previewContent = document.getElementById('preview-content');
+            if (!previewContent) return;
+
+            let html = `<h2>${data['char-name'] || 'Unnamed Character'}</h2>`;
+            html += `<p><strong>Concept:</strong> ${data['char-concept'] || 'N/A'}</p>`;
+            html += `<p><strong>Species:</strong> ${data['char-species'] || 'N/A'}</p>`;
+            html += `<p><strong>Occupation:</strong> ${data['char-occu'] || 'N/A'}</p>`;
+
+            html += '<h3>Attributes</h3><ul>';
+            const attributes = ['strength', 'agility', 'constitution', 'intellect', 'wisdom', 'charisma'];
+            attributes.forEach(attr => {
+                const total = document.getElementById(`attr-${attr}-total`)?.value || 0;
+                html += `<li><strong>${attr.charAt(0).toUpperCase() + attr.slice(1)}:</strong> ${total}</li>`;
+            });
+            html += '</ul>';
+
+            html += '<h3>Skills</h3><ul>';
+            document.querySelectorAll('.skill-row:not(.header)').forEach(row => {
+                const rank = parseInt(row.querySelector('.skill-rank')?.value) || 0;
+                if (rank > 0) {
+                    const skillName = row.querySelector('label')?.textContent || row.querySelector('.skill-name-input')?.value;
+                    const total = row.querySelector('.skill-total')?.value || row.querySelector('.spec-total')?.value || 0;
+                    html += `<li><strong>${skillName}:</strong> ${total} (Rank ${rank})</li>`;
+                }
+            });
+            html += '</ul>';
+            
+            const createList = (title, items) => {
+                if (items && items.length > 0) {
+                    let listHtml = `<h3>${title}</h3><ul>`;
+                    items.forEach(item => listHtml += `<li>${item}</li>`);
+                    listHtml += '</ul>';
+                    return listHtml;
+                }
+                return '';
+            };
+
+            html += createList('Features', data.features);
+            html += createList('Disadvantages', data.disadvantages);
+            html += createList('Augmentations', data.augmentations);
+            html += createList('Equipment', data.equipment);
+
+            previewContent.innerHTML = html;
+            document.getElementById('preview-modal').classList.remove('hidden');
+        }
+
         function setupGlobalEventListeners() {
             const container = document.getElementById('folio-container');
             if (!container) return;
@@ -1875,6 +1931,7 @@
                 }
         
                 // Menu actions
+                if (target.id === 'new-char-btn') newCharacter();
                 if (target.id === 'local-save-btn') saveLocal();
                 if (target.id === 'local-load-btn') loadLocal();
                 if (target.id === 'cloud-save-btn') saveToDb();
@@ -1957,6 +2014,8 @@
                          <div class="file-menu" style="min-width: 100px;">
                              <button type="button" class="file-menu-button">DATA</button>
                              <div class="file-menu-dropdown">
+                                 <button type="button" id="new-char-btn">New</button>
+                                 <hr class="border-gray-600 my-1">
                                  <button type="button" id="preview-btn">Preview</button>
                                  <hr class="border-gray-600 my-1">
                                  <button type="button" id="cloud-save-btn">Save to Cloud</button>
