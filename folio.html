@@ -377,13 +377,12 @@
             ? JSON.parse(__firebase_config) 
             : {
                 // Fallback config for local development
-                apiKey: "AIzaSyBA1CC4SXXtWM9UpU1XkAiBFr0RIgrPwGk",
-                authDomain: "tangent-rpg-dbm.firebaseapp.com",
-                projectId: "tangent-rpg-dbm",
-                storageBucket: "tangent-rpg-dbm.appspot.com",
-                messagingSenderId: "559983787369",
-                appId: "1:559983787369:web:477e741d39d16d8fd211f8",
-                measurementId: "G-RNTCSYY7HD"
+                apiKey: "YOUR_API_KEY",
+                authDomain: "YOUR_AUTH_DOMAIN",
+                projectId: "YOUR_PROJECT_ID",
+                storageBucket: "YOUR_STORAGE_BUCKET",
+                messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+                appId: "YOUR_APP_ID",
               };
 
         // --- Firebase Initialization ---
@@ -1162,10 +1161,16 @@
             const modal = document.getElementById('custom-modal');
             const modalTitle = document.getElementById('modal-title');
             const modalChoices = document.getElementById('modal-choices');
+            const okBtn = document.getElementById('modal-ok-btn');
             const cancelBtn = document.getElementById('modal-cancel-btn');
 
             modalTitle.textContent = 'ADD SKILL';
             modalChoices.innerHTML = ''; 
+
+            // Reset modal state
+            modalChoices.style.display = 'block';
+            okBtn.style.display = 'none';
+            cancelBtn.style.display = 'block';
 
             const allSkills = await getCollectionOptions('skills');
             const existingSkillElements = document.querySelectorAll('.skill-row:not(.header) label, .skill-row.specialization .skill-name-input');
@@ -1211,10 +1216,7 @@
                 modalChoices.appendChild(skillRow);
             });
 
-            cancelBtn.style.display = 'block';
             cancelBtn.onclick = () => modal.classList.add('hidden');
-            document.getElementById('modal-ok-btn').style.display = 'none';
-
             modal.classList.remove('hidden');
         }
 
@@ -1321,8 +1323,11 @@
 
             modalTitle.textContent = "SELECT ATTACK";
             modalChoices.innerHTML = ''; 
-            cancelBtn.style.display = 'block';
+
+            // Reset modal state
+            modalChoices.style.display = 'flex';
             okBtn.style.display = 'none';
+            cancelBtn.style.display = 'block';
 
             availableAttacks.forEach(attack => {
                 const btn = document.createElement('button');
@@ -1335,7 +1340,6 @@
                 modalChoices.appendChild(btn);
             });
             
-            modalChoices.style.display = 'flex';
             modal.classList.remove('hidden');
 
             cancelBtn.onclick = () => {
@@ -1437,8 +1441,11 @@
 
             modalTitle.textContent = "SELECT ARMOR";
             modalChoices.innerHTML = ''; 
-            cancelBtn.style.display = 'block';
+            
+            // Reset modal state
+            modalChoices.style.display = 'flex';
             okBtn.style.display = 'none';
+            cancelBtn.style.display = 'block';
 
             availableArmor.forEach(armor => {
                 const btn = document.createElement('button');
@@ -1451,7 +1458,6 @@
                 modalChoices.appendChild(btn);
             });
             
-            modalChoices.style.display = 'flex';
             modal.classList.remove('hidden');
 
             cancelBtn.onclick = () => {
@@ -1607,11 +1613,17 @@
             const modal = document.getElementById('custom-modal');
             const modalTitle = document.getElementById('modal-title');
             const modalChoices = document.getElementById('modal-choices');
+            const okBtn = document.getElementById('modal-ok-btn');
             const cancelBtn = document.getElementById('modal-cancel-btn');
 
             modalTitle.textContent = `BROWSE: ${categoryConfig[startPathKey]?.label || startPathKey.toUpperCase()}`;
             modalChoices.innerHTML = '<p class="text-center">Loading...</p>';
+            
+            // Reset modal state
+            modalChoices.style.display = 'flex'; 
+            okBtn.style.display = 'none';
             cancelBtn.style.display = 'block';
+
             modal.classList.remove('hidden');
 
             const items = await getCollectionOptions(startPathKey);
@@ -1622,8 +1634,12 @@
             const isMultiSelect = !!dataInput;
 
             let currentSelections = [];
-            if (isMultiSelect) {
-                 currentSelections = JSON.parse(dataInput.value || '[]');
+            if (isMultiSelect && dataInput.value) {
+                 try {
+                    currentSelections = JSON.parse(dataInput.value);
+                 } catch(e) {
+                    currentSelections = [];
+                 }
             }
 
             const availableItems = items.filter(item => !currentSelections.includes(item.name));
@@ -1669,8 +1685,10 @@
                 }
             } else {
                 const targetInput = document.getElementById(targetId);
-                targetInput.value = value;
-                targetInput.dispatchEvent(new Event('change', { bubbles: true }));
+                if (targetInput) {
+                    targetInput.value = value;
+                    targetInput.dispatchEvent(new Event('change', { bubbles: true }));
+                }
             }
         }
 
@@ -1686,7 +1704,8 @@
                 removeBtn.type = 'button';
                 removeBtn.innerHTML = '&times;';
                 removeBtn.className = 'font-bold text-red-500 hover:text-red-300 ml-4';
-                removeBtn.onclick = () => {
+                removeBtn.onclick = (e) => {
+                    e.stopPropagation(); // Prevent the event from bubbling up to parent listeners
                     items.splice(index, 1);
                     document.getElementById(`${targetId}-data`).value = JSON.stringify(items);
                     renderItemList(container, items, targetId);
@@ -1705,9 +1724,10 @@
             const cancelBtn = document.getElementById('modal-cancel-btn');
 
             modalTitle.textContent = text.toUpperCase();
+            
+            // Reset modal state for an alert
             modalChoices.innerHTML = '';
             modalChoices.style.display = 'none';
-            
             okBtn.style.display = 'inline-block';
             cancelBtn.style.display = 'none';
             
@@ -1753,11 +1773,17 @@
             const modal = document.getElementById('custom-modal');
             const modalTitle = document.getElementById('modal-title');
             const modalChoices = document.getElementById('modal-choices');
+            const okBtn = document.getElementById('modal-ok-btn');
             const cancelBtn = document.getElementById('modal-cancel-btn');
 
             modalTitle.textContent = 'LOAD CHARACTER';
             modalChoices.innerHTML = '<p class="text-center">Loading...</p>';
+            
+            // Reset modal state
+            modalChoices.style.display = 'block';
+            okBtn.style.display = 'none';
             cancelBtn.style.display = 'block';
+            
             modal.classList.remove('hidden');
             
             const collectionRef = collection(db, `artifacts/${appId}/users/${appState.userId}/personas`);
@@ -1814,53 +1840,83 @@
         function setupGlobalEventListeners() {
             const container = document.getElementById('folio-container');
             if (!container) return;
-
+        
+            // Close dropdown when clicking outside
+            window.addEventListener('click', (event) => {
+                if (!event.target.matches('.file-menu-button')) {
+                    const dropdowns = document.querySelectorAll('.file-menu-dropdown');
+                    dropdowns.forEach(dropdown => {
+                        if (dropdown.classList.contains('show')) {
+                            dropdown.classList.remove('show');
+                        }
+                    });
+                }
+            });
+        
             container.addEventListener('click', (event) => {
                 const target = event.target;
-                
-                // Main menu
+                const dropdown = document.querySelector('.file-menu-dropdown');
+        
+                // Main menu toggle
                 if (target.matches('.file-menu-button')) {
-                    target.nextElementSibling.classList.toggle('show');
+                    event.stopPropagation(); // Prevent window listener from closing it immediately
+                    if(dropdown) dropdown.classList.toggle('show');
                     return;
                 }
+        
+                // Hide dropdown after a menu item is clicked
+                if (target.closest('.file-menu-dropdown')) {
+                    if(dropdown) dropdown.classList.remove('show');
+                }
+        
+                // Menu actions
                 if (target.id === 'local-save-btn') saveLocal();
                 if (target.id === 'local-load-btn') loadLocal();
                 if (target.id === 'cloud-save-btn') saveToDb();
                 if (target.id === 'cloud-load-btn') showCharacterLoadModal();
                 if (target.id === 'preview-btn') showPreviewModal();
                 if (target.id === 'economy-btn') showEconomyModal();
-
-
+        
+        
                 // Add buttons
                 if (target.id === 'add-attack-btn') showAttackSelectionModal();
                 if (target.id === 'add-armor-btn') showArmorSelectionModal();
                 if (target.id === 'add-note-btn') addNoteToList();
                 if (target.id === 'add-skill-btn') showAddSkillModal();
                 
-                // Browse buttons
-                if (target.dataset.browsePath) {
-                    const targetList = target.dataset.targetList || target.id;
-                    showDirectoryModal(targetList, target.dataset.browsePath);
+                // Browse buttons for adding items
+                const browseButton = target.closest('[data-browse-path]');
+                if (browseButton) {
+                    const targetList = browseButton.dataset.targetList || browseButton.id;
+                    // Special handling for read-only inputs that act as buttons
+                    if(browseButton.hasAttribute('readonly')) {
+                        showDirectoryModal(browseButton.id, browseButton.dataset.browsePath);
+                    } else {
+                         showDirectoryModal(targetList, browseButton.dataset.browsePath);
+                    }
                 }
-
+        
                 // Tab switching
                 if (target.matches('.tab-btn')) {
                     const tabsContainer = document.getElementById('tabs-container');
                     const tabPanelsContainer = document.getElementById('tab-panels');
-                    tabsContainer.querySelector('.active').classList.remove('active');
-                    tabPanelsContainer.querySelector('.active').classList.remove('active');
+                    const currentActiveTab = tabsContainer.querySelector('.active');
+                    const currentActivePanel = tabPanelsContainer.querySelector('.active');
+                    
+                    if(currentActiveTab) currentActiveTab.classList.remove('active');
+                    if(currentActivePanel) currentActivePanel.classList.remove('active');
                     
                     target.classList.add('active');
                     const targetPanelId = target.dataset.tabTarget;
-                    document.querySelector(targetPanelId).classList.add('active');
+                    const targetPanel = document.querySelector(targetPanelId);
+                    if(targetPanel) targetPanel.classList.add('active');
                 }
             });
-
+        
             // Auto-save to session on any input change that could affect data
             container.addEventListener('input', (event) => {
                 const form = event.target.closest('#persona-folio-form');
                 if (form) {
-                    // Recalculate points on relevant changes
                     if (event.target.matches('.skill-rank, .attribute-value') || event.target.closest('.single-column-grid')) {
                          recalculateAllModifiers();
                     }
@@ -1873,6 +1929,9 @@
                  if (form) {
                     if (event.target.matches('#char-occu, #char-species, #char-origin, #char-faction, .skill-base-select')) {
                         recalculateAllModifiers();
+                    }
+                     if (event.target.matches('[data-browse-path]')) {
+                        updateAllTraits();
                     }
                     saveToSession();
                 }
@@ -1909,7 +1968,7 @@
                          <div class="flex items-center" style="min-width: 100px;">
                             <div id="header-cp-tracker" class="mr-4 text-right">
                                 <div id="header-spent-cp" class="font-bold">Spent CP: 0</div>
-                                <button id="economy-btn" class="text-xs text-blue-400 hover:underline">Economy</button>
+                                <button type="button" id="economy-btn" class="text-xs text-blue-400 hover:underline">Economy</button>
                             </div>
                             <div id="auth-container"></div>
                          </div>
@@ -2078,7 +2137,7 @@
                                      <button type="button" data-target-list="special_abilities" data-browse-path="invocations" class="btn btn-secondary mt-4 w-full">Add Special Ability</button>
                                      <input type="hidden" id="special_abilities-data" name="special_abilities">
                                  </fieldset>
-                             </section>
+                            </section>
                             <section class="main-section">
                                  <fieldset><legend>Features</legend>
                                      <div id="features-display" class="single-column-grid"></div>
