@@ -297,10 +297,6 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        .auth-required {
-            display: none;
-        }
-
         .file-menu {
             position: relative;
             display: inline-block;
@@ -1134,7 +1130,7 @@
                     </div>
                     <div class="flex items-center gap-2">
                         <input type="text" id="search-input-${collectionKey}" placeholder="Search by name..." class="global-form-input !w-auto" value="${appState.searchTerm}">
-                        <button id="add-new-btn-${collectionKey}" class="btn btn-primary auth-required">ADD NEW</button>
+                        <button id="add-new-btn-${collectionKey}" class="btn btn-primary auth-required hidden">ADD NEW</button>
                     </div>
                 </div>
                 <div class="shadow-lg rounded-lg overflow-x-auto">
@@ -1313,7 +1309,11 @@
 
             const authRequiredElements = document.querySelectorAll('.auth-required');
             authRequiredElements.forEach(el => {
-                el.style.display = appState.isAnonymous ? 'none' : '';
+                if (appState.isAnonymous) {
+                    el.classList.add('hidden');
+                } else {
+                    el.classList.remove('hidden');
+                }
             });
 
             // Update interactivity of table titles based on auth state
@@ -1558,13 +1558,13 @@
                 mainContentContainer.innerHTML = `
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-8 h-full">
                         <div id="wiki-directory-main" class="md:col-span-1 bg-gray-800 p-4 rounded-lg overflow-y-auto border-2 border-gray-700">
-                            <button id="add-wiki-entry-btn" class="btn btn-primary w-full mb-4 auth-required">Add New Entry</button>
+                            <button id="add-wiki-entry-btn" class="btn btn-primary w-full mb-4 auth-required hidden">Add New Entry</button>
                             <ul id="wiki-directory-list"></ul>
                         </div>
                         <div class="md:col-span-2 wiki-content" id="wiki-content-main">
                             <div class="flex justify-end gap-2 mb-4">
-                                <button id="wiki-edit-btn" class="btn btn-secondary auth-required" style="display:none;">Edit</button>
-                                <button id="wiki-delete-btn" class="btn btn-danger auth-required" style="display:none;">Delete</button>
+                                <button id="wiki-edit-btn" class="btn btn-secondary auth-required hidden">Edit</button>
+                                <button id="wiki-delete-btn" class="btn btn-danger auth-required hidden">Delete</button>
                             </div>
                             <h2 id="wiki-entry-title">Select an Entry</h2>
                             <div id="wiki-entry-body">
@@ -1671,8 +1671,8 @@
 
             wikiTitle.textContent = 'Loading...';
             wikiBody.innerHTML = '<p class="text-center text-gray-400">Loading entry...</p>';
-            if(wikiEditBtn) wikiEditBtn.style.display = 'none';
-            if(wikiDeleteBtn) wikiDeleteBtn.style.display = 'none';
+            if(wikiEditBtn) wikiEditBtn.classList.add('hidden');
+            if(wikiDeleteBtn) wikiDeleteBtn.classList.add('hidden');
             appState.currentWikiEntryId = null;
 
             try {
@@ -1692,8 +1692,8 @@
                     appState.currentWikiEntryId = docId;
 
                     if (!appState.isAnonymous) {
-                        if(wikiEditBtn) wikiEditBtn.style.display = 'inline-block';
-                        if(wikiDeleteBtn) wikiDeleteBtn.style.display = 'inline-block';
+                        if(wikiEditBtn) wikiEditBtn.classList.remove('hidden');
+                        if(wikiDeleteBtn) wikiDeleteBtn.classList.remove('hidden');
                     }
 
                 } else {
@@ -2103,7 +2103,7 @@
             } else if (fieldConfig.aiEnabled) {
                 labelHtml = `<div class="flex justify-between items-center">
                                 <label for="${fieldKey}" class="global-form-label">${labelText}</label>
-                                <button type="button" id="generate-description-btn" class="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors underline auth-required" ${isEditMode ? '' : 'style="display:none;"'}>
+                                <button type="button" id="generate-description-btn" class="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors underline auth-required hidden">
                                     GENERATE
                                 </button>
                              </div>`;
@@ -2242,10 +2242,9 @@
             if (docId && isEditMode) {
                 const deleteButton = document.createElement('button');
                 deleteButton.id = 'modal-delete-btn';
-                deleteButton.className = 'text-red-400 hover:bg-red-800 auth-required';
-                deleteButton.textContent = 'Delete';
-                deleteButton.addEventListener('click', () => deleteEntry(collectionKey, docId));
+                deleteButton.className = 'text-red-400 hover:bg-red-800 auth-required hidden';
                 modalDataDropdown.appendChild(deleteButton);
+                deleteButton.addEventListener('click', () => deleteEntry(collectionKey, docId));
             }
 
 
