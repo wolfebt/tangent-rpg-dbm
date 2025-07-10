@@ -100,8 +100,8 @@
             cursor: not-allowed;
         }
 
-        .persona-folio-container .attack-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 3fr auto; gap: 0.5rem; align-items: center; }
-        .persona-folio-container .armor-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 3fr auto; gap: 0.5rem; align-items: center; }
+        .persona-folio-container .attack-grid { display: grid; grid-template-columns: 2fr 1fr 2fr 3fr auto; gap: 0.5rem; align-items: center; }
+        .persona-folio-container .armor-grid { display: grid; grid-template-columns: 2fr 2fr 3fr auto; gap: 0.5rem; align-items: center; }
         .persona-folio-container .armor-grid label { font-weight: bold; margin-bottom: 0; }
         .persona-folio-container .attack-header, .persona-folio-container .armor-header { font-weight: bold; font-size: 0.8rem; color: var(--text-light); border-bottom: 1.5px solid var(--border-subtle); padding-bottom: 0.25rem; }
         .skills-column { display: flex; flex-direction: column; gap: 1.5rem; }
@@ -262,8 +262,7 @@
         import { 
             getAuth, onAuthStateChanged, signOut, 
             GoogleAuthProvider, signInWithPopup,
-            signInAnonymously,
-            signInWithCustomToken
+            signInAnonymously 
         } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
         import { 
             getFirestore, collection, getDocs, doc, setDoc, addDoc, getDoc, query, where 
@@ -303,10 +302,6 @@
             invocations: { label: 'INVOCATIONS' },
             equipment: { label: 'EQUIPMENT' },
             associates: { label: 'ASSOCIATES' },
-            weaponry: { label: 'WEAPONRY' },
-            armoring: { label: 'ARMORING' },
-            gear: { label: 'GEAR' },
-            mecha: { label: 'MECHA' },
         };
 
         // --- Application State ---
@@ -318,17 +313,16 @@
             confirmCallback: null,
             allModifiersCache: null, // Cache for modifier definitions
         };
-        
-        let isAppInitialized = false;
+
+        // --- Authentication Promise ---
+        let authReadyPromiseResolver;
+        const authReadyPromise = new Promise(resolve => {
+            authReadyPromiseResolver = resolve;
+        });
 
         // --- Firebase Functions ---
         async function getCollectionOptions(collectionName) {
-            // No longer need to wait for a promise here, as this function
-            // will only be called after authentication is confirmed.
-            if (!appState.authReady) {
-                console.error("getCollectionOptions called before auth is ready.");
-                return [];
-            }
+            await authReadyPromise;
 
             if (collectionName === 'equipment') {
                 const equipmentTypes = ['armoring', 'weaponry', 'mecha', 'gear'];
@@ -555,14 +549,13 @@
 
             const subAttributeId = primaryToSubAttributeMap[attributeBaseId];
             if (subAttributeId) {
-                 const subValueInput = document.getElementById(subAttributeId);
-                 if (subValueInput) {
-                     const primaryValue = parseInt(valueInput.value) || 0;
-                     subValueInput.value = (primaryValue * 2) + 2;
-                     // We don't need a recursive call here, the main event listener will trigger updates.
-                 }
+                const subValueInput = document.getElementById(subAttributeId);
+                if (subValueInput) {
+                    const primaryValue = parseInt(valueInput.value) || 0;
+                    subValueInput.value = (primaryValue * 2) + 2;
+                    calculateAttributeTotal(subAttributeId);
+                }
             }
-
 
             document.querySelectorAll('.skill-row:not(.header)').forEach(skillRow => {
                 const baseSelect = skillRow.querySelector('.skill-base-select');
@@ -720,70 +713,6 @@
             calculatePerceptionScores();
         }
 
-        async function recalculateCP() {
-            const totalCpInput = document.getElementById('total-cp-hidden');
-            const spentCpDisplay = document.getElementById('spent-cp');
-            const remainingCpDisplay = document.getElementById('remaining-cp');
-
-            if (!totalCpInput || !spentCpDisplay || !remainingCpDisplay ) return;
-
-            let totalCP = parseInt(totalCpInput.value) || 0;
-            let spentCP = 0;
-
-            // 1. Attributes
-            document.querySelectorAll('.attribute-value:not([readonly])').forEach(input => {
-                const value = parseInt(input.value) || 0;
-                spentCP += value * 5; // Only primary attributes are editable and cost CP.
-            });
-            
-            // 2. Skills
-            document.querySelectorAll('.skill-rank').forEach(input => {
-                const rank = parseInt(input.value) || 0;
-                spentCP += rank * 1; // 1 CP per rank
-            });
-
-            // 3. Selections (Features, Disadvantages, etc.)
-            const costSources = [
-                { type: 'single', elementId: 'char-species', collection: 'species' },
-                { type: 'single', elementId: 'char-occu', collection: 'occupations' },
-                { type: 'single', elementId: 'char-origin', collection: 'origins' },
-                { type: 'single', elementId: 'char-faction', collection: 'factions' },
-                { type: 'multi', elementId: 'features-data', collection: 'features', baseCost: 3 },
-                { type: 'multi', elementId: 'disadvantages-data', collection: 'disadvantages' },
-                { type: 'multi', elementId: 'augmentations-data', collection: 'augmentations' },
-                { type: 'multi', elementId: 'invocations-data', collection: 'invocations' },
-                { type: 'multi', elementId: 'equipment-data', collection: 'equipment' },
-            ];
-            
-            for (const source of costSources) {
-                const dbItems = await getCollectionOptions(source.collection);
-                let selectedNames = [];
-                const element = document.getElementById(source.elementId);
-
-                if (!element) continue;
-
-                if (source.type === 'single') {
-                    if (element.value) selectedNames.push(element.value);
-                } else {
-                    if (element.value) {
-                        try { selectedNames = JSON.parse(element.value); } catch (e) {}
-                    }
-                }
-
-                for (const name of selectedNames) {
-                    const itemData = dbItems.find(item => item.name === name);
-                    if (itemData) {
-                        const cost = parseInt(itemData.cp_cost) || source.baseCost || 0;
-                        spentCP += cost;
-                    }
-                }
-            }
-            
-            spentCpDisplay.textContent = spentCP;
-            remainingCpDisplay.textContent = totalCP - spentCP;
-        }
-
-
         async function initializePersonaFolio(folioData = {}) {
             const sheet = document.getElementById('persona-folio-form');
             if(!sheet) return;
@@ -823,11 +752,6 @@
 
             sheet.addEventListener('input', (e) => {
                 const target = e.target;
-                
-                if(target.closest('.attribute-value, .skill-rank')){
-                    recalculateCP();
-                }
-
                 const specRow = target.closest('.specialization-row');
                 if (specRow) {
                     calculateSpecializationTotal(specRow);
@@ -854,8 +778,7 @@
                     calculateAttributeTotal(primaryId);
                 });
             }
-            await recalculateAllModifiers();
-            await recalculateCP();
+            recalculateAllModifiers();
         }
 
         function populateSkillGroup(container, groupName, groupData) {
@@ -1117,12 +1040,12 @@
             const availableAttacks = [];
             
             currentEquipment.forEach(name => {
-                const item = allEquipment.find(eq => eq.name === name && eq.damage);
+                const item = allEquipment.find(eq => eq.name === name && eq.effect);
                 if (item) availableAttacks.push({ ...item, source: 'Equipment' });
             });
 
             currentInvocations.forEach(name => {
-                const item = allInvocations.find(inv => inv.name === name && inv.damage);
+                const item = allInvocations.find(inv => inv.name === name && inv.effect);
                 if (item) availableAttacks.push({ ...item, source: 'Invocations' });
             });
 
@@ -1171,7 +1094,7 @@
             const newAttack = {
                 name: attackData.name,
                 score: attackData.skill || '',
-                damage: attackData.damage || '',
+                damage: attackData.effect || '',
                 notes: ''
             };
 
@@ -1228,17 +1151,17 @@
             const availableArmor = [];
             
             if (speciesInput && speciesInput.value) {
-                const species = allSpecies.find(s => s.name === speciesInput.value && (s.dr || s.er));
+                const species = allSpecies.find(s => s.name === speciesInput.value && s.resistance);
                 if (species) availableArmor.push({ ...species, source: 'Species' });
             }
 
             currentEquipment.forEach(name => {
-                const item = allEquipment.find(eq => eq.name === name && (eq.dr || eq.er));
+                const item = allEquipment.find(eq => eq.name === name && eq.resistance);
                 if (item) availableArmor.push({ ...item, source: 'Equipment' });
             });
 
             currentAugmentations.forEach(name => {
-                const item = allAugmentations.find(aug => aug.name === name && (aug.dr || aug.er));
+                const item = allAugmentations.find(aug => aug.name === name && aug.resistance);
                 if (item) availableArmor.push({ ...item, source: 'Augmentations' });
             });
 
@@ -1286,8 +1209,7 @@
 
             const newArmor = {
                 name: armorData.name,
-                dr: armorData.dr || 0,
-                er: armorData.er || 0,
+                resistance: armorData.resistance || '',
                 notes: armorData.source || ''
             };
 
@@ -1309,8 +1231,7 @@
                 row.className = 'armor-grid';
                 row.innerHTML = `
                     <input type="text" value="${armor.name}" readonly>
-                    <input type="text" value="${armor.dr}" readonly>
-                    <input type="text" value="${armor.er}" readonly>
+                    <input type="text" value="${armor.resistance}" readonly>
                     <input type="text" value="${armor.notes}" readonly>
                     <button type="button" class="btn btn-danger btn-sm p-1 leading-none">&times;</button>
                 `;
@@ -1490,7 +1411,6 @@
                 targetInput.value = value;
                 targetInput.dispatchEvent(new Event('change', { bubbles: true }));
             }
-            recalculateCP();
         }
 
         function renderItemList(container, items, targetId) {
@@ -1509,7 +1429,6 @@
                     items.splice(index, 1);
                     document.getElementById(`${targetId}-data`).value = JSON.stringify(items);
                     renderItemList(container, items, targetId);
-                    recalculateCP();
                 };
                 itemEl.appendChild(removeBtn);
                 container.appendChild(itemEl);
@@ -1535,133 +1454,6 @@
                 modal.classList.add('hidden');
             };
 
-            modal.classList.remove('hidden');
-        }
-        
-        async function getCostBreakdown() {
-            const breakdown = [];
-
-            // Attributes
-            document.querySelectorAll('.attribute-value:not([readonly])').forEach(input => {
-                const value = parseInt(input.value) || 0;
-                if (value > 0) {
-                    const name = input.closest('.grid').querySelector('label').textContent;
-                    breakdown.push({ name: `${name} x${value}`, cost: value * 5, source: 'Attributes' });
-                }
-            });
-
-            // Skills
-            document.querySelectorAll('.skill-rank').forEach(input => {
-                const rank = parseInt(input.value) || 0;
-                if (rank > 0) {
-                    const row = input.closest('.skill-row');
-                    const label = row.querySelector('label, .skill-name-input');
-                    const name = label.value || label.textContent;
-                    breakdown.push({ name: `${name} Rank x${rank}`, cost: rank * 1, source: 'Skills' });
-                }
-            });
-
-            // Other Selections
-            const costSources = [
-                { type: 'single', elementId: 'char-species', collection: 'species' },
-                { type: 'single', elementId: 'char-occu', collection: 'occupations' },
-                { type: 'single', elementId: 'char-origin', collection: 'origins' },
-                { type: 'single', elementId: 'char-faction', collection: 'factions' },
-                { type: 'multi', elementId: 'features-data', collection: 'features', baseCost: 3 },
-                { type: 'multi', elementId: 'disadvantages-data', collection: 'disadvantages' },
-                { type: 'multi', elementId: 'augmentations-data', collection: 'augmentations' },
-                { type: 'multi', elementId: 'invocations-data', collection: 'invocations' },
-                { type: 'multi', elementId: 'equipment-data', collection: 'equipment' },
-            ];
-
-            for (const source of costSources) {
-                const dbItems = await getCollectionOptions(source.collection);
-                let selectedNames = [];
-                const element = document.getElementById(source.elementId);
-
-                if (!element) continue;
-
-                if (source.type === 'single') {
-                    if (element.value) selectedNames.push(element.value);
-                } else {
-                    if (element.value) {
-                        try { selectedNames = JSON.parse(element.value); } catch (e) {}
-                    }
-                }
-
-                for (const name of selectedNames) {
-                    const itemData = dbItems.find(item => item.name === name);
-                    if (itemData) {
-                        const cost = parseInt(itemData.cp_cost) || source.baseCost || 0;
-                        if (cost > 0) {
-                            breakdown.push({ name: itemData.name, cost: cost, source: categoryConfig[source.collection]?.label || source.collection });
-                        }
-                    }
-                }
-            }
-
-            return breakdown;
-        }
-
-        async function showCPEconomyModal() {
-            const modal = document.getElementById('custom-modal');
-            const modalTitle = document.getElementById('modal-title');
-            const modalChoices = document.getElementById('modal-choices');
-            const okBtn = document.getElementById('modal-ok-btn');
-            const cancelBtn = document.getElementById('modal-cancel-btn');
-
-            modalTitle.textContent = "CP ECONOMY DETAILS";
-            
-            const totalCpHiddenInput = document.getElementById('total-cp-hidden');
-            const currentTotalCp = totalCpHiddenInput.value;
-
-            const costBreakdown = await getCostBreakdown();
-            let purchasedItemsHtml = '<p class="text-gray-400">No CP spent yet.</p>';
-
-            if (costBreakdown.length > 0) {
-                purchasedItemsHtml = '<ul class="list-disc pl-5 space-y-1">';
-                costBreakdown.forEach(item => {
-                    purchasedItemsHtml += `<li><b>${item.name}</b> (${item.source}): ${item.cost} CP</li>`;
-                });
-                purchasedItemsHtml += '</ul>';
-            }
-
-            modalChoices.innerHTML = `
-                <div class="text-left space-y-4">
-                     <div>
-                        <h3 class="font-bold text-xl mb-2 border-b border-gray-500">Base Starting Points</h3>
-                        <div class="input-group">
-                            <label for="modal-total-cp">Total Creation Points:</label>
-                            <input type="number" id="modal-total-cp" class="w-full text-center bg-gray-700 font-bold text-lg" value="${currentTotalCp}" step="50">
-                        </div>
-                    </div>
-                    <div>
-                        <h3 class="font-bold text-xl mb-2 border-b border-gray-500">CP Costs</h3>
-                        <ul class="list-disc pl-5">
-                            <li><b>Attributes:</b> 5 CP per point</li>
-                            <li><b>Skill Ranks:</b> 1 CP per rank</li>
-                            <li><b>Features:</b> 3 CP each (unless specified)</li>
-                            <li>Other items have specified costs.</li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h3 class="font-bold text-xl mb-2 border-b border-gray-500">Purchased Items</h3>
-                        ${purchasedItemsHtml}
-                    </div>
-                </div>
-            `;
-            
-            const modalTotalCpInput = document.getElementById('modal-total-cp');
-            modalTotalCpInput.addEventListener('input', () => {
-                totalCpHiddenInput.value = modalTotalCpInput.value;
-                recalculateCP();
-            });
-
-            modalChoices.style.display = 'block';
-            okBtn.style.display = 'inline-block';
-            cancelBtn.style.display = 'none';
-            okBtn.onclick = () => modal.classList.add('hidden');
-            
             modal.classList.remove('hidden');
         }
 
@@ -1760,23 +1552,11 @@
              <div class="persona-folio-container">
                  <form id="persona-folio-form" onsubmit="return false;">
                     <input type="hidden" id="character-doc-id" name="character-doc-id" value="${folioData['character-doc-id'] || ''}">
-                    <input type="hidden" id="total-cp-hidden" name="total-cp-hidden" value="150">
                      <header class="sheet-header">
                          <div id="auth-container" class="absolute left-4 top-4"></div>
                          <div class="actor-display">
                              <div id="actor-display-header">PERSONA FOLIO</div>
                          </div>
-                          <div id="cp-tracker" class="flex items-center gap-2 border-2 border-gray-600 px-3 py-1 rounded-lg">
-                            <div class="text-center">
-                                <span id="spent-cp" class="font-bold text-lg">0</span>
-                                <div class="text-xs -mt-1 text-gray-400">Spent</div>
-                            </div>
-                             <div class="text-center">
-                                <span id="remaining-cp" class="font-bold text-lg">150</span>
-                                <div class="text-xs -mt-1 text-gray-400">Left</div>
-                            </div>
-                            <button type="button" id="cp-info-btn" class="ml-2 text-xl font-bold text-gray-400 hover:text-white">ⓘ</button>
-                        </div>
                          <h1>Tangent SFF RPG</h1>
                          <div class="file-menu">
                              <button type="button" class="file-menu-button">DATA</button>
@@ -1812,14 +1592,6 @@
                              </div>
                          </fieldset>
                      </section>
-                     
-                     <section class="main-section" id="granted-items-section">
-                        <fieldset><legend>Granted Items</legend>
-                            <div id="granted-items-display" class="single-column-grid space-y-1 text-sm">
-                                <p class="text-gray-400">No granted items.</p>
-                            </div>
-                        </fieldset>
-                    </section>
 
                      <section class="main-section" id="attributes-stats-section">
                          <fieldset><legend>Attributes</legend>
@@ -1844,7 +1616,7 @@
                                          <input type="number" id="${attr.id}-mod" name="${attr.id}-mod" class="attribute-mod italic text-center" value="0" readonly>
                                          <input type="number" id="${attr.id}-total" name="${attr.id}-total" class="attribute-total font-bold text-center ${!attr.sub ? 'text-lg' : ''} ${attr.sub ? 'w-16 mx-auto' : ''}" readonly value="0">
                                      </div>
-                                     ${attr.sub ? '' : '<div class="col-span-5 border-b-2 border-gray-500 my-2"></div>'}
+                                     ${attr.sub ? '<div class="col-span-5 border-b-2 border-gray-500 my-2"></div>' : ''}
                                  `).join('')}
                              </div>
                          </fieldset>
@@ -1954,7 +1726,7 @@
                                  <div class="attack-grid">
                                      <div class="attack-header">Attack</div>
                                      <div class="attack-header">Score</div>
-                                     <div class="attack-header">Damage</div>
+                                     <div class="attack-header">Effect</div>
                                      <div class="attack-header">Notes</div>
                                      <div></div>
                                  </div>
@@ -1967,8 +1739,7 @@
                              <div id="armor-rows">
                                  <div class="armor-grid">
                                      <div class="armor-header">Armor</div>
-                                     <div class="armor-header">DR</div>
-                                     <div class="armor-header">ER</div>
+                                     <div class="armor-header">Resistance</div>
                                      <div class="armor-header">Notes</div>
                                      <div></div>
                                  </div>
@@ -2004,12 +1775,7 @@
                          <fieldset>
                              <legend>Equipment</legend>
                             <div id="equipment-display" class="single-column-grid"></div>
-                            <div class="grid grid-cols-2 gap-2 mt-4">
-                                <button type="button" data-target-list="equipment" data-browse-path="weaponry" class="btn btn-secondary w-full">Add Weaponry</button>
-                                <button type="button" data-target-list="equipment" data-browse-path="armoring" class="btn btn-secondary w-full">Add Armoring</button>
-                                <button type="button" data-target-list="equipment" data-browse-path="gear" class="btn btn-secondary w-full">Add Gear</button>
-                                <button type="button" data-target-list="equipment" data-browse-path="mecha" class="btn btn-secondary w-full">Add Mecha</button>
-                            </div>
+                            <button type="button" data-target-list="equipment" data-browse-path="equipment" class="btn btn-secondary mt-4 w-full">Add Equipment</button>
                             <input type="hidden" id="equipment-data" name="equipment">
                          </fieldset>
                      </section>
@@ -2054,9 +1820,7 @@
             document.getElementById('add-attack-btn').addEventListener('click', showAttackSelectionModal);
             document.getElementById('add-armor-btn').addEventListener('click', showArmorSelectionModal);
             document.getElementById('add-note-btn').addEventListener('click', addNoteToList);
-            
-            document.getElementById('cp-info-btn').addEventListener('click', showCPEconomyModal);
-            
+
             const sheet = document.getElementById('persona-folio-form');
             if (sheet) {
                 sheet.addEventListener('click', (event) => {
@@ -2070,7 +1834,6 @@
                     if (event.target.matches('#char-species, #char-occu, #char-origin, #char-faction')) {
                         updateAllTraits();
                         recalculateAllModifiers();
-                        recalculateCP();
                     }
                 });
             }
@@ -2092,10 +1855,8 @@
         async function handleLogout() {
             try {
                 await signOut(auth);
-                // After logging out, Firebase will trigger onAuthStateChanged with user=null
-                // which will then sign in anonymously and re-initialize the app.
-                isAppInitialized = false; // Allow re-initialization
-                document.getElementById('folio-container').innerHTML = ''; // Clear the view
+                // Optionally, clear the sheet or show a logged-out message
+                renderPersonaFolioView(document.getElementById('folio-container'), {});
             } catch (error) {
                 console.error("Error signing out:", error);
             }
@@ -2121,47 +1882,32 @@
             }
         }
 
-        async function initializeMainApp(user) {
-            // If the app is already initialized, just update the auth state and UI
-            if (isAppInitialized) {
-                appState.userId = user.uid;
-                appState.isAnonymous = user.isAnonymous;
-                updateUIAfterAuthChange();
-                return;
-            }
-            
-            // Mark the app as initialized to prevent re-rendering
-            isAppInitialized = true;
-            appState.userId = user.uid;
-            appState.isAnonymous = user.isAnonymous;
-            appState.authReady = true;
-
-            // Initial render of the entire folio view
-            renderPersonaFolioView(document.getElementById('folio-container'), {});
-        }
-
-        // Main entry point for the application
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                // If a user object exists, initialize the main application logic
-                await initializeMainApp(user);
+                appState.userId = user.uid;
+                appState.isAnonymous = user.isAnonymous;
             } else {
-                // If no user is signed in, attempt to sign in.
-                try {
-                    // Use the provided custom token if available, otherwise sign in anonymously
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-                    // onAuthStateChanged will be called again by Firebase after a successful sign-in,
-                    // which will then trigger the initializeMainApp function.
-                } catch (error) {
-                    console.error("Authentication failed:", error);
-                    document.body.innerHTML = '<div class="text-red-500 p-8 text-center">Authentication failed. Please refresh the page to try again.</div>';
-                }
+                appState.userId = null;
+                appState.isAnonymous = true;
+                // Fallback to anonymous sign-in if user logs out or session expires
+                await signInAnonymously(auth).catch(err => {
+                    console.error("Anonymous sign-in failed", err);
+                });
             }
+            
+            if (!appState.authReady) {
+                appState.authReady = true;
+                authReadyPromiseResolver(); // Signal that auth is ready
+            }
+
+            updateUIAfterAuthChange();
         });
+
+
+        // --- Initial Render ---
+        window.onload = function() {
+            renderPersonaFolioView(document.getElementById('folio-container'), {});
+        };
 
     </script>
 </body>
