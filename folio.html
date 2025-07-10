@@ -1917,18 +1917,23 @@
         
             container.addEventListener('click', (event) => {
                 const target = event.target;
-                const dropdown = document.querySelector('.file-menu-dropdown');
         
                 // Main menu toggle
                 if (target.matches('.file-menu-button')) {
-                    event.stopPropagation(); // Prevent window listener from closing it immediately
-                    if(dropdown) dropdown.classList.toggle('show');
+                    event.stopPropagation();
+                    const dropdown = target.nextElementSibling;
+                    if (dropdown) {
+                        dropdown.classList.toggle('show');
+                    }
                     return;
                 }
         
                 // Hide dropdown after a menu item is clicked
                 if (target.closest('.file-menu-dropdown')) {
-                    if(dropdown) dropdown.classList.remove('show');
+                    const dropdown = document.querySelector('.file-menu-dropdown');
+                    if (dropdown) {
+                        dropdown.classList.remove('show');
+                    }
                 }
         
                 // Menu actions
