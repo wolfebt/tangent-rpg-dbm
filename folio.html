@@ -352,8 +352,7 @@
                 </div>
             </div>
             <div id="economy-details" class="space-y-4 max-h-96 overflow-y-auto bg-gray-800 p-4 rounded">
-                <!-- Itemized list will be injected here -->
-            </div>
+                </div>
             <div class="flex justify-end mt-4">
                  <button id="economy-close-btn" class="btn btn-secondary">Close</button>
             </div>
@@ -1859,6 +1858,8 @@
             html += `<p><strong>Concept:</strong> ${data['char-concept'] || 'N/A'}</p>`;
             html += `<p><strong>Species:</strong> ${data['char-species'] || 'N/A'}</p>`;
             html += `<p><strong>Occupation:</strong> ${data['char-occu'] || 'N/A'}</p>`;
+            html += `<p><strong>Origin:</strong> ${data['char-origin'] || 'N/A'}</p>`;
+            html += `<p><strong>Faction:</strong> ${data['char-faction'] || 'N/A'}</p>`;
 
             html += '<h3>Attributes</h3><ul>';
             const attributes = ['strength', 'agility', 'constitution', 'intellect', 'wisdom', 'charisma'];
