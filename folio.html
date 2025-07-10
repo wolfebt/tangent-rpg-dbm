@@ -1892,12 +1892,13 @@
                     authReadyPromiseResolver();
                 }
                 updateUIAfterAuthChange();
+                 // Now that we are authenticated, render the main view
+                renderPersonaFolioView(document.getElementById('folio-container'), {});
             } else {
                 // No user is signed in.
                 appState.userId = null;
                 appState.isAnonymous = true;
-                // Reset the view if the user logs out
-                renderPersonaFolioView(document.getElementById('folio-container'), {});
+                
                 try {
                     if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                         await signInWithCustomToken(auth, __initial_auth_token);
@@ -1911,12 +1912,6 @@
                 }
             }
         });
-
-
-        // --- Initial Render ---
-        window.onload = function() {
-            renderPersonaFolioView(document.getElementById('folio-container'), {});
-        };
 
     </script>
 </body>
