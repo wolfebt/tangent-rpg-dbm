@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Standalone Persona Folio</title>
+    <link rel="icon" href="data:,">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
@@ -313,6 +314,7 @@
             initialFormState: null,
             confirmCallback: null,
             allModifiersCache: null, // Cache for modifier definitions
+            appInitialized: false,
         };
 
         // --- Authentication Promise ---
@@ -1887,15 +1889,24 @@
                 // User is signed in.
                 appState.userId = user.uid;
                 appState.isAnonymous = user.isAnonymous;
+                
+                // Resolve the promise to unblock any data fetching.
                 if (!appState.authReady) {
                     appState.authReady = true;
                     authReadyPromiseResolver();
                 }
+
+                // Initialize the app only once.
+                if (!appState.appInitialized) {
+                    appState.appInitialized = true;
+                    renderPersonaFolioView(document.getElementById('folio-container'), {});
+                }
+                
+                // Always update the auth UI elements.
                 updateUIAfterAuthChange();
-                 // Now that we are authenticated, render the main view
-                renderPersonaFolioView(document.getElementById('folio-container'), {});
+
             } else {
-                // No user is signed in.
+                // No user is signed in. Attempt to sign in anonymously.
                 appState.userId = null;
                 appState.isAnonymous = true;
                 
@@ -1905,7 +1916,7 @@
                     } else {
                         await signInAnonymously(auth);
                     }
-                    // After successful sign-in, onAuthStateChanged will fire again with the new user object.
+                    // onAuthStateChanged will be called again with the new user object after sign-in.
                 } catch (error) {
                     console.error("Authentication failed:", error);
                     showCustomAlert("Could not connect to the authentication service.");
