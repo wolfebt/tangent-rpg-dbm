@@ -226,6 +226,32 @@
             background-color: var(--bg-input);
             border-color: var(--border-subtle);
         }
+
+        /* Tab Styles */
+        .tab-btn {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            border: none;
+            background-color: transparent;
+            color: var(--text-subtle);
+            font-weight: 600;
+            transition: all 0.2s ease-in-out;
+            border-bottom: 3px solid transparent;
+        }
+        .tab-btn:hover {
+            color: var(--text-light);
+        }
+        .tab-btn.active {
+            color: var(--text-light);
+            border-bottom-color: #4A90E2; /* A nice blue color */
+        }
+        .tab-panel {
+            display: none;
+            padding-top: 1.5rem;
+        }
+        .tab-panel.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -1572,234 +1598,250 @@
                              </div>
                          </div>
                      </header>
-                     
-                     <section class="main-section" id="bio-section">
-                         <fieldset><legend>Bio</legend>
-                             <div class="space-y-4">
-                                 <div class="input-group"><label for="char-name">Name</label><input type="text" id="char-name" name="char-name"></div>
-                                 <div class="input-group"><label for="char-concept">Concept</label><input type="text" id="char-concept" name="char-concept"></div>
-                                 <div class="input-group"><label for="char-species">Species</label><input type="text" id="char-species" name="char-species" data-browse-path="species" readonly class="cursor-pointer" placeholder="-- SELECT --"></div>
-                                 <div class="input-group"><label for="char-occu">Occupation</label><input type="text" id="char-occu" name="char-occu" data-browse-path="occupations" readonly class="cursor-pointer" placeholder="-- SELECT --"></div>
-                                 <div class="input-group"><label for="char-origin">Origin</label><input type="text" id="char-origin" name="char-origin" data-browse-path="origins" readonly class="cursor-pointer" placeholder="-- SELECT --"></div>
-                                 <div class="input-group"><label for="char-faction">Faction</label><input type="text" id="char-faction" name="char-faction" data-browse-path="factions" readonly class="cursor-pointer" placeholder="-- SELECT --"></div>
-                             </div>
-                         </fieldset>
-                         <fieldset><legend>Facade</legend>
-                             <div class="space-y-4">
-                                 <div class="input-group"><label for="char-age">Age</label><input type="text" id="char-age" name="char-age"></div>
-                                 <div class="input-group"><label for="char-gender">Gender</label><input type="text" id="char-gender" name="char-gender"></div>
-                                 <div class="input-group"><label for="char-height">Height</label><input type="text" id="char-height" name="char-height"></div>
-                                 <div class="input-group"><label for="char-weight">Weight</label><input type="text" id="char-weight" name="char-weight"></div>
-                                 <div class="input-group"><label for="char-style">Description / Style</label><textarea id="char-style" name="char-style" rows="2"></textarea></div>
-                                 <div class="input-group"><label for="char-motive">Personality / Motive</label><textarea id="char-motive" name="char-motive" rows="2"></textarea></div>
-                             </div>
-                         </fieldset>
-                     </section>
 
-                     <section class="main-section" id="attributes-stats-section">
-                         <fieldset><legend>Attributes</legend>
-                             <div class="space-y-1">
-                                 <div class="grid grid-cols-5 gap-x-2 text-center font-bold text-xs uppercase">
-                                     <span class="col-span-2 text-left">Attribute</span>
-                                     <span>Value</span>
-                                     <span>Mod</span>
-                                     <span>Total</span>
-                                 </div>
-                                 ${[
-                                     { name: 'Strength', id: 'attr-strength' }, { name: 'Might', id: 'attr-might', sub: true },
-                                     { name: 'Agility', id: 'attr-agility' }, { name: 'Reflex', id: 'attr-reflex', sub: true },
-                                     { name: 'Constitution', id: 'attr-constitution' }, { name: 'Fortitude', id: 'attr-fortitude', sub: true },
-                                     { name: 'Intellect', id: 'attr-intellect' }, { name: 'Logic', id: 'attr-logic', sub: true },
-                                     { name: 'Wisdom', id: 'attr-wisdom' }, { name: 'Will', id: 'attr-will', sub: true },
-                                     { name: 'Charisma', id: 'attr-charisma' }, { name: 'Etiquette', id: 'attr-etiquette', sub: true }
-                                 ].map(attr => `
-                                     <div class="grid grid-cols-5 gap-x-2 items-center ${!attr.sub ? 'primary-attribute-row' : ''} ${attr.sub ? 'mb-2' : ''}">
-                                         <label for="${attr.id}" class="col-span-2 ${attr.sub ? 'italic pl-4' : 'text-lg font-semibold'}">${attr.name}</label>
-                                         <input type="number" id="${attr.id}" name="${attr.id}" class="attribute-value text-center ${attr.sub ? 'w-16 mx-auto' : ''}" value="0" ${attr.sub ? 'readonly' : ''}>
-                                         <input type="number" id="${attr.id}-mod" name="${attr.id}-mod" class="attribute-mod italic text-center" value="0" readonly>
-                                         <input type="number" id="${attr.id}-total" name="${attr.id}-total" class="attribute-total font-bold text-center ${!attr.sub ? 'text-lg' : ''} ${attr.sub ? 'w-16 mx-auto' : ''}" readonly value="0">
-                                     </div>
-                                     ${attr.sub ? '<div class="col-span-5 border-b-2 border-gray-500 my-2"></div>' : ''}
-                                 `).join('')}
-                             </div>
-                         </fieldset>
-                         <fieldset><legend>Stats</legend>
-                             <div class="space-y-4">
-                                 <div class="grid grid-cols-4 gap-x-2 items-center">
-                                     <label for="initiative-total" class="col-span-1 font-bold">Initiative</label>
-                                     <input type="number" id="initiative-base" name="initiative-base" class="text-center" readonly>
-                                     <input type="number" id="initiative-mod" name="initiative-mod" class="text-center" value="0" readonly>
-                                     <input type="number" id="initiative-total" name="initiative-total" class="font-bold text-center" readonly>
-                                 </div>
-                                 <div class="grid grid-cols-4 gap-x-2 text-center text-xs -mt-3 pb-2">
-                                     <span></span>
-                                     <span class="text-gray-400">Base</span>
-                                     <span class="text-gray-400">Mod</span>
-                                     <span class="text-gray-400">Total</span>
-                                 </div>
-                                 <div class="input-group"><label for="health">Health</label><input type="number" id="health" name="health"></div>
-                                 <div class="input-group"><label for="vitality">Vitality</label><input type="number" id="vitality" name="vitality"></div>
-                             </div>
-                         </fieldset>
-                         <fieldset><legend>Ratings</legend>
-                             <div class="space-y-4">
-                                 <div class="input-group"><label for="karma">Karma</label><input type="number" id="karma" name="karma"></div>
-                                 <div class="input-group"><label for="plot-points">Plot Points</label><input type="number" id="plot-points" name="plot-points"></div>
-                                 <div class="border-b border-gray-600"></div>
-                                 <div class="input-group"><label for="tech-level">Tech Level</label><input type="text" id="tech-level" name="tech-level" readonly></div>
-                                 <div class="border-b border-gray-600"></div>
-                                 <div class="input-group"><label for="wealth">Wealth</label><input type="text" id="wealth" name="wealth"></div>
-                             </div>
-                         </fieldset>
-                         <fieldset><legend>Perception</legend>
-                             <div class="space-y-4">
-                                 <div class="input-group">
-                                     <label for="perception">Perception</label>
-                                     <input type="number" id="perception" name="perception" readonly>
-                                 </div>
-                                 <div class="pl-4 space-y-4 border-l-2 border-gray-600 ml-2">
-                                     <div class="input-group">
-                                         <label for="perception-meta" class="text-sm italic">Meta</label>
-                                         <input type="number" id="perception-meta" name="perception-meta" readonly>
-                                     </div>
-                                     <div class="input-group">
-                                         <label for="perception-social" class="text-sm italic">Social</label>
-                                         <input type="number" id="perception-social" name="perception-social" readonly>
-                                     </div>
-                                     <div class="input-group">
-                                         <label for="perception-tech" class="text-sm italic">Technical</label>
-                                         <input type="number" id="perception-tech" name="perception-tech" readonly>
-                                     </div>
-                                 </div>
-                             </div>
-                         </fieldset>
-                         <fieldset><legend>Traits</legend>
-                             <div class="single-column-grid space-y-4">
-                                 <div class="trait-group">
-                                     <h5>Species</h5>
-                                     <textarea id="species-traits-display" name="species-traits-display" readonly rows="2"></textarea>
-                                 </div>
-                                 <div class="trait-group">
-                                     <h5>Origin</h5>
-                                     <textarea id="origin-traits-display" name="origin-traits-display" readonly rows="2"></textarea>
-                                 </div>
-                                 <div class="trait-group">
-                                     <h5>Occupation</h5>
-                                     <textarea id="occupation-traits-display" name="occupation-traits-display" readonly rows="2"></textarea>
-                                 </div>
-                                 <div class="trait-group">
-                                     <h5>Faction</h5>
-                                     <textarea id="faction-traits-display" name="faction-traits-display" readonly rows="2"></textarea>
-                                 </div>
-                             </div>
-                         </fieldset>
-                     </section>
+                    <div id="tabs-container" class="flex border-b border-gray-600 mb-4">
+                        <button class="tab-btn active" data-tab-target="#identity-tab">Identity</button>
+                        <button class="tab-btn" data-tab-target="#core-stats-tab">Core Stats</button>
+                        <button class="tab-btn" data-tab-target="#skills-tab">Skills</button>
+                        <button class="tab-btn" data-tab-target="#abilities-tab">Abilities</button>
+                        <button class="tab-btn" data-tab-target="#combat-gear-tab">Combat & Gear</button>
+                        <button class="tab-btn" data-tab-target="#persona-tab">Persona</button>
+                    </div>
 
-                     <section class="main-section" id="skills-section">
-                             <fieldset><legend>Skills</legend>
-                                 <div id="skills-list" class="skills-column space-y-8"></div>
-                                 <div class="flex gap-2 mt-4 pt-4 border-t border-gray-700">
-                                     <button type="button" id="add-skill-btn" class="btn btn-secondary w-full">Add Skill</button>
-                                 </div>
-                             </fieldset>
-                     </section>
-                     
-                     <section class="main-section" id="meta-section">
-                             <fieldset><legend>Meta</legend>
-                                <div id="meta-skills-list" class="space-y-4"></div>
-                                <hr class="border-t-2 border-gray-600 my-4">
-                                <h5 class="skill-subcategory-header">Invocations</h5>
+                    <div id="tab-panels">
+                        <div id="identity-tab" class="tab-panel active">
+                            <section class="main-section" id="bio-section">
+                                <fieldset><legend>Bio</legend>
+                                    <div class="space-y-4">
+                                        <div class="input-group"><label for="char-name">Name</label><input type="text" id="char-name" name="char-name"></div>
+                                        <div class="input-group"><label for="char-concept">Concept</label><input type="text" id="char-concept" name="char-concept"></div>
+                                        <div class="input-group"><label for="char-species">Species</label><input type="text" id="char-species" name="char-species" data-browse-path="species" readonly class="cursor-pointer" placeholder="-- SELECT --"></div>
+                                        <div class="input-group"><label for="char-occu">Occupation</label><input type="text" id="char-occu" name="char-occu" data-browse-path="occupations" readonly class="cursor-pointer" placeholder="-- SELECT --"></div>
+                                        <div class="input-group"><label for="char-origin">Origin</label><input type="text" id="char-origin" name="char-origin" data-browse-path="origins" readonly class="cursor-pointer" placeholder="-- SELECT --"></div>
+                                        <div class="input-group"><label for="char-faction">Faction</label><input type="text" id="char-faction" name="char-faction" data-browse-path="factions" readonly class="cursor-pointer" placeholder="-- SELECT --"></div>
+                                    </div>
+                                </fieldset>
+                                <fieldset><legend>Facade</legend>
+                                    <div class="space-y-4">
+                                        <div class="input-group"><label for="char-age">Age</label><input type="text" id="char-age" name="char-age"></div>
+                                        <div class="input-group"><label for="char-gender">Gender</label><input type="text" id="char-gender" name="char-gender"></div>
+                                        <div class="input-group"><label for="char-height">Height</label><input type="text" id="char-height" name="char-height"></div>
+                                        <div class="input-group"><label for="char-weight">Weight</label><input type="text" id="char-weight" name="char-weight"></div>
+                                        <div class="input-group"><label for="char-style">Description / Style</label><textarea id="char-style" name="char-style" rows="2"></textarea></div>
+                                        <div class="input-group"><label for="char-motive">Personality / Motive</label><textarea id="char-motive" name="char-motive" rows="2"></textarea></div>
+                                    </div>
+                                </fieldset>
+                                 <fieldset><legend>Traits</legend>
+                                     <div class="single-column-grid space-y-4">
+                                         <div class="trait-group">
+                                             <h5>Species</h5>
+                                             <textarea id="species-traits-display" name="species-traits-display" readonly rows="2"></textarea>
+                                         </div>
+                                         <div class="trait-group">
+                                             <h5>Origin</h5>
+                                             <textarea id="origin-traits-display" name="origin-traits-display" readonly rows="2"></textarea>
+                                         </div>
+                                         <div class="trait-group">
+                                             <h5>Occupation</h5>
+                                             <textarea id="occupation-traits-display" name="occupation-traits-display" readonly rows="2"></textarea>
+                                         </div>
+                                         <div class="trait-group">
+                                             <h5>Faction</h5>
+                                             <textarea id="faction-traits-display" name="faction-traits-display" readonly rows="2"></textarea>
+                                         </div>
+                                     </div>
+                                 </fieldset>
+                            </section>
+                        </div>
+                        <div id="core-stats-tab" class="tab-panel">
+                             <section class="main-section" id="attributes-stats-section">
+                                 <fieldset><legend>Attributes</legend>
+                                     <div class="space-y-1">
+                                         <div class="grid grid-cols-5 gap-x-2 text-center font-bold text-xs uppercase">
+                                             <span class="col-span-2 text-left">Attribute</span>
+                                             <span>Value</span>
+                                             <span>Mod</span>
+                                             <span>Total</span>
+                                         </div>
+                                         ${[
+                                             { name: 'Strength', id: 'attr-strength' }, { name: 'Might', id: 'attr-might', sub: true },
+                                             { name: 'Agility', id: 'attr-agility' }, { name: 'Reflex', id: 'attr-reflex', sub: true },
+                                             { name: 'Constitution', id: 'attr-constitution' }, { name: 'Fortitude', id: 'attr-fortitude', sub: true },
+                                             { name: 'Intellect', id: 'attr-intellect' }, { name: 'Logic', id: 'attr-logic', sub: true },
+                                             { name: 'Wisdom', id: 'attr-wisdom' }, { name: 'Will', id: 'attr-will', sub: true },
+                                             { name: 'Charisma', id: 'attr-charisma' }, { name: 'Etiquette', id: 'attr-etiquette', sub: true }
+                                         ].map(attr => `
+                                             <div class="grid grid-cols-5 gap-x-2 items-center ${!attr.sub ? 'primary-attribute-row' : ''} ${attr.sub ? 'mb-2' : ''}">
+                                                 <label for="${attr.id}" class="col-span-2 ${attr.sub ? 'italic pl-4' : 'text-lg font-semibold'}">${attr.name}</label>
+                                                 <input type="number" id="${attr.id}" name="${attr.id}" class="attribute-value text-center ${attr.sub ? 'w-16 mx-auto' : ''}" value="0" ${attr.sub ? 'readonly' : ''}>
+                                                 <input type="number" id="${attr.id}-mod" name="${attr.id}-mod" class="attribute-mod italic text-center" value="0" readonly>
+                                                 <input type="number" id="${attr.id}-total" name="${attr.id}-total" class="attribute-total font-bold text-center ${!attr.sub ? 'text-lg' : ''} ${attr.sub ? 'w-16 mx-auto' : ''}" readonly value="0">
+                                             </div>
+                                             ${attr.sub ? '<div class="col-span-5 border-b-2 border-gray-500 my-2"></div>' : ''}
+                                         `).join('')}
+                                     </div>
+                                 </fieldset>
+                                 <fieldset><legend>Stats</legend>
+                                     <div class="space-y-4">
+                                         <div class="grid grid-cols-4 gap-x-2 items-center">
+                                             <label for="initiative-total" class="col-span-1 font-bold">Initiative</label>
+                                             <input type="number" id="initiative-base" name="initiative-base" class="text-center" readonly>
+                                             <input type="number" id="initiative-mod" name="initiative-mod" class="text-center" value="0" readonly>
+                                             <input type="number" id="initiative-total" name="initiative-total" class="font-bold text-center" readonly>
+                                         </div>
+                                         <div class="grid grid-cols-4 gap-x-2 text-center text-xs -mt-3 pb-2">
+                                             <span></span>
+                                             <span class="text-gray-400">Base</span>
+                                             <span class="text-gray-400">Mod</span>
+                                             <span class="text-gray-400">Total</span>
+                                         </div>
+                                         <div class="input-group"><label for="health">Health</label><input type="number" id="health" name="health"></div>
+                                         <div class="input-group"><label for="vitality">Vitality</label><input type="number" id="vitality" name="vitality"></div>
+                                     </div>
+                                 </fieldset>
+                                 <fieldset><legend>Ratings</legend>
+                                     <div class="space-y-4">
+                                         <div class="input-group"><label for="karma">Karma</label><input type="number" id="karma" name="karma"></div>
+                                         <div class="input-group"><label for="plot-points">Plot Points</label><input type="number" id="plot-points" name="plot-points"></div>
+                                         <div class="border-b border-gray-600"></div>
+                                         <div class="input-group"><label for="tech-level">Tech Level</label><input type="text" id="tech-level" name="tech-level" readonly></div>
+                                         <div class="border-b border-gray-600"></div>
+                                         <div class="input-group"><label for="wealth">Wealth</label><input type="text" id="wealth" name="wealth"></div>
+                                     </div>
+                                 </fieldset>
+                                 <fieldset><legend>Perception</legend>
+                                     <div class="space-y-4">
+                                         <div class="input-group">
+                                             <label for="perception">Perception</label>
+                                             <input type="number" id="perception" name="perception" readonly>
+                                         </div>
+                                         <div class="pl-4 space-y-4 border-l-2 border-gray-600 ml-2">
+                                             <div class="input-group">
+                                                 <label for="perception-meta" class="text-sm italic">Meta</label>
+                                                 <input type="number" id="perception-meta" name="perception-meta" readonly>
+                                             </div>
+                                             <div class="input-group">
+                                                 <label for="perception-social" class="text-sm italic">Social</label>
+                                                 <input type="number" id="perception-social" name="perception-social" readonly>
+                                             </div>
+                                             <div class="input-group">
+                                                 <label for="perception-tech" class="text-sm italic">Technical</label>
+                                                 <input type="number" id="perception-tech" name="perception-tech" readonly>
+                                             </div>
+                                         </div>
+                                     </div>
+                                 </fieldset>
+                             </section>
+                        </div>
+                        <div id="skills-tab" class="tab-panel">
+                             <section class="main-section" id="skills-section">
+                                     <fieldset><legend>Skills</legend>
+                                         <div id="skills-list" class="skills-column space-y-8"></div>
+                                         <div class="flex gap-2 mt-4 pt-4 border-t border-gray-700">
+                                             <button type="button" id="add-skill-btn" class="btn btn-secondary w-full">Add Skill</button>
+                                         </div>
+                                     </fieldset>
+                             </section>
+                             <section class="main-section" id="meta-section">
+                                     <fieldset><legend>Meta</legend>
+                                        <div id="meta-skills-list" class="space-y-4"></div>
+                                     </fieldset>
+                             </section>
+                        </div>
+                        <div id="abilities-tab" class="tab-panel">
+                            <section class="main-section">
+                                <fieldset><legend>Invocations</legend>
                                  <div id="invocations-display" class="single-column-grid"></div>
                                  <button type="button" data-target-list="invocations" data-browse-path="invocations" class="btn btn-secondary mt-4 w-full">Add Invocation</button>
                                  <input type="hidden" id="invocations-data" name="invocations">
-                             </fieldset>
-                     </section>
-
-                     <section class="main-section" id="special-abilities-section">
-                         <fieldset><legend>Special Abilities</legend>
-                             <div id="special_abilities-display" class="single-column-grid"></div>
-                             <button type="button" data-target-list="special_abilities" data-browse-path="invocations" class="btn btn-secondary mt-4 w-full">Add Special Ability</button>
-                             <input type="hidden" id="special_abilities-data" name="special_abilities">
-                         </fieldset>
-                     </section>
-
-                     <section class="main-section" id="combat-section">
-                         <fieldset><legend>Combat</legend>
-                             <div id="attack-rows">
-                                 <div class="attack-grid">
-                                     <div class="attack-header">Attack</div>
-                                     <div class="attack-header">Score</div>
-                                     <div class="attack-header">Effect</div>
-                                     <div class="attack-header">Notes</div>
-                                     <div></div>
-                                 </div>
-                             </div>
-                             <input type="hidden" id="attacks-data" name="attacks">
-                             <button type="button" id="add-attack-btn" class="btn btn-secondary mt-4 w-full">Add Attack</button>
-                             
-                             <hr class="my-6 border-t-2 border-gray-600">
-
-                             <div id="armor-rows">
-                                 <div class="armor-grid">
-                                     <div class="armor-header">Armor</div>
-                                     <div class="armor-header">Resistance</div>
-                                     <div class="armor-header">Notes</div>
-                                     <div></div>
-                                 </div>
-                             </div>
-                             <input type="hidden" id="armor-data" name="armor">
-                             <button type="button" id="add-armor-btn" class="btn btn-secondary mt-4 w-full">Add Armor</button>
-                         </fieldset>
-                     </section>
-
-                    <section class="main-section">
-                         <fieldset><legend>Features</legend>
-                             <div id="features-display" class="single-column-grid"></div>
-                             <button type="button" data-target-list="features" data-browse-path="features" class="btn btn-secondary mt-4 w-full">Add Feature</button>
-                             <input type="hidden" id="features-data" name="features">
-                         </fieldset>
-                    </section>
-                    <section class="main-section">
-                         <fieldset><legend>Disadvantages</legend>
-                             <div id="disadvantages-display" class="single-column-grid"></div>
-                             <button type="button" data-target-list="disadvantages" data-browse-path="disadvantages" class="btn btn-secondary mt-4 w-full">Add Disadvantage</button>
-                             <input type="hidden" id="disadvantages-data" name="disadvantages">
-                         </fieldset>
-                    </section>
-                    <section class="main-section">
-                         <fieldset><legend>Augmentations</legend>
-                             <div id="augmentations-display" class="single-column-grid"></div>
-                             <button type="button" data-target-list="augmentations" data-browse-path="augmentations" class="btn btn-secondary mt-4 w-full">Add Augmentation</button>
-                             <input type="hidden" id="augmentations-data" name="augmentations">
-                         </fieldset>
-                    </section>
-
-                     <section class="main-section">
-                         <fieldset>
-                             <legend>Equipment</legend>
-                            <div id="equipment-display" class="single-column-grid"></div>
-                            <button type="button" data-target-list="equipment" data-browse-path="equipment" class="btn btn-secondary mt-4 w-full">Add Equipment</button>
-                            <input type="hidden" id="equipment-data" name="equipment">
-                         </fieldset>
-                     </section>
-                     
-                     <section class="main-section">
-                         <fieldset>
-                             <legend>Associates</legend>
-                            <div id="associates-display" class="single-column-grid"></div>
-                            <button type="button" data-target-list="associates" data-browse-path="associates" class="btn btn-secondary mt-4 w-full">Add Associate</button>
-                            <input type="hidden" id="associates-data" name="associates">
-                         </fieldset>
-                     </section>
-
-                     <section class="main-section" id="notes-section">
-                         <fieldset><legend>Notes</legend>
-                             <div id="notes-list" class="single-column-grid space-y-2">
-                             </div>
-                             <input type="hidden" id="notes-data" name="notes">
-                             <button type="button" id="add-note-btn" class="btn btn-secondary mt-4 w-full">Add Note</button>
-                         </fieldset>
-                     </section>
+                                </fieldset>
+                            </section>
+                             <section class="main-section" id="special-abilities-section">
+                                 <fieldset><legend>Special Abilities</legend>
+                                     <div id="special_abilities-display" class="single-column-grid"></div>
+                                     <button type="button" data-target-list="special_abilities" data-browse-path="invocations" class="btn btn-secondary mt-4 w-full">Add Special Ability</button>
+                                     <input type="hidden" id="special_abilities-data" name="special_abilities">
+                                 </fieldset>
+                             </section>
+                            <section class="main-section">
+                                 <fieldset><legend>Features</legend>
+                                     <div id="features-display" class="single-column-grid"></div>
+                                     <button type="button" data-target-list="features" data-browse-path="features" class="btn btn-secondary mt-4 w-full">Add Feature</button>
+                                     <input type="hidden" id="features-data" name="features">
+                                 </fieldset>
+                            </section>
+                            <section class="main-section">
+                                 <fieldset><legend>Disadvantages</legend>
+                                     <div id="disadvantages-display" class="single-column-grid"></div>
+                                     <button type="button" data-target-list="disadvantages" data-browse-path="disadvantages" class="btn btn-secondary mt-4 w-full">Add Disadvantage</button>
+                                     <input type="hidden" id="disadvantages-data" name="disadvantages">
+                                 </fieldset>
+                            </section>
+                        </div>
+                         <div id="combat-gear-tab" class="tab-panel">
+                             <section class="main-section" id="combat-section">
+                                 <fieldset><legend>Combat</legend>
+                                     <div id="attack-rows">
+                                         <div class="attack-grid">
+                                             <div class="attack-header">Attack</div>
+                                             <div class="attack-header">Score</div>
+                                             <div class="attack-header">Effect</div>
+                                             <div class="attack-header">Notes</div>
+                                             <div></div>
+                                         </div>
+                                     </div>
+                                     <input type="hidden" id="attacks-data" name="attacks">
+                                     <button type="button" id="add-attack-btn" class="btn btn-secondary mt-4 w-full">Add Attack</button>
+                                     
+                                     <hr class="my-6 border-t-2 border-gray-600">
+        
+                                     <div id="armor-rows">
+                                         <div class="armor-grid">
+                                             <div class="armor-header">Armor</div>
+                                             <div class="armor-header">Resistance</div>
+                                             <div class="armor-header">Notes</div>
+                                             <div></div>
+                                         </div>
+                                     </div>
+                                     <input type="hidden" id="armor-data" name="armor">
+                                     <button type="button" id="add-armor-btn" class="btn btn-secondary mt-4 w-full">Add Armor</button>
+                                 </fieldset>
+                             </section>
+                            <section class="main-section">
+                                 <fieldset><legend>Augmentations</legend>
+                                     <div id="augmentations-display" class="single-column-grid"></div>
+                                     <button type="button" data-target-list="augmentations" data-browse-path="augmentations" class="btn btn-secondary mt-4 w-full">Add Augmentation</button>
+                                     <input type="hidden" id="augmentations-data" name="augmentations">
+                                 </fieldset>
+                            </section>
+                             <section class="main-section">
+                                 <fieldset>
+                                     <legend>Equipment</legend>
+                                    <div id="equipment-display" class="single-column-grid"></div>
+                                    <button type="button" data-target-list="equipment" data-browse-path="equipment" class="btn btn-secondary mt-4 w-full">Add Equipment</button>
+                                    <input type="hidden" id="equipment-data" name="equipment">
+                                 </fieldset>
+                             </section>
+                         </div>
+                         <div id="persona-tab" class="tab-panel">
+                             <section class="main-section">
+                                 <fieldset>
+                                     <legend>Associates</legend>
+                                    <div id="associates-display" class="single-column-grid"></div>
+                                    <button type="button" data-target-list="associates" data-browse-path="associates" class="btn btn-secondary mt-4 w-full">Add Associate</button>
+                                    <input type="hidden" id="associates-data" name="associates">
+                                 </fieldset>
+                             </section>
+                             <section class="main-section" id="notes-section">
+                                 <fieldset><legend>Notes</legend>
+                                     <div id="notes-list" class="single-column-grid space-y-2">
+                                     </div>
+                                     <input type="hidden" id="notes-data" name="notes">
+                                     <button type="button" id="add-note-btn" class="btn btn-secondary mt-4 w-full">Add Note</button>
+                                 </fieldset>
+                             </section>
+                         </div>
+                    </div>
                      
                      <footer class="creator-credit">
                          WOLFE.BT@TANGENTLLC
@@ -1840,6 +1882,21 @@
                     }
                 });
             }
+
+            // Tab switching logic
+            const tabsContainer = document.getElementById('tabs-container');
+            const tabPanelsContainer = document.getElementById('tab-panels');
+            tabsContainer.addEventListener('click', (e) => {
+                if (e.target.matches('.tab-btn')) {
+                    tabsContainer.querySelector('.active').classList.remove('active');
+                    tabPanelsContainer.querySelector('.active').classList.remove('active');
+                    
+                    e.target.classList.add('active');
+                    const targetPanelId = e.target.dataset.tabTarget;
+                    document.querySelector(targetPanelId).classList.add('active');
+                }
+            });
+
             updateUIAfterAuthChange();
             initializePersonaFolio(folioData);
         }
@@ -1858,7 +1915,7 @@
         async function handleLogout() {
             try {
                 await signOut(auth);
-                // The onAuthStateChanged listener will handle UI updates and re-authentication
+                 appState.appInitialized = false; // Allow re-initialization on next sign-in
             } catch (error) {
                 console.error("Error signing out:", error);
             }
