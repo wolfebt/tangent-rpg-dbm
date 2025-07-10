@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tangent SFF RPG Database Manager</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Trebuchet+MS&display=swap" rel="stylesheet">
     <style>
         /* --- Global Theme --- */
         :root {
@@ -37,8 +38,8 @@
             --btn-danger-hover-bg: #d32f2f;
             --btn-danger-hover-border: #f5f5f5;
             
-            --font-body: 'Roboto Condensed', sans-serif;
-            --font-display: 'Roboto', sans-serif;
+            --font-body: 'Trebuchet MS', sans-serif;
+            --font-display: 'Trebuchet MS', sans-serif;
 
             --header-height: 4rem; 
             --sidebar-width: 240px; 
@@ -51,7 +52,7 @@
         body {
             background-color: var(--bg-main);
             color: var(--text-light);
-            font-family: 'Inter', sans-serif;
+            font-family: var(--font-body);
             display: flex;
             flex-direction: column; 
             min-height: 100vh;
@@ -108,11 +109,11 @@
             font-weight: 600;
             text-transform: uppercase;
             transition: all 0.2s;
-            border: 2px solid var(--border-subtle); /* Changed from transparent */
+            border: 2px solid var(--border-subtle);
         }
         #app-sidebar .sidebar-tab:hover {
             background-color: var(--bg-hover);
-            border-color: var(--border-main); /* Changed to be lighter than default */
+            border-color: var(--border-main);
         }
         #app-sidebar .sidebar-tab.active {
             background-color: var(--bg-main);
@@ -203,38 +204,49 @@
             color: #90cdf4;
         }
 
-        .wiki-content h2, .guide-content h2 {
+        /* --- Content-Specific Styles --- */
+        .guide-content { max-width: 48rem; margin-left: auto; margin-right: auto; }
+        .guide-content h2, .wiki-content h2 {
             font-family: var(--font-display);
-            font-size: 2.5rem;
+            font-size: 2.25rem;
+            margin-bottom: 1.5rem;
+            color: var(--text-light);
+            text-transform: uppercase;
+            text-align: center;
+            border-bottom: 2px solid var(--border-subtle);
+            padding-bottom: 0.75rem;
+        }
+        .guide-content h3, .wiki-content h3 {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            margin-top: 2rem;
             margin-bottom: 1rem;
             color: var(--text-light);
             text-transform: uppercase;
+            border-bottom: 1px solid var(--border-subtle);
+            padding-bottom: 0.5rem;
         }
-
-        .wiki-content h3, .guide-content h3 {
-            font-family: var(--font-display);
-            font-size: 1.8rem;
-            margin-top: 1.5rem;
-            margin-bottom: 0.75rem;
-            color: var(--text-light);
-            text-transform: uppercase;
-        }
-
-        .wiki-content p, .guide-content p {
+        .guide-content p, .wiki-content p {
             margin-bottom: 1rem;
-            line-height: 1.6;
+            line-height: 1.7;
             color: var(--text-light);
         }
         .guide-content ul {
             list-style-type: disc;
             padding-left: 2rem;
             margin-bottom: 1rem;
+            line-height: 1.7;
+        }
+        .guide-content strong {
+            color: var(--text-light);
+            font-weight: 700;
         }
          .guide-content code {
             background-color: var(--bg-header);
             color: #a5f3fc;
-            padding: 0.1rem 0.3rem;
+            padding: 0.2rem 0.4rem;
             border-radius: 0.25rem;
+            font-weight: bold;
         }
 
 
@@ -835,7 +847,7 @@
                 viewType: 'table',
                 parent: 'equipment',
                 hideFromMenu: true,
-                directory_columns: ['name', 'tl', 'ml', 'description', 'cost', 'design_dc'],
+                directory_columns: ['name', 'tl', 'ml', 'description', 'cost', 'resistance', 'design_dc'],
                 fields: {
                     name: { type: 'text', required: true, label: 'Armor Name' },
                     description: { type: 'textarea' },
@@ -880,7 +892,7 @@
                 viewType: 'table',
                 parent: 'equipment',
                 hideFromMenu: true,
-                directory_columns: ['name', 'tl', 'ml', 'description', 'cost', 'design_dc'],
+                directory_columns: ['name', 'tl', 'ml', 'description', 'cost', 'effect', 'design_dc'],
                 fields: {
                     name: { type: 'text', required: true, label: 'Weapon Name' },
                     description: { type: 'textarea' },
@@ -1299,22 +1311,41 @@
                 if (!appState.authReady) {
                     appState.authReady = true;
                     try {
-                        renderAppHeader(); // Render header once
+                        renderAppHeader();
                         await populateRulesCodexMap();
-                        
-                        const savedHistory = sessionStorage.getItem('navigationHistory');
-                        const savedFuture = sessionStorage.getItem('navigationFuture');
-                        const savedView = sessionStorage.getItem('currentView');
 
-                        if (savedView) {
-                            appState.navigationHistory = savedHistory ? JSON.parse(savedHistory) : [];
-                            appState.navigationFuture = savedFuture ? JSON.parse(savedFuture) : [];
-                            navigateTo(JSON.parse(savedView), false);
-                        } else {
+                        let navigatedFromSession = false;
+                        const savedViewJSON = sessionStorage.getItem('currentView');
+                        if (savedViewJSON) {
+                            try {
+                                const viewDescriptor = JSON.parse(savedViewJSON);
+                                const categoryKey = viewDescriptor.args && viewDescriptor.args[0];
+                                
+                                // Check if the category key from session is valid in the current config
+                                if (categoryKey && categoryConfig[categoryKey]) {
+                                    const savedHistory = sessionStorage.getItem('navigationHistory');
+                                    const savedFuture = sessionStorage.getItem('navigationFuture');
+                                    appState.navigationHistory = savedHistory ? JSON.parse(savedHistory) : [];
+                                    appState.navigationFuture = savedFuture ? JSON.parse(savedFuture) : [];
+                                    navigateTo(viewDescriptor, false);
+                                    navigatedFromSession = true;
+                                } else {
+                                    // The saved category is invalid, so clear session and load default
+                                    console.warn(`Invalid category '${categoryKey}' found in session storage. Clearing.`);
+                                    sessionStorage.clear();
+                                }
+                            } catch (e) {
+                                console.warn("Could not parse session storage. Clearing.", e);
+                                sessionStorage.clear();
+                            }
+                        }
+
+                        if (!navigatedFromSession) {
                             navigateTo({ view: 'renderCategoryView', args: ['user_guide'] });
                         }
+
                     } catch (error) {
-                         if (error.code === 'permission-denied') {
+                        if (error.code === 'permission-denied') {
                             showError("CRITICAL ERROR: Firestore rules are not set up for public read. Please update your Firestore security rules to allow read access.");
                         } else {
                             showError(`An unexpected error occurred during startup: ${error.message}`);
@@ -1325,7 +1356,7 @@
                     updateUIAfterAuthChange();
                     if (appState.currentView) {
                         const { view, args } = appState.currentView;
-                        if(viewFunctions[view]) viewFunctions[view](...args);
+                        if (viewFunctions[view]) viewFunctions[view](...args);
                     }
                 }
             } else {
@@ -1544,12 +1575,8 @@
         
         function renderGuideView(container) {
             container.innerHTML = `
-                <div class="guide-content max-w-4xl mx-auto p-4 md:p-8">
-                    <h2 class="text-center mb-8">User Guide</h2>
+                <div class="guide-content">
                     ${convertMarkdownToHtml(helpMarkdown)}
-                     <div class="text-center font-bold text-sm pt-8 mt-6 border-t border-gray-600 normal-case" style="color: var(--text-subtle)">
-                        Wolfe.BT@TangentLLC
-                    </div>
                 </div>
             `;
         }
@@ -2787,46 +2814,45 @@
         });
 
         const helpMarkdown = `
-### **Welcome to the Tangent SFF RPG Database Manager!**
-This tool is designed to help you create, manage, and browse all the data for your Sci-Fi Fantasy RPG campaign. From species and factions to equipment and esoteric invocations, everything you need to build your universe is right here.
+### **Welcome to the Tangent SFF RPG Database Manager**
+This guide provides a comprehensive overview of how to use this tool to browse and manage your game world's data.
 
-### **Getting Started: Authentication**
-* **Anonymous Users:** By default, you are an anonymous user. You can browse all public data in a read-only mode. This is great for players or anyone who just wants to explore the game's content.
-* **Logged-in Users:** To add, edit, or delete entries, you must log in. Click the **LOGIN** button in the top-right corner and sign in with a Google account. Once logged in, you'll have full creative control over the database.
+### **Core Concepts**
+The Database Manager has two primary modes based on your login status:
+* **Anonymous (Read-Only):** As a guest, you have complete access to view all entries in the database. You can navigate all sections, open items to see their details, and explore the rules codex. This is the default mode for players.
+* **Logged-In (Edit Mode):** After logging in with a Google account, you gain full administrative rights. You can create, edit, and delete any data in the database.
 
-### **Navigating the App**
-#### **Header Controls**
-* **Back/Forward Arrows (Top-Center):** Use these arrows to move through your viewing history, just like in a web browser. Your history is saved for your session, so even if you refresh the page, you can go back to where you were.
-* **User Info & Login/Logout (Top-Right):** See your current status (Anonymous or your email) and log in or out.
+### **Navigating the Application**
+Your primary navigation tools are the **Header** and the **Sidebar**.
+* **Sidebar:** This is your main navigation hub.
+    * Click any tab (e.g., "Species", "Factions") to view its content.
+    * The active tab will be highlighted with a border and a shadow.
+    * Categories with sub-pages, like "Equipment," will show a nested list of links when active.
+* **Header:**
+    * **Navigation Arrows:** Use the back and forward arrows at the top to move through your viewing history.
+    * **User Status:** The top-right corner displays your login status and provides the **LOGIN/LOGOUT** button.
 
-#### **Views**
-* **Table View:** Most categories are displayed as a table.
-    * Click any column header to sort the data by that column.
-    * Use the search bar to filter entries by name.
-    * Click any row to open the details modal for that entry.
-* **Wiki View (Rules Codex):** The Rules Codex uses a special wiki-style interface.
-    * The directory on the left shows a hierarchical tree of all rules entries. Click an entry to view its content on the right.
-    * Use the toggle arrows (\`▸\`) to expand or collapse parent entries.
-    * If logged in, you can use the \`Add New Entry\` button to create new articles.
+### **Viewing Data**
+* **Table Views:** Most categories are presented in a table format.
+    * **Sorting:** Click on any column header to sort the table by that column.
+    * **Searching:** Use the search bar at the top of a table to filter entries by name.
+    * **Viewing Details:** Click anywhere on a row to open a detailed, read-only view of that item in a pop-up modal.
+* **Wiki View (Rules Codex):** This section has a special two-column layout.
+    * The directory of all rules articles is on the left.
+    * Clicking an article title in the directory will display its full content on the right.
 
 ### **Managing Data (Logged-in Users Only)**
-#### **The Entry Modal**
-This is where all the magic happens. You can open it by clicking a table row or by clicking an \`ADD NEW\` button.
-* **Viewing Data:** When you first click a row, the modal opens in view-only mode.
-* **Editing Data:** To make changes, click the **DATA** button in the top-right of the modal and select \`Edit\`. The fields will become editable.
-* **Saving Data:** After making changes, click the **DATA** button and select \`Save\`.
-* **Deleting Data:** To permanently remove an entry, click the **DATA** button and select \`Delete\`. You will be asked to confirm this action.
-* **Canceling:** To close the modal without saving, click \`Cancel\` from the DATA menu or click the faded backdrop.
+When you are logged in, you can modify the database using the **Entry Modal**.
+1.  **Opening the Modal:**
+    * Click the **ADD NEW** button at the top of a table to create a new entry.
+    * Click on an existing row to open its details. Then, click the **DATA** button in the modal and select **Edit**.
+2.  **Saving:** After making changes, click the **DATA** button and select **Save**.
+3.  **Deleting:** To remove an entry permanently, open it, click the **DATA** button, and select **Delete**.
+4.  **Managing Linked Data:** Some fields (like "Modifiers" on a species) are managed in other parts of the database. Click the underlined label for these fields to navigate directly to their respective management tables.
 
-#### **Special Features**
-* **Managing Sub-Categories:** Inside the modal, some fields have an underlined label (e.g., \`MODIFIER\`). This is a "Manage" button. Clicking it will take you to the data table for that sub-category, allowing you to add or edit options for dropdowns and multi-select fields throughout the app.
-* **AI-Powered Descriptions:** For fields like \`Description\`, you'll see a \`GENERATE\` button. Click this to use AI to write a creative and detailed description based on the other data in the form.
-* **Wiki-Linking:** In text areas within the \`Rules Codex\`, you can create links to other entries by wrapping the exact entry name in double square brackets, like this: \`[[Entry Name]]\`. This will automatically create a clickable link in the view.
-
-### **Local Data Backup**
-Inside the modal's **DATA** menu, you'll find a \`Local\` submenu.
-* **Save:** This saves the current form's data as a JSON file to your computer. This is useful for backing up individual entries or creating templates.
-* **Load:** This will open a file picker, allowing you to select a previously saved JSON file and load its data into the current form.
+### **Special Features**
+* **Wiki-Linking:** In text areas within the "Rules Codex," you can create links to other entries by wrapping the exact entry name in double square brackets, for example: \`[[Some Rule Name]]\`.
+* **Local Backup:** Inside the modal's **DATA** menu, you'll find a "Local" submenu to save the current entry's data to a file on your computer or load data from such a file.
 `; 
         
         function convertMarkdownToHtml(markdown) {
@@ -2847,12 +2873,12 @@ Inside the modal's **DATA** menu, you'll find a \`Local\` submenu.
                 }
 
                 if (trimmedLine.startsWith('### **')) {
-                    html += `<h3 class="text-2xl font-bold mt-6 mb-2 text-gray-100">${trimmedLine.substring(5, trimmedLine.length - 2)}</h3>`;
+                    html += `<h3>${trimmedLine.substring(5, trimmedLine.length - 2)}</h3>`;
                 } else if (trimmedLine.startsWith('#### **')) {
                     html += `<h4 class="text-lg font-semibold mt-4 mb-1 text-gray-200">${trimmedLine.substring(6, trimmedLine.length - 2)}</h4>`;
                 } else if (trimmedLine.startsWith('* ')) {
                     if (listStack.length === 0 || listStack[listStack.length - 1].type !== 'ul') {
-                        html += `<ul class="list-disc list-inside ml-4 space-y-2">`;
+                        html += `<ul>`;
                         listStack.push({ type: 'ul', indent });
                     }
                     let content = trimmedLine.substring(2).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
@@ -2862,7 +2888,7 @@ Inside the modal's **DATA** menu, you'll find a \`Local\` submenu.
                     while (listStack.length > 0) {
                         html += `</${listStack.pop().type}>`;
                     }
-                    html += `<p class="mt-2">${trimmedLine.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</p>`;
+                    html += `<p>${trimmedLine.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</p>`;
                 }
             }
             
@@ -2871,7 +2897,7 @@ Inside the modal's **DATA** menu, you'll find a \`Local\` submenu.
                 html += `</${listStack.pop().type}>`;
             }
 
-            return html.replace(/`([^`]+)`/g, '<code class="bg-gray-700 text-gray-300 rounded px-1 py-0.5">$1</code>');
+            return html.replace(/`([^`]+)`/g, '<code>$1</code>');
         }
 
     </script>
