@@ -586,7 +586,7 @@
                 try {
                     const data = JSON.parse(e.target.result);
                     renderPersonaFolioView(document.getElementById('folio-container'), data, false);
-                    setupGlobalEventListeners();
+                    // *** FIX: Do NOT re-attach global listeners here. They are attached once on init.
                 } catch (err) {
                     showCustomAlert("Could not parse JSON file.");
                     console.error("Error parsing JSON:", err);
@@ -1828,7 +1828,7 @@
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     renderPersonaFolioView(document.getElementById('folio-container'), data, false); // Don't use session data
-                    setupGlobalEventListeners();
+                    // *** FIX: Do NOT re-attach global listeners here.
                     const docIdInput = document.getElementById('character-doc-id');
                     if(docIdInput) docIdInput.value = docId;
 
@@ -1845,7 +1845,7 @@
             showConfirmModal("Start a new character? Any unsaved changes will be lost.", () => {
                 clearSession();
                 renderPersonaFolioView(document.getElementById('folio-container'), {}, false);
-                setupGlobalEventListeners();
+                 // *** FIX: Do NOT re-attach global listeners here.
             });
         }
 
@@ -1900,10 +1900,10 @@
         }
 
         function setupGlobalEventListeners() {
-            const container = document.getElementById('folio-container');
-            if (!container) return;
+            // This function now correctly sets up all listeners ONCE.
+            // It relies on event delegation for the dynamic content inside #folio-container.
         
-            // Close dropdown when clicking outside
+            // Listener for closing the dropdown menu
             window.addEventListener('click', (event) => {
                 if (!event.target.matches('.file-menu-button')) {
                     const dropdowns = document.querySelectorAll('.file-menu-dropdown');
@@ -1914,7 +1914,11 @@
                     });
                 }
             });
+
+            const container = document.getElementById('folio-container');
+            if (!container) return;
         
+            // Main delegated event listener for the entire character sheet
             container.addEventListener('click', (event) => {
                 const target = event.target;
         
@@ -1945,7 +1949,6 @@
                 if (target.id === 'preview-btn') showPreviewModal();
                 if (target.id === 'economy-btn') showEconomyModal();
         
-        
                 // Add buttons
                 if (target.id === 'add-attack-btn') showAttackSelectionModal();
                 if (target.id === 'add-armor-btn') showArmorSelectionModal();
@@ -1956,7 +1959,6 @@
                 const browseButton = target.closest('[data-browse-path]');
                 if (browseButton) {
                     const targetList = browseButton.dataset.targetList || browseButton.id;
-                    // Special handling for read-only inputs that act as buttons
                     if(browseButton.hasAttribute('readonly')) {
                         showDirectoryModal(browseButton.id, browseButton.dataset.browsePath);
                     } else {
@@ -1981,7 +1983,7 @@
                 }
             });
         
-            // Auto-save to session on any input change that could affect data
+            // Delegated auto-save listener
             container.addEventListener('input', (event) => {
                 const form = event.target.closest('#persona-folio-form');
                 if (form) {
@@ -1998,7 +2000,8 @@
                     saveToSession();
                 }
             });
-             // Also recalculate on change events for select elements
+
+            // Delegated recalculate listener
             container.addEventListener('change', (event) => {
                 const form = event.target.closest('#persona-folio-form');
                  if (form) {
@@ -2362,6 +2365,7 @@
                     appState.appInitialized = true;
                     await cacheAllData();
                     renderPersonaFolioView(document.getElementById('folio-container'), {});
+                    // *** FIX: Set up all event listeners once the app is initialized.
                     setupGlobalEventListeners();
                 }
                 
@@ -2372,8 +2376,6 @@
                 appState.userId = null;
                 appState.isAnonymous = true;
                 
-                // Only try to sign in if the app hasn't been initialized yet.
-                // This prevents re-triggering auth on logout.
                 if (!appState.appInitialized) {
                     try {
                         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
@@ -2386,9 +2388,8 @@
                         showCustomAlert("Could not connect to the authentication service.");
                     }
                 } else {
-                    // If app was initialized, this is a logout. Reset the view.
+                    // This is a logout. Reset the view. Listeners will persist.
                      renderPersonaFolioView(document.getElementById('folio-container'), {});
-                     setupGlobalEventListeners();
                 }
             }
         });
