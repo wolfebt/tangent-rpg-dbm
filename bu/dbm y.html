@@ -40,95 +40,52 @@
             --font-body: 'Roboto Condensed', sans-serif;
             --font-display: 'Roboto', sans-serif;
 
-            --header-height: 4rem; 
-            --sidebar-width: 240px; 
-        }
-
-        html {
-            scroll-behavior: smooth;
+            --header-height: 4rem; /* Define header height for layout calculations */
+            --sidebar-width: 180px; /* Define sidebar width, made narrower */
         }
 
         body {
             background-color: var(--bg-main);
             color: var(--text-light);
             font-family: 'Inter', sans-serif;
-            display: flex;
-            flex-direction: column; 
-            min-height: 100vh;
-            overflow-x: hidden;
+            padding-top: var(--header-height); /* Space for fixed header */
+            overflow-x: hidden; /* Prevent horizontal scroll due to fixed sidebar */
+            min-height: 100vh; /* Ensure body takes full viewport height */
+            display: flex; /* Make body a flex container */
+            flex-direction: column; /* Stack children vertically */
         }
 
-        /* --- Layout --- */
-         .app-header {
+        /* --- Global Components --- */
+        .app-header {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
-            height: var(--header-height);
+            height: var(--header-height); /* Explicit height */
             z-index: 40;
             background-color: var(--bg-header);
             border-bottom: 2px solid var(--border-subtle);
             padding: 0.5rem 1rem;
         }
-
-        .app-container {
-            display: flex;
-            flex-grow: 1;
-            padding-top: var(--header-height);
-        }
-
-        #app-sidebar {
-            position: fixed;
-            top: var(--header-height);
-            left: 0;
-            bottom: 0;
-            width: var(--sidebar-width);
-            flex-shrink: 0;
-            background-color: var(--bg-section);
-            border-right: 2px solid var(--border-main);
-            padding: 1rem;
-            overflow-y: auto;
-            z-index: 30;
-        }
-
-        main#main-content {
-            flex-grow: 1;
-            margin-left: var(--sidebar-width);
-            padding: 1.5rem;
-            overflow-y: auto;
-        }
-
-        /* --- Sidebar --- */
-        #app-sidebar .sidebar-tab {
-            display: block;
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border-radius: 0.375rem;
-            text-align: left;
-            font-weight: 600;
-            text-transform: uppercase;
-            transition: all 0.2s;
-            border: 2px solid var(--border-subtle); /* Changed from transparent */
-        }
-        #app-sidebar .sidebar-tab:hover {
-            background-color: var(--bg-hover);
-            border-color: var(--border-main); /* Changed to be lighter than default */
-        }
-        #app-sidebar .sidebar-tab.active {
-            background-color: var(--bg-main);
-            color: var(--text-light);
-            border-color: var(--border-focus);
-            box-shadow: 0 0 15px rgba(245, 245, 245, 0.15);
-        }
-        #app-sidebar .wiki-directory-container {
-            margin-top: 1rem;
-            border-top: 1px solid var(--border-subtle);
-            padding-top: 1rem;
-        }
-
-        /* --- Global Components --- */
         .app-header h1 {
             font-family: var(--font-display);
+        }
+        .category-menu-button {
+            background-color: var(--bg-section);
+            border: 2px solid var(--border-main);
+            transition: all 0.2s ease;
+        }
+        .category-menu-button:hover {
+            border-color: var(--border-focus);
+        }
+        .category-dropdown-menu {
+            background-color: var(--bg-section);
+            border: 2px solid var(--border-main);
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        .category-dropdown-menu a:hover, .category-dropdown-menu .submenu-container:hover > span {
+            background-color: var(--bg-hover);
         }
 
         .data-table thead {
@@ -184,8 +141,9 @@
             border-color: var(--border-focus);
             background-color: var(--bg-input-focus);
         }
+        /* New style for display-only inputs */
         .global-form-input.display-only-input {
-            background-color: var(--bg-header);
+            background-color: var(--bg-header); /* Slightly darker to indicate non-editability */
             cursor: default;
             border-color: var(--border-subtle);
         }
@@ -194,16 +152,126 @@
             border-color: var(--border-subtle);
         }
 
+        /* Style for wiki links */
         .wiki-link {
-            color: #63b3ed;
+            color: #63b3ed; /* A shade of blue */
             text-decoration: underline;
             cursor: pointer;
         }
         .wiki-link:hover {
-            color: #90cdf4;
+            color: #90cdf4; /* Lighter blue on hover */
         }
 
-        .wiki-content h2, .guide-content h2 {
+        /* Wiki View Specific Styles */
+        main#main-content {
+            flex-grow: 1; /* Allow it to take all available vertical space */
+            display: flex; /* Make main-content a flex container */
+            flex-direction: row; /* Arrange children (sidebar and content) horizontally */
+            align-items: stretch; /* Stretch children to fill height */
+            padding: 0; /* No padding on main-content itself */
+            width: 100%; /* Ensure it takes full width */
+        }
+
+        .wiki-sidebar {
+            position: fixed; /* Fixed position */
+            left: 0; /* Stick to left edge of viewport */
+            top: var(--header-height); /* Start below the header */
+            bottom: 0; /* Extend to bottom of viewport */
+            width: var(--sidebar-width); /* Fixed width */
+            flex-shrink: 0;
+            background-color: var(--bg-section);
+            border-right: 2px solid var(--border-main); /* Border only on right */
+            border-radius: 0; /* Remove rounded corners if it's full height */
+            padding: 0.5rem; /* Smaller padding */
+            overflow-y: auto;
+            z-index: 30; /* Ensure it's above main content but below header */
+            box-sizing: border-box; /* Include padding and border in the width */
+        }
+
+        .wiki-sidebar h3 {
+            font-family: var(--font-display);
+            text-transform: uppercase;
+            font-size: 1rem; /* Smaller font for title */
+            margin-bottom: 0.5rem;
+            color: var(--text-light);
+        }
+
+        .wiki-sidebar ul {
+            list-style: none;
+            padding: 0;
+            font-size: 0.85rem; /* Smaller font for list items */
+        }
+
+        .wiki-sidebar li {
+            margin-bottom: 0.25rem;
+        }
+
+        .wiki-sidebar a {
+            display: block;
+            padding: 0.15rem 0.3rem; /* Smaller padding for links */
+            color: var(--text-light);
+            text-decoration: none;
+            border-radius: 0.25rem;
+        }
+
+        .wiki-sidebar a:hover {
+            background-color: var(--bg-hover);
+        }
+
+        .wiki-sidebar .wiki-tree-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .wiki-sidebar .wiki-tree-item .toggle-btn {
+            background: none;
+            border: none;
+            color: var(--text-subtle);
+            font-size: 0.8rem;
+            cursor: pointer;
+            padding: 0;
+            width: 1.5rem;
+            text-align: center;
+        }
+
+        .wiki-sidebar .wiki-tree-item .toggle-btn:hover {
+            color: var(--text-light);
+        }
+
+        .wiki-sidebar .wiki-tree-item-content {
+            flex-grow: 1;
+        }
+
+        .wiki-sidebar .wiki-tree-children {
+            margin-left: 1rem;
+            border-left: 1px solid var(--border-subtle);
+            padding-left: 0.5rem;
+        }
+
+        /* Wrapper for wiki content and its buttons */
+        .wiki-content-area-wrapper {
+            flex-grow: 1;
+            margin-left: var(--sidebar-width); /* Push content to the right by sidebar's width */
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            padding: 0; /* No padding on this wrapper itself */
+            height: 100%; /* Take full height of its parent */
+        }
+
+        .wiki-content {
+            flex-grow: 1; /* Allow it to take available height */
+            background-color: var(--bg-section);
+            border: 2px solid var(--border-main); /* Keep its own border */
+            border-radius: 0.25rem; /* Keep its own rounded corners */
+            padding: 1.5rem; /* Apply padding directly to wiki-content */
+            height: auto; /* Auto-fit height to content */
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+
+        .wiki-content h2 {
             font-family: var(--font-display);
             font-size: 2.5rem;
             margin-bottom: 1rem;
@@ -211,7 +279,7 @@
             text-transform: uppercase;
         }
 
-        .wiki-content h3, .guide-content h3 {
+        .wiki-content h3 {
             font-family: var(--font-display);
             font-size: 1.8rem;
             margin-top: 1.5rem;
@@ -220,21 +288,10 @@
             text-transform: uppercase;
         }
 
-        .wiki-content p, .guide-content p {
+        .wiki-content p {
             margin-bottom: 1rem;
             line-height: 1.6;
             color: var(--text-light);
-        }
-        .guide-content ul {
-            list-style-type: disc;
-            padding-left: 2rem;
-            margin-bottom: 1rem;
-        }
-         .guide-content code {
-            background-color: var(--bg-header);
-            color: #a5f3fc;
-            padding: 0.1rem 0.3rem;
-            border-radius: 0.25rem;
         }
 
 
@@ -279,6 +336,12 @@
             border-color: var(--border-focus);
         }
 
+        /* --- Utility --- */
+        .form-select-arrow {
+            -webkit-appearance: none; -moz-appearance: none; appearance: none;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239CA3AF' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em;
+        }
         .loader {
             border: 2px solid #f3f3f3; border-top: 2px solid #6b7280; border-radius: 50%;
             width: 16px; height: 16px; animation: spin 1s linear infinite;
@@ -289,6 +352,7 @@
             display: none;
         }
 
+        /* --- Modal Data Menu Styling --- */
         .file-menu {
             position: relative;
             display: inline-block;
@@ -313,7 +377,7 @@
             min-width: 160px;
             border: 2px solid var(--border-main);
             box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-            z-index: 101; /* Ensure dropdown is on top */
+            z-index: 1;
             border-radius: 5px;
             padding: 0.5rem 0;
         }
@@ -354,12 +418,9 @@
     </style>
 </head>
 <body>
-    <header class="app-header flex justify-between items-center gap-4"></header>
-    
-    <div class="app-container">
-        <nav id="app-sidebar"></nav>
-        <main id="main-content"></main>
-    </div>
+
+    <main id="main-content" class="w-full">
+    </main>
 
 
     <div id="entry-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4 hidden modal-backdrop">
@@ -394,7 +455,7 @@
 
     <div id="confirm-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4 hidden modal-backdrop">
         <div class="modal-content w-full max-w-md p-8">
-            <h2 id="confirm-title" class="text-xl font-bold mb-4">Are you sure?</h2>
+            <h2 class="text-xl font-bold mb-4">Are you sure?</h2>
             <p id="confirm-message" class="text-gray-400 mb-6">This action cannot be undone.</p>
             <div class="flex justify-end gap-2">
                 <button id="confirm-cancel-btn" class="btn btn-secondary">CANCEL</button>
@@ -425,13 +486,39 @@
         </div>
     </div>
 
+    <div id="help-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4 hidden modal-backdrop">
+        <div class="modal-content w-3/4 max-w-4xl max-h-[90vh] overflow-y-auto p-8">
+            <h2 class="text-3xl font-bold mb-6 text-center">User Guide</h2>
+            <div id="help-content" class="prose prose-invert max-w-none text-gray-300 normal-case space-y-4">
+            </div>
+            <div class="text-center font-bold text-sm pt-8 mt-6 border-t border-gray-600 normal-case" style="color: var(--text-subtle)">
+                Wolfe.BT@TangentLLC
+            </div>
+            <div class="flex justify-end mt-8">
+                <button id="help-close-btn" class="btn btn-primary">Close</button>
+            </div>
+        </div>
+    </div>
+
     <div id="custom-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-[60] p-4 hidden modal-backdrop">
-        <div class="modal-content w-full max-w-lg p-8">
-            <h2 id="custom-modal-title" class="text-2xl font-bold mb-4 text-center"></h2>
-            <div id="custom-modal-choices" class="flex flex-col gap-2 max-h-96 overflow-y-auto mt-4"></div>
+        <div class="modal-content w-full max-w-md p-8 text-center">
+            <p id="modal-text" class="text-gray-200 mb-4 uppercase"></p>
+            <div id="modal-auth-form" class="flex flex-col gap-2" style="display: none;">
+                <input type="email" id="modal-email" placeholder="Email" class="global-form-input">
+                <input type="password" id="modal-password" placeholder="Password" class="global-form-input">
+                <div class="text-red-500 h-5 text-sm" id="modal-error-text"></div>
+            </div>
+            <div id="modal-choices" class="flex flex-col gap-2 max-h-48 overflow-y-auto mt-4"></div>
+            <input type="text" id="modal-input" style="display: none;" class="global-form-input">
             <div class="flex justify-center gap-4 flex-wrap mt-4">
-                <button id="custom-modal-ok-btn" class="btn btn-primary" style="display: none;">OK</button>
-                <button id="custom-modal-cancel-btn" style="display: none;" class="btn btn-secondary">Cancel</button>
+                <button id="modal-google-btn" style="display: none;" class="btn btn-primary">
+                    Sign in with Google
+                </button>
+                <button id="modal-register-btn" style="display: none;" class="btn btn-primary">Register</button>
+                <button id="modal-login-btn" style="display: none;" class="btn btn-primary">Login</button>
+                <button id="modal-copy-btn" style="display: none;" class="btn btn-primary">Copy</button>
+                <button id="modal-ok-btn" class="btn btn-primary">OK</button>
+                <button id="modal-cancel-btn" style="display: none;" class="btn btn-secondary">Cancel</button>
             </div>
         </div>
     </div>
@@ -484,14 +571,14 @@
             sortDirection: 'asc',
             wikiEntries: [],
             currentWikiEntryId: null,
-            activeListeners: {},
+            activeListenerUnsubscribe: null, 
         };
 
         // --- RPG System Configuration ---
         const categoryConfig = {
-            user_guide: {
-                label: 'User Guide',
-                viewType: 'guide'
+            other: {
+                label: 'DASHBOARD',
+                viewType: 'button_grid'
             },
             rules_codex: {
                 label: 'RULES CODEX',
@@ -541,7 +628,6 @@
             },
             species: { 
                 label: 'SPECIES',
-                viewType: 'table',
                 directory_columns: ['name', 'description', 'type'],
                 fields: {
                     name: { type: 'text', required: true },
@@ -602,7 +688,6 @@
             },
             factions: { 
                 label: 'FACTIONS', 
-                viewType: 'table',
                 directory_columns: ['name', 'description', 'society'],
                 fields: { 
                     name: { type:'text', required: true}, 
@@ -620,7 +705,6 @@
             },
             origins: { 
                 label: 'ORIGINS', 
-                viewType: 'table',
                 directory_columns: ['name', 'description'],
                 fields: { 
                     name: { type:'text', required: true}, 
@@ -651,7 +735,6 @@
             },
             occupations: { 
                 label: 'OCCUPATIONS',
-                viewType: 'table',
                 directory_columns: ['name', 'description'],
                 fields: { 
                     name: { type:'text', required: true}, 
@@ -665,7 +748,6 @@
             },
             disadvantages: { 
                 label: 'DISADVANTAGES',
-                viewType: 'table',
                 directory_columns: ['name', 'description', 'cp'],
                 fields: { 
                     name: { type:'text', required: true}, 
@@ -681,7 +763,6 @@
             },
             features: { 
                 label: 'FEATURES',
-                viewType: 'table',
                 directory_columns: ['name', 'type', 'description', 'cp'], 
                 fields: { 
                     name: { type:'text', required: true},
@@ -698,7 +779,6 @@
             },
             skills: { 
                 label: 'SKILLS',
-                viewType: 'table',
                 directory_columns: ['name', 'type', 'subtype', 'description'],
                 fields: { 
                     name: { type:'text', required: true},
@@ -748,7 +828,6 @@
             },
             augmentations: { 
                 label: 'AUGMENTATIONS', 
-                viewType: 'table',
                 directory_columns: ['name', 'type', 'description', 'design_dc'],
                 fields: { 
                     name: { type:'text', required: true},
@@ -791,7 +870,6 @@
             },
             invocations: {
                 label: 'INVOCATIONS',
-                viewType: 'table',
                 directory_columns: ['name', 'description', 'discipline', 'meta_skill', 'design_dc'],
                 fields: {
                     name: { type: 'text', required: true },
@@ -825,178 +903,286 @@
                     }
                 }
             },
-            equipment: {
-                label: 'EQUIPMENT',
-                isParent: true,
-                subItems: ['armoring', 'weaponry', 'gear', 'mecha'],
-            },
-            armoring: {
-                label: 'Armoring',
-                viewType: 'table',
-                parent: 'equipment',
-                hideFromMenu: true,
-                directory_columns: ['name', 'tl', 'ml', 'description', 'cost', 'design_dc'],
-                fields: {
-                    name: { type: 'text', required: true, label: 'Armor Name' },
-                    description: { type: 'textarea' },
-                    tl: { type: 'number', label: 'TL' },
-                    ml: { type: 'number', label: 'ML' },
-                    cost: { type: 'number' },
-                    availability: { type: 'select', source: 'availability', manageable: true },
-                    design_dc: { type: 'readonlytext', label: 'DESIGN DC' },
-                    size: { type: 'multiselect', source: 'species_size', manageable: true },
-                    weight: { type: 'number' },
-                    quality: { type: 'select', options: ['Bad', 'Poor', 'Standard', 'Good', 'Exceptional', 'Mastercrafted'] },
-                    durability: { type: 'number' },
-                    prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
-                    skill: { type: 'select', source: 'skills', manageable: true },
-                    origin: { type: 'multiselect', source: 'origins', manageable: true },
-                    creator: { type: 'multiselect', source: 'creator', manageable: true },
-                    design: { type: 'multiselect', source: 'design', manageable: true },
-                    classification: { type: 'multiselect', source: 'classification', manageable: true, label: 'Classification' },
-                    material: { type: 'multiselect', source: 'material', manageable: true },
-                    location: { type: 'multiselect', source: 'body_location', manageable: true },
-                    component: { type: 'multiselect', source: 'component', manageable: true },
-                    resistance: { type: 'multiselect', source: 'resistance', manageable: true },
-                    critical_success_effect: { type: 'multiselect', source: 'critical_success_effect', manageable: true },
-                    critical_failure_effect: { type: 'multiselect', source: 'critical_failure_effect', manageable: true },
-                    component_slots: { type: 'number', label: 'Component Slots' },
-                    modes: { type: 'multiselect', source: 'mode', manageable: true, label: 'Modes' },
-                    modifier: { type: 'multiselect', source: 'modifier', manageable: true },
-                    mechanic: { type: 'textarea' },
-                    note: { type: 'textarea' }
+            equipment: { 
+                label: 'EQUIPMENT', 
+                viewType: 'multi-table',
+                tables: {
+                    armoring: {
+                        label: 'Armoring',
+                        directory_columns: ['name', 'tl', 'ml', 'description', 'cost', 'design_dc'],
+                        fields: {
+                            name: { type: 'text', required: true, label: 'Armor Name' },
+                            description: { type: 'textarea' },
+                            tl: { type: 'number', label: 'TL' },
+                            ml: { type: 'number', label: 'ML' },
+                            cost: { type: 'number' },
+                            availability: { type: 'select', source: 'availability', manageable: true },
+                            design_dc: { type: 'readonlytext', label: 'DESIGN DC' },
+                            size: { type: 'multiselect', source: 'species_size', manageable: true },
+                            weight: { type: 'number' },
+                            quality: { type: 'select', options: ['Bad', 'Poor', 'Standard', 'Good', 'Exceptional', 'Mastercrafted'] },
+                            durability: { type: 'number' },
+                            prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+                            skill: { type: 'select', source: 'skills', manageable: true },
+                            origin: { type: 'multiselect', source: 'origins', manageable: true },
+                            creator: { type: 'multiselect', source: 'creator', manageable: true },
+                            design: { type: 'multiselect', source: 'design', manageable: true },
+                            classification: { type: 'multiselect', source: 'classification', manageable: true, label: 'Classification' },
+                            material: { type: 'multiselect', source: 'material', manageable: true },
+                            location: { type: 'multiselect', source: 'body_location', manageable: true },
+                            component: { type: 'multiselect', source: 'component', manageable: true },
+                            resistance: { type: 'multiselect', source: 'resistance', manageable: true },
+                            critical_success_effect: { type: 'multiselect', source: 'critical_success_effect', manageable: true },
+                            critical_failure_effect: { type: 'multiselect', source: 'critical_failure_effect', manageable: true },
+                            component_slots: { type: 'number', label: 'Component Slots' },
+                            modes: { type: 'multiselect', source: 'mode', manageable: true, label: 'Modes' },
+                            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                            mechanic: { type: 'textarea' },
+                            note: { type: 'textarea' }
+                        }
+                    },
+                    weaponry: {
+                        label: 'Weaponry',
+                        directory_columns: ['name', 'tl', 'ml', 'description', 'cost', 'design_dc'],
+                        fields: {
+                            name: { type: 'text', required: true, label: 'Weapon Name' },
+                            description: { type: 'textarea' },
+                            tl: { type: 'number', label: 'TL' },
+                            ml: { type: 'number', label: 'ML' },
+                            cost: { type: 'number' },
+                            availability: { type: 'select', source: 'availability', manageable: true },
+                            design_dc: { type: 'readonlytext', label: 'DESIGN DC' },
+                            size: { type: 'multiselect', source: 'species_size', manageable: true },
+                            weight: { type: 'number' },
+                            quality: { type: 'select', options: ['Bad', 'Poor', 'Standard', 'Good', 'Exceptional', 'Mastercrafted'] },
+                            durability: { type: 'number' },
+                            prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+                            skill: { type: 'select', source: 'skills', manageable: true },
+                            special: { type: 'multiselect', source: 'special', manageable: true, label: 'Special' },
+                            area: { type: 'multiselect', source: 'area', manageable: true },
+                            effect: { type: 'multiselect', source: 'effect', manageable: true },
+                            range: { type: 'multiselect', source: 'range', manageable: true },
+                            target: { type: 'multiselect', source: 'target', manageable: true },
+                            origin: { type: 'multiselect', source: 'origins', manageable: true },
+                            creator: { type: 'multiselect', source: 'creator', manageable: true },
+                            design: { type: 'multiselect', source: 'design', manageable: true },
+                            classification: { type: 'multiselect', source: 'classification', manageable: true, label: 'Classification' },
+                            accuracy: { type: 'number' },
+                            ap: { type: 'number', label: 'AP' },
+                            modes: { type: 'multiselect', source: 'mode', manageable: true, label: 'Modes' },
+                            attack_rate: { type: 'text', label: 'Rate of Fire' },
+                            critical_score: { type: 'text', label: 'Critical Score' },
+                            critical_effect: { type: 'multiselect', source: 'critical_effect', manageable: true },
+                            critical_success_effect: { type: 'multiselect', source: 'critical_success_effect', manageable: true },
+                            critical_failure_effect: { type: 'multiselect', source: 'critical_failure_effect', manageable: true },
+                            wielding: { type: 'select', options: ['One-Handed', 'Two-Handed', 'Versatile', 'Independent', 'Mounted'] },
+                            component: { type: 'multiselect', source: 'component', manageable: true },
+                            component_slots: { type: 'number', label: 'Component Slots' },
+                            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                            mechanic: { type: 'textarea' },
+                            note: { type: 'textarea' }
+                        }
+                    },
+                    mecha: {
+                        label: 'Mecha',
+                        directory_columns: ['name', 'tl', 'ml', 'description', 'cost', 'design_dc'],
+                        fields: {
+                            name: { type: 'text', required: true, label: 'Mecha Name' },
+                            description: { type: 'textarea' },
+                            tl: { type: 'number', label: 'TL' },
+                            ml: { type: 'number', label: 'ML' },
+                            cost: { type: 'number' },
+                            availability: { type: 'select', source: 'availability', manageable: true },
+                            design_dc: { type: 'readonlytext', label: 'DESIGN DC' },
+                            size: { type: 'multiselect', source: 'species_size', manageable: true },
+                            height: { type: 'number' },
+                            weight: { type: 'number' },
+                            quality: { type: 'select', options: ['Bad', 'Poor', 'Standard', 'Good', 'Exceptional', 'Mastercrafted'] },
+                            durability: { type: 'number' },
+                            prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+                            skill: { type: 'select', source: 'skills', manageable: true },
+                            origin: { type: 'multiselect', source: 'origins', manageable: true },
+                            creator: { type: 'multiselect', source: 'creator', manageable: true },
+                            design: { type: 'multiselect', source: 'design', manageable: true },
+                            classification: { type: 'multiselect', source: 'classification', manageable: true, label: 'Classification' },
+                            personnel: { type: 'text' },
+                            cargo: { type: 'text' },
+                            speed: { type: 'text' },
+                            maneuverability: { type: 'text' },
+                            control: { type: 'select', options: ['Auto', 'Remote', 'Pilot', 'Crew'] },
+                            component: { type: 'multiselect', source: 'component', manageable: true },
+                            critical_success_effect: { type: 'multiselect', source: 'critical_success_effect', manageable: true },
+                            critical_failure_effect: { type: 'multiselect', source: 'critical_failure_effect', manageable: true },
+                            component_slots: { type: 'number', label: 'Component Slots' },
+                            modes: { type: 'multiselect', source: 'mode', manageable: true, label: 'Modes' },
+                            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                            mechanic: { type: 'textarea' },
+                            note: { type: 'textarea' }
+                        }
+                    }
                 },
                 subcategories: {
-                    availability: { label: 'AVAILABILITY' },
-                    material: { label: 'MATERIALS' },
-                    resistance: { label: 'RESISTANCES' },
-                    creator: { label: 'CREATORS' },
-                    design: { label: 'DESIGNS' },
-                    classification: { label: 'CLASSIFICATIONS' },
-                }
-            },
-            weaponry: {
-                label: 'Weaponry',
-                viewType: 'table',
-                parent: 'equipment',
-                hideFromMenu: true,
-                directory_columns: ['name', 'tl', 'ml', 'description', 'cost', 'design_dc'],
-                fields: {
-                    name: { type: 'text', required: true, label: 'Weapon Name' },
-                    description: { type: 'textarea' },
-                    tl: { type: 'number', label: 'TL' },
-                    ml: { type: 'number', label: 'ML' },
-                    cost: { type: 'number' },
-                    availability: { type: 'select', source: 'availability', manageable: true },
-                    design_dc: { type: 'readonlytext', label: 'DESIGN DC' },
-                    size: { type: 'multiselect', source: 'species_size', manageable: true },
-                    weight: { type: 'number' },
-                    quality: { type: 'select', options: ['Bad', 'Poor', 'Standard', 'Good', 'Exceptional', 'Mastercrafted'] },
-                    durability: { type: 'number' },
-                    prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
-                    skill: { type: 'select', source: 'skills', manageable: true },
-                    special: { type: 'multiselect', source: 'special', manageable: true, label: 'Special' },
-                    area: { type: 'multiselect', source: 'area', manageable: true },
-                    effect: { type: 'multiselect', source: 'effect', manageable: true },
-                    range: { type: 'multiselect', source: 'range', manageable: true },
-                    target: { type: 'multiselect', source: 'target', manageable: true },
-                    origin: { type: 'multiselect', source: 'origins', manageable: true },
-                    creator: { type: 'multiselect', source: 'creator', manageable: true },
-                    design: { type: 'multiselect', source: 'design', manageable: true },
-                    classification: { type: 'multiselect', source: 'classification', manageable: true, label: 'Classification' },
-                    accuracy: { type: 'number' },
-                    ap: { type: 'number', label: 'AP' },
-                    modes: { type: 'multiselect', source: 'mode', manageable: true, label: 'Modes' },
-                    attack_rate: { type: 'text', label: 'Rate of Fire' },
-                    critical_score: { type: 'text', label: 'Critical Score' },
-                    critical_effect: { type: 'multiselect', source: 'critical_effect', manageable: true },
-                    critical_success_effect: { type: 'multiselect', source: 'critical_success_effect', manageable: true },
-                    critical_failure_effect: { type: 'multiselect', source: 'critical_failure_effect', manageable: true },
-                    wielding: { type: 'select', options: ['One-Handed', 'Two-Handed', 'Versatile', 'Independent', 'Mounted'] },
-                    component: { type: 'multiselect', source: 'component', manageable: true },
-                    component_slots: { type: 'number', label: 'Component Slots' },
-                    modifier: { type: 'multiselect', source: 'modifier', manageable: true },
-                    mechanic: { type: 'textarea' },
-                    note: { type: 'textarea' }
-                },
-                subcategories: {
-                    availability: { label: 'AVAILABILITY' },
-                    special: { label: 'SPECIAL' },
-                        mode: { label: 'MODES' },
-                    critical_effect: { label: 'CRITICAL EFFECTS' },
-                    creator: { label: 'CREATORS' },
-                    design: { label: 'DESIGNS' },
-                    classification: { label: 'CLASSIFICATIONS' },
-                }
-            },
-                gear: {
-                label: 'Gear',
-                viewType: 'table',
-                parent: 'equipment',
-                hideFromMenu: true,
-                directory_columns: ['name', 'category', 'description', 'cost', 'weight'],
-                fields: {
-                    name: { type: 'text', required: true, label: 'Item Name' },
-                    description: { type: 'textarea' },
-                    category: { type: 'select', source: 'gear_category', manageable: true },
-                    cost: { type: 'number' },
-                    weight: { type: 'number' },
-                    tl: { type: 'number', label: 'TL' },
-                    ml: { type: 'number', label: 'ML' },
-                    availability: { type: 'select', source: 'availability', manageable: true },
-                    prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
-                    modifier: { type: 'multiselect', source: 'modifier', manageable: true },
-                    mechanic: { type: 'textarea' },
-                    note: { type: 'textarea' }
-                },
-                subcategories: {
-                    gear_category: { label: 'CATEGORIES' },
-                    availability: { label: 'AVAILABILITY' },
-                }
-            },
-            mecha: {
-                label: 'Mecha',
-                viewType: 'table',
-                parent: 'equipment',
-                hideFromMenu: true,
-                directory_columns: ['name', 'tl', 'ml', 'description', 'cost', 'design_dc'],
-                fields: {
-                    name: { type: 'text', required: true, label: 'Mecha Name' },
-                    description: { type: 'textarea' },
-                    tl: { type: 'number', label: 'TL' },
-                    ml: { type: 'number', label: 'ML' },
-                    cost: { type: 'number' },
-                    availability: { type: 'select', source: 'availability', manageable: true },
-                    design_dc: { type: 'readonlytext', label: 'DESIGN DC' },
-                    size: { type: 'multiselect', source: 'species_size', manageable: true },
-                    height: { type: 'number' },
-                    weight: { type: 'number' },
-                    quality: { type: 'select', options: ['Bad', 'Poor', 'Standard', 'Good', 'Exceptional', 'Mastercrafted'] },
-                    durability: { type: 'number' },
-                    prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
-                    skill: { type: 'select', source: 'skills', manageable: true },
-                    origin: { type: 'multiselect', source: 'origins', manageable: true },
-                    creator: { type: 'multiselect', source: 'creator', manageable: true },
-                    design: { type: 'multiselect', source: 'design', manageable: true },
-                    classification: { type: 'multiselect', source: 'classification', manageable: true, label: 'Classification' },
-                    personnel: { type: 'text' },
-                    cargo: { type: 'text' },
-                    speed: { type: 'text' },
-                    maneuverability: { type: 'text' },
-                    control: { type: 'select', options: ['Auto', 'Remote', 'Pilot', 'Crew'] },
-                    component: { type: 'multiselect', source: 'component', manageable: true },
-                    critical_success_effect: { type: 'multiselect', source: 'critical_success_effect', manageable: true },
-                    critical_failure_effect: { type: 'multiselect', source: 'critical_failure_effect', manageable: true },
-                    component_slots: { type: 'number', label: 'Component Slots' },
-                    modes: { type: 'multiselect', source: 'mode', manageable: true, label: 'Modes' },
-                    modifier: { type: 'multiselect', source: 'modifier', manageable: true },
-                    mechanic: { type: 'textarea' },
-                    note: { type: 'textarea' }
+                    availability: { 
+                        label: 'AVAILABILITY', 
+                        directory_columns: ['name', 'description'],
+                        fields: { 
+                            name: { type: 'text', required: true }, 
+                            description: { type: 'textarea' },
+                            dc: { type: 'number', label: 'DC' },
+                            prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+                            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                            mechanic: { type: 'textarea' },
+                            note: { type: 'textarea' }
+                        }
+                    },
+                    material: { 
+                        label: 'MATERIALS', 
+                        directory_columns: ['name', 'description'],
+                        fields: { 
+                            name: { type: 'text', required: true }, 
+                            description: { type: 'textarea' }, 
+                            dc: { type: 'number', label: 'DC' },
+                            prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+                            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                            mechanic: { type: 'textarea' },
+                            note: { type: 'textarea' }
+                        }
+                    },
+                    resistance: { 
+                        label: 'RESISTANCES', 
+                        directory_columns: ['name', 'type', 'value', 'description'],
+                        fields: { 
+                            name: { type: 'text', required: true },
+                            type: { type: 'select', source: 'resistance_type', manageable: true },
+                            value: { type: 'number' },
+                            description: { type: 'textarea' },
+                            dc: { type: 'number', label: 'DC' },
+                            prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+                            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                            mechanic: { type: 'textarea' },
+                            note: { type: 'textarea' }
+                        }
+                    },
+                    resistance_type: { 
+                        label: 'RESISTANCE TYPES', 
+                        directory_columns: ['name', 'description'],
+                        fields: { 
+                            name: { type: 'text', required: true },
+                            description: { type: 'textarea' }
+                        }
+                    },
+                    special: { 
+                        label: 'SPECIAL',
+                        directory_columns: ['name', 'description'],
+                        fields: { 
+                            name: { type: 'text', required: true },
+                            description: { type: 'textarea' },
+                            prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+                            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                            mechanic: { type: 'textarea' },
+                            note: { type: 'textarea' }
+                        } 
+                    },
+                    mode: { 
+                        label: 'MODES', 
+                        directory_columns: ['name', 'description'],
+                        fields: { 
+                            name: { type: 'text', required: true }, 
+                            description: { type: 'textarea' },
+                            prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+                            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                            mechanic: { type: 'textarea' },
+                            note: { type: 'textarea' }
+                        }
+                    },
+                    critical_effect: { 
+                        label: 'CRITICAL EFFECTS', 
+                        fields: { 
+                            name: { type: 'text', required: true },
+                            description: { type: 'textarea' },
+                            effect: { type: 'multiselect', source: 'effect', manageable: true },
+                            prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+                            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                            mechanic: { type: 'textarea' },
+                            note: { type: 'textarea' }
+                        }
+                    },
+                    component: { 
+                        label: 'COMPONENTS',
+                        directory_columns: ['name', 'description', 'cost'],
+                        fields: {
+                            name: { type: 'text', required: true },
+                            description: { type: 'textarea' },
+                            equipment: { type: 'multiselect', source: 'all_equipment', label: 'Equipment', manageable: true },
+                            cost: { type: 'number' }
+                        }
+                    },
+                    creator: {
+                        label: 'CREATORS',
+                        directory_columns: ['name', 'description'],
+                        fields: {
+                            name: { type: 'text', required: true },
+                            description: { type: 'textarea' },
+                            dc: { type: 'number', label: 'DC' },
+                            prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+                            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                            mechanic: { type: 'textarea' },
+                            note: { type: 'textarea' }
+                        }
+                    },
+                    design: {
+                        label: 'DESIGNS',
+                        directory_columns: ['name', 'description'],
+                        fields: {
+                            name: { type: 'text', required: true },
+                            description: { type: 'textarea' },
+                            dc: { type: 'number', label: 'DC' },
+                            prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+                            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                            mechanic: { type: 'textarea' },
+                            note: { type: 'textarea' }
+                        }
+                    },
+                    classification: { 
+                        label: 'CLASSIFICATIONS', 
+                        directory_columns: ['name', 'description'],
+                        fields: { 
+                            name: { type: 'text', required: true }, 
+                            description: { type: 'textarea' }, 
+                            dc: { type: 'number', label: 'DC' },
+                            prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+                            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                            mechanic: { type: 'textarea' },
+                            note: { type: 'textarea' } 
+                        }
+                    },
+                    gear_category: { 
+                        label: 'CATEGORIES', 
+                        directory_columns: ['name', 'description'],
+                        fields: { 
+                            name: { type: 'text', required: true }, 
+                            description: { type: 'textarea' },
+                            dc: { type: 'number', label: 'DC' },
+                            prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+                            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                            mechanic: { type: 'textarea' },
+                            note: { type: 'textarea' }
+                        }
+                    },
+                    body_location: { 
+                        label: 'BODY LOCATIONS', 
+                        directory_columns: ['name', 'description'],
+                        fields: { 
+                            name: { type: 'text', required: true }, 
+                            description: { type: 'textarea' },
+                            mechanic: { type: 'textarea' },
+                            note: { type: 'textarea' }
+                        }
+                    }
                 }
             },
             societies: { 
                 label: 'SOCIETIES', 
-                viewType: 'table',
                 directory_columns: ['name', 'description', 'tech_level', 'meta_level'],
                 fields: { 
                     name: { type:'text', required: true}, 
@@ -1075,87 +1261,15 @@
         const errorModal = document.getElementById('error-modal');
         const errorMessage = document.getElementById('error-message');
         const errorOkBtn = document.getElementById('error-ok-btn');
+        const helpModal = document.getElementById('help-modal');
+        const helpContent = document.getElementById('help-content');
+        const helpCloseBtn = document.getElementById('help-close-btn');
         const customModal = document.getElementById('custom-modal');
         const summaryModal = document.getElementById('summary-modal');
         const summaryCloseBtn = document.getElementById('summary-close-btn');
         const jsonFileInput = document.getElementById('json-file-input');
 
         // --- Authentication & Navigation---
-        
-        function renderTableView(collectionKey, title, container, parentCategoryKey = null) {
-            const config = getActiveConfig(collectionKey);
-            if (!config) {
-                showError(`Configuration for "${collectionKey}" not found.`);
-                return;
-            }
-
-            container.innerHTML = `
-                <div class="flex flex-col sm:flex-row justify-between sm:items-center my-4 gap-4">
-                    <div class="flex-grow min-w-0">
-                        <h2 id="table-title-${collectionKey}" class="text-3xl font-bold truncate uppercase">${title}</h2>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <input type="text" id="search-input-${collectionKey}" placeholder="Search by name..." class="global-form-input !w-auto" value="${appState.searchTerm}">
-                        <button id="add-new-btn-${collectionKey}" class="btn btn-primary auth-required">ADD NEW</button>
-                    </div>
-                </div>
-                <div class="shadow-lg rounded-lg overflow-x-auto">
-                    <table class="data-table min-w-full">
-                        <thead id="table-header-${collectionKey}"></thead>
-                        <tbody id="table-body-${collectionKey}"></tbody>
-                    </table>
-                </div>
-            `;
-            
-            const titleElement = container.querySelector(`#table-title-${collectionKey}`);
-            if (titleElement) {
-                titleElement.addEventListener('click', () => {
-                    if (!appState.isAnonymous) {
-                        openModal(collectionKey, null, {}, true);
-                    }
-                });
-            }
-
-            const addNewBtn = container.querySelector(`#add-new-btn-${collectionKey}`);
-            if (addNewBtn) {
-                addNewBtn.addEventListener('click', () => {
-                    openModal(collectionKey, null, {}, true);
-                });
-            }
-
-            const searchInput = container.querySelector(`#search-input-${collectionKey}`);
-            if (searchInput) {
-                let debounceTimer;
-                searchInput.addEventListener('input', (e) => {
-                    clearTimeout(debounceTimer);
-                    debounceTimer = setTimeout(() => {
-                        appState.searchTerm = e.target.value;
-                        listenForData(collectionKey);
-                    }, 300);
-                });
-            }
-            
-            listenForData(collectionKey);
-            updateUIAfterAuthChange();
-        }
-
-        function renderManagementView(collectionKey, parentCollectionKey) {
-            if (!appState.authReady) return;
-
-            const mainCollectionForHeader = parentCollectionKey || collectionKey;
-            mainContentContainer.innerHTML = '';
-            renderSidebar(mainCollectionForHeader); 
-
-            const config = getActiveConfig(collectionKey);
-            if (!config) {
-                showError(`Configuration for "${collectionKey}" not found.`);
-                return;
-            }
-            
-            mainContentContainer.className = 'p-8 md:p-16 pt-8 md:pt-8';
-            renderTableView(collectionKey, config.label, mainContentContainer, parentCollectionKey);
-        }
-
         const viewFunctions = { renderCategoryView, renderManagementView };
         
         function navigateTo(viewDescriptor, pushState = true) {
@@ -1299,7 +1413,6 @@
                 if (!appState.authReady) {
                     appState.authReady = true;
                     try {
-                        renderAppHeader(); // Render header once
                         await populateRulesCodexMap();
                         
                         const savedHistory = sessionStorage.getItem('navigationHistory');
@@ -1311,7 +1424,7 @@
                             appState.navigationFuture = savedFuture ? JSON.parse(savedFuture) : [];
                             navigateTo(JSON.parse(savedView), false);
                         } else {
-                            navigateTo({ view: 'renderCategoryView', args: ['user_guide'] });
+                            navigateTo({ view: 'renderCategoryView', args: ['other'] });
                         }
                     } catch (error) {
                          if (error.code === 'permission-denied') {
@@ -1371,17 +1484,19 @@
         }
 
         function handleManageClick(sourceKey) {
-            const currentForm = document.getElementById('entry-form');
-            const parentCollection = currentForm.dataset.collectionKey;
-
             appState.navigationContext = {
                 from: 'modal',
-                parentCollection: parentCollection,
+                parentCollection: appState.currentCollection,
+                parentSubcollection: appState.currentSubcollection,
                 docId: appState.editingDocId,
-                data: getFormDataObject(currentForm)
+                data: getFormDataObject(document.getElementById('entry-form'))
             };
 
-            const viewDescriptor = { view: 'renderManagementView', args: [sourceKey, parentCollection] };
+            const parentForSource = Object.keys(categoryConfig).find(key => 
+                (categoryConfig[key].subcategories && categoryConfig[key].subcategories[sourceKey])
+            ) || sourceKey;
+
+            const viewDescriptor = { view: 'renderManagementView', args: [sourceKey, parentForSource] };
             
             if (isFormDirty()) {
                 appState.pendingNavigation = viewDescriptor;
@@ -1394,170 +1509,450 @@
         
         // --- Navigation & View Rendering ---
         
-        function renderAppHeader() {
-            const headerContainer = document.querySelector('.app-header');
-            headerContainer.innerHTML = `
-                <div class="flex-1"></div>
-                <div class="flex-grow flex justify-center items-center gap-4">
-                    <button id="back-btn" class="btn btn-secondary !p-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/></svg>
-                    </button>
-                    <div class="text-center">
-                        <h1 class="text-xl font-bold text-gray-100 whitespace-nowrap">TANGENT SFF RPG</h1>
-                        <p class="text-xs text-gray-400 uppercase">DATABASE MANAGER</p>
-                    </div>
-                    <button id="forward-btn" class="btn btn-secondary !p-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"/></svg>
-                    </button>
-                </div>
-                <div class="flex-1 flex justify-end items-center gap-4">
-                    <div class="text-right">
-                        <p class="text-xs text-gray-500">USER:</p>
-                        <p id="userIdDisplay" class="text-sm font-semibold bg-gray-700 rounded-md px-2 py-0.5 inline-block break-all" style="color: var(--text-subtle); background-color: var(--bg-header);"></p>
-                    </div>
-                    <div id="auth-container"></div>
-                </div>
+        function renderAppHeader(activeCategoryKey) {
+            const existingHeader = document.querySelector('.app-header');
+            if(existingHeader) existingHeader.remove();
+
+            const headerContainer = document.createElement('header');
+            headerContainer.className = 'app-header flex justify-between items-center gap-4';
+
+            const leftCol = document.createElement('div');
+            leftCol.className = 'flex-1';
+            
+            const dropdownContainer = document.createElement('div');
+            dropdownContainer.className = 'relative';
+
+            const menuButton = document.createElement('button');
+            menuButton.id = 'category-menu-button';
+            menuButton.className = 'category-menu-button font-bold py-1 px-2 rounded-lg inline-flex items-center w-full max-w-xs justify-between';
+            menuButton.innerHTML = `
+                <span>${categoryConfig[activeCategoryKey]?.label.toUpperCase() || 'DASHBOARD'}</span>
             `;
+
+            const dropdownMenu = document.createElement('div');
+            dropdownMenu.id = 'category-dropdown-menu';
+            dropdownMenu.className = 'category-dropdown-menu hidden absolute left-0 mt-2 w-auto min-w-max rounded-md shadow-lg z-20 whitespace-nowrap';
             
-            document.getElementById('back-btn').addEventListener('click', goBack);
-            document.getElementById('forward-btn').addEventListener('click', goForward);
+            const dropdownList = document.createElement('div');
+            dropdownList.className = 'py-1';
+
+            const dashboardLink = document.createElement('a');
+            dashboardLink.href = '#';
+            dashboardLink.className = 'block px-4 py-2 text-sm text-gray-300 hover:text-white font-bold';
+            dashboardLink.textContent = 'DASHBOARD';
+            dashboardLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                requestNavigation({ view: 'renderCategoryView', args: ['other'] });
+                dropdownMenu.classList.add('hidden');
+            });
+            dropdownList.appendChild(dashboardLink);
+
+            const mainCategories = Object.keys(categoryConfig).filter(key => !categoryConfig[key].hideFromMenu && key !== 'other');
             
+            mainCategories.forEach(key => {
+                const link = document.createElement('a');
+                link.href = '#';
+                link.className = 'block px-4 py-2 text-sm text-gray-300 hover:text-white';
+                link.textContent = categoryConfig[key].label.toUpperCase();
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    requestNavigation({ view: 'renderCategoryView', args: [key] });
+                    dropdownMenu.classList.add('hidden');
+                });
+                dropdownList.appendChild(link);
+            });
+
+
+            dropdownMenu.appendChild(dropdownList);
+
+            menuButton.addEventListener('click', () => {
+                dropdownMenu.classList.toggle('hidden');
+            });
+            
+            dropdownContainer.appendChild(menuButton);
+            dropdownContainer.appendChild(dropdownMenu);
+            leftCol.appendChild(dropdownContainer);
+            headerContainer.appendChild(leftCol);
+
+            const centerCol = document.createElement('div');
+            centerCol.className = 'flex-grow flex justify-center items-center gap-4';
+
+            const backButton = document.createElement('button');
+            backButton.id = 'back-btn';
+            backButton.className = 'btn btn-secondary !p-2 disabled:opacity-50 disabled:cursor-not-allowed';
+            backButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/></svg>`;
+            backButton.addEventListener('click', goBack);
+
+            const titleContainer = document.createElement('div');
+            titleContainer.className = 'text-center';
+            titleContainer.innerHTML = `
+                <h1 class="text-xl font-bold text-gray-100 whitespace-nowrap">TANGENT SFF RPG</h1>
+                <p class="text-xs text-gray-400 uppercase">DATABASE MANAGER</p>`;
+
+            const forwardButton = document.createElement('button');
+            forwardButton.id = 'forward-btn';
+            forwardButton.className = 'btn btn-secondary !p-2 disabled:opacity-50 disabled:cursor-not-allowed';
+            forwardButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"/></svg>`;
+            forwardButton.addEventListener('click', goForward);
+
+            centerCol.appendChild(backButton);
+            centerCol.appendChild(titleContainer);
+            centerCol.appendChild(forwardButton);
+            headerContainer.appendChild(centerCol);
+            
+            const rightCol = document.createElement('div');
+            rightCol.className = 'flex-1 flex justify-end items-center gap-4';
+            
+            const userIdDiv = document.createElement('div');
+            userIdDiv.className = 'text-right';
+            userIdDiv.innerHTML = `
+                <p class="text-xs text-gray-500">USER:</p>
+                <p id="userIdDisplay" class="text-sm font-semibold bg-gray-700 rounded-md px-2 py-0.5 inline-block break-all" style="color: var(--text-subtle); background-color: var(--bg-header);"></p>
+            `;
+            rightCol.appendChild(userIdDiv);
+
+            const authContainer = document.createElement('div');
+            authContainer.id = 'auth-container';
+            rightCol.appendChild(authContainer);
+
+            const guideButton = document.createElement('button');
+            guideButton.id = 'guide-btn';
+            guideButton.className = 'p-1 rounded-full hover:bg-gray-700 transition-colors underline';
+            guideButton.textContent = "Guide";
+            guideButton.addEventListener('click', () => { helpModal.classList.remove('hidden'); });
+            rightCol.appendChild(guideButton);
+
+            headerContainer.appendChild(rightCol);
+            
+            document.body.prepend(headerContainer);
             updateUIAfterAuthChange();
             updateNavButtonsState();
-        }
-
-        function renderSidebar(activeCategoryKey) {
-            const sidebar = document.getElementById('app-sidebar');
-            sidebar.innerHTML = '';
-
-            const activeConfig = categoryConfig[activeCategoryKey] || {};
-            const activeParentKey = activeConfig.parent || activeCategoryKey;
-
-            const mainCategories = Object.keys(categoryConfig).filter(key => !categoryConfig[key].hideFromMenu && !categoryConfig[key].parent);
-
-            mainCategories.forEach(key => {
-                const config = categoryConfig[key];
-                const tab = document.createElement('button');
-                tab.className = `sidebar-tab ${key === activeParentKey ? 'active' : ''}`;
-                tab.textContent = config.label;
-                
-                if (config.isParent) {
-                    tab.addEventListener('click', () => {
-                        requestNavigation({ view: 'renderCategoryView', args: [config.subItems[0]] });
-                    });
-                } else {
-                    tab.addEventListener('click', () => {
-                        requestNavigation({ view: 'renderCategoryView', args: [key] });
-                    });
-                }
-                sidebar.appendChild(tab);
-
-                if (key === activeParentKey && config.isParent && config.subItems) {
-                    const subDirContainer = document.createElement('div');
-                    subDirContainer.className = 'wiki-directory-container'; 
-                    const subList = document.createElement('ul');
-                    subList.className = 'pl-4 space-y-1';
-                    
-                    config.subItems.forEach(subKey => {
-                        const subConfig = categoryConfig[subKey];
-                        if (!subConfig) return;
-
-                        const li = document.createElement('li');
-                        const a = document.createElement('a');
-                        a.href = `#`; 
-                        a.className = `block p-1 rounded hover:bg-gray-700 text-sm uppercase ${subKey === activeCategoryKey ? 'font-bold text-white' : ''}`;
-                        a.textContent = subConfig.label;
-                        a.onclick = (e) => {
-                            e.preventDefault();
-                            requestNavigation({ view: 'renderCategoryView', args: [subKey] });
-                        };
-                        li.appendChild(a);
-                        subList.appendChild(li);
-                    });
-                    
-                    subDirContainer.appendChild(subList);
-                    sidebar.appendChild(subDirContainer);
-                }
-            });
         }
 
         function renderCategoryView(categoryKey) {
             if (!appState.authReady) return; 
             
-            // Clear all previous listeners
-            Object.values(appState.activeListeners).forEach(unsub => unsub());
-            appState.activeListeners = {};
-
             mainContentContainer.innerHTML = ''; 
-            renderSidebar(categoryKey);
+            renderAppHeader(categoryKey);
 
             const config = categoryConfig[categoryKey];
-            if (!config) {
-                showError(`No configuration found for category: ${categoryKey}`);
-                return;
+            const contentArea = document.createElement('div');
+            contentArea.style.flexGrow = '1';
+
+            if (categoryKey !== 'rules_codex') {
+                contentArea.className = 'p-8 md:p-16 pt-8 md:pt-8';
+            } else {
+                contentArea.style.display = 'flex';
+                contentArea.style.flexDirection = 'row';
+                contentArea.style.alignItems = 'stretch';
             }
+            mainContentContainer.appendChild(contentArea);
             
-            if (config.viewType === 'wiki') {
-                mainContentContainer.innerHTML = `
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 h-full">
-                        <div id="wiki-directory-main" class="md:col-span-1 bg-gray-800 p-4 rounded-lg overflow-y-auto border-2 border-gray-700">
-                            <button id="add-wiki-entry-btn" class="btn btn-primary w-full mb-4 auth-required">Add New Entry</button>
-                            <ul id="wiki-directory-list"></ul>
-                        </div>
-                        <div class="md:col-span-2 wiki-content" id="wiki-content-main">
-                            <div class="flex justify-end gap-2 mb-4">
-                                <button id="wiki-edit-btn" class="btn btn-secondary auth-required" style="display:none;">Edit</button>
-                                <button id="wiki-delete-btn" class="btn btn-danger auth-required" style="display:none;">Delete</button>
-                            </div>
-                            <h2 id="wiki-entry-title">Select an Entry</h2>
-                            <div id="wiki-entry-body">
-                                <p class="text-gray-400">Please select an entry from the directory on the left.</p>
-                            </div>
-                        </div>
-                    </div>
-                `;
-
-                 document.getElementById('add-wiki-entry-btn').addEventListener('click', () => openModal('rules_codex', null, {}, true));
-
-                 document.getElementById('wiki-edit-btn').addEventListener('click', () => {
-                    if (appState.currentWikiEntryId) {
-                        const entry = appState.wikiEntries.find(e => e.id === appState.currentWikiEntryId);
-                        if (entry) {
-                            openModal('rules_codex', entry.id, entry, true);
-                        }
-                    }
-                });
-                document.getElementById('wiki-delete-btn').addEventListener('click', () => {
-                    if (appState.currentWikiEntryId) {
-                        deleteEntry('rules_codex', appState.currentWikiEntryId);
-                    }
-                });
-                listenForWikiEntries();
-
-            } else if (config.viewType === 'guide') {
-                renderGuideView(mainContentContainer);
+            if (config.viewType === 'multi-table') {
+                renderMultiTableView(categoryKey, config, contentArea);
+            } else if (config.viewType === 'button_grid') {
+                renderButtonGridView(contentArea);
+            } else if (config.viewType === 'wiki') {
+                renderWikiView(contentArea);
             }
             else {
-                 renderTableView(categoryKey, config.label, mainContentContainer);
+                renderTableView(categoryKey, config.label, contentArea);
+            }
+        }
+
+        function renderButtonGridView(container) {
+            container.innerHTML = '<h2 class="text-3xl font-bold truncate uppercase mb-6">Dashboard</h2>';
+            const grid = document.createElement('div');
+            grid.className = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3';
+            
+            const combinedGroup = document.createElement('div');
+            combinedGroup.className = "border border-gray-600 p-3 rounded-lg flex flex-col gap-3";
+            
+            const rulesTitle = document.createElement('h3');
+            rulesTitle.className = 'text-xl font-bold uppercase cursor-pointer hover:underline text-left';
+            rulesTitle.textContent = categoryConfig['rules_codex'].label;
+            rulesTitle.addEventListener('click', (e) => {
+                e.preventDefault();
+                navigateTo({ view: 'renderCategoryView', args: ['rules_codex'] });
+            });
+            combinedGroup.appendChild(rulesTitle);
+
+            grid.appendChild(combinedGroup);
+
+
+            const categoriesToShow = ['species', 'factions', 'origins', 'occupations', 'disadvantages', 'features', 'skills', 'augmentations', 'invocations', 'equipment', 'societies'];
+
+            categoriesToShow.forEach(parentKey => {
+                const parentConfig = categoryConfig[parentKey];
+                if (!parentConfig) return;
+
+                const group = document.createElement('div');
+                group.className = "border border-gray-600 p-3 rounded-lg flex flex-col";
+
+                const title = document.createElement('h3');
+                title.className = 'text-xl font-bold uppercase cursor-pointer hover:underline text-left';
+                title.textContent = parentConfig.label;
+                title.addEventListener('click', () => {
+                    navigateTo({ view: 'renderCategoryView', args: [parentKey] });
+                });
+                group.appendChild(title);
+                
+                const subcatContainer = document.createElement('div');
+                subcatContainer.className = 'mt-2 pl-4 border-l-2 border-gray-700 space-y-1';
+                
+                const allSubLinks = new Map();
+
+                if (parentConfig.subcategories) {
+                    for (const subcatKey in parentConfig.subcategories) {
+                        allSubLinks.set(subcatKey, parentConfig.subcategories[subcatKey].label);
+                    }
+                }
+                const allFields = {...(parentConfig.fields || {})};
+                if(parentConfig.tables) {
+                        Object.values(parentConfig.tables).forEach(table => {
+                            Object.assign(allFields, table.fields);
+                        });
+                }
+                for(const fieldKey in allFields) {
+                    const field = allFields[fieldKey];
+                    if (field.manageable && field.source && !allSubLinks.has(field.source)) {
+                        const subConfig = getActiveConfig(field.source);
+                        let label = subConfig ? subConfig.label : field.source.replace(/_/g, " ");
+                        allSubLinks.set(field.source, label);
+                    }
+                }
+
+                if (parentKey === 'societies') {
+                    allSubLinks.delete('society_society');
+                    allSubLinks.delete('prerequisite');
+                    allSubLinks.delete('modifier');
+                }
+                if (parentKey === 'equipment') {
+                    allSubLinks.delete('resistance_type');
+                    allSubLinks.delete('skills');
+                    allSubLinks.delete('critical_effect');
+                    allSubLinks.delete('special');
+                }
+                
+                allSubLinks.delete('critical_success_effect');
+                allSubLinks.delete('critical_failure_effect');
+
+                let sortedKeys = Array.from(allSubLinks.keys());
+                
+                if (parentKey === 'species') {
+                    const order = ['modifier', 'species_movement', 'species_size', 'species_type'];
+                    sortedKeys = order.filter(key => allSubLinks.has(key));
+                    const remaining = Array.from(allSubLinks.keys()).filter(k => !order.includes(k)).sort((a,b) => allSubLinks.get(a).localeCompare(allSubLinks.get(b)));
+                    sortedKeys.push(...remaining);
+                } else if (parentKey === 'equipment') {
+                    const equipmentOrder = ['armoring', 'gear', 'mecha', 'weaponry'];
+                    equipmentOrder.forEach(key => {
+                        const tableConfig = parentConfig.tables[key];
+                        if (tableConfig) {
+                            subcatContainer.appendChild(createDashboardLink(key, tableConfig.label, parentKey, true));
+                        }
+                    });
+                    const remainingKeys = Array.from(allSubLinks.keys()).filter(key => !equipmentOrder.includes(key) && key !== 'armor_class' && key !== 'skills');
+                        if (subcatContainer.hasChildNodes() && remainingKeys.length > 0){
+                            const hr = document.createElement('hr');
+                            hr.className = 'border-gray-600 my-1';
+                            subcatContainer.appendChild(hr);
+                        }
+                        remainingKeys.sort((a,b) => allSubLinks.get(a).localeCompare(allSubLinks.get(b))).forEach(key => {
+                            subcatContainer.appendChild(createDashboardLink(key, allSubLinks.get(key), parentKey, false));
+                        });
+                        sortedKeys = []; 
+                } else {
+                    sortedKeys.sort((a,b) => allSubLinks.get(a).localeCompare(allSubLinks.get(b)));
+                }
+
+                sortedKeys.forEach(key => {
+                    subcatContainer.appendChild(createDashboardLink(key, allSubLinks.get(key), parentKey));
+                });
+
+                if(subcatContainer.hasChildNodes()){
+                        group.appendChild(subcatContainer);
+                }
+                
+                grid.appendChild(group);
+            });
+
+            container.appendChild(grid);
+        }
+
+        function createDashboardLink(key, label, parentKey, isBold = false) {
+            const link = document.createElement('a');
+            link.href = '#';
+            link.textContent = label.toUpperCase();
+            link.className = `block text-sm hover:underline hover:text-white ${isBold ? 'text-gray-300 font-semibold' : 'text-gray-400'}`;
+            link.addEventListener('click', (e) => {
+                e.preventDefault(); e.stopPropagation();
+                if (parentKey === 'equipment' && categoryConfig[parentKey].tables[key]) {
+                    navigateTo({ view: 'renderCategoryView', args: [parentKey] });
+                    setTimeout(()=> {
+                        document.querySelector(`button[data-tab-key='${key}']`)?.click();
+                    }, 50);
+                } else {
+                    navigateTo({ view: 'renderManagementView', args: [key, parentKey] });
+                }
+            });
+            return link;
+        }
+
+        function renderTableView(collectionKey, title, container, parentCategoryKey = null) {
+            const config = getActiveConfig(collectionKey);
+            if (!config) {
+                showError(`Configuration for "${collectionKey}" not found.`);
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="flex flex-col sm:flex-row justify-between sm:items-center my-4 gap-4">
+                    <div class="flex-grow min-w-0">
+                        <h2 id="table-title-${collectionKey}" class="text-3xl font-bold truncate uppercase">${title}</h2>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="text" id="search-input-${collectionKey}" placeholder="Search by name..." class="global-form-input !w-auto" value="${appState.searchTerm}">
+                        <button id="add-new-btn-${collectionKey}" class="btn btn-primary auth-required">ADD NEW</button>
+                    </div>
+                </div>
+                <div class="shadow-lg rounded-lg overflow-x-auto">
+                    <table class="data-table min-w-full">
+                        <thead id="table-header-${collectionKey}"></thead>
+                        <tbody id="table-body-${collectionKey}"></tbody>
+                    </table>
+                </div>
+            `;
+            
+            const titleElement = container.querySelector(`#table-title-${collectionKey}`);
+            if (titleElement) {
+                titleElement.addEventListener('click', () => {
+                    if (!appState.isAnonymous) {
+                        openModal(collectionKey, null, {}, true);
+                    }
+                });
+            }
+
+            const addNewBtn = container.querySelector(`#add-new-btn-${collectionKey}`);
+            if (addNewBtn) {
+                addNewBtn.addEventListener('click', () => {
+                    openModal(collectionKey, null, {}, true);
+                });
+            }
+
+            const searchInput = container.querySelector(`#search-input-${collectionKey}`);
+            if (searchInput) {
+                let debounceTimer;
+                searchInput.addEventListener('input', (e) => {
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(() => {
+                        appState.searchTerm = e.target.value;
+                        listenForData(collectionKey);
+                    }, 300);
+                });
+            }
+            
+            listenForData(collectionKey);
+            updateUIAfterAuthChange();
+        }
+
+        function renderManagementView(collectionKey, parentCollectionKey) {
+            if (!appState.authReady) return;
+
+            const mainCollectionForHeader = parentCollectionKey || collectionKey;
+            mainContentContainer.innerHTML = '';
+            renderAppHeader(mainCollectionForHeader);
+
+            const config = getActiveConfig(collectionKey);
+            if (!config) {
+                showError(`Configuration for "${collectionKey}" not found.`);
+                return;
+            }
+
+            const container = document.createElement('div');
+            container.className = 'p-8 md:p-16 pt-8 md:pt-8';
+            mainContentContainer.appendChild(container);
+
+            renderTableView(collectionKey, config.label, container, parentCollectionKey);
+        }
+
+        function renderMultiTableView(parentCategoryKey, config, container) {
+            container.innerHTML = '';
+            const tables = config.tables;
+            for (const tableKey in tables) {
+                const tableConfig = tables[tableKey];
+                const tableContainer = document.createElement('div');
+                tableContainer.className = 'mb-12';
+                container.appendChild(tableContainer);
+                renderTableView(tableKey, tableConfig.label, tableContainer, parentCategoryKey);
             }
         }
         
-        function renderGuideView(container) {
+        function renderWikiView(container) {
             container.innerHTML = `
-                <div class="guide-content max-w-4xl mx-auto p-4 md:p-8">
-                    <h2 class="text-center mb-8">User Guide</h2>
-                    ${convertMarkdownToHtml(helpMarkdown)}
-                     <div class="text-center font-bold text-sm pt-8 mt-6 border-t border-gray-600 normal-case" style="color: var(--text-subtle)">
-                        Wolfe.BT@TangentLLC
+                <div class="wiki-sidebar" id="wiki-sidebar">
+                    <h3>Rules Codex</h3>
+                    <div id="wiki-sidebar-controls" class="mb-4"></div>
+                    <ul id="wiki-directory-list"></ul>
+                </div>
+                <div class="wiki-content-area-wrapper">
+                    <div class="flex justify-end gap-2 mb-4">
+                        <button id="wiki-edit-btn" class="btn btn-secondary auth-required" style="display:none;">Edit</button>
+                        <button id="wiki-delete-btn" class="btn btn-danger auth-required" style="display:none;">Delete</button>
+                    </div>
+                    <div class="wiki-content" id="wiki-content">
+                        <h2 id="wiki-entry-title">Select an Entry</h2>
+                        <div id="wiki-entry-body">
+                            <p class="text-gray-400">Please select an entry from the left sidebar or create a new one.</p>
+                        </div>
                     </div>
                 </div>
             `;
+
+            const sidebarControls = document.getElementById('wiki-sidebar-controls');
+
+            if (appState.isAnonymous) {
+                sidebarControls.innerHTML = `
+                    <p class="text-xs text-center text-gray-500 p-2 border border-dashed border-gray-600 rounded-md">
+                        Please <a href="#" id="wiki-login-link" class="underline font-bold">log in</a> to add or edit entries.
+                    </p>
+                `;
+                document.getElementById('wiki-login-link').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    handleLogin();
+                });
+            } else {
+                sidebarControls.innerHTML = `
+                    <button id="add-wiki-entry-btn" class="btn btn-primary w-full">Add New Entry</button>
+                `;
+                document.getElementById('add-wiki-entry-btn').addEventListener('click', () => {
+                    openModal('rules_codex', null, {}, true);
+                });
+            }
+
+            document.getElementById('wiki-edit-btn').addEventListener('click', () => {
+                if (appState.currentWikiEntryId) {
+                    const entry = appState.wikiEntries.find(e => e.id === appState.currentWikiEntryId);
+                    if (entry) {
+                        openModal('rules_codex', entry.id, entry, true);
+                    }
+                }
+            });
+
+            document.getElementById('wiki-delete-btn').addEventListener('click', () => {
+                if (appState.currentWikiEntryId) {
+                    deleteEntry('rules_codex', appState.currentWikiEntryId);
+                }
+            });
+            
+            listenForWikiEntries();
+            updateUIAfterAuthChange();
         }
-        
+
         async function renderWikiDirectory(container, entries, parent = null, level = 0) {
             if (!container) return;
             const ul = document.createElement('ul');
-            ul.className = `space-y-1 ${level > 0 ? 'pl-4' : ''}`;
+            ul.className = `space-y-1 ${level > 0 ? 'wiki-tree-children' : ''}`;
 
             const children = entries.filter(entry => (entry.parent || null) === parent).sort((a, b) => (a.order || 0) - (b.order || 0) || a.name.localeCompare(b.name));
 
@@ -1566,16 +1961,16 @@
                 const hasChildren = entries.some(e => e.parent === entry.name);
 
                 const itemContent = document.createElement('div');
-                itemContent.className = 'flex items-center text-sm';
+                itemContent.className = 'wiki-tree-item';
 
-                let toggleBtnHtml = `<span class="w-6"></span>`;
+                let toggleBtnHtml = `<span class="toggle-btn"></span>`;
                 if (hasChildren) {
-                    toggleBtnHtml = `<button class="toggle-btn w-6 text-center" data-toggle-id="${entry.id}">▸</button>`;
+                    toggleBtnHtml = `<button class="toggle-btn" data-toggle-id="${entry.id}">&#9658;</button>`;
                 }
 
                 itemContent.innerHTML = `
                     ${toggleBtnHtml}
-                    <a href="#" class="flex-grow p-1 rounded hover:bg-gray-700" data-entry-id="${entry.id}">${entry.name}</a>
+                    <a href="#" class="wiki-tree-item-content" data-entry-id="${entry.id}">${entry.name}</a>
                 `;
                 li.appendChild(itemContent);
 
@@ -1591,7 +1986,7 @@
                         e.stopPropagation();
                         const isHidden = childrenContainer.style.display === 'none';
                         childrenContainer.style.display = isHidden ? 'block' : 'none';
-                        toggleButton.innerHTML = isHidden ? '▾' : '▸';
+                        toggleButton.innerHTML = isHidden ? '&#9660;' : '&#9658;';
                     });
                 }
 
@@ -1612,8 +2007,6 @@
             const wikiBody = document.getElementById('wiki-entry-body');
             const wikiEditBtn = document.getElementById('wiki-edit-btn');
             const wikiDeleteBtn = document.getElementById('wiki-delete-btn');
-
-            if(!wikiTitle || !wikiBody) return;
 
             wikiTitle.textContent = 'Loading...';
             wikiBody.innerHTML = '<p class="text-center text-gray-400">Loading entry...</p>';
@@ -1704,11 +2097,6 @@
                 if (mainConfig?.subcategories?.[collectionKey]) {
                     return mainConfig.subcategories[collectionKey];
                 }
-                 for (const tableKey in mainConfig.tables) {
-                    if (mainConfig.tables[tableKey].subcategories && mainConfig.tables[tableKey].subcategories[collectionKey]) {
-                        return getActiveConfig(collectionKey);
-                    }
-                }
             }
             return null;
         }
@@ -1735,33 +2123,35 @@
         function listenForWikiEntries() {
             if (!appState.userId) return; 
 
-            if (appState.activeListeners['rules_codex']) {
-                appState.activeListeners['rules_codex']();
+            if (appState.activeListenerUnsubscribe) {
+                appState.activeListenerUnsubscribe();
             }
 
             const collectionPath = `artifacts/${appId}/public/data/rules_codex`;
             const q = query(collection(db, collectionPath));
-            
-            appState.activeListeners['rules_codex'] = onSnapshot(q, (snapshot) => {
+            const wikiSidebar = document.getElementById('wiki-directory-list');
+            if(wikiSidebar) wikiSidebar.innerHTML = '<li>Loading entries...</li>';
+
+            appState.activeListenerUnsubscribe = onSnapshot(q, (snapshot) => {
                 appState.wikiEntries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 rulesCodexMap.clear();
                 appState.wikiEntries.forEach(entry => rulesCodexMap.set(entry.name, entry.id));
 
-                const wikiDirectory = document.getElementById('wiki-directory-list');
-                if (wikiDirectory) {
+                if (wikiSidebar) {
                     if (snapshot.empty) {
-                        wikiDirectory.innerHTML = '<li>No entries found.</li>';
+                        wikiSidebar.innerHTML = '<li>No entries found.</li>';
                     } else {
-                        renderWikiDirectory(wikiDirectory, appState.wikiEntries, null);
+                        renderWikiDirectory(wikiSidebar, appState.wikiEntries, null);
                         if (appState.currentWikiEntryId && appState.wikiEntries.some(e => e.id === appState.currentWikiEntryId)) {
                             displayWikiEntry(appState.currentWikiEntryId);
+                        } else if (appState.wikiEntries.length > 0) {
+                           // displayWikiEntry(appState.wikiEntries[0].id);
                         }
                     }
                 }
             }, error => {
                 console.error("Error listening for wiki entries:", error);
-                const wikiDirectory = document.getElementById('wiki-directory-list');
-                if(wikiDirectory) wikiDirectory.innerHTML = '<li class="text-red-500">Error loading entries.</li>';
+                if(wikiSidebar) wikiSidebar.innerHTML = '<li class="text-red-500">Error loading entries.</li>';
                 showError("Failed to load wiki entries. Check console for details.");
             });
         }
@@ -1817,23 +2207,19 @@
         function listenForData(collectionName) {
             if (!appState.userId) return;
 
-            if (appState.activeListeners[collectionName]) {
-                appState.activeListeners[collectionName]();
+            if (appState.activeListenerUnsubscribe) {
+                appState.activeListenerUnsubscribe();
             }
 
             const collectionPath = `artifacts/${appId}/public/data/${collectionName}`;
-            let q;
+            let q = collection(db, collectionPath);
 
             if (appState.searchTerm) {
                 const searchTermLower = appState.searchTerm.toLowerCase();
-                 q = query(collection(db, collectionPath),
-                    where('name', '>=', searchTermLower),
-                    where('name', '<=', searchTermLower + '\uf8ff'),
-                    orderBy('name')
-                );
-            } else {
-                 q = query(collection(db, collectionPath), orderBy(appState.sortBy, appState.sortDirection));
+                q = query(q, where('name', '>=', searchTermLower), where('name', '<=', searchTermLower + '\uf8ff'));
             }
+            q = query(q, orderBy(appState.sortBy, appState.sortDirection));
+
             
             const tableHeader = document.getElementById(`table-header-${collectionName}`);
             const tableBody = document.getElementById(`table-body-${collectionName}`);
@@ -1868,7 +2254,7 @@
             });
             tableHeader.appendChild(tr);
 
-            appState.activeListeners[collectionName] = onSnapshot(q, (snapshot) => {
+            appState.activeListenerUnsubscribe = onSnapshot(q, (snapshot) => {
                 if (!tableBody) return;
                 
                 tableBody.innerHTML = '';
@@ -2104,16 +2490,15 @@
                 backButton.addEventListener('click', (e) => {
                     e.preventDefault();
                     const goBackInModal = () => {
-                        const { parentCollection, docId, data } = appState.navigationContext;
+                        const { parentCollection, parentSubcollection, docId, data } = appState.navigationContext;
+                        appState.currentCollection = parentCollection;
+                        appState.currentSubcollection = parentSubcollection;
                         appState.navigationContext = null; 
-                        openModal(parentCollection, docId, data, true);
+                        openModal(parentSubcollection || parentCollection, docId, data, true);
                     };
 
                     if (isFormDirty()) {
-                         appState.pendingNavigation = () => {
-                            closeModal(true);
-                            goBackInModal();
-                         };
+                        appState.pendingNavigation = goBackInModal;
                         unsavedChangesModal.classList.remove('hidden');
                     } else {
                         goBackInModal();
@@ -2185,14 +2570,12 @@
             cancelButton.addEventListener('click', () => closeModal());
             modalDataDropdown.appendChild(cancelButton);
 
-            if (docId && isEditMode) {
-                const deleteButton = document.createElement('button');
-                deleteButton.id = 'modal-delete-btn';
-                deleteButton.className = 'text-red-400 hover:bg-red-800 auth-required';
-                deleteButton.textContent = 'Delete';
-                deleteButton.addEventListener('click', () => deleteEntry(collectionKey, docId));
-                modalDataDropdown.appendChild(deleteButton);
-            }
+            const deleteButton = document.createElement('button');
+            deleteButton.id = 'modal-delete-btn';
+            deleteButton.className = 'text-red-400 hover:bg-red-800 auth-required';
+            deleteButton.textContent = 'Delete';
+            deleteButton.addEventListener('click', () => deleteEntry(collectionKey, docId));
+            modalDataDropdown.appendChild(deleteButton);
 
 
             modalDataBtn.onclick = (e) => {
@@ -2365,7 +2748,7 @@
                 }
             }
             
-            setupDynamicCalculations(formContainer);
+            setupDynamicCalculations(formFieldsContainer);
             appState.initialFormState = getFormState(entryForm);
             updateUIAfterAuthChange();
         }
@@ -2585,7 +2968,6 @@
         }
         
         function deleteEntry(collectionKey, docId) {
-            if (!docId) return; // Prevent deleting if no doc is selected
             if (!appState.userId || appState.isAnonymous) {
                 showError("You must be logged in to delete entries.");
                 return;
@@ -2749,10 +3131,11 @@
         });
 
         errorOkBtn.addEventListener('click', hideErrorModal);
+        helpCloseBtn.addEventListener('click', () => { helpModal.classList.add('hidden'); });
         summaryCloseBtn.addEventListener('click', () => { summaryModal.classList.add('hidden'); });
         
         window.addEventListener('click', (event) => {
-            if (event.target == entryModal || event.target == confirmModal || event.target == errorModal || event.target == unsavedChangesModal || event.target == customModal || event.target == summaryModal) {
+            if (event.target == entryModal || event.target == confirmModal || event.target == errorModal || event.target == unsavedChangesModal || event.target == helpModal || event.target == customModal || event.target == summaryModal) {
                 if (event.target === entryModal) {
                     appState.navigationContext = null;
                     closeModal();
@@ -2766,6 +3149,7 @@
                 if (event.target == confirmModal) hideConfirmModal();
                 if (event.target == errorModal) hideErrorModal();
                 if (event.target == unsavedChangesModal) hideUnsavedChangesModal();
+                if (event.target == helpModal) helpModal.classList.add('hidden');
             }
             const menuButton = document.getElementById('category-menu-button');
             const dropdownMenu = document.getElementById('category-dropdown-menu');
@@ -2796,16 +3180,19 @@ This tool is designed to help you create, manage, and browse all the data for yo
 
 ### **Navigating the App**
 #### **Header Controls**
+* **Main Menu (Top-Left):** Click the dropdown menu (it shows the current category, like 'DASHBOARD') to quickly jump to any main data category.
 * **Back/Forward Arrows (Top-Center):** Use these arrows to move through your viewing history, just like in a web browser. Your history is saved for your session, so even if you refresh the page, you can go back to where you were.
 * **User Info & Login/Logout (Top-Right):** See your current status (Anonymous or your email) and log in or out.
+* **Guide Button:** Click this to view the user guide you're reading right now!
 
 #### **Views**
+* **Dashboard:** This is the main landing page. It provides a grid of all major categories. Click any category title to go to its main data table, or click a sub-category link to manage related data (e.g., clicking 'TRAITS' under 'ORIGINS').
 * **Table View:** Most categories are displayed as a table.
     * Click any column header to sort the data by that column.
     * Use the search bar to filter entries by name.
     * Click any row to open the details modal for that entry.
 * **Wiki View (Rules Codex):** The Rules Codex uses a special wiki-style interface.
-    * The directory on the left shows a hierarchical tree of all rules entries. Click an entry to view its content on the right.
+    * The sidebar on the left shows a hierarchical tree of all rules entries. Click an entry to view its content on the right.
     * Use the toggle arrows (\`▸\`) to expand or collapse parent entries.
     * If logged in, you can use the \`Add New Entry\` button to create new articles.
 
@@ -2873,6 +3260,8 @@ Inside the modal's **DATA** menu, you'll find a \`Local\` submenu.
 
             return html.replace(/`([^`]+)`/g, '<code class="bg-gray-700 text-gray-300 rounded px-1 py-0.5">$1</code>');
         }
+
+        helpContent.innerHTML = convertMarkdownToHtml(helpMarkdown);
 
     </script>
 </body>
