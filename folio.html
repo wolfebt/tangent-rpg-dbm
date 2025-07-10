@@ -448,11 +448,10 @@
 
 
         // --- NEW: Cache modifier data on startup ---
-        async function cacheAllModifiers() {
+        async function cacheAllData() {
             appState.allModifiersCache = await getCollectionOptions('modifier');
             appState.allFeatures = await getCollectionOptions('features');
             appState.allOccupations = await getCollectionOptions('occupations');
-
         }
 
 
@@ -730,7 +729,7 @@
         async function recalculateAllModifiers() {
             // Ensure the modifier cache is populated
             if (!appState.allModifiersCache) {
-                await cacheAllModifiers();
+                await cacheAllData();
             }
 
             document.querySelectorAll('.attribute-mod, .skill-mod, #initiative-mod').forEach(input => {
@@ -822,17 +821,23 @@
             let spentCP = 0;
             const data = getPersonaFolioFormData();
 
-            // Get recommended features for the current occupation
+            // Get selected occupation and its bonuses
             const selectedOccupationName = data['char-occu'];
             const selectedOccupation = appState.allOccupations.find(o => o.name === selectedOccupationName);
             const recommendedFeatures = selectedOccupation?.recommended_features || [];
+            const bonusFeatures = selectedOccupation?.bonus_features || [];
+            const bonusSkillRanks = selectedOccupation?.bonus_skill_ranks || [];
 
             // Calculate cost for features, disadvantages, special abilities
             const itemLists = ['features', 'disadvantages', 'special_abilities'];
             itemLists.forEach(listKey => {
                 const selectedItems = data[listKey] || [];
                 selectedItems.forEach(itemName => {
-                    // Search across features and invocations (for special abilities)
+                    // Skip bonus features, they cost 0
+                    if (listKey === 'features' && bonusFeatures.includes(itemName)) {
+                        return;
+                    }
+
                     const itemData = appState.allFeatures.find(f => f.name === itemName) || { cp_cost: 0 };
                     let cost = itemData.cp_cost || 0;
 
@@ -844,11 +849,23 @@
                 });
             });
 
-            // Calculate cost for skill ranks
-            document.querySelectorAll('.skill-rank').forEach(input => {
-                const rank = parseInt(input.value) || 0;
+            // Calculate cost for skill ranks, accounting for bonuses
+            document.querySelectorAll('.skill-row:not(.header):not(.specialization)').forEach(row => {
+                const label = row.querySelector('label');
+                const skillName = label ? label.textContent : '';
+                const rank = parseInt(row.querySelector('.skill-rank')?.value) || 0;
+                
+                const bonus = bonusSkillRanks.find(b => b.skill === skillName);
+                const bonusRanks = bonus ? bonus.ranks : 0;
+                
+                const paidRanks = Math.max(0, rank - bonusRanks);
+                spentCP += paidRanks;
+            });
+             document.querySelectorAll('.skill-row.specialization').forEach(row => {
+                const rank = parseInt(row.querySelector('.skill-rank')?.value) || 0;
                 spentCP += rank;
             });
+
 
             const totalCpInput = document.getElementById('cp-total');
             const spentCpInput = document.getElementById('cp-spent');
@@ -2187,7 +2204,7 @@
                 // Initialize the app only once.
                 if (!appState.appInitialized) {
                     appState.appInitialized = true;
-                    await cacheAllModifiers(); // Cache necessary data first
+                    await cacheAllData(); // Cache necessary data first
                     renderPersonaFolioView(document.getElementById('folio-container'), {});
                     setupGlobalEventListeners();
                 }
