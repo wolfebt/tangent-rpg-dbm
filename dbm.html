@@ -405,6 +405,7 @@
                 <form id="entry-form">
                     <div id="form-fields" class="space-y-6">
                     </div>
+                    <div id="creator-info" class="text-xs text-gray-500 mt-4 text-right"></div>
                 </form>
             </div>
         </div>
@@ -499,6 +500,7 @@
         const appState = {
             userId: null,
             isAnonymous: true,
+            userRole: 'guest', // 'guest', 'contributor', 'admin', 'owner'
             authReady: false,
             editingDocId: null,
             confirmCallback: null,
@@ -515,6 +517,30 @@
             currentWikiEntryId: null,
             activeListeners: {},
         };
+        
+        // --- Role-Based Access Control (RBAC) ---
+        const OWNER_UID = "09bdwApxw5UZ9BQTo7LXXdSsqx13"; 
+
+        /**
+         * Checks if the current user has permission to perform an action on an item.
+         * @param {string} action - The action to perform ('create', 'edit', 'delete').
+         * @param {object} [itemData=null] - The data of the item, required for 'edit' and 'delete'.
+         * @returns {boolean} - True if the user has permission, false otherwise.
+         */
+        function hasPermission(action, itemData = null) {
+            const { userRole, userId } = appState;
+
+            switch (action) {
+                case 'create':
+                    return userRole === 'owner' || userRole === 'admin' || userRole === 'contributor';
+                case 'edit':
+                case 'delete':
+                    if (!itemData || !itemData.creatorId) return false;
+                    return userRole === 'owner' || userRole === 'admin' || userId === itemData.creatorId;
+                default:
+                    return false;
+            }
+        }
 
         // --- RPG System Configuration ---
         const categoryConfig = {
@@ -1144,7 +1170,7 @@
             const titleElement = container.querySelector(`#table-title-${collectionKey}`);
             if (titleElement) {
                 titleElement.addEventListener('click', () => {
-                    if (!appState.isAnonymous) {
+                    if (hasPermission('create')) {
                         openModal(collectionKey, null, {}, true);
                     }
                 });
@@ -1309,22 +1335,22 @@
 
             const authRequiredElements = document.querySelectorAll('.auth-required');
             authRequiredElements.forEach(el => {
-                if (appState.isAnonymous) {
-                    el.classList.add('hidden');
+                if (hasPermission('create')) {
+                     el.classList.remove('hidden');
                 } else {
-                    el.classList.remove('hidden');
+                    el.classList.add('hidden');
                 }
             });
 
             // Update interactivity of table titles based on auth state
             const allTableTitles = document.querySelectorAll('h2[id^="table-title-"]');
             allTableTitles.forEach(title => {
-                if (appState.isAnonymous) {
-                    title.style.cursor = 'default';
-                    title.classList.remove('hover:underline');
-                } else {
+                if (hasPermission('create')) {
                     title.style.cursor = 'pointer';
                     title.classList.add('hover:underline');
+                } else {
+                    title.style.cursor = 'default';
+                    title.classList.remove('hover:underline');
                 }
             });
         }
@@ -1333,6 +1359,29 @@
             if (user) {
                 appState.userId = user.uid;
                 appState.isAnonymous = user.isAnonymous;
+
+                if (user.isAnonymous) {
+                    appState.userRole = 'guest';
+                } else if (user.uid === OWNER_UID) {
+                    appState.userRole = 'owner';
+                } else {
+                    // Check for a role in Firestore, default to 'contributor'
+                    const roleDocRef = doc(db, "user_roles", user.uid);
+                    try {
+                        const roleDoc = await getDoc(roleDocRef);
+                        if (roleDoc.exists() && roleDoc.data().role) {
+                            appState.userRole = roleDoc.data().role;
+                        } else {
+                            appState.userRole = 'contributor';
+                            // Optional: Create the role document for new users
+                            await setDoc(roleDocRef, { role: 'contributor', email: user.email });
+                        }
+                    } catch (e) {
+                        console.error("Error fetching user role, defaulting to contributor.", e);
+                        appState.userRole = 'contributor';
+                    }
+                }
+
 
                 if (!appState.authReady) {
                     appState.authReady = true;
@@ -1388,6 +1437,7 @@
             } else {
                 appState.isAnonymous = true;
                 appState.userId = null;
+                appState.userRole = 'guest';
                 signInAnonymously(auth).catch(err => {
                     console.error("Failed to re-establish anonymous session:", err);
                     if (err.code === 'auth/admin-restricted-operation') {
@@ -1691,8 +1741,10 @@
                     wikiBody.innerHTML = contentHtml;
                     appState.currentWikiEntryId = docId;
 
-                    if (!appState.isAnonymous) {
+                    if (hasPermission('edit', entry)) {
                         if(wikiEditBtn) wikiEditBtn.classList.remove('hidden');
+                    }
+                     if (hasPermission('delete', entry)) {
                         if(wikiDeleteBtn) wikiDeleteBtn.classList.remove('hidden');
                     }
 
@@ -1787,8 +1839,6 @@
         }
 
         function listenForWikiEntries() {
-            if (!appState.userId) return; 
-
             if (appState.activeListeners['rules_codex']) {
                 appState.activeListeners['rules_codex']();
             }
@@ -1837,8 +1887,7 @@
             tr.className = 'cursor-pointer';
             tr.dataset.id = docId;
             tr.addEventListener('click', () => {
-                const canEdit = !appState.isAnonymous;
-                openModal(collectionKey, docId, data, canEdit);
+                openModal(collectionKey, docId, data);
             });
 
             columnsToShow.forEach(fieldKey => {
@@ -1869,8 +1918,6 @@
         }
         
         function listenForData(collectionName) {
-            if (!appState.userId) return;
-
             if (appState.activeListeners[collectionName]) {
                 appState.activeListeners[collectionName]();
             }
@@ -2135,7 +2182,12 @@
             return label;
         }
 
-        async function openModal(collectionKey, docId = null, data = {}, isEditMode = true) {
+        async function openModal(collectionKey, docId = null, data = {}, isEditMode = false) {
+            // Determine if the user CAN edit, based on permissions.
+            const canEdit = hasPermission('edit', data);
+            // The modal is in "edit mode" only if the user has permission AND requested it.
+            const finalEditMode = canEdit && isEditMode;
+
             appState.editingDocId = docId;
             entryForm.dataset.collectionKey = collectionKey;
             
@@ -2147,7 +2199,7 @@
             // Clear previous back button and set title
             const existingBackBtn = modalHeader.querySelector('#modal-back-btn');
             if (existingBackBtn) existingBackBtn.remove();
-            modalTitle.textContent = `${isEditMode ? 'MANAGE' : 'VIEW'} ${modalLabel}`;
+            modalTitle.textContent = `${finalEditMode ? 'MANAGE' : 'VIEW'} ${modalLabel}`;
             
             // Add Back button if there's a navigation context
             if (appState.navigationContext) {
@@ -2193,28 +2245,37 @@
             const formHtml = await Promise.all(sortedFieldKeys.map(async (fieldKey) => {
                 const fieldConfig = config.fields[fieldKey];
                 const savedValue = data[fieldKey] === undefined ? (fieldConfig.type === 'multiselect' ? [] : (fieldConfig.type === 'json_list' ? '[]' : (fieldConfig.type === 'number' ? 0 : ''))) : data[fieldKey];
-                return createFormFieldHtml(fieldKey, fieldConfig, savedValue, collectionKey, isEditMode);
+                return createFormFieldHtml(fieldKey, fieldConfig, savedValue, collectionKey, finalEditMode);
             }));
 
             formFieldsContainer.innerHTML = formHtml.join('');
+
+            const creatorInfo = document.getElementById('creator-info');
+            if (data.creatorEmail) {
+                creatorInfo.textContent = `Created by: ${data.creatorEmail}`;
+                creatorInfo.classList.remove('hidden');
+            } else {
+                creatorInfo.classList.add('hidden');
+            }
             
             const modalDataBtn = document.getElementById('modal-data-btn');
             const modalDataDropdown = document.getElementById('modal-data-dropdown');
 
             modalDataDropdown.innerHTML = ''; // Clear previous items
 
-            if (!isEditMode && !appState.isAnonymous) {
-                const editButton = document.createElement('button');
-                editButton.textContent = 'Edit';
-                editButton.addEventListener('click', () => openModal(collectionKey, docId, data, true));
-                modalDataDropdown.appendChild(editButton);
-            } else if (isEditMode) {
+            if (finalEditMode) {
                 const saveButton = document.createElement('button');
                 saveButton.type = 'submit';
                 saveButton.setAttribute('form', 'entry-form');
                 saveButton.textContent = 'Save';
                 modalDataDropdown.appendChild(saveButton);
+            } else if (canEdit) {
+                 const editButton = document.createElement('button');
+                editButton.textContent = 'Edit';
+                editButton.addEventListener('click', () => openModal(collectionKey, docId, data, true));
+                modalDataDropdown.appendChild(editButton);
             }
+
 
             const summaryButton = document.createElement('button');
             summaryButton.id = 'modal-summary-btn';
@@ -2239,12 +2300,13 @@
             cancelButton.addEventListener('click', () => closeModal());
             modalDataDropdown.appendChild(cancelButton);
 
-            if (docId && isEditMode) {
+            if (docId && hasPermission('delete', data)) {
                 const deleteButton = document.createElement('button');
                 deleteButton.id = 'modal-delete-btn';
-                deleteButton.className = 'text-red-400 hover:bg-red-800 auth-required hidden';
-                modalDataDropdown.appendChild(deleteButton);
+                deleteButton.className = 'text-red-400 hover:bg-red-800';
+                deleteButton.textContent = 'Delete';
                 deleteButton.addEventListener('click', () => deleteEntry(collectionKey, docId));
+                modalDataDropdown.appendChild(deleteButton);
             }
 
 
@@ -2280,7 +2342,7 @@
 
             for (const fieldKey of Object.keys(config.fields)) {
                 const fieldConfig = config.fields[fieldKey];
-                if (fieldConfig.type === 'json_list' && isEditMode) {
+                if (fieldConfig.type === 'json_list' && finalEditMode) {
                     await setupJsonListEditor(fieldKey, fieldConfig);
                 }
             }
@@ -2342,7 +2404,7 @@
                     subtypeSelect.value = currentSubtypeValue;
                 };
 
-                if(aspectSelect && isEditMode){
+                if(aspectSelect && finalEditMode){
                     aspectSelect.addEventListener('change', updateSubtypeOptions);
                     await updateSubtypeOptions();
                 }
@@ -2376,7 +2438,7 @@
                         let optionsHtml = '<option value="">--CHOOSE--</option>';
                         optionsHtml += dimensionOptions[selectedShape].map(opt => `<option value="${opt}" ${savedValue === opt ? 'selected' : ''}>${opt.toUpperCase()}</option>`).join('');
                         select.innerHTML = optionsHtml;
-                        if (!isEditMode) {
+                        if (!finalEditMode) {
                             select.disabled = true;
                             select.classList.add('display-only-input');
                         }
@@ -2389,7 +2451,7 @@
                         input.value = '10ft x 10ft x 10ft cube per invocation level';
                         input.className = 'global-form-input cursor-not-allowed bg-gray-600';
                         input.readOnly = true;
-                        if (!isEditMode) {
+                        if (!finalEditMode) {
                             input.classList.add('display-only-input');
                         }
                         dimensionsFieldContainer.appendChild(input);
@@ -2400,7 +2462,7 @@
                         select.className = 'global-form-input form-select-arrow';
                         select.disabled = true;
                         select.innerHTML = '<option value="">--SELECT SHAPE FIRST--</option>';
-                        if (!isEditMode) {
+                        if (!finalEditMode) {
                             select.classList.add('display-only-input');
                         }
                         dimensionsFieldContainer.appendChild(select);
@@ -2408,7 +2470,7 @@
                 };
 
                 if (shapeSelect && dimensionsFieldContainer) {
-                    if (isEditMode) {
+                    if (finalEditMode) {
                         shapeSelect.addEventListener('change', updateDimensionsField);
                     } else {
                         shapeSelect.disabled = true;
@@ -2570,10 +2632,10 @@
         }
 
         async function saveCurrentForm() {
-            if (!appState.userId || appState.isAnonymous) {
-                showError("You must be logged in to save changes.");
+            if (!hasPermission('create')) {
+                showError("You do not have permission to save data.");
                 return false;
-            };
+            }
             
             const form = document.getElementById('entry-form');
             const collectionKey = form.dataset.collectionKey;
@@ -2612,8 +2674,17 @@
             const collectionPath = `artifacts/${appId}/public/data/${collectionKey}`;
             try {
                 if (appState.editingDocId) {
-                    await updateDoc(doc(db, collectionPath, appState.editingDocId), data);
+                     // Check permission before updating
+                    const docRef = doc(db, collectionPath, appState.editingDocId);
+                    const docSnap = await getDoc(docRef);
+                    if (!hasPermission('edit', docSnap.data())) {
+                        showError("You do not have permission to edit this entry.");
+                        return false;
+                    }
+                    await updateDoc(docRef, data);
                 } else {
+                    data.creatorId = appState.userId;
+                    data.creatorEmail = auth.currentUser.email;
                     await addDoc(collection(db, collectionPath), data);
                 }
                 
@@ -2637,22 +2708,26 @@
             }
         }
         
-        function deleteEntry(collectionKey, docId) {
-            if (!docId) return; // Prevent deleting if no doc is selected
-            if (!appState.userId || appState.isAnonymous) {
-                showError("You must be logged in to delete entries.");
+        async function deleteEntry(collectionKey, docId) {
+            if (!docId) return;
+            const collectionPath = `artifacts/${appId}/public/data/${collectionKey}`;
+            const docRef = doc(db, collectionPath, docId);
+            const docSnap = await getDoc(docRef);
+
+            if (!hasPermission('delete', docSnap.data())) {
+                 showError("You do not have permission to delete this entry.");
                 return;
-            };
+            }
+
             showConfirmModal(`ARE YOU SURE YOU WANT TO DELETE THIS ENTRY? THIS ACTION CANNOT BE UNDONE.`, async () => {
                 closeModal();
-                const collectionPath = `artifacts/${appId}/public/data/${collectionKey}`;
                 try {
-                    await deleteDoc(doc(db, collectionPath, docId));
+                    await deleteDoc(docRef);
                     if (collectionKey === 'rules_codex' && appState.currentWikiEntryId === docId) {
                         document.getElementById('wiki-entry-title').textContent = 'Select an Entry';
                         document.getElementById('wiki-entry-body').innerHTML = '<p class="text-gray-400">Please select an entry from the left sidebar or create a new one.</p>';
-                        document.getElementById('wiki-edit-btn').style.display = 'none';
-                        document.getElementById('wiki-delete-btn').style.display = 'none';
+                        if(document.getElementById('wiki-edit-btn')) document.getElementById('wiki-edit-btn').classList.add('hidden');
+                        if(document.getElementById('wiki-delete-btn')) document.getElementById('wiki-delete-btn').classList.add('hidden');
                         appState.currentWikiEntryId = null;
                     }
                 } catch (error) {
