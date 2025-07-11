@@ -22,7 +22,8 @@
         }
 
         body {
-            background-image: url('https://i.imgur.com/8i26E1E.jpeg');
+            /* Corrected to a stable, public URL for the background image */
+            background-image: url('https://wolfebt.github.io/tangent-rpg-dbm/background.png');
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
@@ -172,7 +173,7 @@
         <div class="modal-content w-full max-w-md p-8 rounded-lg shadow-lg">
             <h2 class="text-3xl font-bold text-center mb-6">Access Terminal</h2>
             <div id="auth-error" class="text-red-400 text-center mb-4 h-6"></div>
-            <form id="login-form">
+            <form id="login-form" onsubmit="return false;">
                 <div class="mb-4">
                     <label for="email" class="block text-gray-300 mb-2">Email</label>
                     <input type="email" id="email" class="modal-input w-full p-3 rounded" required>
@@ -205,112 +206,110 @@
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
         // --- Firebase Configuration ---
-        // IMPORTANT: These variables are provided by the environment.
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_config : null;
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-        // --- Initialize Firebase ---
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
+        // --- Guard Clause: Only run if Firebase config is provided ---
+        if (firebaseConfigStr) {
+            try {
+                const firebaseConfig = JSON.parse(firebaseConfigStr);
+                
+                // --- Initialize Firebase ---
+                const app = initializeApp(firebaseConfig);
+                const auth = getAuth(app);
 
-        // --- UI Elements ---
-        const authContainer = document.getElementById('auth-container');
-        const loginModal = document.getElementById('login-modal');
-        const closeModalButton = document.getElementById('close-modal-button');
-        const loginButton = document.getElementById('login-button');
-        const signupButton = document.getElementById('signup-button');
-        const authError = document.getElementById('auth-error');
-        const emailInput = document.getElementById('email');
-        const passwordInput = document.getElementById('password');
+                // --- UI Elements ---
+                const authContainer = document.getElementById('auth-container');
+                const loginModal = document.getElementById('login-modal');
+                const closeModalButton = document.getElementById('close-modal-button');
+                const loginButton = document.getElementById('login-button');
+                const signupButton = document.getElementById('signup-button');
+                const authError = document.getElementById('auth-error');
+                const emailInput = document.getElementById('email');
+                const passwordInput = document.getElementById('password');
 
-        // --- Modal Logic ---
-        const showModal = () => loginModal.classList.remove('hidden');
-        const hideModal = () => {
-            loginModal.classList.add('hidden');
-            authError.textContent = ''; // Clear errors when hiding
-            emailInput.value = '';
-            passwordInput.value = '';
-        };
+                // --- Modal Logic ---
+                const showModal = () => loginModal.classList.remove('hidden');
+                const hideModal = () => {
+                    loginModal.classList.add('hidden');
+                    authError.textContent = ''; // Clear errors when hiding
+                    emailInput.value = '';
+                    passwordInput.value = '';
+                };
 
-        // Close modal if clicking outside the content area
-        loginModal.addEventListener('click', (event) => {
-            if (event.target === loginModal) {
-                hideModal();
-            }
-        });
-        closeModalButton.addEventListener('click', hideModal);
-
-        // --- Authentication Logic ---
-        onAuthStateChanged(auth, user => {
-            updateUIForAuthState(user);
-        });
-
-        // Function to update the header UI based on login status
-        const updateUIForAuthState = (user) => {
-            authContainer.innerHTML = ''; // Clear previous buttons
-            if (user && !user.isAnonymous) {
-                // User is signed in
-                const userInfo = document.createElement('div');
-                userInfo.classList.add('flex', 'items-center', 'gap-4');
-                userInfo.innerHTML = `
-                    <span class="text-sm text-gray-300">${user.email}</span>
-                    <button id="logout-trigger-button" class="auth-button">Logout</button>
-                `;
-                authContainer.appendChild(userInfo);
-                document.getElementById('logout-trigger-button').addEventListener('click', () => {
-                    signOut(auth).catch(error => console.error("Logout Error:", error));
+                loginModal.addEventListener('click', (event) => {
+                    if (event.target === loginModal) hideModal();
                 });
-                hideModal();
-            } else {
-                // User is signed out or anonymous
-                const loginTriggerButton = document.createElement('button');
-                loginTriggerButton.id = 'login-trigger-button';
-                loginTriggerButton.className = 'auth-button';
-                loginTriggerButton.textContent = 'Login';
-                loginTriggerButton.addEventListener('click', showModal);
-                authContainer.appendChild(loginTriggerButton);
+                closeModalButton.addEventListener('click', hideModal);
+
+                // --- Authentication Logic ---
+                onAuthStateChanged(auth, user => {
+                    updateUIForAuthState(user);
+                });
+
+                const updateUIForAuthState = (user) => {
+                    authContainer.innerHTML = ''; // Clear previous buttons
+                    if (user && !user.isAnonymous) {
+                        const userInfo = document.createElement('div');
+                        userInfo.classList.add('flex', 'items-center', 'gap-4');
+                        userInfo.innerHTML = `
+                            <span class="text-sm text-gray-300">${user.email}</span>
+                            <button id="logout-trigger-button" class="auth-button">Logout</button>
+                        `;
+                        authContainer.appendChild(userInfo);
+                        document.getElementById('logout-trigger-button').addEventListener('click', () => {
+                            signOut(auth).catch(error => console.error("Logout Error:", error));
+                        });
+                        hideModal();
+                    } else {
+                        const loginTriggerButton = document.createElement('button');
+                        loginTriggerButton.id = 'login-trigger-button';
+                        loginTriggerButton.className = 'auth-button';
+                        loginTriggerButton.textContent = 'Login';
+                        loginTriggerButton.addEventListener('click', showModal);
+                        authContainer.appendChild(loginTriggerButton);
+                    }
+                };
+
+                // Handle initial authentication
+                (async () => {
+                    try {
+                        if (initialAuthToken) {
+                            await signInWithCustomToken(auth, initialAuthToken);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (error) {
+                        console.error("Initial authentication failed:", error);
+                        if (!auth.currentUser) await signInAnonymously(auth);
+                    }
+                })();
+
+                // --- Form Event Listeners ---
+                loginButton.addEventListener('click', async () => {
+                    try {
+                        authError.textContent = '';
+                        await signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
+                    } catch (error) {
+                        authError.textContent = error.message;
+                    }
+                });
+
+                signupButton.addEventListener('click', async () => {
+                    try {
+                        authError.textContent = '';
+                        await createUserWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
+                    } catch (error) {
+                        authError.textContent = error.message;
+                    }
+                });
+
+            } catch (e) {
+                console.error("Failed to initialize Firebase. Please check the provided configuration.", e);
             }
-        };
-
-        // Handle initial authentication
-        (async () => {
-            try {
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (error) {
-                console.error("Initial authentication failed:", error);
-                // Fallback to anonymous sign-in if custom token fails
-                if (!auth.currentUser) {
-                    await signInAnonymously(auth);
-                }
-            }
-        })();
-
-
-        // --- Form Event Listeners ---
-        loginButton.addEventListener('click', async () => {
-            try {
-                authError.textContent = '';
-                await signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
-                // onAuthStateChanged will handle the rest
-            } catch (error) {
-                authError.textContent = error.message;
-            }
-        });
-
-        signupButton.addEventListener('click', async () => {
-            try {
-                authError.textContent = '';
-                await createUserWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
-                // onAuthStateChanged will handle the rest
-            } catch (error) {
-                authError.textContent = error.message;
-            }
-        });
-
+        } else {
+            console.log("Firebase configuration not found. Auth features are disabled.");
+        }
     </script>
 
 </body>
