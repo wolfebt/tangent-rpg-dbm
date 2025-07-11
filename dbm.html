@@ -532,11 +532,22 @@
 
             switch (action) {
                 case 'create':
+                    // Any logged-in, non-anonymous user can create.
                     return userRole === 'owner' || userRole === 'admin' || userRole === 'contributor';
+                
                 case 'edit':
                 case 'delete':
-                    if (!itemData || !itemData.creatorId) return false;
-                    return userRole === 'owner' || userRole === 'admin' || userId === itemData.creatorId;
+                    // Owner and admin can always edit/delete.
+                    if (userRole === 'owner' || userRole === 'admin') {
+                        return true;
+                    }
+                    // Contributors can only edit/delete their own items.
+                    if (userRole === 'contributor') {
+                        return itemData && itemData.creatorId === userId;
+                    }
+                    // Guests cannot edit/delete.
+                    return false;
+                
                 default:
                     return false;
             }
@@ -2632,11 +2643,13 @@
         }
 
         async function saveCurrentForm() {
-            if (!hasPermission('create')) {
-                showError("You do not have permission to save data.");
+            const isCreating = !appState.editingDocId;
+            
+            if (isCreating && !hasPermission('create')) {
+                showError("You do not have permission to create new entries.");
                 return false;
             }
-            
+
             const form = document.getElementById('entry-form');
             const collectionKey = form.dataset.collectionKey;
 
