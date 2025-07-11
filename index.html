@@ -206,14 +206,22 @@
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
         // --- Firebase Configuration ---
-        const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_config : null;
+        // This object contains your Firebase project's unique identifiers.
+        const firebaseConfig = {
+            apiKey: "AIzaSyBA1CC4SXXtWM9UpU1XkAiBFr0RIgrPwGk",
+            authDomain: "tangent-rpg-dbm.firebaseapp.com",
+            projectId: "tangent-rpg-dbm",
+            storageBucket: "tangent-rpg-dbm.appspot.com",
+            messagingSenderId: "559983787369",
+            appId: "1:559983787369:web:d6f3b87daaa82b23d211f8",
+            measurementId: "G-G6NC09PXPC"
+        };
+        
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
         // --- Guard Clause: Only run if Firebase config is provided ---
-        if (firebaseConfigStr) {
+        if (firebaseConfig && firebaseConfig.apiKey) {
             try {
-                const firebaseConfig = JSON.parse(firebaseConfigStr);
-                
                 // --- Initialize Firebase ---
                 const app = initializeApp(firebaseConfig);
                 const auth = getAuth(app);
@@ -277,7 +285,10 @@
                         if (initialAuthToken) {
                             await signInWithCustomToken(auth, initialAuthToken);
                         } else {
-                            await signInAnonymously(auth);
+                            // If no user is logged in, sign in anonymously to establish a session.
+                            if (!auth.currentUser) {
+                                await signInAnonymously(auth);
+                            }
                         }
                     } catch (error) {
                         console.error("Initial authentication failed:", error);
