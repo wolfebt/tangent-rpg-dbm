@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tangent SFF RPG</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FirebaseUI Stylesheet -->
+    <link type="text/css" rel="stylesheet" href="https://www.gstatic.com/firebasejs/ui/6.0.1/firebase-ui-auth.css" />
     <style>
         /* --- Sci-Fi Theme with Background Image --- */
         :root {
@@ -12,7 +14,6 @@
             --bg-section: #333333;
             --text-light: #f5f5f5;
             --text-subtle: #cccccc;
-            /* Buttons are now more transparent */
             --btn-primary-bg: rgba(20, 20, 20, 0.45);
             --btn-primary-hover-bg: rgba(40, 40, 40, 0.7);
             --border-main: #9e9e9e;
@@ -22,7 +23,6 @@
         }
 
         body {
-            /* Corrected to a stable, public URL for the background image */
             background-image: url('https://wolfebt.github.io/tangent-rpg-dbm/background.png');
             background-size: cover;
             background-position: center;
@@ -37,22 +37,16 @@
             font-family: var(--font-display);
             font-weight: 700;
             letter-spacing: 0.1em;
-            /* Added a black border effect using multiple text shadows */
             text-shadow:
-                -2px -2px 0 #000,
-                 2px -2px 0 #000,
-                -2px  2px 0 #000,
-                 2px  2px 0 #000,
+                -2px -2px 0 #000, 2px -2px 0 #000,
+                -2px  2px 0 #000, 2px  2px 0 #000,
                  4px 4px 8px rgba(0,0,0,0.7);
         }
         
         .brand-subtitle {
-             /* Added a black border effect to the subtitle as well */
             text-shadow:
-                -1px -1px 0 #000,
-                 1px -1px 0 #000,
-                -1px  1px 0 #000,
-                 1px  1px 0 #000,
+                -1px -1px 0 #000, 1px -1px 0 #000,
+                -1px  1px 0 #000, 1px  1px 0 #000,
                  2px 2px 4px rgba(0,0,0,0.5);
         }
 
@@ -66,7 +60,6 @@
             text-transform: uppercase;
             transition: all 0.3s ease;
             text-shadow: 1px 1px 2px #000;
-            /* Adds a frosted glass effect for readability */
             backdrop-filter: blur(5px);
             -webkit-backdrop-filter: blur(5px);
         }
@@ -78,7 +71,7 @@
             box-shadow: 0 6px 16px rgba(0,0,0,0.5);
         }
         
-        /* --- Auth & Popup Styles --- */
+        /* --- Auth & FirebaseUI Styles --- */
         #auth-container {
             position: absolute;
             top: 1rem;
@@ -101,39 +94,23 @@
             background-color: var(--btn-primary-hover-bg);
             border-color: var(--border-focus);
         }
-        
-        /* Login Modal Styles */
-        .modal-overlay {
-            background-color: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-        }
-        .modal-content {
-            background-color: rgba(40, 40, 40, 0.85);
-            border: 1px solid #666;
-        }
-        .modal-input {
-            background-color: #333;
-            border: 1px solid #777;
-            color: var(--text-light);
-        }
-        .modal-input:focus {
-            outline: none;
-            border-color: var(--border-focus);
-            box-shadow: 0 0 5px var(--border-focus);
-        }
-        .modal-button {
-            background-color: #555;
-            transition: background-color 0.2s;
-        }
-        .modal-button:hover {
-            background-color: #666;
+
+        /* FirebaseUI container styling */
+        #firebaseui-auth-container {
+            background-color: rgba(20, 20, 20, 0.6);
+            padding: 2rem;
+            border-radius: 0.5rem;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border: 1px solid var(--border-main);
+            width: 100%;
+            max-width: 24rem; /* 384px */
         }
     </style>
 </head>
 <body class="flex flex-col h-screen relative">
 
-    <!-- Auth Container -->
+    <!-- Auth Container (for logout button) -->
     <header id="auth-container">
         <!-- This area will be populated by the script -->
     </header>
@@ -149,15 +126,21 @@
             </h2>
         </div>
 
-        <!-- Navigation Buttons -->
-        <nav class="w-full max-w-sm flex flex-col gap-6">
-            <a href="folio.html" class="nav-button block w-full py-6 rounded-lg text-2xl">
-                Persona Folio
-            </a>
-            <a href="dbm.html" class="nav-button block w-full py-6 rounded-lg text-2xl">
-                Database Manager
-            </a>
-        </nav>
+        <!-- This container will hold either the login widget or the navigation buttons -->
+        <div id="dynamic-content-container" class="w-full max-w-sm flex flex-col items-center gap-6">
+            <!-- FirebaseUI widget will be rendered here -->
+            <div id="firebaseui-auth-container"></div>
+
+            <!-- Navigation Buttons (initially hidden) -->
+            <nav id="navigation-menu" class="w-full flex flex-col gap-6 hidden">
+                <a href="folio.html" class="nav-button block w-full py-6 rounded-lg text-2xl">
+                    Persona Folio
+                </a>
+                <a href="dbm.html" class="nav-button block w-full py-6 rounded-lg text-2xl">
+                    Database Manager
+                </a>
+            </nav>
+        </div>
 
     </main>
 
@@ -167,46 +150,14 @@
             Tangent SFF RPG by Wolfe.BT@TangentLLC
         </p>
     </footer>
-
-    <!-- Login Modal -->
-    <div id="login-modal" class="modal-overlay fixed inset-0 z-40 flex items-center justify-center hidden">
-        <div class="modal-content w-full max-w-md p-8 rounded-lg shadow-lg">
-            <h2 class="text-3xl font-bold text-center mb-6">Access Terminal</h2>
-            <div id="auth-error" class="text-red-400 text-center mb-4 h-6"></div>
-            <form id="login-form" onsubmit="return false;">
-                <div class="mb-4">
-                    <label for="email" class="block text-gray-300 mb-2">Email</label>
-                    <input type="email" id="email" class="modal-input w-full p-3 rounded" required>
-                </div>
-                <div class="mb-6">
-                    <label for="password" class="block text-gray-300 mb-2">Password</label>
-                    <input type="password" id="password" class="modal-input w-full p-3 rounded" required>
-                </div>
-                <div class="flex flex-col sm:flex-row gap-4">
-                    <button type="button" id="login-button" class="modal-button w-full text-white font-bold py-3 px-4 rounded">Login</button>
-                    <button type="button" id="signup-button" class="modal-button w-full text-white font-bold py-3 px-4 rounded">Sign Up</button>
-                </div>
-            </form>
-            <button id="close-modal-button" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
-        </div>
-    </div>
     
-    <!-- Firebase Logic -->
-    <script type="module">
-        // Import Firebase modules
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { 
-            getAuth, 
-            onAuthStateChanged,
-            createUserWithEmailAndPassword,
-            signInWithEmailAndPassword,
-            signOut,
-            signInAnonymously,
-            signInWithCustomToken
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-
+    <!-- Firebase and FirebaseUI Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/ui/6.0.1/firebase-ui-auth.js"></script>
+    
+    <script>
         // --- Firebase Configuration ---
-        // This object contains your Firebase project's unique identifiers.
         const firebaseConfig = {
             apiKey: "AIzaSyBA1CC4SXXtWM9UpU1XkAiBFr0RIgrPwGk",
             authDomain: "tangent-rpg-dbm.firebaseapp.com",
@@ -217,110 +168,69 @@
             measurementId: "G-G6NC09PXPC"
         };
         
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        // --- Initialize Firebase ---
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
 
-        // --- Guard Clause: Only run if Firebase config is provided ---
-        if (firebaseConfig && firebaseConfig.apiKey) {
-            try {
-                // --- Initialize Firebase ---
-                const app = initializeApp(firebaseConfig);
-                const auth = getAuth(app);
+        // --- UI Elements ---
+        const authContainer = document.getElementById('auth-container');
+        const firebaseuiContainer = document.getElementById('firebaseui-auth-container');
+        const navigationMenu = document.getElementById('navigation-menu');
 
-                // --- UI Elements ---
-                const authContainer = document.getElementById('auth-container');
-                const loginModal = document.getElementById('login-modal');
-                const closeModalButton = document.getElementById('close-modal-button');
-                const loginButton = document.getElementById('login-button');
-                const signupButton = document.getElementById('signup-button');
-                const authError = document.getElementById('auth-error');
-                const emailInput = document.getElementById('email');
-                const passwordInput = document.getElementById('password');
+        // --- FirebaseUI Configuration ---
+        const ui = new firebaseui.auth.AuthUI(auth);
+        const uiConfig = {
+            callbacks: {
+                signInSuccessWithAuthResult: function(authResult, redirectUrl) {
+                    // This function is called when a user successfully signs in.
+                    // Returning false prevents a redirect.
+                    return false;
+                },
+                uiShown: function() {
+                    // The widget is rendered. You can hide a loader here if you have one.
+                }
+            },
+            signInFlow: 'popup',
+            signInOptions: [
+                firebase.auth.GoogleAuthProvider.PROVIDER_ID,
+                firebase.auth.EmailAuthProvider.PROVIDER_ID
+            ],
+            tosUrl: '<your-terms-of-service-url>', // Optional
+            privacyPolicyUrl: '<your-privacy-policy-url>' // Optional
+        };
 
-                // --- Modal Logic ---
-                const showModal = () => loginModal.classList.remove('hidden');
-                const hideModal = () => {
-                    loginModal.classList.add('hidden');
-                    authError.textContent = ''; // Clear errors when hiding
-                    emailInput.value = '';
-                    passwordInput.value = '';
-                };
+        // --- Authentication State Listener ---
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                // User is signed in.
+                // Hide the login widget and show the navigation menu.
+                firebaseuiContainer.classList.add('hidden');
+                navigationMenu.classList.remove('hidden');
 
-                loginModal.addEventListener('click', (event) => {
-                    if (event.target === loginModal) hideModal();
-                });
-                closeModalButton.addEventListener('click', hideModal);
-
-                // --- Authentication Logic ---
-                onAuthStateChanged(auth, user => {
-                    updateUIForAuthState(user);
-                });
-
-                const updateUIForAuthState = (user) => {
-                    authContainer.innerHTML = ''; // Clear previous buttons
-                    if (user && !user.isAnonymous) {
-                        const userInfo = document.createElement('div');
-                        userInfo.classList.add('flex', 'items-center', 'gap-4');
-                        userInfo.innerHTML = `
-                            <span class="text-sm text-gray-300">${user.email}</span>
-                            <button id="logout-trigger-button" class="auth-button">Logout</button>
-                        `;
-                        authContainer.appendChild(userInfo);
-                        document.getElementById('logout-trigger-button').addEventListener('click', () => {
-                            signOut(auth).catch(error => console.error("Logout Error:", error));
-                        });
-                        hideModal();
-                    } else {
-                        const loginTriggerButton = document.createElement('button');
-                        loginTriggerButton.id = 'login-trigger-button';
-                        loginTriggerButton.className = 'auth-button';
-                        loginTriggerButton.textContent = 'Login';
-                        loginTriggerButton.addEventListener('click', showModal);
-                        authContainer.appendChild(loginTriggerButton);
-                    }
-                };
-
-                // Handle initial authentication
-                (async () => {
-                    try {
-                        if (initialAuthToken) {
-                            await signInWithCustomToken(auth, initialAuthToken);
-                        } else {
-                            // If no user is logged in, sign in anonymously to establish a session.
-                            if (!auth.currentUser) {
-                                await signInAnonymously(auth);
-                            }
-                        }
-                    } catch (error) {
-                        console.error("Initial authentication failed:", error);
-                        if (!auth.currentUser) await signInAnonymously(auth);
-                    }
-                })();
-
-                // --- Form Event Listeners ---
-                loginButton.addEventListener('click', async () => {
-                    try {
-                        authError.textContent = '';
-                        await signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
-                    } catch (error) {
-                        authError.textContent = error.message;
-                    }
+                // Display user info and logout button in the top-right corner.
+                authContainer.innerHTML = `
+                    <div class="flex items-center gap-4">
+                        <span class="text-sm text-gray-300">${user.displayName || user.email}</span>
+                        <button id="logout-trigger-button" class="auth-button">Logout</button>
+                    </div>
+                `;
+                document.getElementById('logout-trigger-button').addEventListener('click', () => {
+                    auth.signOut();
                 });
 
-                signupButton.addEventListener('click', async () => {
-                    try {
-                        authError.textContent = '';
-                        await createUserWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
-                    } catch (error) {
-                        authError.textContent = error.message;
-                    }
-                });
+            } else {
+                // User is signed out.
+                // Show the login widget and hide the navigation menu.
+                firebaseuiContainer.classList.remove('hidden');
+                navigationMenu.classList.add('hidden');
+                
+                // Clear the top-right user info.
+                authContainer.innerHTML = '';
 
-            } catch (e) {
-                console.error("Failed to initialize Firebase. Please check the provided configuration.", e);
+                // Start the FirebaseUI widget.
+                ui.start('#firebaseui-auth-container', uiConfig);
             }
-        } else {
-            console.log("Firebase configuration not found. Auth features are disabled.");
-        }
+        });
     </script>
 
 </body>
