@@ -2647,16 +2647,17 @@
 
             if (isCreating && !hasPermission('create')) {
                 showError("You do not have permission to create new entries.");
-                return false;
+                return { success: false };
             }
 
             const form = document.getElementById('entry-form');
             const collectionKey = form.dataset.collectionKey;
+            const docId = appState.editingDocId;
 
             if (!collectionKey) {
                 console.error("No collectionKey found on form dataset. Aborting save.");
                 showError("A critical error occurred. Could not determine where to save the data.");
-                return false;
+                return { success: false };
             }
 
             const config = getActiveConfig(collectionKey);
@@ -2700,14 +2701,16 @@
             }
             
             const collectionPath = `artifacts/${appId}/public/data/${collectionKey}`;
+            let newDocId = docId;
+
             try {
-                if (appState.editingDocId) {
-                    const docRef = doc(db, collectionPath, appState.editingDocId);
+                if (docId) { // This is an update
+                    const docRef = doc(db, collectionPath, docId);
                     const docSnap = await getDoc(docRef);
 
                     if (!docSnap.exists() || !hasPermission('edit', docSnap.data())) {
                         showError("You do not have permission to edit this entry or it does not exist.");
-                        return false;
+                        return { success: false };
                     }
                     
                     const existingData = docSnap.data();
@@ -2718,29 +2721,30 @@
                     };
                     await updateDoc(docRef, updateData);
 
-                } else {
+                } else { // This is a creation
                     sanitizedData.creatorId = appState.userId;
                     sanitizedData.creatorEmail = auth.currentUser?.email || 'anonymous';
-                    await addDoc(collection(db, collectionPath), sanitizedData);
+                    const newDocRef = await addDoc(collection(db, collectionPath), sanitizedData);
+                    newDocId = newDocRef.id; // Get the ID of the newly created document
                 }
                 
                 appState.initialFormState = getFormState(form);
-                return true;
+                return { success: true, collectionKey, docId: newDocId, data: sanitizedData };
             } catch (error) {
                 console.error("Error saving data:", error);
                 showError(`Error saving data. Check console for details. Error: ${error.message}`);
-                return false;
+                return { success: false };
             }
         }
 
         async function handleFormSubmit(e) {
             e.preventDefault();
-            const success = await saveCurrentForm();
-            if (success) {
-                 const shouldStayOpen = !!appState.pendingNavigation;
-                if(!shouldStayOpen) {
-                    closeModal(true);
-                }
+            const result = await saveCurrentForm();
+            if (result.success) {
+                const { collectionKey, docId, data } = result;
+                // After a successful save, always reopen the modal in edit mode for the saved document
+                closeModal(true); // Force close the current modal
+                openModal(collectionKey, docId, data, true); // Reopen with the correct data and in edit mode
             }
         }
         
@@ -2970,44 +2974,41 @@
 
         const helpMarkdown = `
 ### **Welcome to the Tangent SFF RPG Database Manager**
-This guide provides a comprehensive overview of how to use this tool to browse and manage your game world's data.
+This guide provides a comprehensive overview of how to use this tool to browse and manage your game world's data, which is stored and shared in real-time using Firebase.
 
-### **Core Concepts**
-The Database Manager has two primary modes based on your login status:
-* **Anonymous (Read-Only):** As a guest, you have complete access to view all entries in the database. You can navigate all sections, open items to see their details, and explore the rules codex. This is the default mode for players.
-* **Logged-In (Edit Mode):** After logging in with a Google account, you gain full administrative rights. You can create, edit, and delete any data in the database.
+### **Core Concepts & User Roles**
+The Database Manager has different capabilities based on your login status and assigned role.
+* **Guest (Anonymous):** As a guest, you have complete read-only access to all entries in the database. You can navigate all sections, open items to see their details, and explore the rules codex. This is the default mode for players or viewers.
+* **Contributor (Logged-in):** After logging in with a Google account, you are assigned the 'Contributor' role. You can **create** new entries in any category and **edit** or **delete** the entries that you have created. You cannot modify entries created by other users.
+* **Admin/Owner (Logged-in):** These roles have full administrative rights. You can create, edit, and delete **any** data in the database, regardless of who created it.
 
 ### **Navigating the Application**
 Your primary navigation tools are the **Header** and the **Sidebar**.
-* **Sidebar:** This is your main navigation hub.
-    * Click any tab (e.g., "Species", "Factions") to view its content.
-    * The active tab will be highlighted with a border and a shadow.
-    * Categories with sub-pages, like "Equipment," will show a nested list of links when active.
-* **Header:**
-    * **Navigation Arrows:** Use the back and forward arrows at the top to move through your viewing history.
-    * **User Status:** The top-right corner displays your login status and provides the **LOGIN/LOGOUT** button.
+* **Sidebar:** This is your main navigation hub. Click any category (e.g., "Species", "Factions") to view its content. The active category is highlighted. For categories with sub-pages, like "Equipment," a nested list of links will appear below the main tab.
+* **Header:** Use the back and forward arrows to move through your viewing history. The top-right corner displays your login status and provides the **LOGIN/LOGOUT** button.
 
-### **Viewing Data**
+### **Viewing & Finding Data**
 * **Table Views:** Most categories are presented in a table format.
-    * **Sorting:** Click on any column header to sort the table by that column.
-    * **Searching:** Use the search bar at the top of a table to filter entries by name.
-    * **Viewing Details:** Click anywhere on a row to open a detailed, read-only view of that item in a pop-up modal.
-* **Wiki View (Rules Codex):** This section has a special two-column layout.
-    * The directory of all rules articles is on the left.
-    * Clicking an article title in the directory will display its full content on the right.
+    * **Sorting:** Click on any column header to sort the table by that column's data.
+    * **Searching:** Use the search bar at the top-right of a table to filter entries by name in real-time.
+    * **Viewing Details:** Click anywhere on a row to open a detailed view of that item in a pop-up modal.
+* **Wiki View (Rules Codex):** This special section has a two-column layout. The directory of all rules articles is on the left. Clicking an article title displays its full content on the right.
 
-### **Managing Data (Logged-in Users Only)**
-When you are logged in, you can modify the database using the **Entry Modal**.
-1.  **Opening the Modal:**
-    * Click the **ADD NEW** button at the top of a table to create a new entry.
-    * Click on an existing row to open its details. Then, click the **DATA** button in the modal and select **Edit**.
-2.  **Saving:** After making changes, click the **DATA** button and select **Save**.
-3.  **Deleting:** To remove an entry permanently, open it, click the **DATA** button, and select **Delete**.
-4.  **Managing Linked Data:** Some fields (like "Modifiers" on a species) are managed in other parts of the database. Click the underlined label for these fields to navigate directly to their respective management tables.
+### **Managing Data (Logged-in Users)**
+When logged in, you can create and modify data using the **Entry Modal**.
+1.  **Creating an Entry:** Click the **ADD NEW** button at the top of any table. This opens the modal with a blank, editable form.
+2.  **Editing an Entry:**
+    * Click on an existing row to open its details in the modal (read-only view).
+    * Click the **DATA** button in the top-right corner of the modal.
+3.  **Saving:** After making changes in edit mode, click the **DATA** button and select **Save**. The modal will remain open in edit mode, allowing for further changes.
+4.  **Deleting:** To remove an entry permanently (if you have permission), open it, click the **DATA** button, and select **Delete**.
+5.  **Managing Linked Data:** Some fields (like "Modifiers" on a species) are managed in other database categories. To add or edit these, click the underlined label for the field (e.g., the word **MODIFIER**). This will navigate you to that category's management table.
 
 ### **Special Features**
-* **Wiki-Linking:** In text areas within the "Rules Codex," you can create links to other entries by wrapping the exact entry name in double square brackets, for example: \`[[Some Rule Name]]\`.
-* **Local Backup:** Inside the modal's **DATA** menu, you'll find a "Local" submenu to save the current entry's data to a file on your computer or load data from such a file.
+* **AI-Powered Generation:** In fields like "Description," logged-in users can click the **GENERATE** button. This uses the Gemini API to create descriptive text based on the entry's other data, like its name and type. You must provide your own Gemini API key in the settings for this to work.
+* **Settings:** Click the gear icon in the bottom-left corner to open the settings modal, where you can enter and save your Gemini API key.
+* **Wiki-Linking:** In text areas within the "Rules Codex," you can create links to other entries by wrapping the exact entry name in double square brackets, for example: \`[[Some Rule Name]]\`. When viewed, this becomes a clickable link that opens the corresponding entry.
+* **Local Backup:** Inside the modal's **DATA** menu, the "Local" submenu allows you to save the current entry's data to a JSON file on your computer or load data from such a file to populate the form.
 `; 
         
         function convertMarkdownToHtml(markdown) {
@@ -3036,7 +3037,7 @@ When you are logged in, you can modify the database using the **Entry Modal**.
                         html += `<ul>`;
                         listStack.push({ type: 'ul', indent });
                     }
-                    let content = trimmedLine.substring(2).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                    let content = trimmedLine.substring(4).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
                     html += `<li>${content}</li>`;
                 } else {
                      // Close any open lists if it's a regular paragraph
