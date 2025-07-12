@@ -2491,7 +2491,6 @@
                 }
             }
             
-            // FIX: Pass the correct container to the setup function
             setupDynamicCalculations(formFieldsContainer);
             appState.initialFormState = getFormState(entryForm);
             updateUIAfterAuthChange();
@@ -2688,17 +2687,22 @@
             const collectionPath = `artifacts/${appId}/public/data/${collectionKey}`;
             try {
                 if (appState.editingDocId) {
-                     // Check permission before updating
                     const docRef = doc(db, collectionPath, appState.editingDocId);
                     const docSnap = await getDoc(docRef);
-                    if (!hasPermission('edit', docSnap.data())) {
-                        showError("You do not have permission to edit this entry.");
+                    if (!docSnap.exists() || !hasPermission('edit', docSnap.data())) {
+                        showError("You do not have permission to edit this entry or it does not exist.");
                         return false;
                     }
-                    await updateDoc(docRef, data);
+                    // Get existing data to preserve creatorId and creatorEmail
+                    const existingData = docSnap.data();
+                    const updateData = {
+                        ...data, // new data from the form
+                        creatorId: existingData.creatorId, // preserve original creatorId
+                        creatorEmail: existingData.creatorEmail // preserve original creatorEmail
+                    };
+                    await updateDoc(docRef, updateData);
                 } else {
                     data.creatorId = appState.userId;
-                    // FIX: Safely access email property
                     data.creatorEmail = auth.currentUser?.email || 'anonymous';
                     await addDoc(collection(db, collectionPath), data);
                 }
