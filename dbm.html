@@ -2662,13 +2662,28 @@
             const config = getActiveConfig(collectionKey);
             const data = getFormDataObject(form);
             
-            // --- Data Normalization & Validation ---
+            // --- Definitive Fix: Sanitize data before sending to Firestore ---
             for (const fieldKey in config.fields) {
                 const fieldConfig = config.fields[fieldKey];
-                const fieldElement = document.getElementById(fieldKey);
                 
+                // If a field is missing from the form data (e.g., an unchecked multiselect),
+                // provide a default value to prevent sending 'undefined' to Firestore.
+                if (data[fieldKey] === undefined) {
+                    if (fieldConfig.type === 'multiselect' || fieldConfig.type === 'json_list') {
+                        data[fieldKey] = [];
+                    } else if (fieldConfig.type === 'boolean') {
+                        data[fieldKey] = false;
+                    } else if (fieldConfig.type === 'number') {
+                        data[fieldKey] = 0;
+                    } else {
+                        data[fieldKey] = '';
+                    }
+                }
+
+                // Additional validation for required fields
                 if (fieldConfig.required && (!data[fieldKey] || (typeof data[fieldKey] === 'string' && data[fieldKey].trim() === ""))) {
                     showError(`${fieldConfig.label || fieldKey} is required.`);
+                    const fieldElement = document.getElementById(fieldKey);
                     if (fieldElement) {
                         fieldElement.classList.add('!border-red-500');
                         fieldElement.focus();
@@ -2676,6 +2691,8 @@
                     }
                     return false;
                 }
+                
+                // Normalize boolean values
                 if (fieldConfig.type === 'boolean') {
                     data[fieldKey] = data[fieldKey] === 'true';
                 }
@@ -2693,12 +2710,11 @@
                         showError("You do not have permission to edit this entry or it does not exist.");
                         return false;
                     }
-                    // Get existing data to preserve creatorId and creatorEmail
                     const existingData = docSnap.data();
                     const updateData = {
-                        ...data, // new data from the form
-                        creatorId: existingData.creatorId, // preserve original creatorId
-                        creatorEmail: existingData.creatorEmail // preserve original creatorEmail
+                        ...data,
+                        creatorId: existingData.creatorId,
+                        creatorEmail: existingData.creatorEmail
                     };
                     await updateDoc(docRef, updateData);
                 } else {
@@ -2708,11 +2724,11 @@
                 }
                 
                 appState.initialFormState = getFormState(form);
-                return true; // Indicate success
+                return true;
             } catch (error) {
                 console.error("Error saving data:", error);
-                showError("Error saving data. Check console for details.");
-                return false; // Indicate failure
+                showError(`Error saving data. Check console for details. Error: ${error.message}`);
+                return false;
             }
         }
 
