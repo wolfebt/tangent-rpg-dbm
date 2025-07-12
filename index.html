@@ -292,6 +292,11 @@
         const db = firebase.firestore();
         const functions = firebase.functions();
 
+        // --- Cloud Function Reference ---
+        // Get a reference to the deployed callable function.
+        // 'callRpgAssistant' must exactly match the export name in your Cloud Function file.
+        const callRpgAssistantCloudFunction = functions.httpsCallable('callRpgAssistant');
+
         // --- User State ---
         let currentUser = null;
 
@@ -307,6 +312,7 @@
         const userInput = document.getElementById('user-prompt-input');
 
         // --- Chatbot State ---
+        // The initial message now only contains the system prompt for the AI.
         let conversationHistory = [{ role: "model", parts: [{ text: "You are Bastion, a helpful and creative RPG game master assistant for the Tangent SFF RPG. Provide concise, relevant, and creative responses to the user's questions." }] }];
 
         // --- FirebaseUI Configuration ---
@@ -337,9 +343,10 @@
         const handleSendMessage = async (event) => {
             event.preventDefault();
             const userPrompt = userInput.value.trim();
-            if (!userPrompt) return;
+            if (!userPrompt || !currentUser) return;
 
             addMessageToUI('user', userPrompt);
+            // Add the user's new message to the history for context.
             conversationHistory.push({ role: "user", parts: [{ text: userPrompt }] });
             userInput.value = '';
             
@@ -350,34 +357,22 @@
             chatMessages.scrollTop = chatMessages.scrollHeight;
 
             try {
-                const apiKey = ""; // Will be provided by the environment
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-                
-                const payload = { contents: conversationHistory };
-
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                // Securely call the Firebase Cloud Function instead of the AI API directly.
+                const result = await callRpgAssistantCloudFunction({
+                    userPrompt: userPrompt,
+                    conversationHistory: conversationHistory
                 });
 
-                if (!response.ok) {
-                    throw new Error(`API request failed with status ${response.status}`);
-                }
-
-                const result = await response.json();
                 chatMessages.removeChild(thinkingMessage); // Remove "Thinking..." message
 
-                if (result.candidates && result.candidates.length > 0) {
-                    const aiResponse = result.candidates[0].content.parts[0].text;
-                    addMessageToUI('ai', aiResponse);
-                    conversationHistory.push({ role: "model", parts: [{ text: aiResponse }] });
-                } else {
-                     addMessageToUI('ai', 'Sorry, I could not generate a response. Please try again.');
-                }
+                // The Cloud Function is expected to return an object with a 'response' property.
+                const aiResponse = result.data.response;
+                addMessageToUI('ai', aiResponse);
+                // Add the AI's response to the history for future context.
+                conversationHistory.push({ role: "model", parts: [{ text: aiResponse }] });
 
             } catch (error) {
-                console.error("Error calling AI:", error);
+                console.error("Error calling AI assistant Cloud Function:", error);
                 chatMessages.removeChild(thinkingMessage);
                 addMessageToUI('ai', 'Sorry, an error occurred. Please check the console for details.');
             }
