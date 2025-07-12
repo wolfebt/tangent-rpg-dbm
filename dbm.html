@@ -2644,7 +2644,7 @@
 
         async function saveCurrentForm() {
             const isCreating = !appState.editingDocId;
-            
+
             if (isCreating && !hasPermission('create')) {
                 showError("You do not have permission to create new entries.");
                 return false;
@@ -2658,69 +2658,70 @@
                 showError("A critical error occurred. Could not determine where to save the data.");
                 return false;
             }
-            
+
             const config = getActiveConfig(collectionKey);
-            const data = getFormDataObject(form);
-            
+            const dataFromForm = getFormDataObject(form);
+            const sanitizedData = { ...dataFromForm };
+
             // --- Definitive Fix: Sanitize data before sending to Firestore ---
             for (const fieldKey in config.fields) {
                 const fieldConfig = config.fields[fieldKey];
-                
-                // If a field is missing from the form data (e.g., an unchecked multiselect),
-                // provide a default value to prevent sending 'undefined' to Firestore.
-                if (data[fieldKey] === undefined) {
-                    if (fieldConfig.type === 'multiselect' || fieldConfig.type === 'json_list') {
-                        data[fieldKey] = [];
-                    } else if (fieldConfig.type === 'boolean') {
-                        data[fieldKey] = false;
-                    } else if (fieldConfig.type === 'number') {
-                        data[fieldKey] = 0;
-                    } else {
-                        data[fieldKey] = '';
-                    }
-                }
+                const currentValue = sanitizedData[fieldKey];
 
-                // Additional validation for required fields
-                if (fieldConfig.required && (!data[fieldKey] || (typeof data[fieldKey] === 'string' && data[fieldKey].trim() === ""))) {
-                    showError(`${fieldConfig.label || fieldKey} is required.`);
-                    const fieldElement = document.getElementById(fieldKey);
-                    if (fieldElement) {
-                        fieldElement.classList.add('!border-red-500');
-                        fieldElement.focus();
-                        fieldElement.addEventListener('input', () => fieldElement.classList.remove('!border-red-500'), { once: true });
+                // Ensure multiselects are always arrays
+                if (fieldConfig.type === 'multiselect') {
+                    if (currentValue === undefined) {
+                        sanitizedData[fieldKey] = []; // If no options selected, set to empty array
+                    } else if (!Array.isArray(currentValue)) {
+                        sanitizedData[fieldKey] = [currentValue]; // If one option selected, wrap it in an array
                     }
-                    return false;
                 }
-                
-                // Normalize boolean values
-                if (fieldConfig.type === 'boolean') {
-                    data[fieldKey] = data[fieldKey] === 'true';
+                // Ensure numbers are numbers, not strings
+                else if (fieldConfig.type === 'number' || fieldConfig.type === 'readonlytext') {
+                     const num = Number(currentValue);
+                     sanitizedData[fieldKey] = isNaN(num) ? 0 : num; // Default to 0 if not a number
                 }
-                 if (data.parent === '') {
-                    data.parent = null;
+                // Ensure booleans are booleans
+                else if (fieldConfig.type === 'boolean') {
+                    sanitizedData[fieldKey] = currentValue === 'true' || currentValue === true;
+                }
+                // Ensure other undefined fields have a valid default
+                else if (currentValue === undefined) {
+                     if (fieldConfig.type === 'json_list') {
+                        sanitizedData[fieldKey] = '[]';
+                    } else {
+                        sanitizedData[fieldKey] = ''; // Default for text, textarea, select
+                    }
                 }
             }
-
+            
+            if (sanitizedData.parent === '') {
+                sanitizedData.parent = null;
+            }
+            
             const collectionPath = `artifacts/${appId}/public/data/${collectionKey}`;
             try {
                 if (appState.editingDocId) {
                     const docRef = doc(db, collectionPath, appState.editingDocId);
                     const docSnap = await getDoc(docRef);
+
                     if (!docSnap.exists() || !hasPermission('edit', docSnap.data())) {
                         showError("You do not have permission to edit this entry or it does not exist.");
                         return false;
                     }
+                    
                     const existingData = docSnap.data();
                     const updateData = {
-                        ...data,
+                        ...sanitizedData,
                         creatorId: existingData.creatorId,
                         creatorEmail: existingData.creatorEmail
                     };
                     await updateDoc(docRef, updateData);
+
                 } else {
-                    data.creatorId = appState.userId;
-                    data.creatorEmail = auth.currentUser?.email || 'anonymous';
-                    await addDoc(collection(db, collectionPath), data);
+                    sanitizedData.creatorId = appState.userId;
+                    sanitizedData.creatorEmail = auth.currentUser?.email || 'anonymous';
+                    await addDoc(collection(db, collectionPath), sanitizedData);
                 }
                 
                 appState.initialFormState = getFormState(form);
