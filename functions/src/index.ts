@@ -88,9 +88,9 @@ export const rpgAssistantFlow = ai.defineFlow(
 
 
 // =========================================================
-// Cloud Function: callRpgAssistant
+// Cloud Function: callRpgAssistantV2 (RENAMED)
 // =========================================================
-export const callRpgAssistant = onCall(
+export const callRpgAssistantV2 = onCall(
     {
         timeoutSeconds: 300,
         memory: "512MiB",

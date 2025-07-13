@@ -293,7 +293,7 @@
         const functions = firebase.functions();
 
         // --- Cloud Function Reference ---
-        const callRpgAssistantCloudFunction = functions.httpsCallable('callRpgAssistant');
+        const callRpgAssistantCloudFunction = functions.httpsCallable('callRpgAssistantV2'); // RENAMED
 
         // --- User State ---
         let currentUser = null;
