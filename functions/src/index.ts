@@ -1,6 +1,7 @@
 // =========================================================
 // All Necessary Imports for Firebase Admin SDK, Genkit, and Cloud Functions
 // =========================================================
+// FINAL FIX: Aligning environment variable name with Firebase deployment.
 
 // Specific imports for Firebase Functions v2 HTTPS callable functions.
 import { onCall, type CallableRequest, HttpsError } from 'firebase-functions/v2/https';
@@ -25,10 +26,17 @@ const db = admin.firestore();
 // =========================================================
 // Initialize Genkit
 // =========================================================
+// Let's log to confirm the environment variable is being accessed on startup.
+if (process.env.GEMINI_API_KEY) { // CORRECTED VARIABLE NAME
+    console.log("GEMINI_API_KEY environment variable found.");
+} else {
+    console.warn("GEMINI_API_KEY environment variable NOT found. This is expected locally, but is an error if seen in cloud logs.");
+}
+
 const ai = genkit({
     plugins: [
         googleAI({
-            apiKey: process.env.GENKIT_GEMINI_API_KEY,
+            apiKey: process.env.GEMINI_API_KEY, // CORRECTED VARIABLE NAME
         }),
     ],
     model: gemini('gemini-pro'),
@@ -88,13 +96,13 @@ export const rpgAssistantFlow = ai.defineFlow(
 
 
 // =========================================================
-// Cloud Function: callRpgAssistantV2 (RENAMED)
+// Cloud Function: callRpgAssistantV2
 // =========================================================
 export const callRpgAssistantV2 = onCall(
     {
         timeoutSeconds: 300,
         memory: "512MiB",
-        cors: /.*/, // Using the permissive policy that we know works
+        cors: /.*/,
     },
     async (request: CallableRequest<{ userPrompt: string, conversationHistory: any[] }>) => {
         if (!request.auth) {
@@ -104,13 +112,18 @@ export const callRpgAssistantV2 = onCall(
         if (!userPrompt || typeof userPrompt !== 'string') {
             throw new HttpsError('invalid-argument', 'The function expects a valid "userPrompt" string.');
         }
-        console.log(`Received prompt from user ${request.auth.uid}: "${userPrompt}"`);
+
+        console.log(`V2 function invoked by user ${request.auth.uid} with prompt: "${userPrompt}"`);
+
         try {
             const aiResponse = await rpgAssistantFlow.run({ userPrompt, conversationHistory });
             return { response: aiResponse };
         } catch (error) {
             console.error("Error executing RPG Assistant Flow:", error);
-            throw new HttpsError('internal', 'An internal error occurred while processing your request.');
+            if (error instanceof Error && 'message' in error) {
+                console.error("Underlying error message:", error.message);
+            }
+            throw new HttpsError('internal', 'An internal error occurred while processing your request. Check the function logs for details.');
         }
     }
 );
