@@ -143,13 +143,14 @@ export const rpgAssistantFlow = ai.defineFlow(
 // Cloud Function: callRpgAssistant
 // This is the HTTPS Callable Cloud Function that your frontend web app will call.
 // It acts as a secure API endpoint to trigger your AI assistant's logic.
+// Force redeploy.
 // =========================================================
 export const callRpgAssistant = onCall(
     {
         // Configure resources and behavior for this Cloud Function.
         timeoutSeconds: 300, // Max time function can run (5 minutes). Essential for AI operations.
         memory: "512MiB",     // Memory allocated to the function. Increased for Genkit/AI needs.
-        
+
         // =================================================================
         // !!! THIS IS THE FIX FOR THE CORS ERROR !!!
         // This explicitly allows your GitHub Pages website to call this function.
