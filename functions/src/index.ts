@@ -138,70 +138,46 @@ export const rpgAssistantFlow = ai.defineFlow(
 // =========================================================
 // Cloud Function: callRpgAssistant
 // This is the HTTPS Callable Cloud Function that your frontend web app will call.
-// It acts as a secure API endpoint to trigger your AI assistant's logic.
 // =========================================================
 export const callRpgAssistant = onCall(
     {
-        // Configure resources and behavior for this Cloud Function.
-        timeoutSeconds: 300, // Max time function can run (5 minutes). Essential for AI operations.
-        memory: "512MiB",     // Memory allocated to the function. Increased for Genkit/AI needs.
-
-        // =================================================================
-        // !!! MORE PERMISSIVE CORS POLICY FOR DEBUGGING !!!
-        // This uses a regular expression to allow any origin.
-        // While not ideal for final production, it will definitively tell us if
-        // the CORS configuration is the root of the problem.
-        // =================================================================
+        timeoutSeconds: 300,
+        memory: "512MiB",
         cors: /.*/,
-
     },
-    // The asynchronous handler for the callable function.
-    // `request` contains details from the client, including authentication (`request.auth`).
     async (request: CallableRequest<{ userPrompt: string, conversationHistory: any[] }>) => {
-
-        // 1. Authentication Check
-        // Ensure the request comes from an authenticated Firebase user.
         if (!request.auth) {
-            // Throw a Firebase HttpsError for client-side handling.
-            throw new HttpsError(
-                'unauthenticated', // Standard error code.
-                'The AI assistant requires authentication. Please log in to use this feature.'
-            );
+            throw new HttpsError('unauthenticated', 'The AI assistant requires authentication.');
         }
-
-        // 2. Input Validation
-        // Ensure the `userPrompt` is present and is a string.
         const userPrompt = request.data.userPrompt;
         const conversationHistory = request.data.conversationHistory || [];
-
         if (!userPrompt || typeof userPrompt !== 'string') {
-            throw new HttpsError(
-                'invalid-argument',
-                'The function expects a valid "userPrompt" string as input. Please provide a clear question or request.'
-            );
+            throw new HttpsError('invalid-argument', 'The function expects a valid "userPrompt" string.');
         }
-
-        // Log the incoming prompt for debugging/monitoring.
         console.log(`Received prompt from user ${request.auth.uid}: "${userPrompt}"`);
-
-        // 3. Execute the Genkit Flow
         try {
-            // Call your defined Genkit flow (`rpgAssistantFlow`) with the user's prompt and history.
             const aiResponse = await rpgAssistantFlow.run({ userPrompt, conversationHistory });
-
-            // 4. Return the AI's Response to the client.
-            // The object structure '{ response: aiResponse }' is what your frontend expects.
             return { response: aiResponse };
-
         } catch (error) {
-            // 5. Error Handling
-            // Log the detailed error server-side for debugging.
             console.error("Error executing RPG Assistant Flow:", error);
-            // Throw a generic 'internal' error to the client, hiding sensitive details.
-            throw new HttpsError(
-                'internal',
-                'An internal error occurred while processing your request. Please try again later.',
-            );
+            throw new HttpsError('internal', 'An internal error occurred.');
         }
+    }
+);
+
+// =========================================================
+// NEW DEBUGGING FUNCTION: testCors
+// This function's only purpose is to test if the CORS policy is being applied correctly.
+// =========================================================
+export const testCors = onCall(
+    {
+        // Use the same permissive CORS policy for testing.
+        cors: /.*/,
+    },
+    (request) => {
+        // Log to the server console to confirm it was called.
+        console.log("testCors function was successfully called.");
+        // Return a simple message to the client.
+        return { message: "Hello from the testCors function! CORS is working." };
     }
 );

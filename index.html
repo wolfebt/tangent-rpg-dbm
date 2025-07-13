@@ -292,10 +292,9 @@
         const db = firebase.firestore();
         const functions = firebase.functions();
 
-        // --- Cloud Function Reference ---
-        // Get a reference to the deployed callable function.
-        // 'callRpgAssistant' must exactly match the export name in your Cloud Function file.
+        // --- Cloud Function References ---
         const callRpgAssistantCloudFunction = functions.httpsCallable('callRpgAssistant');
+        const testCorsFunction = functions.httpsCallable('testCors'); // Reference to the new test function
 
         // --- User State ---
         let currentUser = null;
@@ -312,7 +311,6 @@
         const userInput = document.getElementById('user-prompt-input');
 
         // --- Chatbot State ---
-        // The initial message now only contains the system prompt for the AI.
         let conversationHistory = [{ role: "model", parts: [{ text: "You are Bastion, a helpful and creative RPG game master assistant for the Tangent SFF RPG. Provide concise, relevant, and creative responses to the user's questions." }] }];
 
         // --- FirebaseUI Configuration ---
@@ -343,38 +341,34 @@
         const handleSendMessage = async (event) => {
             event.preventDefault();
             const userPrompt = userInput.value.trim();
-            if (!userPrompt || !currentUser) return;
+            if (!userPrompt) return;
 
             addMessageToUI('user', userPrompt);
-            // Add the user's new message to the history for context.
-            conversationHistory.push({ role: "user", parts: [{ text: userPrompt }] });
             userInput.value = '';
             
             const thinkingMessage = document.createElement('div');
             thinkingMessage.classList.add('chat-message', 'ai-message');
-            thinkingMessage.textContent = 'Thinking...';
+            thinkingMessage.textContent = 'Testing CORS...';
             chatMessages.appendChild(thinkingMessage);
             chatMessages.scrollTop = chatMessages.scrollHeight;
 
             try {
-                // Securely call the Firebase Cloud Function instead of the AI API directly.
-                const result = await callRpgAssistantCloudFunction({
-                    userPrompt: userPrompt,
-                    conversationHistory: conversationHistory
-                });
+                // =================================================================
+                // !!! TEMPORARY DEBUGGING STEP !!!
+                // We are calling the new `testCors` function instead of the AI.
+                // =================================================================
+                const result = await testCorsFunction({ text: userPrompt });
 
-                chatMessages.removeChild(thinkingMessage); // Remove "Thinking..." message
+                chatMessages.removeChild(thinkingMessage);
 
-                // The Cloud Function is expected to return an object with a 'response' property.
-                const aiResponse = result.data.response;
-                addMessageToUI('ai', aiResponse);
-                // Add the AI's response to the history for future context.
-                conversationHistory.push({ role: "model", parts: [{ text: aiResponse }] });
+                // The test function returns an object with a 'message' property.
+                const serverResponse = (result.data as { message: string }).message;
+                addMessageToUI('ai', serverResponse);
 
             } catch (error) {
-                console.error("Error calling AI assistant Cloud Function:", error);
+                console.error("Error calling testCors function:", error);
                 chatMessages.removeChild(thinkingMessage);
-                addMessageToUI('ai', 'Sorry, an error occurred. Please check the console for details.');
+                addMessageToUI('ai', 'The CORS test failed. Please check the console for details.');
             }
         };
 
