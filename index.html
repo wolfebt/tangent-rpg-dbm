@@ -362,7 +362,8 @@
                 chatMessages.removeChild(thinkingMessage);
 
                 // The test function returns an object with a 'message' property.
-                const serverResponse = (result.data as { message: string }).message;
+                // This is now plain JavaScript and will not cause a syntax error.
+                const serverResponse = result.data.message;
                 addMessageToUI('ai', serverResponse);
 
             } catch (error) {
