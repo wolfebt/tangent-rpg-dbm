@@ -292,9 +292,8 @@
         const db = firebase.firestore();
         const functions = firebase.functions();
 
-        // --- Cloud Function References ---
+        // --- Cloud Function Reference ---
         const callRpgAssistantCloudFunction = functions.httpsCallable('callRpgAssistant');
-        const testCorsFunction = functions.httpsCallable('testCors'); // Reference to the new test function
 
         // --- User State ---
         let currentUser = null;
@@ -341,35 +340,36 @@
         const handleSendMessage = async (event) => {
             event.preventDefault();
             const userPrompt = userInput.value.trim();
-            if (!userPrompt) return;
+            if (!userPrompt || !currentUser) return;
 
             addMessageToUI('user', userPrompt);
+            conversationHistory.push({ role: "user", parts: [{ text: userPrompt }] });
             userInput.value = '';
             
             const thinkingMessage = document.createElement('div');
             thinkingMessage.classList.add('chat-message', 'ai-message');
-            thinkingMessage.textContent = 'Testing CORS...';
+            thinkingMessage.textContent = 'Thinking...';
             chatMessages.appendChild(thinkingMessage);
             chatMessages.scrollTop = chatMessages.scrollHeight;
 
             try {
-                // =================================================================
-                // !!! TEMPORARY DEBUGGING STEP !!!
-                // We are calling the new `testCors` function instead of the AI.
-                // =================================================================
-                const result = await testCorsFunction({ text: userPrompt });
+                // Call the real AI assistant function
+                const result = await callRpgAssistantCloudFunction({
+                    userPrompt: userPrompt,
+                    conversationHistory: conversationHistory
+                });
 
                 chatMessages.removeChild(thinkingMessage);
 
-                // The test function returns an object with a 'message' property.
-                // This is now plain JavaScript and will not cause a syntax error.
-                const serverResponse = result.data.message;
-                addMessageToUI('ai', serverResponse);
+                // The AI function returns an object with a 'response' property.
+                const aiResponse = result.data.response;
+                addMessageToUI('ai', aiResponse);
+                conversationHistory.push({ role: "model", parts: [{ text: aiResponse }] });
 
             } catch (error) {
-                console.error("Error calling testCors function:", error);
+                console.error("Error calling AI assistant Cloud Function:", error);
                 chatMessages.removeChild(thinkingMessage);
-                addMessageToUI('ai', 'The CORS test failed. Please check the console for details.');
+                addMessageToUI('ai', 'Sorry, an error occurred. Please check the console for details.');
             }
         };
 
