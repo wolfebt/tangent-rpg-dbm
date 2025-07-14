@@ -439,6 +439,18 @@
             color: var(--text-light);
             padding: 4px 8px;
         }
+        /* Style for color picker swatches */
+        .ql-snow .ql-picker.ql-color .ql-picker-item {
+            width: 20px;
+            height: 20px;
+            padding: 2px;
+            border: 1px solid var(--border-subtle);
+            border-radius: 4px;
+        }
+        .ql-snow .ql-picker.ql-color .ql-picker-item.ql-selected {
+            border-color: var(--border-focus);
+        }
+
         /* Prose styles for rendered Quill content */
         .prose { color: var(--text-light); }
         .prose h1, .prose h2, .prose h3, .prose h4, .prose strong { color: var(--text-light); }
@@ -2372,6 +2384,7 @@
                         toolbar: [
                             [{ 'header': [1, 2, 3, false] }],
                             ['bold', 'italic', 'underline', 'link'],
+                            [{ 'color': ['#000000', '#FFFFFF', '#FF0000', '#0000FF', '#008000', '#FFFF00', '#FFA500'] }]
                         ]
                     },
                     placeholder: 'Compose an epic...',
