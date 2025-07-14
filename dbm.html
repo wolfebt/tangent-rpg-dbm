@@ -480,16 +480,17 @@
         import { getFirestore, doc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, getDocs, getDoc, setDoc, setLogLevel, serverTimestamp, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
         // --- Firebase Configuration ---
-        const firebaseConfig = {
-          apiKey: "AIzaSyBA1CC4SXXtWM9UpU1XkAiBFr0RIgrPwGk",
-          authDomain: "tangent-rpg-dbm.firebaseapp.com",
-          projectId: "tangent-rpg-dbm",
-          storageBucket: "tangent-rpg-dbm.appspot.com",
-          messagingSenderId: "559983787369",
-          appId: "1:559983787369:web:d6f3b87daaa82b23d211f8",
-          measurementId: "G-G6NC09PXPC"
+        // Use __firebase_config for dynamic configuration in Canvas environment
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "YOUR_API_KEY", // Replace with your actual API key if not in Canvas
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID",
+            measurementId: "YOUR_MEASUREMENT_ID"
         };
-        const appId = firebaseConfig.projectId;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : firebaseConfig.projectId;
 
         // --- Firebase Initialization ---
         const app = initializeApp(firebaseConfig);
@@ -519,6 +520,7 @@
         };
         
         // --- Role-Based Access Control (RBAC) ---
+        // Replace with your actual owner UID if known, otherwise it will default to the first user who signs in
         const OWNER_UID = "09bdwApxw5UZ9BQTo7LXXdSsqx13"; 
 
         /**
@@ -1449,14 +1451,22 @@
                 appState.isAnonymous = true;
                 appState.userId = null;
                 appState.userRole = 'guest';
-                signInAnonymously(auth).catch(err => {
-                    console.error("Failed to re-establish anonymous session:", err);
-                    if (err.code === 'auth/admin-restricted-operation') {
-                        showError("CRITICAL ERROR: Anonymous sign-in is not enabled in your Firebase project. Please go to Authentication -> Sign-in method in the Firebase console and enable the 'Anonymous' provider.");
-                    } else {
-                        showError("Your session has ended. Please refresh the page.");
-                    }
-                });
+                // Use __initial_auth_token for Canvas environment authentication
+                if (typeof __initial_auth_token !== 'undefined') {
+                    signInWithCustomToken(auth, __initial_auth_token).catch(err => {
+                        console.error("Failed to sign in with custom token:", err);
+                        showError("Authentication failed. Please refresh the page.");
+                    });
+                } else {
+                    signInAnonymously(auth).catch(err => {
+                        console.error("Failed to re-establish anonymous session:", err);
+                        if (err.code === 'auth/admin-restricted-operation') {
+                            showError("CRITICAL ERROR: Anonymous sign-in is not enabled in your Firebase project. Please go to Authentication -> Sign-in method in the Firebase console and enable the 'Anonymous' provider.");
+                        } else {
+                            showError("Your session has ended. Please refresh the page.");
+                        }
+                    });
+                }
             }
         });
         
@@ -1841,6 +1851,7 @@
                 const querySnapshot = await getDocs(collection(db, collectionPath));
                 rulesCodexMap.clear();
                 appState.wikiEntries = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                rulesCodexMap.clear(); // Clear existing map before populating
                 appState.wikiEntries.forEach(entry => {
                     rulesCodexMap.set(entry.name, entry.id);
                 });
@@ -2024,16 +2035,95 @@
             return `<input type="number" id="${fieldKey}" name="${fieldKey}" value="${savedValue || 0}" class="global-form-input ${displayClass}" ${readonlyAttr}>`;
         }
 
+        /**
+         * Creates a textarea field, optionally with a rich text toolbar.
+         * @param {string} fieldKey - The key for the field.
+         * @param {string} savedValue - The current value of the field.
+         * @param {boolean} isEditMode - Whether the field is in edit mode.
+         * @returns {string} The HTML string for the textarea.
+         */
         function createTextareaField(fieldKey, savedValue, isEditMode) {
             if (!isEditMode) {
                 // For display-only mode, render as HTML with markdown and wiki-link parsing
                 const content = convertMarkdownToHtml(parseWikiLinks(savedValue));
                 return `<div class="global-form-input display-only-input p-2 overflow-auto" style="min-height: 3rem;">${content}</div>`;
             } else {
-                // For edit mode, render as a textarea
-                return `<textarea id="${fieldKey}" name="${fieldKey}" class="global-form-input" rows="1">${savedValue}</textarea>`;
+                // For edit mode, render a textarea with a toolbar
+                return `
+                    <div class="relative">
+                        <div class="flex space-x-2 p-2 bg-gray-700 rounded-t-md border-b border-gray-600">
+                            <button type="button" class="text-gray-300 hover:text-white font-bold" data-format="bold" data-target-id="${fieldKey}">B</button>
+                            <button type="button" class="text-gray-300 hover:text-white italic" data-format="italic" data-target-id="${fieldKey}">I</button>
+                            <button type="button" class="text-gray-300 hover:text-white underline" data-format="underline" data-target-id="${fieldKey}">U</button>
+                            <button type="button" class="text-gray-300 hover:text-white" data-format="link" data-target-id="${fieldKey}">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-link"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07L9.4 6.6A5 5 0 0 0 13 10h.01"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07L14.6 17.4A5 5 0 0 0 11 14h-.01"></path></svg>
+                            </button>
+                        </div>
+                        <textarea id="${fieldKey}" name="${fieldKey}" class="global-form-input !rounded-t-none" rows="4">${savedValue}</textarea>
+                    </div>
+                `;
             }
         }
+
+        /**
+         * Applies markdown formatting to a textarea.
+         * @param {HTMLTextAreaElement} textarea - The textarea element.
+         * @param {string} format - The format to apply ('bold', 'italic', 'underline', 'link').
+         */
+        function applyTextareaFormat(textarea, format) {
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const selectedText = textarea.value.substring(start, end);
+            let newText = '';
+            let cursorOffset = 0;
+
+            switch (format) {
+                case 'bold':
+                    newText = `**${selectedText}**`;
+                    cursorOffset = 2;
+                    break;
+                case 'italic':
+                    newText = `*${selectedText}*`;
+                    cursorOffset = 1;
+                    break;
+                case 'underline':
+                    newText = `__${selectedText}__`;
+                    cursorOffset = 2;
+                    break;
+                case 'link':
+                    // For wiki-links, prompt for the link text (which is the entry name)
+                    const linkText = prompt('Enter the name of the wiki entry to link to:');
+                    if (linkText) {
+                        newText = `[[${linkText}]]`;
+                        cursorOffset = 2; // Position inside the brackets
+                    } else {
+                        return; // Do nothing if no link text is provided
+                    }
+                    break;
+            }
+
+            textarea.value = textarea.value.substring(0, start) + newText + textarea.value.substring(end);
+
+            // Adjust cursor position
+            if (format === 'link' && linkText) {
+                textarea.selectionStart = start + cursorOffset;
+                textarea.selectionEnd = start + cursorOffset + linkText.length;
+            } else {
+                textarea.selectionStart = start + newText.length;
+                textarea.selectionEnd = start + newText.length;
+            }
+            textarea.focus();
+
+            // Trigger autosize after content change
+            const autosize = (el) => {
+                setTimeout(() => {
+                    el.style.height = 'auto';
+                    el.style.height = (el.scrollHeight) + 'px';
+                }, 0);
+            };
+            autosize(textarea);
+        }
+
 
         function createBooleanField(fieldKey, savedValue, isEditMode) {
             const savedBool = savedValue === true || savedValue === 'true';
@@ -2263,6 +2353,19 @@
             }));
 
             formFieldsContainer.innerHTML = formHtml.join('');
+
+            // Attach toolbar event listeners after the HTML is rendered
+            if (finalEditMode) {
+                formFieldsContainer.querySelectorAll('.relative button[data-format]').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const targetId = e.currentTarget.dataset.targetId;
+                        const textarea = document.getElementById(targetId);
+                        if (textarea) {
+                            applyTextareaFormat(textarea, e.currentTarget.dataset.format);
+                        }
+                    });
+                });
+            }
 
             const creatorInfo = document.getElementById('creator-info');
             if (data.creatorEmail) {
@@ -2866,6 +2969,11 @@
             }
         }
         
+        /**
+         * Parses wiki-style links in text and converts them to HTML anchor tags.
+         * @param {string} text - The input text.
+         * @returns {string} The text with wiki-links converted to HTML.
+         */
         function parseWikiLinks(text) {
             if (!text) return '';
             return text.replace(/\[\[(.*?)\]\]/g, (match, p1) => {
@@ -3019,6 +3127,11 @@ When logged in, you can create and modify data using the **Entry Modal**.
 * **Local Backup:** Inside the modal's **DATA** menu, the "Local" submenu allows you to save the current entry's data to a JSON file on your computer or load data from such a file to populate the form.
 `; 
         
+        /**
+         * Converts a markdown string to HTML, supporting basic markdown like bold, italic, underline, code, and custom wiki-links.
+         * @param {string} markdown - The markdown string to convert.
+         * @returns {string} The HTML representation of the markdown.
+         */
         function convertMarkdownToHtml(markdown) {
             const lines = markdown.trim().split('\n');
             let html = '';
@@ -3065,14 +3178,22 @@ When logged in, you can create and modify data using the **Entry Modal**.
                         html += `<ul>`;
                         listStack.push({ type: 'ul', indent });
                     }
-                    let content = trimmedLine.substring(2).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                    let content = trimmedLine.substring(2);
+                    // Apply other markdown within list items
+                    content = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // Bold
+                    content = content.replace(/\*(.*?)\*/g, '<em>$1</em>'); // Italic
+                    content = content.replace(/__(.*?)__/g, '<u>$1</u>'); // Underline
                     html += `<li>${content}</li>`;
                 } else {
                      // Close any open lists if it's a regular paragraph
                     while (listStack.length > 0) {
                         html += `</${listStack.pop().type}>`;
                     }
-                    html += `<p>${trimmedLine.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</p>`;
+                    let content = trimmedLine;
+                    content = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // Bold
+                    content = content.replace(/\*(.*?)\*/g, '<em>$1</em>'); // Italic
+                    content = content.replace(/__(.*?)__/g, '<u>$1</u>'); // Underline
+                    html += `<p>${content}</p>`;
                 }
             }
             
@@ -3081,6 +3202,7 @@ When logged in, you can create and modify data using the **Entry Modal**.
                 html += `</${listStack.pop().type}>`;
             }
 
+            // Convert code blocks last to avoid interfering with other markdown
             return html.replace(/`([^`]+)`/g, '<code>$1</code>');
         }
 
