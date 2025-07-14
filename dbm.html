@@ -1743,10 +1743,12 @@
                     wikiTitle.textContent = entry.name.toUpperCase();
                     let contentHtml = '';
 
-                    if (entry.description) contentHtml += `<p>${parseWikiLinks(entry.description)}</p>`;
-                    if (entry.mechanic) contentHtml += `<h3>Mechanics</h3><p>${parseWikiLinks(entry.mechanic)}</p>`;
-                    if (entry.guide) contentHtml += `<h3>Guide</h3><p>${parseWikiLinks(entry.guide)}</p>`;
-                    if (entry.note) contentHtml += `<h3>Notes</h3><p>${parseWikiLinks(entry.note)}</p>`;
+                    // Apply markdown conversion to relevant fields
+                    if (entry.description) contentHtml += convertMarkdownToHtml(parseWikiLinks(entry.description));
+                    if (entry.mechanic) contentHtml += `<h3>Mechanics</h3>` + convertMarkdownToHtml(parseWikiLinks(entry.mechanic));
+                    if (entry.guide) contentHtml += `<h3>Guide</h3>` + convertMarkdownToHtml(parseWikiLinks(entry.guide));
+                    if (entry.note) contentHtml += `<h3>Notes</h3>` + convertMarkdownToHtml(parseWikiLinks(entry.note));
+                    
                     if (!contentHtml) contentHtml = '<p class="text-gray-400">No content available for this entry.</p>';
                     
                     wikiBody.innerHTML = contentHtml;
@@ -2023,13 +2025,14 @@
         }
 
         function createTextareaField(fieldKey, savedValue, isEditMode) {
-            const readonlyAttr = isEditMode ? '' : 'readonly';
-            const displayClass = isEditMode ? '' : 'display-only-input';
-            let content = savedValue;
-            if (!isEditMode && (fieldKey === 'description' || fieldKey === 'note' || fieldKey === 'mechanic' || fieldKey === 'guide')) { /* Added guide to wiki parsing */
-                content = parseWikiLinks(savedValue);
+            if (!isEditMode) {
+                // For display-only mode, render as HTML with markdown and wiki-link parsing
+                const content = convertMarkdownToHtml(parseWikiLinks(savedValue));
+                return `<div class="global-form-input display-only-input p-2 overflow-auto" style="min-height: 3rem;">${content}</div>`;
+            } else {
+                // For edit mode, render as a textarea
+                return `<textarea id="${fieldKey}" name="${fieldKey}" class="global-form-input" rows="1">${savedValue}</textarea>`;
             }
-            return `<textarea id="${fieldKey}" name="${fieldKey}" class="global-form-input ${displayClass}" rows="1" ${readonlyAttr}>${content}</textarea>`;
         }
 
         function createBooleanField(fieldKey, savedValue, isEditMode) {
@@ -2338,18 +2341,22 @@
                 genDescBtn.addEventListener('click', () => generateDescription(collectionKey));
             }
             
-            const textareas = formFieldsContainer.querySelectorAll('textarea');
-            const autosize = (el) => {
-                setTimeout(() => {
-                    el.style.height = 'auto';
-                    el.style.height = (el.scrollHeight) + 'px';
-                }, 0);
-            };
+            // Autosize textareas only if they are editable
+            if (finalEditMode) {
+                const textareas = formFieldsContainer.querySelectorAll('textarea');
+                const autosize = (el) => {
+                    setTimeout(() => {
+                        el.style.height = 'auto';
+                        el.style.height = (el.scrollHeight) + 'px';
+                    }, 0);
+                };
 
-            textareas.forEach(textarea => {
-                textarea.addEventListener('input', () => autosize(textarea));
-                autosize(textarea);
-            });
+                textareas.forEach(textarea => {
+                    textarea.addEventListener('input', () => autosize(textarea));
+                    autosize(textarea);
+                });
+            }
+
 
             for (const fieldKey of Object.keys(config.fields)) {
                 const fieldConfig = config.fields[fieldKey];
@@ -2838,6 +2845,7 @@
                     const descriptionTextarea = document.getElementById('description');
                     if(descriptionTextarea) {
                         descriptionTextarea.value = text;
+                        // Autosize the textarea after content is set
                         const autosize = (el) => {
                             setTimeout(() => {
                                 el.style.height = 'auto';
@@ -3017,27 +3025,47 @@ When logged in, you can create and modify data using the **Entry Modal**.
             let listStack = []; 
 
             for (const line of lines) {
-                if (line.trim() === '') continue;
+                // Handle empty lines as paragraph breaks, but only if not within a list
+                if (line.trim() === '') {
+                    if (listStack.length > 0) {
+                        // If inside a list, an empty line means close the list
+                        while (listStack.length > 0) {
+                            html += `</${listStack.pop().type}>`;
+                        }
+                    } else {
+                        // Otherwise, it's a paragraph break
+                        html += `<p></p>`;
+                    }
+                    continue; // Skip to next line
+                }
 
                 const indentMatch = line.match(/^(\s*)/);
                 const indent = indentMatch ? indentMatch[1].length : 0;
                 let trimmedLine = line.trim();
 
-                // Close lists if de-denting
+                // Close lists if de-denting or if a new block element starts
                 while (listStack.length > 0 && indent < listStack[listStack.length - 1].indent) {
                      html += `</${listStack.pop().type}>`;
                 }
 
                 if (trimmedLine.startsWith('### **')) {
+                    // Close any open lists before adding a heading
+                    while (listStack.length > 0) {
+                        html += `</${listStack.pop().type}>`;
+                    }
                     html += `<h3>${trimmedLine.substring(5, trimmedLine.length - 2)}</h3>`;
                 } else if (trimmedLine.startsWith('#### **')) {
+                    // Close any open lists before adding a heading
+                    while (listStack.length > 0) {
+                        html += `</${listStack.pop().type}>`;
+                    }
                     html += `<h4 class="text-lg font-semibold mt-4 mb-1 text-gray-200">${trimmedLine.substring(6, trimmedLine.length - 2)}</h4>`;
                 } else if (trimmedLine.startsWith('* ')) {
-                    if (listStack.length === 0 || listStack[listStack.length - 1].type !== 'ul') {
+                    if (listStack.length === 0 || listStack[listStack.length - 1].type !== 'ul' || indent > listStack[listStack.length - 1].indent) {
                         html += `<ul>`;
                         listStack.push({ type: 'ul', indent });
                     }
-                    let content = trimmedLine.substring(4).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                    let content = trimmedLine.substring(2).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
                     html += `<li>${content}</li>`;
                 } else {
                      // Close any open lists if it's a regular paragraph
