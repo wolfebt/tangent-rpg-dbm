@@ -608,7 +608,7 @@
             editingDocId: null,
             confirmCallback: null,
             initialFormState: null,
-            pendingNavigation: null,
+            pendingAction: null, // Replaces pendingNavigation
             navigationContext: null,
             navigationHistory: [],
             navigationFuture: [],
@@ -1388,7 +1388,10 @@
 
         function requestNavigation(viewDescriptor) {
             if (isFormDirty()) {
-                appState.pendingNavigation = viewDescriptor;
+                appState.pendingAction = () => {
+                    closeModal(true);
+                    navigateTo(viewDescriptor);
+                };
                 unsavedChangesModal.classList.remove('hidden');
             } else {
                 closeModal(true);
@@ -1604,13 +1607,7 @@
 
             const viewDescriptor = { view: 'renderManagementView', args: [sourceKey, parentCollection] };
             
-            if (isFormDirty()) {
-                appState.pendingNavigation = viewDescriptor;
-                unsavedChangesModal.classList.remove('hidden');
-            } else {
-                closeModal(true);
-                navigateTo(viewDescriptor);
-            }
+            requestNavigation(viewDescriptor);
         }
         
         // --- Navigation & View Rendering ---
@@ -2338,10 +2335,10 @@
                     };
 
                     if (isFormDirty()) {
-                         appState.pendingNavigation = () => {
+                        appState.pendingAction = () => {
                             closeModal(true);
                             goBackInModal();
-                         };
+                        };
                         unsavedChangesModal.classList.remove('hidden');
                     } else {
                         goBackInModal();
@@ -2449,7 +2446,14 @@
             const cancelButton = document.createElement('button');
             cancelButton.id = 'modal-cancel-btn';
             cancelButton.textContent = 'Cancel';
-            cancelButton.addEventListener('click', () => closeModal());
+            cancelButton.addEventListener('click', () => {
+                if (isFormDirty()) {
+                    appState.pendingAction = () => closeModal(true);
+                    unsavedChangesModal.classList.remove('hidden');
+                } else {
+                    closeModal(true);
+                }
+            });
             modalDataDropdown.appendChild(cancelButton);
 
             if (docId && hasPermission('delete', data)) {
@@ -2772,17 +2776,9 @@
         }
 
         function closeModal(force = false) {
-            const isModalOpen = !entryModal.classList.contains('hidden');
-            if (!force && isModalOpen && isFormDirty()) {
-                appState.pendingNavigation = null; /* Clear pending nav if any */
-                unsavedChangesModal.classList.remove('hidden');
-                return;
-            }
             appState.initialFormState = null;
             appState.editingDocId = null;
-            if (!force) {
-                appState.navigationContext = null;
-            }
+            appState.navigationContext = null;
             if(entryForm) entryForm.reset();
             const modalDataDropdown = document.getElementById('modal-data-dropdown');
             if(modalDataDropdown) modalDataDropdown.innerHTML = '';
@@ -2931,7 +2927,7 @@
         }
         function hideConfirmModal() { appState.confirmCallback = null; confirmModal.classList.add('hidden'); }
         function hideUnsavedChangesModal() {
-            appState.pendingNavigation = null;
+            appState.pendingAction = null;
             unsavedChangesModal.classList.add('hidden');
         }
         function showError(message) { errorMessage.textContent = message.toUpperCase(); errorModal.classList.remove('hidden'); }
@@ -3039,23 +3035,22 @@
         // --- Event Listeners ---
         confirmOkBtn.addEventListener('click', () => { if (appState.confirmCallback) appState.confirmCallback(); hideConfirmModal(); });
         confirmCancelBtn.addEventListener('click', hideConfirmModal);
+        
         unsavedCancelBtn.addEventListener('click', hideUnsavedChangesModal);
+        
         unsavedDismissBtn.addEventListener('click', () => {
-            closeModal(true);
-            if(appState.pendingNavigation) {
-                navigateTo(appState.pendingNavigation);
-                appState.pendingNavigation = null;
-                appState.navigationContext = null;
+            if (typeof appState.pendingAction === 'function') {
+                appState.pendingAction(); // This will either navigate or close the modal
             }
             hideUnsavedChangesModal();
         });
+        
         unsavedSaveBtn.addEventListener('click', async () => {
-            const success = await saveCurrentForm();
-            if(success && appState.pendingNavigation) {
-                closeModal(true);
-                navigateTo(appState.pendingNavigation);
-                appState.pendingNavigation = null;
-                appState.navigationContext = null;
+            const result = await saveCurrentForm();
+            if (result.success) {
+                if (typeof appState.pendingAction === 'function') {
+                    appState.pendingAction();
+                }
             }
             hideUnsavedChangesModal();
         });
@@ -3074,24 +3069,21 @@
         });
 
         window.addEventListener('click', (event) => {
-            if (event.target == entryModal || event.target == confirmModal || event.target == errorModal || event.target == unsavedChangesModal || event.target == customModal || event.target == summaryModal || event.target == settingsModal) {
-                if (event.target === entryModal) {
-                    appState.navigationContext = null;
-                    closeModal();
+            if (event.target === entryModal) {
+                if (isFormDirty()) {
+                    appState.pendingAction = () => closeModal(true);
+                    unsavedChangesModal.classList.remove('hidden');
+                } else {
+                    closeModal(true);
                 }
-                if (event.target == customModal) {
-                    customModal.classList.add('hidden');
-                }
-                 if (event.target == settingsModal) {
-                    settingsModal.classList.add('hidden');
-                }
-                if (event.target == summaryModal) {
-                    summaryModal.classList.add('hidden');
-                }
-                if (event.target == confirmModal) hideConfirmModal();
-                if (event.target == errorModal) hideErrorModal();
-                if (event.target == unsavedChangesModal) hideUnsavedChangesModal();
             }
+            else if (event.target == confirmModal) hideConfirmModal();
+            else if (event.target == errorModal) hideErrorModal();
+            else if (event.target == unsavedChangesModal) hideUnsavedChangesModal();
+            else if (event.target == customModal) customModal.classList.add('hidden');
+            else if (event.target == summaryModal) summaryModal.classList.add('hidden');
+            else if (event.target == settingsModal) settingsModal.classList.add('hidden');
+
             const menuButton = document.getElementById('category-menu-button');
             const dropdownMenu = document.getElementById('category-dropdown-menu');
             if (menuButton && dropdownMenu && !menuButton.contains(event.target) && !dropdownMenu.contains(event.target)) {
