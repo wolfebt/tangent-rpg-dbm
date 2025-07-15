@@ -1389,12 +1389,12 @@
         function requestNavigation(viewDescriptor) {
             if (isFormDirty()) {
                 appState.pendingAction = () => {
-                    closeModal(true);
+                    closeModal();
                     navigateTo(viewDescriptor);
                 };
                 unsavedChangesModal.classList.remove('hidden');
             } else {
-                closeModal(true);
+                closeModal();
                 if (viewDescriptor) {
                     navigateTo(viewDescriptor);
                 }
@@ -2336,7 +2336,7 @@
 
                     if (isFormDirty()) {
                         appState.pendingAction = () => {
-                            closeModal(true);
+                            closeModal();
                             goBackInModal();
                         };
                         unsavedChangesModal.classList.remove('hidden');
@@ -2448,10 +2448,10 @@
             cancelButton.textContent = 'Cancel';
             cancelButton.addEventListener('click', () => {
                 if (isFormDirty()) {
-                    appState.pendingAction = () => closeModal(true);
+                    appState.pendingAction = () => closeModal();
                     unsavedChangesModal.classList.remove('hidden');
                 } else {
-                    closeModal(true);
+                    closeModal();
                 }
             });
             modalDataDropdown.appendChild(cancelButton);
@@ -2775,7 +2775,7 @@
             redrawList();
         }
 
-        function closeModal(force = false) {
+        function closeModal() {
             appState.initialFormState = null;
             appState.editingDocId = null;
             appState.navigationContext = null;
@@ -2886,7 +2886,7 @@
             if (result.success) {
                 const { collectionKey, docId, data } = result;
                 // After a successful save, always reopen the modal in edit mode for the saved document
-                closeModal(true); // Force close the current modal
+                closeModal(); // Force close the current modal
                 openModal(collectionKey, docId, data, true); // Reopen with the correct data and in edit mode
             }
         }
@@ -3017,7 +3017,7 @@
                         const docSnap = await getDoc(doc(db, collectionPath, linkedDocId));
                         if (docSnap.exists()) {
                             if (appState.editingDocId !== linkedDocId) {
-                                closeModal(true); 
+                                closeModal(); 
                             }
                             openModal('rules_codex', linkedDocId, docSnap.data(), false); 
                         } else {
@@ -3071,10 +3071,10 @@
         window.addEventListener('click', (event) => {
             if (event.target === entryModal) {
                 if (isFormDirty()) {
-                    appState.pendingAction = () => closeModal(true);
+                    appState.pendingAction = () => closeModal();
                     unsavedChangesModal.classList.remove('hidden');
                 } else {
-                    closeModal(true);
+                    closeModal();
                 }
             }
             else if (event.target == confirmModal) hideConfirmModal();
