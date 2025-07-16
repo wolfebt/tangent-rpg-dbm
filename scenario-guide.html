@@ -476,33 +476,32 @@
     <div id="app-container" class="writer-mode">
         <!-- Left Panel: Table of Contents -->
         <aside id="toc-panel" class="panel">
-            <div class="panel-header flex justify-between items-center">
-                <h2 class="text-xl">Table of Contents</h2>
-                <div class="flex items-center gap-1">
-                     <button data-action="save" title="Save Project" class="p-2 rounded-md hover:bg-gray-700 writer-mode-only">
-                         <svg class="w-5 h-5 pointer-events-none" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
-                     </button>
-                     <button data-action="load" title="Load Project" class="p-2 rounded-md hover:bg-gray-700 writer-mode-only">
-                         <svg class="w-5 h-5 pointer-events-none" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg>
-                     </button>
-                     <button data-action="print" title="Print Project" class="p-2 rounded-md hover:bg-gray-700 gm-mode-only">
-                         <svg class="w-5 h-5 pointer-events-none" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                             <path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6 18.25m0 0a2.25 2.25 0 002.25 2.25h9A2.25 2.25 0 0019.5 18.25l-1.28-4.425m-14.456 0a48.108 48.108 0 002.478 5.758L6 18.25m13.5-4.425a48.099 48.099 0 01-2.478 5.758L18 18.25m-13.5-4.425a2.25 2.25 0 012.25-2.25h9a2.25 2.25 0 012.25 2.25m-13.5 0l1.28-4.425m10.956 4.425l-1.28-4.425m0 0a2.25 2.25 0 00-2.25-2.25h-3.182a2.25 2.25 0 00-2.25 2.25m10.5 0a2.25 2.25 0 01-2.25 2.25h-3.182a2.25 2.25 0 01-2.25-2.25m0 0l-1.28-4.425m10.956 4.425l1.28 4.425" />
-                         </svg>
-                     </button>
-                     <button data-action="help" title="Help" class="p-2 rounded-md hover:bg-gray-700">
-                        <svg class="w-5 h-5 pointer-events-none" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
+            <div class="panel-header">
+                <div class="flex justify-between items-center mb-2">
+                    <h2 class="text-xl">Contents</h2>
+                    <div class="relative">
+                        <button id="data-menu-btn" title="Data" class="p-2 rounded-md hover:bg-gray-700">
+                            <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+                        </button>
+                        <div id="data-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-gray-900 border border-gray-700 rounded-md shadow-lg z-10">
+                            <a href="#" data-action="save" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">Save Project</a>
+                            <a href="#" data-action="load" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">Load Project</a>
+                            <a href="#" data-action="print" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">Print</a>
+                        </div>
+                    </div>
+                    <button data-action="help" title="Manual" class="p-2 rounded-md hover:bg-gray-700">
+                        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
                     </button>
-                    <button id="settingsButton" title="Settings" class="p-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500">
-                        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.438 1.001s.145.761.438 1.001l1.003.827c.424.35.534.954.26 1.431l-1.296 2.247a1.125 1.125 0 01-1.37.49l-1.217-.456c-.355-.133-.75-.072-1.075.124a6.57 6.57 0 01-.22.127c-.332.183-.582.495-.645.87l-.213 1.281c-.09.543-.56.94-1.11.94h-2.593c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.063-.374-.313-.686-.645-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.37-.49l-1.296-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.437-1.001s-.145-.761-.437-1.001l-1.004-.827a1.125 1.125 0 01-.26-1.431l1.296-2.247a1.125 1.125 0 011.37-.49l1.217.456c.355.133.75.072 1.076-.124.072-.044.146-.087.22-.127.332-.183.582-.495.645-.87l.213-1.281z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
+                    <button id="settingsButton" title="Settings" class="p-2 rounded-md hover:bg-gray-700">
+                        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.438 1.001s.145.761.438 1.001l1.003.827c.424.35.534.954.26 1.431l-1.296 2.247a1.125 1.125 0 01-1.37.49l-1.217-.456c-.355-.133-.75-.072-1.075.124a6.57 6.57 0 01-.22.127c-.332.183-.582.495-.645.87l-.213 1.281c-.09.543-.56.94-1.11.94h-2.593c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.063-.374-.313-.686-.645-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.37-.49l-1.296-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.437-1.001s-.145-.761-.437-1.001l-1.004-.827a1.125 1.125 0 01-.26-1.431l1.296-2.247a1.125 1.125 0 011.37-.49l1.217.456c.355.133.75.072 1.076-.124.072-.044.146-.087.22-.127.332-.183.582-.495.645-.87l.213-1.281z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                     </button>
-                    <button id="undoButton" title="Undo Last Action" class="p-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed">
-                        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
-                        </svg>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="toc-back-btn" title="Back" class="p-2 rounded-md hover:bg-gray-700 flex-1 justify-center flex disabled:opacity-50 disabled:cursor-not-allowed">
+                         <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
+                    </button>
+                    <button id="toc-forward-btn" title="Forward" class="p-2 rounded-md hover:bg-gray-700 flex-1 justify-center flex disabled:opacity-50 disabled:cursor-not-allowed">
+                        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
                     </button>
                 </div>
             </div>
@@ -697,7 +696,6 @@
             const tocList = document.getElementById('toc-list');
             const tocFilterInput = document.getElementById('toc-filter');
             const projectTitleDisplay = document.getElementById('project-title-display');
-            const undoButton = document.getElementById('undoButton');
             const settingsButton = document.getElementById('settingsButton');
             const confirmModal = document.getElementById('confirmModal');
             const confirmMessage = document.getElementById('confirmMessage');
@@ -735,6 +733,10 @@
             const settingsModalCloseButton = document.getElementById('settingsModalCloseButton');
             const geminiApiKeyInput = document.getElementById('geminiApiKeyInput');
             const settingsSaveButton = document.getElementById('settingsSaveButton');
+            const dataMenuBtn = document.getElementById('data-menu-btn');
+            const dataDropdown = document.getElementById('data-dropdown');
+            const tocBackButton = document.getElementById('toc-back-btn');
+            const tocForwardButton = document.getElementById('toc-forward-btn');
 
             // --- HELPER FUNCTIONS ---
             const isMobile = () => window.innerWidth <= 1024;
@@ -934,7 +936,10 @@
             };
 
             const updateUndoButtonState = () => {
-                if (undoButton) undoButton.disabled = historyStack.length === 0;
+                tocBackButton.disabled = historyStack.length === 0;
+                // Forward button logic would need a redo stack, which is not implemented here.
+                // For now, it will always be disabled.
+                tocForwardButton.disabled = true;
             };
 
             // --- SETTINGS & API KEY ---
@@ -1365,7 +1370,7 @@
                     backButton.classList.add('hidden');
                 }
             });
-            undoButton.addEventListener('click', undoLastAction);
+
             settingsButton.addEventListener('click', openSettingsModal);
             
             tocPanel.addEventListener('click', (e) => {
