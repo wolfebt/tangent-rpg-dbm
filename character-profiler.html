@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Character Profile Builder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Trebuchet MS', sans-serif;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 180px 1fr; /* Adjust label width as needed */
+            gap: 1rem;
+            align-items: center; /* Changed to center for better vertical alignment with new label styling */
+        }
+        .form-row > label {
+            text-align: right;
+            font-weight: bold; /* Changed to bold */
+            border: 1px solid black; /* Added black border */
+            border-radius: 0.5rem; /* Added rounded corners for consistency */
+            padding: 0.5rem 0.75rem; /* Adjusted padding for border */
+            display: flex; /* To center content within the label */
+            align-items: center; /* Vertically center text */
+            justify-content: flex-end; /* Align text to the right */
+            height: 100%; /* Make label fill the height of the row */
+        }
+        .input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .input-wrapper input[type="text"], .input-wrapper textarea {
+            flex-grow: 1;
+            /* Added black border for text fields and textareas */
+            border: 1px solid black; 
+        }
+
+        /* Custom Checkbox-as-Radio Styles */
+        input[type="checkbox"] {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 1.25em;
+            height: 1.25em;
+            border: 2px solid #6b7280; /* gray-500 */
+            border-radius: 50%;
+            display: grid;
+            place-content: center;
+            cursor: pointer;
+            transition: border-color 120ms ease-in-out;
+        }
+        input[type="checkbox"]::before {
+            content: "";
+            width: 0.65em;
+            height: 0.65em;
+            border-radius: 50%;
+            transform: scale(0);
+            transition: 120ms transform ease-in-out;
+            box-shadow: inset 1em 1em #1f2937; /* gray-800 */
+        }
+        input[type="checkbox"]:checked {
+            background-color: #9ca3af; /* gray-400 */
+            border-color: #9ca3af; /* gray-400 */
+        }
+        input[type="checkbox"]:hover {
+            border-color: #d1d5db; /* gray-300 */
+        }
+        
+        input[type="text"], textarea, input[type="password"] {
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+            line-height: 1.5;
+        }
+        textarea {
+            resize: none;
+            overflow-y: hidden;
+        }
+        input[type="text"]:focus, textarea:focus, input[type="password"]:focus {
+            outline: none;
+            border-color: #6366f1; /* indigo-500 */
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.4);
+        }
+        .populated {
+            background-color: #4b5563; /* gray-600 */
+            border-color: #6b7280; /* gray-500 */
+        }
+        .error-message {
+            color: #fca5a5; /* red-300 */
+            background-color: rgba(127, 29, 29, 0.5); /* red-900 with opacity */
+            border-left: 4px solid #ef4444; /* red-500 */
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 0.375rem;
+        }
+        .output-box {
+            background-color: #1f2937; /* gray-800 */
+            border: 1px solid #374151; /* gray-700 */
+            padding: 1rem;
+            border-radius: 0.5rem;
+            height: 300px;
+            overflow-y: auto;
+        }
+
+        /* Custom class for translucent background */
+        .bg-dark-translucent {
+            background-color: rgba(31, 41, 55, 0.7); /* gray-800 with 70% opacity */
+        }
+    </style>
+</head>
+<!-- Updated body class to use the correct URL for the background image -->
+<body class="bg-[url('spaceport-background.jpg')] bg-cover bg-center text-gray-300">
+
+    <!-- Main Container -->
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8 relative">
+        <!-- Settings Icon -->
+        <div class="absolute top-4 left-4">
+            <button id="settings-btn" class="p-2 rounded-full hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" title="Settings">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            </button>
+        </div>
+
+        <header class="text-center mb-10">
+            <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-white">Character Profile Builder</h1>
+            <p class="mt-3 text-md sm:text-lg text-gray-400 max-w-2xl mx-auto">Fill in the fields or check the circle for AI generation.</p>
+        </header>
+
+        <div class="space-y-8 max-w-4xl mx-auto">
+            <!-- Input Form Section -->
+            <div class="bg-dark-translucent border border-gray-700 p-6 rounded-xl shadow-lg">
+                <form id="character-form" class="space-y-4">
+                    <div class="form-row">
+                        <label for="name">Name</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="name" name="name" placeholder="e.g., Alistair Croft" class="w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400">
+                            <input type="checkbox" id="cb-name" name="cb-name" checked title="Check to generate with AI">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label for="genre">Genre</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="genre" name="genre" placeholder="e.g., Sci-Fi, Fantasy, Noir" class="w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400">
+                            <input type="checkbox" id="cb-genre" name="cb-genre" checked title="Check to generate with AI">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label for="core-description">Core Description</label>
+                        <div class="input-wrapper">
+                            <textarea id="core-description" name="core-description" rows="1" placeholder="A high-level summary of the character." class="w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400"></textarea>
+                            <input type="checkbox" id="cb-core-description" name="cb-core-description" checked title="Check to generate with AI">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label for="appearance">Appearance</label>
+                        <div class="input-wrapper">
+                            <textarea id="appearance" name="appearance" rows="1" placeholder="Describe their physical looks, clothing, and style." class="w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400"></textarea>
+                            <input type="checkbox" id="cb-appearance" name="cb-appearance" checked title="Check to generate with AI">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label for="backstory">Backstory</label>
+                        <div class="input-wrapper">
+                            <textarea id="backstory" name="backstory" rows="1" placeholder="Detail their history, significant life events, and origins." class="w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400"></textarea>
+                            <input type="checkbox" id="cb-backstory" name="cb-backstory" checked title="Check to generate with AI">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label for="personality">Personality Traits</label>
+                        <div class="input-wrapper">
+                            <textarea id="personality" name="personality" rows="1" placeholder="e.g., Witty, cautious, fiercely loyal..." class="w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400"></textarea>
+                            <input type="checkbox" id="cb-personality" name="cb-personality" checked title="Check to generate with AI">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label for="skills">Skills</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="skills" name="skills" placeholder="e.g., Lockpicking, alchemy" class="w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400">
+                            <input type="checkbox" id="cb-skills" name="cb-skills" checked title="Check to generate with AI">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label for="abilities">Abilities</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="abilities" name="abilities" placeholder="e.g., Minor pyromancy" class="w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400">
+                            <input type="checkbox" id="cb-abilities" name="cb-abilities" checked title="Check to generate with AI">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label for="goals">Goals</label>
+                        <div class="input-wrapper">
+                            <textarea id="goals" name="goals" rows="1" placeholder="Short-term and long-term goals." class="w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400"></textarea>
+                            <input type="checkbox" id="cb-goals" name="cb-goals" checked title="Check to generate with AI">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label for="motivations">Motivations</label>
+                        <div class="input-wrapper">
+                            <textarea id="motivations" name="motivations" rows="1" placeholder="What drives them?" class="w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400"></textarea>
+                            <input type="checkbox" id="cb-motivations" name="cb-motivations" checked title="Check to generate with AI">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label for="weaknesses">Weaknesses</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="weaknesses" name="weaknesses" placeholder="e.g., Fear of heights, overly trusting" class="w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400">
+                            <input type="checkbox" id="cb-weaknesses" name="cb-weaknesses" checked title="Check to generate with AI">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label for="equipment">Equipment</label>
+                        <div class="input-wrapper">
+                            <textarea id="equipment" name="equipment" rows="1" placeholder="What items do they carry?" class="w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400"></textarea>
+                            <input type="checkbox" id="cb-equipment" name="cb-equipment" checked title="Check to generate with AI">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label for="relationships">Relationships</label>
+                        <div class="input-wrapper">
+                            <textarea id="relationships" name="relationships" rows="1" placeholder="Family, friends, rivals, etc." class="w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400"></textarea>
+                            <input type="checkbox" id="cb-relationships" name="cb-relationships" checked title="Check to generate with AI">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label for="notes">Additional Notes</label>
+                        <div class="input-wrapper">
+                            <textarea id="notes" name="notes" rows="1" placeholder="Any other important details, quirks, or information." class="w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400"></textarea>
+                            <input type="checkbox" id="cb-notes" name="cb-notes" checked title="Check to generate with AI">
+                        </div>
+                    </div>
+                    <!-- Action Buttons -->
+                    <div class="flex items-center justify-end mt-8 border-t border-gray-700 pt-6">
+                        <button type="button" id="generate-btn" class="inline-flex justify-center py-3 px-6 border border-transparent shadow-sm text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            Generate
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Output Sections -->
+            <div class="bg-dark-translucent border border-gray-700 p-6 rounded-xl shadow-lg output-container">
+                <div class="flex justify-between items-center mb-2">
+                    <h2 class="text-xl font-bold text-white">Workup</h2>
+                    <div class="flex space-x-2">
+                         <button class="copy-btn py-1 px-3 border border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-300 bg-gray-700 hover:bg-gray-600" data-target="output-workup">Copy</button>
+                         <button class="save-btn py-1 px-3 border border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-300 bg-gray-700 hover:bg-gray-600" data-target="output-workup" data-format="txt">Save</button>
+                    </div>
+                </div>
+                <p class="text-sm text-gray-400 mb-4">Full character details. Optimized for character concepting.</p>
+                <div class="output-box">
+                    <pre id="output-workup" class="whitespace-pre-wrap text-sm text-gray-300"></pre>
+                </div>
+            </div>
+
+            <div class="bg-dark-translucent border border-gray-700 p-6 rounded-xl shadow-lg output-container">
+                <div class="flex justify-between items-center mb-2">
+                    <h2 class="text-xl font-bold text-white">Markdown</h2>
+                     <div class="flex space-x-2">
+                        <button class="copy-btn py-1 px-3 border border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-300 bg-gray-700 hover:bg-gray-600" data-target="output-markdown">Copy</button>
+                        <button class="save-btn py-1 px-3 border border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-300 bg-gray-700 hover:bg-gray-600" data-target="output-markdown" data-format="md">Save</button>
+                    </div>
+                </div>
+                <p class="text-sm text-gray-400 mb-4">Condensed information from workup. Optimized for short notes.</p>
+                 <div class="output-box">
+                    <pre id="output-markdown" class="whitespace-pre-wrap text-sm text-gray-300"></pre>
+                </div>
+            </div>
+
+            <div class="bg-dark-translucent border border-gray-700 p-6 rounded-xl shadow-lg output-container">
+                <div class="flex justify-between items-center mb-2">
+                    <h2 class="text-xl font-bold text-white">JSON</h2>
+                    <div class="flex space-x-2">
+                         <button class="copy-btn py-1 px-3 border border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-300 bg-gray-700 hover:bg-gray-600" data-target="output-json">Copy</button>
+                         <button class="save-btn py-1 px-3 border border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-300 bg-gray-700 hover:bg-gray-600" data-target="output-json" data-format="json">Save</button>
+                    </div>
+                </div>
+                <p class="text-sm text-gray-400 mb-4">Basic and simplified outline. Optimized for token economy.</p>
+                 <div class="output-box">
+                    <pre id="output-json" class="whitespace-pre-wrap text-sm text-gray-300"></pre>
+                </div>
+            </div>
+             <p id="copy-feedback" class="text-sm text-green-400 mt-2 h-4 text-center"></p>
+        </div>
+    </div>
+
+    <!-- API Key Modal -->
+    <div id="api-key-modal" class="fixed inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-gray-800 border-gray-700">
+            <div class="mt-3 text-center">
+                <h3 class="text-lg leading-6 font-medium text-white">API Key Settings</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-sm text-gray-400 mb-4">
+                        Your API key is stored locally in your browser and is not sent to any servers.
+                    </p>
+                    <p id="api-key-error" class="text-sm text-red-400 mb-3 hidden">API Key is required to generate content.</p>
+                    <input type="password" id="api-key-input" class="w-full bg-gray-700 rounded-md border border-gray-600 px-3 py-2 text-white placeholder-gray-400" placeholder="Enter your Gemini API Key">
+                </div>
+                <div class="items-center px-4 py-3 space-y-2">
+                    <button id="save-api-key-btn" class="px-4 py-2 bg-indigo-600 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        Save and Close
+                    </button>
+                     <button id="close-modal-btn" class="px-4 py-2 bg-gray-600 text-gray-200 text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-500 focus:outline-none">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            let apiKey = '';
+
+            const fieldDefinitions = [
+                { id: 'name', label: 'Name' }, { id: 'genre', label: 'Genre' },
+                { id: 'core-description', label: 'Core Description' }, { id: 'appearance', label: 'Appearance' },
+                { id: 'backstory', label: 'Backstory' }, { id: 'personality', label: 'Personality Traits' },
+                { id: 'skills', label: 'Skills' }, { id: 'abilities', label: 'Abilities' },
+                { id: 'goals', label: 'Goals' }, { id: 'motivations', label: 'Motivations' },
+                { id: 'weaknesses', label: 'Weaknesses' }, { id: 'equipment', label: 'Equipment' },
+                { id: 'relationships', label: 'Relationships' }, { id: 'notes', label: 'Additional Notes' }
+            ];
+            const fieldOrder = fieldDefinitions.map(f => f.id);
+
+            // --- UI Elements ---
+            const form = document.getElementById('character-form');
+            const generateBtn = document.getElementById('generate-btn');
+            const copyFeedbackEl = document.getElementById('copy-feedback');
+            const settingsBtn = document.getElementById('settings-btn');
+            const apiKeyModal = document.getElementById('api-key-modal');
+            const closeModalBtn = document.getElementById('close-modal-btn');
+            const saveApiKeyBtn = document.getElementById('save-api-key-btn');
+            const apiKeyInput = document.getElementById('api-key-input');
+            const apiKeyError = document.getElementById('api-key-error');
+            
+            const outputs = {
+                workup: document.getElementById('output-workup'),
+                markdown: document.getElementById('output-markdown'),
+                json: document.getElementById('output-json')
+            };
+            
+            // --- API Key Management ---
+            function loadApiKey() {
+                apiKey = localStorage.getItem('geminiApiKey') || '';
+                apiKeyInput.value = apiKey;
+            }
+
+            function saveApiKey() {
+                const newKey = apiKeyInput.value.trim();
+                apiKey = newKey;
+                localStorage.setItem('geminiApiKey', newKey);
+                apiKeyModal.classList.add('hidden');
+                apiKeyError.classList.add('hidden');
+                apiKeyInput.classList.remove('border-red-500');
+            }
+
+            // --- Modal Controls ---
+            settingsBtn.addEventListener('click', () => apiKeyModal.classList.remove('hidden'));
+            closeModalBtn.addEventListener('click', () => apiKeyModal.classList.add('hidden'));
+            saveApiKeyBtn.addEventListener('click', saveApiKey);
+            
+            // --- Auto-resize Textarea ---
+            function autoResizeTextarea(event) {
+                const textarea = event.target;
+                textarea.style.height = 'auto';
+                textarea.style.height = (textarea.scrollHeight) + 'px';
+            }
+
+            // --- Shared API Call Function ---
+            async function callGemini(prompt, outputElement) {
+                outputElement.textContent = 'Generating...';
+                
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                const payload = { contents: [{ parts: [{ text: prompt }] }] };
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({}));
+                        let errorMsg = errorData.error?.message || 'An unknown error occurred.';
+                        if (response.status === 400) {
+                            errorMsg = "Invalid API Key. Please check your key in the settings. " + errorMsg;
+                        }
+                        displayError(outputElement, `API Request Failed (Status: ${response.status})`, errorMsg);
+                        return null;
+                    }
+
+                    const result = await response.json();
+                     if (result.candidates?.[0]?.content?.parts?.[0]?.text) {
+                        return result.candidates[0].content.parts[0].text;
+                    } else {
+                        let errorMessage = "No content generated. The model returned an empty response.";
+                        if (result.promptFeedback?.blockReason) {
+                            errorMessage = `Request blocked. Reason: ${result.promptFeedback.blockReason}. Please adjust your input.`;
+                        }
+                        displayError(outputElement, "Generation Error", errorMessage);
+                        return null;
+                    }
+                } catch (error) {
+                    console.error("Error during API call:", error);
+                    displayError(outputElement, "An unexpected error occurred.", `Failed to connect to the API. Error: ${error.message}`);
+                    return null;
+                }
+            }
+
+            // --- UI Interaction Logic ---
+            function displayError(element, message, details = '') {
+                element.innerHTML = `<div class="error-message" style="height: auto; overflow: visible;"><p class="font-bold">${message}</p><p class="text-sm mt-2">${details}</p></div>`;
+            }
+            
+            function setupEventListeners() {
+                fieldOrder.forEach(id => {
+                    const input = document.getElementById(id);
+                    const checkbox = document.getElementById(`cb-${id}`);
+                    input.addEventListener('input', () => {
+                        if (input.value.trim() !== '') {
+                            input.classList.add('populated');
+                            checkbox.checked = false;
+                        } else {
+                            input.classList.remove('populated');
+                        }
+                    });
+                });
+                document.querySelectorAll('textarea').forEach(textarea => {
+                    textarea.addEventListener('input', autoResizeTextarea, false);
+                    setTimeout(() => autoResizeTextarea({ target: textarea }), 0);
+                });
+            }
+
+            // --- Primary Generation Function ---
+            async function generateAllOutputs() {
+                if (!apiKey) {
+                    apiKeyError.classList.remove('hidden');
+                    apiKeyInput.classList.add('border-red-500');
+                    apiKeyModal.classList.remove('hidden');
+                    return;
+                }
+
+                generateBtn.disabled = true;
+                generateBtn.textContent = 'Generating...';
+                
+                Object.values(outputs).forEach(o => o.textContent = '');
+
+                const formData = new FormData(form);
+                const fieldMapping = fieldDefinitions.reduce((acc, f) => ({ ...acc, [f.id]: f.label }), {});
+
+                const allFieldsData = [];
+                const sectionsToGenerate = [];
+                let isAnyBoxChecked = false;
+
+                fieldOrder.forEach(key => {
+                    const value = formData.get(key)?.trim() || '';
+                    const label = fieldMapping[key];
+                    allFieldsData.push(`- **${label}:** ${value}`);
+                    if (document.getElementById(`cb-${key}`).checked) {
+                        isAnyBoxChecked = true;
+                        sectionsToGenerate.push(label);
+                    }
+                });
+
+                if (!isAnyBoxChecked) {
+                    displayError(outputs.workup, "No fields to generate.", "Please check the circle next to at least one field.");
+                    generateBtn.disabled = false;
+                    generateBtn.textContent = 'Generate';
+                    return;
+                }
+
+                // Modified prompt to be more direct and avoid conversational filler
+                let basePrompt = `Generate a complete and cohesive character profile based on the following data.
+**USER-PROVIDED DATA:**
+Here is the information provided by the user. Use this as the primary context for the entire character.
+${allFieldsData.join('\n')}
+
+**YOUR TASK:**
+Your goal is to create a single, complete, and cohesive character profile based on the data above. Follow these rules:
+1. **Integrate Existing Data:** All non-empty fields from the "USER-PROVIDED DATA" must be thoughtfully integrated into the final character.
+2. **Generate and Refine:** You must generate new, compelling content for any empty fields. Additionally, you must specifically focus on the following sections, even if they already have content: **${sectionsToGenerate.join(', ')}**. For these specific sections, treat any existing user data as a suggestion to be expanded upon, refined, or improved to create a more compelling character.
+
+**OUTPUT FORMAT:**
+Return the **complete and final character profile** as a single document. Use each field name from the original list as a bold heading (e.g., **Name**), followed by the full content for that section. Ensure every single field is present in your output.`;
+                
+                const workupPrompt = basePrompt;
+
+                const workupOutput = await callGemini(workupPrompt, outputs.workup);
+                if (!workupOutput) {
+                    generateBtn.disabled = false;
+                    generateBtn.textContent = 'Generate';
+                    return;
+                }
+                outputs.workup.textContent = workupOutput;
+                
+                const markdownPrompt = `Take the following character workup and condense it into a Markdown format. It should be optimized for short notes, using headings and bullet points for clarity. Do not omit key information, but be concise.\n\n---START WORKUP---\n${workupOutput}\n---END WORKUP---`;
+                const markdownOutput = await callGemini(markdownPrompt, outputs.markdown);
+                if (!markdownOutput) {
+                     generateBtn.disabled = false;
+                    generateBtn.textContent = 'Generate';
+                    return;
+                }
+                outputs.markdown.textContent = markdownOutput;
+
+                const jsonPrompt = `Distill the following Markdown character sheet into a basic and simplified JSON object. The JSON should be optimized for chatbot token economy. Use simple key-value pairs. For lists like skills or equipment, use an array of strings. The entire output must be a single, valid JSON object only.\n\n---START MARKDOWN---\n${markdownOutput}\n---END MARKDOWN---`;
+                const jsonOutput = await callGemini(jsonPrompt, outputs.json);
+                if (jsonOutput) {
+                    outputs.json.textContent = jsonOutput;
+                }
+
+                generateBtn.disabled = false;
+                generateBtn.textContent = 'Generate';
+            }
+            
+            // --- Utility Functions (Copy, Save) ---
+            function copyToClipboard(elementId) {
+                const textToCopy = document.getElementById(elementId).textContent;
+                if (textToCopy && !document.getElementById(elementId).querySelector('.error-message')) {
+                    const tempTextArea = document.createElement('textarea');
+                    tempTextArea.value = textToCopy;
+                    document.body.appendChild(tempTextArea);
+                    tempTextArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(tempTextArea);
+                    copyFeedbackEl.textContent = `Copied ${elementId.split('-')[1]}!`;
+                    setTimeout(() => { copyFeedbackEl.textContent = ''; }, 2000);
+                }
+            }
+
+            function saveAsTextFile(elementId, format) {
+                const textToSave = document.getElementById(elementId).textContent;
+                 if (!textToSave || document.getElementById(elementId).querySelector('.error-message')) {
+                    console.warn("No content to save for element:", elementId);
+                    return;
+                }
+
+                const characterName = document.getElementById('name').value.trim().replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'character';
+                const filename = `${characterName}_profile.${format}`;
+                const blob = new Blob([textToSave], { type: `text/${format};charset=utf-8` });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.setAttribute('href', url);
+                link.setAttribute('download', filename);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            }
+
+            // --- Initial Setup ---
+            loadApiKey();
+            setupEventListeners();
+            generateBtn.addEventListener('click', generateAllOutputs);
+            
+            document.querySelectorAll('.copy-btn').forEach(button => {
+                button.addEventListener('click', (e) => copyToClipboard(e.currentTarget.getAttribute('data-target')));
+            });
+
+            document.querySelectorAll('.save-btn').forEach(button => {
+                button.addEventListener('click', (e) => saveAsTextFile(e.currentTarget.getAttribute('data-target'), e.currentTarget.getAttribute('data-format')));
+            });
+
+        });
+    </script>
+</body>
+</html>

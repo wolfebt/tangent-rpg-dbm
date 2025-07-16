@@ -1,0 +1,2049 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPG Scenario Guide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Trebuchet+MS:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #111827; /* gray-900 */
+            --panel-bg: #1f2937; /* gray-800 */
+            --border-color: #374151; /* gray-700 */
+            --text-color: #d1d5db; /* gray-300 */
+            --text-muted: #9ca3af; /* gray-400 */
+            --hover-bg: #374151; /* gray-700 */
+            --active-bg: #4b5563; /* gray-600 */
+            --active-text: #ffffff;
+            --drop-indicator-color: #60a5fa; /* blue-400 */
+            --link-color: #93c5fd; /* blue-300 */
+        }
+
+        body {
+            font-family: 'Trebuchet MS', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+        
+        h1, h2, h3, h4, h5, h6, .component-label, .add-component-btn, .panel-footer button, #quick-ref-list h3 {
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+        }
+
+        .creator-tag {
+            font-weight: 200;
+            font-size: 0.8rem;
+            text-align: center;
+            padding: 1rem;
+            color: var(--text-muted);
+        }
+
+        /* Main Layout */
+        #app-container {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            height: 100vh;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            transition: grid-template-columns 0.3s ease;
+        }
+        #app-container.gm-mode {
+            grid-template-columns: 300px 1fr;
+        }
+
+        /* Panels */
+        .panel {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+        .panel-content {
+            padding: 1rem;
+            overflow-y: auto;
+        }
+        .panel-footer {
+            padding: 0.5rem;
+            border-top: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        /* Table of Contents */
+        .toc-item {
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            cursor: grab;
+            transition: background-color 0.2s, padding-left 0.2s;
+            display: flex;
+            align-items: center;
+            position: relative;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+        }
+        .toc-item:hover {
+            background-color: var(--hover-bg);
+        }
+        .toc-item.active {
+            background-color: var(--active-bg);
+            color: var(--active-text);
+        }
+        .toc-item .handle {
+            opacity: 0.3;
+            cursor: grab;
+            margin-right: 0.5rem;
+        }
+        .toc-item:hover .handle {
+            opacity: 1;
+        }
+        .toc-item.dragging {
+            opacity: 0.5;
+            background-color: var(--active-bg);
+        }
+        .drop-target {
+            border-top: 2px solid var(--drop-indicator-color) !important;
+        }
+        
+        /* Nesting Lines */
+        .toc-item-container {
+            position: relative;
+        }
+        .nesting-line {
+            position: absolute;
+            left: 1.25rem; /* Adjust based on padding */
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background-color: var(--border-color);
+            z-index: 0;
+        }
+        .toc-item[data-level='0'] .nesting-line { display: none; }
+        .toc-item-content {
+            position: relative;
+            padding-left: calc(var(--level, 0) * 1.5rem);
+            flex-grow: 1;
+        }
+
+
+        /* Add Component Button */
+        .add-component-btn {
+            display: block;
+            width: 100%;
+            text-align: center;
+            padding: 0.75rem 1rem;
+            border-radius: 0.375rem;
+            transition: background-color 0.2s;
+            border: 1px solid var(--border-color);
+        }
+        .add-component-btn:hover {
+            background-color: var(--hover-bg);
+        }
+        
+        /* Nesting & Editing Controls */
+        .writer-mode .viewable-content { display: none; }
+        .gm-mode .editable-content { display: none; }
+        .gm-mode .editable-control { display: none !important; }
+        .writer-mode .gm-mode-only { display: none; }
+        .gm-mode .writer-mode-only { display: none; }
+
+
+        .nest-control-button:disabled {
+            opacity: 0.2;
+            cursor: not-allowed;
+        }
+
+        /* Main Content Panel */
+        #main-panel .panel-content {
+            padding: 2.5rem;
+        }
+        #mainContent .component-card {
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 2rem;
+            background-color: var(--panel-bg);
+        }
+        
+        input, select {
+            background-color: var(--panel-bg);
+            border-color: var(--border-color);
+            color: var(--text-color);
+        }
+        input:focus, select:focus {
+            --tw-ring-color: var(--text-muted);
+        }
+        
+        .map-container {
+            position: relative;
+            width: 100%;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            cursor: pointer;
+        }
+        .map-container.pinning {
+             cursor: crosshair;
+        }
+        .map-container img {
+            display: block;
+            max-width: 100%;
+            border-radius: 0.5rem;
+        }
+        .map-pin {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background-color: var(--link-color);
+            color: var(--bg-color);
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg) translate(-50%, -50%);
+            transform-origin: center center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            box-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            cursor: pointer;
+            border: 2px solid var(--bg-color);
+        }
+        .map-pin-label {
+            transform: rotate(45deg);
+        }
+        .map-pin:hover .map-pin-delete {
+            display: block;
+        }
+        .map-pin-delete {
+            display: none;
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 16px;
+            height: 16px;
+            background: red;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 14px;
+            font-size: 12px;
+            cursor: pointer;
+            transform: rotate(45deg);
+        }
+        
+        .component-link {
+            color: var(--link-color);
+            text-decoration: underline;
+            text-decoration-style: dashed;
+            cursor: pointer;
+        }
+        .component-link:hover {
+            text-decoration-style: solid;
+        }
+        
+        /* WYSIWYG Editor Styles */
+        .editor-toolbar {
+            background-color: #374151;
+            border: 1px solid var(--border-color);
+            border-bottom: none;
+            padding: 0.25rem;
+            display: flex;
+            gap: 0.25rem;
+            border-top-left-radius: 0.375rem;
+            border-top-right-radius: 0.375rem;
+        }
+        .editor-toolbar button {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+        }
+        .editor-toolbar button:hover {
+            background-color: var(--active-bg);
+        }
+        .editor-toolbar button.bold { font-weight: bold; }
+        .editor-toolbar button.italic { font-style: italic; }
+        .editor-toolbar button.underline { text-decoration: underline; }
+
+        .wysiwyg-editor {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-bottom-left-radius: 0.375rem;
+            border-bottom-right-radius: 0.375rem;
+            padding: 0.75rem;
+            min-height: 150px;
+            outline: none;
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+        .wysiwyg-editor:focus {
+            border-color: var(--link-color);
+            box-shadow: 0 0 0 1px var(--link-color);
+        }
+        .wysiwyg-editor b, .wysiwyg-editor strong {
+            font-weight: bold;
+            color: var(--active-text);
+        }
+        .wysiwyg-editor i, .wysiwyg-editor em {
+            font-style: italic;
+        }
+        .wysiwyg-editor u {
+            text-decoration: underline;
+        }
+        .wysiwyg-editor .internal-link {
+            color: var(--link-color);
+            text-decoration: underline;
+            text-decoration-style: dashed;
+            background-color: rgba(147, 197, 253, 0.1);
+            padding: 0.1em 0.2em;
+            border-radius: 0.2em;
+        }
+
+
+        /* Styling for rendered content in GM View */
+        .book-prose > *:first-child { margin-top: 0; }
+        .book-prose h3 {
+            font-size: 1.25em;
+            text-transform: none;
+            margin-top: 1.5em;
+            margin-bottom: 0.75em;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.25em;
+        }
+        .book-prose h4 {
+            font-size: 1.1em;
+            text-transform: none;
+            margin-top: 1.25em;
+            margin-bottom: 0.5em;
+        }
+        .book-prose p { margin-bottom: 1em; line-height: 1.6; }
+        .book-prose ul { padding-left: 1.5em; margin-bottom: 1em; list-style-type: disc; }
+        .book-prose li { margin-bottom: 0.5em; }
+        .book-prose a { color: var(--link-color); text-decoration: underline; }
+        .book-prose strong, .book-prose b { font-weight: bold; color: var(--active-text); }
+        .book-prose em, .book-prose i { font-style: italic; }
+        .book-prose u { text-decoration: underline; }
+        .book-prose code {
+            background-color: var(--bg-color);
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-size: 0.9em;
+            font-family: monospace;
+        }
+        
+        /* Quick Reference Panel */
+        #quick-ref-panel {
+            position: fixed;
+            right: 1.5rem;
+            top: 1.5rem;
+            bottom: 1.5rem;
+            width: 250px;
+            transform: translateX(120%);
+            transition: transform 0.3s ease-in-out;
+        }
+        .gm-mode #quick-ref-panel {
+            transform: translateX(0);
+        }
+
+        /* Mobile */
+        @media (max-width: 1024px) {
+            #app-container {
+                grid-template-columns: 1fr;
+                padding: 0;
+                gap: 0;
+                overflow-x: hidden;
+            }
+            #toc-panel, #main-panel {
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                top: 0;
+                transition: transform 0.3s ease-in-out;
+                border-radius: 0;
+                border: none;
+            }
+            #toc-panel {
+                transform: translateX(0);
+                z-index: 20;
+            }
+            #main-panel {
+                transform: translateX(100%);
+                z-index: 10;
+            }
+            #app-container.mobile-view-main #toc-panel {
+                transform: translateX(-100%);
+            }
+            #app-container.mobile-view-main #main-panel {
+                transform: translateX(0);
+            }
+            #main-panel .panel-content {
+                padding: 1.5rem;
+            }
+        }
+
+        /* Print Styles */
+        @media print {
+            body > *:not(#print-area) {
+                display: none !important;
+            }
+            #print-area {
+                display: block !important;
+            }
+            .handout-print-content {
+                color: black;
+            }
+            .handout-print-content h2 {
+                color: black;
+                text-transform: none;
+            }
+             .handout-print-content img {
+                max-width: 100%;
+            }
+            .gm-print-view {
+                background-color: #ffffff !important;
+                color: #000000 !important;
+            }
+            .gm-print-view #app-container, .gm-print-view #toc-panel, .gm-print-view #add-panel, .gm-print-view #quick-ref-panel, .gm-print-view #mobileMessage, .gm-print-view .panel-header, .gm-print-view .panel-footer, .gm-print-view .editable-control, .gm-print-view #gmViewButton, .gm-print-view #undoButton, .gm-print-view #toc-filter {
+                display: none !important;
+            }
+            .gm-print-view #main-panel {
+                border: none !important;
+                box-shadow: none !important;
+                height: auto !important;
+                width: 100% !important;
+                display: block !important;
+            }
+            .gm-print-view #main-scroll-area {
+                display: block !important;
+                visibility: visible !important;
+                overflow: visible !important;
+                padding: 0 !important;
+            }
+            .gm-print-view .component-card {
+                border: none !important;
+                box-shadow: none !important;
+                page-break-inside: avoid;
+                padding: 1rem 0 !important;
+                margin-left: 0 !important;
+            }
+            .gm-print-view .book-prose, .gm-print-view .book-prose *, .gm-print-view .viewable-content, .gm-print-view .viewable-content * {
+                color: #000 !important;
+            }
+            .gm-print-view .map-container {
+                page-break-inside: avoid;
+                border: 1px solid #ccc !important;
+            }
+            .gm-print-view a {
+                text-decoration: none;
+                color: #000 !important;
+            }
+            .gm-print-view .component-link::after {
+                content: " (see page for " attr(title) ")";
+                font-size: 0.8em;
+                text-decoration: none !important;
+                color: #555 !important;
+            }
+            .gm-print-view .map-pin {
+                border: 2px solid #000 !important;
+                background-color: #ccc !important;
+                color: #000 !important;
+            }
+            .print-creator-tag {
+                display: block !important;
+                font-weight: 200;
+                font-size: 0.8rem;
+                text-align: center;
+                margin-top: 2rem;
+                color: #666;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-container" class="writer-mode">
+        <!-- Left Panel: Table of Contents -->
+        <aside id="toc-panel" class="panel">
+            <div class="panel-header flex justify-between items-center">
+                <h2 class="text-xl">Table of Contents</h2>
+                <div class="flex items-center gap-1">
+                     <button data-action="save" title="Save Project" class="p-2 rounded-md hover:bg-gray-700 writer-mode-only">
+                         <svg class="w-5 h-5 pointer-events-none" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+                     </button>
+                     <button data-action="load" title="Load Project" class="p-2 rounded-md hover:bg-gray-700 writer-mode-only">
+                         <svg class="w-5 h-5 pointer-events-none" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg>
+                     </button>
+                     <button data-action="print" title="Print Project" class="p-2 rounded-md hover:bg-gray-700 gm-mode-only">
+                         <svg class="w-5 h-5 pointer-events-none" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                             <path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6 18.25m0 0a2.25 2.25 0 002.25 2.25h9A2.25 2.25 0 0019.5 18.25l-1.28-4.425m-14.456 0a48.108 48.108 0 002.478 5.758L6 18.25m13.5-4.425a48.099 48.099 0 01-2.478 5.758L18 18.25m-13.5-4.425a2.25 2.25 0 012.25-2.25h9a2.25 2.25 0 012.25 2.25m-13.5 0l1.28-4.425m10.956 4.425l-1.28-4.425m0 0a2.25 2.25 0 00-2.25-2.25h-3.182a2.25 2.25 0 00-2.25 2.25m10.5 0a2.25 2.25 0 01-2.25 2.25h-3.182a2.25 2.25 0 01-2.25-2.25m0 0l-1.28-4.425m10.956 4.425l1.28 4.425" />
+                         </svg>
+                     </button>
+                     <button data-action="help" title="Help" class="p-2 rounded-md hover:bg-gray-700">
+                        <svg class="w-5 h-5 pointer-events-none" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
+                    </button>
+                    <button id="settingsButton" title="Settings" class="p-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500">
+                        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.438 1.001s.145.761.438 1.001l1.003.827c.424.35.534.954.26 1.431l-1.296 2.247a1.125 1.125 0 01-1.37.49l-1.217-.456c-.355-.133-.75-.072-1.075.124a6.57 6.57 0 01-.22.127c-.332.183-.582.495-.645.87l-.213 1.281c-.09.543-.56.94-1.11.94h-2.593c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.063-.374-.313-.686-.645-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.37-.49l-1.296-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.437-1.001s-.145-.761-.437-1.001l-1.004-.827a1.125 1.125 0 01-.26-1.431l1.296-2.247a1.125 1.125 0 011.37-.49l1.217.456c.355.133.75.072 1.076-.124.072-.044.146-.087.22-.127.332-.183.582-.495.645-.87l.213-1.281z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </button>
+                    <button id="undoButton" title="Undo Last Action" class="p-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="p-2 border-b border-gray-700">
+                <input type="text" id="toc-filter" placeholder="Filter components..." class="w-full bg-gray-900 border border-gray-700 rounded-md px-2 py-1 text-sm">
+            </div>
+            <div id="toc-list" class="panel-content space-y-1">
+                <!-- Table of Contents items will be dynamically inserted here -->
+            </div>
+            <div class="panel-footer flex gap-2">
+                <button id="gmViewButton" class="w-full px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md text-white">GM View</button>
+                <button id="addComponentButton" class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md text-white">Add Component</button>
+            </div>
+        </aside>
+
+        <!-- Center Panel: Main Content -->
+        <main id="main-panel" class="panel">
+             <div id="main-panel-header" class="panel-header flex items-center gap-4">
+                <button id="backButton" data-action="back" title="Back to Contents" class="p-2 rounded-md hover:bg-gray-700 hidden lg:hidden">
+                   <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
+               </button>
+                <h1 id="project-title-display" class="text-2xl truncate">New Project</h1>
+            </div>
+            <div id="main-scroll-area" class="panel-content">
+                <div id="projectHeader" class="mb-12"></div>
+                <div id="mainContent" class="space-y-8">
+                    <!-- Active component content will be dynamically inserted here -->
+                </div>
+            </div>
+             <div id="main-panel-footer" class="panel-footer gm-mode-only">
+                <div class="creator-tag">RPG SCENARIO GUIDE by Wolfe.BT@TangentLLC</div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- GM View Quick Reference Panel -->
+    <aside id="quick-ref-panel" class="panel">
+        <div class="panel-header">
+            <h2 class="text-xl">Quick Reference</h2>
+        </div>
+        <div id="quick-ref-list" class="panel-content"></div>
+    </aside>
+    
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+        <div class="bg-gray-800 rounded-xl shadow-2xl p-8 max-w-md w-full text-center">
+            <h3 id="confirmTitle" class="text-xl font-bold text-white mb-4">Are you sure?</h3>
+            <p id="confirmMessage" class="text-gray-300 mb-6"></p>
+            <div class="flex justify-center gap-4">
+                <button id="confirmCancelButton" class="px-6 py-2 bg-gray-600 text-white font-bold rounded-lg hover:bg-gray-500">Cancel</button>
+                <button id="confirmOkButton" class="px-6 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Modal -->
+    <div id="importModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+        <div class="bg-gray-800 rounded-xl shadow-2xl p-8 max-w-2xl w-full flex flex-col" style="height: 90vh;">
+            <h2 class="text-2xl font-bold text-white mb-4">Import Components</h2>
+            <p class="text-gray-400 mb-4">Select the components you wish to import into your current project.</p>
+            <div id="import-options-list" class="flex-grow overflow-y-auto border border-gray-700 rounded-lg p-4">
+                <!-- Import options will be dynamically inserted here -->
+            </div>
+            <div class="flex justify-end gap-4 mt-6">
+                <button id="importCancelButton" class="px-6 py-2 bg-gray-600 text-white font-bold rounded-lg hover:bg-gray-500">Cancel</button>
+                <button id="importConfirmButton" class="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700">Import Selected</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Help Modal -->
+    <div id="helpModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+        <div class="bg-gray-800 rounded-xl shadow-2xl p-8 max-w-4xl w-full flex flex-col" style="height: 90vh;">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-white">User Guide</h2>
+                <button id="helpCloseButton" class="p-2 rounded-full hover:bg-gray-700">&times;</button>
+            </div>
+            <div id="help-content" class="flex-grow overflow-y-auto pr-4 book-prose">
+                <!-- Help content will be dynamically inserted here -->
+            </div>
+             <div class="creator-tag mt-4">RPG SCENARIO GUIDE by Wolfe.BT@TangentLLC</div>
+        </div>
+    </div>
+
+    <!-- Map Modal -->
+    <div id="mapModal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
+        <div id="mapModalContent" class="relative w-full h-full flex items-center justify-center">
+            <!-- Enlarged map and pins will be injected here -->
+        </div>
+        <button id="mapModalCloseButton" class="absolute top-4 right-4 text-white text-4xl font-bold hover:text-gray-400">&times;</button>
+    </div>
+
+    <!-- Handout Modal -->
+    <div id="handoutModal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
+        <div class="bg-white text-black rounded-lg shadow-2xl max-w-2xl w-full flex flex-col" style="height: 90vh;">
+            <div class="p-4 border-b flex justify-between items-center">
+                <h2 id="handoutModalTitle" class="text-2xl font-bold"></h2>
+                <div>
+                     <button id="handoutPrintButton" class="p-2 rounded-md hover:bg-gray-200" title="Print Handout">
+                        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                             <path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6 18.25m0 0a2.25 2.25 0 002.25 2.25h9A2.25 2.25 0 0019.5 18.25l-1.28-4.425m-14.456 0a48.108 48.108 0 002.478 5.758L6 18.25m13.5-4.425a48.099 48.099 0 01-2.478 5.758L18 18.25m-13.5-4.425a2.25 2.25 0 012.25-2.25h9a2.25 2.25 0 012.25 2.25m-13.5 0l1.28-4.425m10.956 4.425l-1.28-4.425m0 0a2.25 2.25 0 00-2.25-2.25h-3.182a2.25 2.25 0 00-2.25 2.25m10.5 0a2.25 2.25 0 01-2.25 2.25h-3.182a2.25 2.25 0 01-2.25-2.25m0 0l-1.28-4.425m10.956 4.425l1.28 4.425" />
+                         </svg>
+                    </button>
+                    <button id="handoutCloseButton" class="p-2 rounded-md hover:bg-gray-200 text-2xl" title="Close">&times;</button>
+                </div>
+            </div>
+            <div id="handoutModalContent" class="p-6 overflow-y-auto">
+                 <!-- Handout content will be injected here -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add Component Modal -->
+    <div id="addComponentModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+        <div class="bg-gray-800 rounded-xl shadow-2xl p-8 max-w-md w-full">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-white uppercase">Add a New Component</h3>
+                <button id="addComponentModalCloseButton" class="text-gray-400 hover:text-white text-2xl p-1 rounded-full">&times;</button>
+            </div>
+            <div id="modal-add-component-list" class="grid grid-cols-2 gap-4">
+                <!-- Component buttons will be dynamically inserted here -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- AI Modal -->
+    <div id="aiModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+        <div class="bg-gray-800 rounded-xl shadow-2xl p-8 max-w-lg w-full">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-white uppercase">AI Content Generator</h3>
+                <button id="aiModalCloseButton" class="text-gray-400 hover:text-white text-2xl p-1 rounded-full">&times;</button>
+            </div>
+            <div>
+                <textarea id="aiPrompt" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white" rows="4" placeholder="Enter your prompt... e.g., 'A gruff dwarf blacksmith with a secret soft spot for kittens.'"></textarea>
+                <button id="aiGenerateButton" class="w-full mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md text-white flex items-center justify-center">
+                    <span id="aiGenerateButtonText">Generate</span>
+                    <svg id="aiLoadingSpinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+        <div class="bg-gray-800 rounded-xl shadow-2xl p-8 max-w-lg w-full">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-white uppercase">Settings</h3>
+                <button id="settingsModalCloseButton" class="text-gray-400 hover:text-white text-2xl p-1 rounded-full">&times;</button>
+            </div>
+            <div>
+                <label for="geminiApiKeyInput" class="block text-sm font-medium text-gray-300 mb-2">Gemini API Key</label>
+                <input type="password" id="geminiApiKeyInput" class="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-white" placeholder="Enter your Gemini API Key">
+                <p class="text-xs text-gray-400 mt-2">Your API key is stored only in your browser and is never sent to our servers.</p>
+                <button id="settingsSaveButton" class="w-full mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md text-white">Save</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Hidden file inputs -->
+    <input type="file" id="loadFileInput" class="hidden" accept=".json">
+    <input type="file" id="componentImageInput" class="hidden" accept="image/*">
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- STATE MANAGEMENT ---
+            let project = {};
+            let nextId = 1;
+            let activeComponentId = null;
+            let historyStack = [];
+            let draggingItemId = null;
+            let confirmCallback = null;
+            let isFullViewActive = false;
+            let loadedProjectData = null;
+            let isPinning = false;
+            let pinComponentId = null;
+            let activeEditorForAI = null;
+            let geminiApiKey = "";
+
+
+            // --- DOM ELEMENTS ---
+            const mainApp = document.getElementById('app-container');
+            const mainContent = document.getElementById('mainContent');
+            const projectHeader = document.getElementById('projectHeader');
+            const mainPanelHeader = document.getElementById('main-panel-header');
+            const loadFileInput = document.getElementById('loadFileInput');
+            const componentImageInput = document.getElementById('componentImageInput');
+            const tocPanel = document.getElementById('toc-panel');
+            const tocList = document.getElementById('toc-list');
+            const tocFilterInput = document.getElementById('toc-filter');
+            const projectTitleDisplay = document.getElementById('project-title-display');
+            const undoButton = document.getElementById('undoButton');
+            const settingsButton = document.getElementById('settingsButton');
+            const confirmModal = document.getElementById('confirmModal');
+            const confirmMessage = document.getElementById('confirmMessage');
+            const confirmOkButton = document.getElementById('confirmOkButton');
+            const confirmCancelButton = document.getElementById('confirmCancelButton');
+            const gmViewButton = document.getElementById('gmViewButton');
+            const quickRefList = document.getElementById('quick-ref-list');
+            const importModal = document.getElementById('importModal');
+            const importOptionsList = document.getElementById('import-options-list');
+            const importCancelButton = document.getElementById('importCancelButton');
+            const importConfirmButton = document.getElementById('importConfirmButton');
+            const helpModal = document.getElementById('helpModal');
+            const helpContent = document.getElementById('help-content');
+            const helpCloseButton = document.getElementById('helpCloseButton');
+            const mapModal = document.getElementById('mapModal');
+            const mapModalContent = document.getElementById('mapModalContent');
+            const mapModalCloseButton = document.getElementById('mapModalCloseButton');
+            const handoutModal = document.getElementById('handoutModal');
+            const handoutModalTitle = document.getElementById('handoutModalTitle');
+            const handoutModalContent = document.getElementById('handoutModalContent');
+            const handoutPrintButton = document.getElementById('handoutPrintButton');
+            const handoutCloseButton = document.getElementById('handoutCloseButton');
+            const addComponentModal = document.getElementById('addComponentModal');
+            const addComponentButton = document.getElementById('addComponentButton');
+            const modalAddComponentList = document.getElementById('modal-add-component-list');
+            const addComponentModalCloseButton = document.getElementById('addComponentModalCloseButton');
+            const backButton = document.getElementById('backButton');
+            const aiModal = document.getElementById('aiModal');
+            const aiModalCloseButton = document.getElementById('aiModalCloseButton');
+            const aiPrompt = document.getElementById('aiPrompt');
+            const aiGenerateButton = document.getElementById('aiGenerateButton');
+            const aiGenerateButtonText = document.getElementById('aiGenerateButtonText');
+            const aiLoadingSpinner = document.getElementById('aiLoadingSpinner');
+            const settingsModal = document.getElementById('settingsModal');
+            const settingsModalCloseButton = document.getElementById('settingsModalCloseButton');
+            const geminiApiKeyInput = document.getElementById('geminiApiKeyInput');
+            const settingsSaveButton = document.getElementById('settingsSaveButton');
+
+            // --- HELPER FUNCTIONS ---
+            const isMobile = () => window.innerWidth <= 1024;
+
+            const showMainView = () => {
+                if (!isMobile()) return;
+                mainApp.classList.add('mobile-view-main');
+                backButton.classList.remove('hidden');
+            };
+
+            const showTocView = () => {
+                if (!isMobile()) return;
+                mainApp.classList.remove('mobile-view-main');
+                backButton.classList.add('hidden');
+            };
+            
+            const findComponentAndParent = (id, components = project.components, parent = null) => {
+                for (let i = 0; i < components.length; i++) {
+                    const component = components[i];
+                    if (component.id === id) {
+                        return { component, parent, index: i };
+                    }
+                    if (component.children) {
+                        const found = findComponentAndParent(id, component.children, component);
+                        if (found) return found;
+                    }
+                }
+                return null;
+            };
+
+            const getAllComponents = (components) => {
+                return components.reduce((acc, comp) => {
+                    acc.push(comp);
+                    if (comp.children) {
+                        acc.push(...getAllComponents(comp.children));
+                    }
+                    return acc;
+                }, []);
+            };
+            
+            const findComponent = (id) => {
+                const result = findComponentAndParent(id);
+                return result ? result.component : null;
+            };
+            
+            const processTextForDisplay = (html) => {
+                if (typeof html !== 'string') return '';
+                
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+
+                const internalLinks = tempDiv.querySelectorAll('.internal-link');
+                const allComponents = getAllComponents(project.components);
+
+                internalLinks.forEach(link => {
+                    const componentName = link.textContent;
+                    const target = allComponents.find(c => c.data.name && c.data.name.toLowerCase() === componentName.toLowerCase());
+                    const newLink = document.createElement('a');
+                    newLink.href = '#';
+                    if (target) {
+                        newLink.className = 'component-link';
+                        newLink.dataset.linkId = target.id;
+                    } else {
+                        newLink.className = 'component-link-broken';
+                        newLink.title = 'Component not found';
+                    }
+                    newLink.textContent = componentName;
+                    link.replaceWith(newLink);
+                });
+
+                return tempDiv.innerHTML;
+            };
+
+
+            // --- INITIALIZATION ---
+            function initializeApp() {
+                loadSettings();
+                resetProject();
+                renderAddComponentModal();
+            }
+
+            // --- MODAL & HISTORY MANAGEMENT ---
+            const showConfirm = (message, callback) => {
+                confirmMessage.textContent = message;
+                confirmCallback = callback;
+                confirmModal.classList.remove('hidden');
+                confirmModal.classList.add('flex');
+            };
+
+            const closeConfirm = () => {
+                confirmModal.classList.add('hidden');
+                confirmModal.classList.remove('flex');
+                confirmCallback = null;
+            };
+            
+            const closeHelpModal = () => {
+                helpModal.classList.add('hidden');
+                helpModal.classList.remove('flex');
+            };
+            
+            const closeAddComponentModal = () => {
+                addComponentModal.classList.add('hidden');
+                addComponentModal.classList.remove('flex');
+            };
+            
+            const openAiModal = (editorElement) => {
+                if (!geminiApiKey) {
+                    openSettingsModal();
+                    return;
+                }
+                activeEditorForAI = editorElement;
+                aiModal.classList.remove('hidden');
+                aiModal.classList.add('flex');
+                aiPrompt.focus();
+            };
+            
+            const closeAiModal = () => {
+                aiModal.classList.add('hidden');
+                aiModal.classList.remove('flex');
+                activeEditorForAI = null;
+                aiPrompt.value = '';
+            };
+            
+            const openSettingsModal = () => {
+                geminiApiKeyInput.value = geminiApiKey;
+                settingsModal.classList.remove('hidden');
+                settingsModal.classList.add('flex');
+            };
+
+            const closeSettingsModal = () => {
+                settingsModal.classList.add('hidden');
+                settingsModal.classList.remove('flex');
+            };
+
+            const openMapModal = (mapComponent) => {
+                if (!mapComponent || !mapComponent.data.imageUrl) return;
+
+                let pinsHTML = '';
+                if (mapComponent.data.pins) {
+                    mapComponent.data.pins.forEach((pin, index) => {
+                        pinsHTML += `<div class="map-pin component-link" style="left: ${pin.x}%; top: ${pin.y}%;" data-link-id="${pin.componentId}" title="${pin.name}">
+                                       <span class="map-pin-label">${index + 1}</span>
+                                   </div>`;
+                    });
+                }
+
+                mapModalContent.innerHTML = `
+                    <div class="relative">
+                        <img src="${mapComponent.data.imageUrl}" class="max-w-[90vw] max-h-[90vh] rounded-lg shadow-2xl">
+                        <div class="absolute inset-0">${pinsHTML}</div>
+                    </div>
+                `;
+
+                mapModal.classList.remove('hidden');
+                mapModal.classList.add('flex');
+            };
+
+            const closeMapModal = () => {
+                mapModal.classList.add('hidden');
+                mapModal.classList.remove('flex');
+                mapModalContent.innerHTML = '';
+            };
+
+            const openHandoutModal = (handoutComponent) => {
+                if (!handoutComponent) return;
+                handoutModalTitle.textContent = handoutComponent.data.title || 'Handout';
+                let contentHTML = '';
+                if (handoutComponent.data.imageUrl) {
+                    contentHTML += `<img src="${handoutComponent.data.imageUrl}" class="max-w-full h-auto rounded-md mb-4 shadow-md">`;
+                }
+                contentHTML += `<div class="prose prose-lg max-w-none">${processTextForDisplay(handoutComponent.data.content)}</div>`;
+                handoutModalContent.innerHTML = contentHTML;
+                handoutModal.classList.remove('hidden');
+                handoutModal.classList.add('flex');
+            };
+
+            const closeHandoutModal = () => {
+                 handoutModal.classList.add('hidden');
+                handoutModal.classList.remove('flex');
+            };
+
+            const saveStateToHistory = () => {
+                historyStack.push(structuredClone(project));
+                if (historyStack.length > 20) historyStack.shift();
+                updateUndoButtonState();
+            };
+
+            const undoLastAction = () => {
+                if (historyStack.length > 0) {
+                    project = historyStack.pop();
+                    nextId = Math.max(0, ...getAllComponents(project.components).map(c => c.id)) + 1 || 1;
+                    if (!getAllComponents(project.components).some(c => c.id === activeComponentId)) {
+                        activeComponentId = project.components.length > 0 ? project.components[0].id : null;
+                    }
+                    renderAll();
+                }
+            };
+
+            const updateUndoButtonState = () => {
+                if (undoButton) undoButton.disabled = historyStack.length === 0;
+            };
+
+            // --- SETTINGS & API KEY ---
+            const loadSettings = () => {
+                const savedKey = localStorage.getItem('geminiApiKey');
+                if (savedKey) {
+                    geminiApiKey = savedKey;
+                }
+            };
+
+            const saveSettings = () => {
+                geminiApiKey = geminiApiKeyInput.value;
+                localStorage.setItem('geminiApiKey', geminiApiKey);
+                closeSettingsModal();
+            };
+
+            // --- PROJECT & COMPONENT LOGIC ---
+            const resetProject = () => {
+                project = {
+                    title: 'New Project',
+                    pitch: 'A brief, one-paragraph pitch for the campaign or adventure.',
+                    components: []
+                };
+                nextId = 1;
+                activeComponentId = null;
+                historyStack = [];
+                isFullViewActive = false;
+                renderAll();
+            };
+
+            const addComponent = (type) => {
+                saveStateToHistory();
+                const newComponent = { id: nextId++, type, data: getTemplateForType(type), children: [] };
+                project.components.push(newComponent);
+                activeComponentId = newComponent.id;
+                isFullViewActive = false;
+                renderAll();
+            };
+
+            const deleteComponent = (id) => {
+                saveStateToHistory();
+                
+                const removeRecursively = (components, targetId) => {
+                    for (let i = components.length - 1; i >= 0; i--) {
+                        if (components[i].id === targetId) {
+                            components.splice(i, 1);
+                            return true;
+                        }
+                        if (components[i].children && removeRecursively(components[i].children, targetId)) {
+                            return true;
+                        }
+                    }
+                    return false;
+                };
+
+                removeRecursively(project.components, id);
+
+                if (activeComponentId === id) {
+                    activeComponentId = project.components.length > 0 ? project.components[0].id : null;
+                    isFullViewActive = false;
+                }
+                renderAll();
+            };
+
+            const getTemplateForType = (type) => {
+                const baseTemplate = {
+                    description: '',
+                    notes: '',
+                    tags: ''
+                };
+
+                const specificTemplates = {
+                    'Story Arc': { name: 'New Story Arc', summary: '', goal: '', 'Key Antagonist': '', resolution: '' },
+                    'Adventure': { name: 'New Adventure', hook: '', goal: '', stakes: '', resolution: '' },
+                    'NPC': { name: 'New NPC', role: 'Quest Giver', appearance: '', motivation: 'To acquire wealth.', secrets: '', 'plot_hooks': '' },
+                    'Location': { name: 'New Location', type: 'City', atmosphere: '', 'key_sights': '', 'sounds_and_smells': '', 'potential_encounters': '', secrets: '' },
+                    'Faction': { name: 'New Faction', goals: 'Gain political control.', ideology: '', key_members: '', resources: '' },
+                    'Encounter': { name: 'New Encounter', type: 'Combat', setup: '', resolution: '', mechanic: '' },
+                    'Item': { name: 'New Item', rarity: 'Uncommon', attunement: 'No', properties: '', history: '', mechanic: '' },
+                    'Clue': { name: 'New Clue', information: '', location_found: '', conclusion: '' },
+                    'Map': { name: 'New Map', imageUrl: null, pins: [] },
+                    'Handout': { title: 'New Handout', content: 'Information for the players...', imageUrl: null, notes: 'GM notes about this handout...' },
+                };
+                
+                const specificTemplate = specificTemplates[type] || { name: `New ${type}` };
+                 if (type === 'Map' || type === 'Handout') {
+                    return specificTemplate; 
+                }
+                const nameKey = Object.keys(specificTemplate).find(k => k === 'name' || k === 'title') || 'name';
+                const finalTemplate = { ...baseTemplate, ...specificTemplate };
+                if(!finalTemplate[nameKey]) finalTemplate[nameKey] = `New ${type}`;
+                return finalTemplate;
+            };
+
+            // --- RENDER FUNCTIONS ---
+            const renderAll = () => {
+                updateUndoButtonState();
+                renderProjectHeader();
+                renderTableOfContents();
+                renderActiveComponent();
+                gmViewButton.textContent = isFullViewActive ? 'Edit View' : 'GM View';
+                mainApp.classList.toggle('gm-mode', isFullViewActive);
+                mainApp.classList.toggle('writer-mode', !isFullViewActive);
+            };
+
+            const renderProjectHeader = () => {
+                const headerContent = `
+                    <div class="editable-content">
+                        <input type="text" data-key="title" value="${project.title}" placeholder="Project Title" class="text-4xl w-full bg-transparent border-b-2 border-transparent focus:border-gray-600 outline-none pb-2 transition-colors">
+                        <div data-key="pitch" class="wysiwyg-editor mt-4" contenteditable="true">${project.pitch}</div>
+                    </div>
+                    <div class="viewable-content">
+                        <h1 class="text-4xl mb-4">${project.title}</h1>
+                        <div class="italic text-gray-400 book-prose">${processTextForDisplay(project.pitch)}</div>
+                    </div>
+                `;
+                projectHeader.innerHTML = headerContent;
+            };
+
+            const renderTableOfContents = () => {
+                tocList.innerHTML = '';
+                const filterText = tocFilterInput.value.toLowerCase();
+                
+                const filterAndBuild = (components) => {
+                    const filtered = [];
+                    for(const component of components) {
+                        const nameKey = Object.keys(component.data).find(k => k === 'name' || k === 'title') || 'name';
+                        const name = component.data[nameKey] || `Untitled ${component.type}`;
+                        const selfMatch = name.toLowerCase().includes(filterText) ||
+                                        (component.data.tags && component.data.tags.toLowerCase().includes(filterText));
+                        const children = component.children ? filterAndBuild(component.children) : [];
+
+                        if(selfMatch || children.length > 0) {
+                            filtered.push({
+                                ...component,
+                                children: children
+                            });
+                        }
+                    }
+                    return filtered;
+                }
+
+                const componentsToRender = filterText ? filterAndBuild(project.components) : project.components;
+
+                if (componentsToRender.length === 0) {
+                    tocList.innerHTML = `<p class="text-sm text-gray-400 px-1">No matching components.</p>`;
+                    return;
+                }
+
+                const renderItems = (components, level = 0) => {
+                    components.forEach((component) => {
+                        const nameKey = Object.keys(component.data).find(k => k === 'name' || k === 'title') || 'name';
+                        const name = component.data[nameKey] || `Untitled ${component.type}`;
+                        const itemContainer = document.createElement('div');
+                        itemContainer.className = 'toc-item-container';
+                        
+                        const item = document.createElement('div');
+                        item.className = `toc-item ${component.id === activeComponentId && !isFullViewActive ? 'active' : ''}`;
+                        item.dataset.id = component.id;
+                        item.draggable = true;
+                        
+                        const itemContent = document.createElement('div');
+                        itemContent.className = 'toc-item-content';
+                        itemContent.style.setProperty('--level', level);
+                        itemContent.innerHTML = `
+                            <span class="handle text-gray-500">?</span>
+                            <span class="truncate">${name}</span>
+                        `;
+
+                        item.appendChild(itemContent);
+                        itemContainer.appendChild(item);
+                        tocList.appendChild(itemContainer);
+
+                        if (component.children && component.children.length > 0) {
+                            const childrenContainer = document.createElement('div');
+                            childrenContainer.className = 'toc-children-container relative';
+                            const line = document.createElement('div');
+                            line.className = 'nesting-line';
+                            childrenContainer.appendChild(line);
+                            renderItems(component.children, level + 1).forEach(childEl => childrenContainer.appendChild(childEl));
+                            itemContainer.appendChild(childrenContainer);
+                        }
+                    });
+                    return components.map(c => tocList.querySelector(`[data-id='${c.id}']`).parentElement);
+                };
+                renderItems(componentsToRender);
+            };
+
+            const renderAddComponentModal = () => {
+                const componentTypes = ['Story Arc', 'Adventure', 'NPC', 'Location', 'Faction', 'Encounter', 'Item', 'Clue', 'Map', 'Handout'];
+                modalAddComponentList.innerHTML = componentTypes.map(type => `
+                    <button class="add-component-btn" data-type="${type}">${type}</button>
+                `).join('');
+            };
+
+            const renderActiveComponent = () => {
+                mainContent.innerHTML = '';
+                if (isFullViewActive) {
+                    renderAllComponentsView();
+                    renderQuickReferencePanel();
+                    return;
+                }
+
+                const activeInfo = findComponentAndParent(activeComponentId);
+                if (!activeInfo) {
+                    mainContent.innerHTML = `<div class="text-center text-gray-500 py-16">Select a component from the Table of Contents to begin.</div>`;
+                    return;
+                }
+                const { component, parent, index } = activeInfo;
+                const nameKey = Object.keys(component.data).find(k => k === 'name' || k === 'title') || 'name';
+                const name = component.data[nameKey] || `Untitled ${component.type}`;
+
+                const card = document.createElement('div');
+                card.className = 'component-card';
+                card.dataset.id = component.id;
+
+                let fieldsHTML = '';
+                for (const key in component.data) {
+                    if (key === 'imageUrl' || key === 'pins' || key === nameKey) continue;
+                    const label = key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ');
+                    const value = component.data[key] || '';
+                    const isTextArea = ['summary', 'description', 'pitch', 'hook', 'stakes', 'resolution', 'motivation', 'appearance', 'secrets', 'goals', 'ideology', 'key_members', 'setup', 'properties', 'information', 'conclusion', 'plot_hooks', 'key_sights', 'sounds_and_smells', 'potential_encounters', 'history', 'mechanic', 'notes', 'content'].includes(key);
+                    
+                    if (isTextArea) {
+                        fieldsHTML += `
+                            <div class="mb-6">
+                                <label class="component-label block text-sm mb-1">${label}</label>
+                                <div class="editable-content">
+                                    <div class="editor-toolbar">
+                                        <button data-command="bold" class="bold" title="Bold (Ctrl+B)">B</button>
+                                        <button data-command="italic" class="italic" title="Italic (Ctrl+I)">I</button>
+                                        <button data-command="underline" class="underline" title="Underline (Ctrl+U)">U</button>
+                                        <button data-command="createLink" title="Create Internal Link (Ctrl+L)">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clip-rule="evenodd" /></svg>
+                                        </button>
+                                        <button data-command="ai" title="Generate with AI">AI</button>
+                                    </div>
+                                    <div data-key="${key}" class="wysiwyg-editor" contenteditable="true">${value}</div>
+                                </div>
+                                <div class="viewable-content book-prose mt-1">${processTextForDisplay(value)}</div>
+                            </div>
+                        `;
+                    } else {
+                         fieldsHTML += `
+                            <div class="mb-6">
+                                <label class="component-label block text-sm mb-1">${label}</label>
+                                <div class="editable-content">
+                                    <input type="text" data-key="${key}" value="${value}" class="w-full p-2 bg-transparent border-b-2 border-gray-700 focus:border-gray-400 outline-none transition">
+                                </div>
+                                <div class="viewable-content book-prose mt-1">${processTextForDisplay(value)}</div>
+                            </div>
+                        `;
+                    }
+                }
+                
+                if (component.type === 'Handout') {
+                    fieldsHTML += `
+                        <div class="mt-6">
+                             <div class="editable-content">
+                                <div class="mb-2">
+                                    <button data-action="uploadComponentImage" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md text-white">Upload Image</button>
+                                </div>
+                             </div>
+                             ${component.data.imageUrl ? `<div class="mt-4 w-1/2"><img src="${component.data.imageUrl}" class="rounded-lg shadow-lg"></div>` : ''}
+                        </div>
+                    `;
+                }
+
+                if (component.type === 'Map') {
+                    const allComponents = getAllComponents(project.components).filter(c => c.id !== component.id);
+                    const options = allComponents.map(c => `<option value="${c.id}">${c.data.name} (${c.type})</option>`).join('');
+
+                    let pinsHTML = '';
+                    if (component.data.pins) {
+                        component.data.pins.forEach((pin, index) => {
+                             pinsHTML += `<div class="map-pin" style="left: ${pin.x}%; top: ${pin.y}%;" data-pin-id="${pin.id}" title="${pin.name}">
+                                <span class="map-pin-label">${index + 1}</span>
+                                <div class="map-pin-delete editable-control" data-action="deletePin" data-pin-id="${pin.id}">&times;</div>
+                            </div>`;
+                        });
+                    }
+
+                    fieldsHTML += `
+                        <div class="mt-6">
+                             <div class="editable-content">
+                                <div class="mb-2">
+                                    <button data-action="uploadComponentImage" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md text-white">Upload Map Image</button>
+                                </div>
+                                <div class="p-4 border border-gray-700 rounded-md mt-4">
+                                    <label class="component-label block text-sm mb-2">Place Pin</label>
+                                    <div class="flex gap-2">
+                                        <select id="pin-component-selector" class="flex-grow p-2 bg-gray-900 border border-gray-600 rounded-md">
+                                            <option value="">Select a component to pin...</option>
+                                            ${options}
+                                        </select>
+                                        <button data-action="addPin" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md text-white">Add</button>
+                                    </div>
+                                    <p class="text-xs text-gray-400 mt-2">Select a component, click "Add", then click on the map to place the pin.</p>
+                                </div>
+                             </div>
+                             <div class="mt-4 map-container ${isPinning ? 'pinning' : ''}">
+                                ${component.data.imageUrl ? `<img src="${component.data.imageUrl}" alt="Map">` : '<div class="text-center p-16 bg-gray-800 rounded-md">No map image uploaded.</div>'}
+                                ${pinsHTML}
+                            </div>
+                        </div>
+                    `;
+                } 
+                
+                const parentArray = parent ? parent.children : project.components;
+                const canIndent = index > 0;
+                const canOutdent = parent !== null;
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-8">
+                        <div>
+                            <div class="editable-content">
+                                <input type="text" data-key="${nameKey}" value="${name}" placeholder="Component Name" class="text-3xl w-full bg-transparent border-b-2 border-transparent focus:border-gray-600 outline-none pb-2 transition-colors">
+                            </div>
+                            <div class="viewable-content">
+                                <h2 class="text-3xl">${name}</h2>
+                            </div>
+                            <div class="editable-control flex items-center gap-2 mt-2">
+                                <button data-action="outdent" title="Outdent Component" class="nest-control-button p-1 hover:bg-gray-700 rounded-md" ${!canOutdent ? 'disabled' : ''}>
+                                    <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 9l-3 3m0 0l3 3m-3-3h7.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                </button>
+                                <button data-action="indent" title="Indent Component" class="nest-control-button p-1 hover:bg-gray-700 rounded-md" ${!canIndent ? 'disabled' : ''}>
+                                    <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12.75 15l3-3m0 0l-3-3m3 3h-7.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                </button>
+                                ${component.type === 'Handout' ? `<button data-action="showPlayerView" title="Show Player View" class="p-1 hover:bg-gray-700 rounded-md"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.022 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" /></svg></button>` : ''}
+                            </div>
+                        </div>
+                        <button data-action="deleteComponent" class="editable-control text-sm text-red-500 hover:text-red-400 transition-colors">Delete Component</button>
+                    </div>
+                    ${fieldsHTML}
+                `;
+                mainContent.appendChild(card);
+            };
+
+            const renderAllComponentsView = () => {
+                let html = '';
+                const traverseAndRender = (components, level = 0) => {
+                    components.forEach(component => {
+                        const nameKey = Object.keys(component.data).find(k => k === 'name' || k === 'title') || 'name';
+                        const name = component.data[nameKey] || `Untitled ${component.type}`;
+                        let fieldsHTML = '';
+                        for (const key in component.data) {
+                            if (key === nameKey || key === 'imageUrl' || key === 'pins' || !component.data[key]) continue;
+                            const label = key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ');
+                            const value = component.data[key];
+                            fieldsHTML += `<div class="mb-4"><h4 class="font-bold text-gray-400">${label}</h4><div class="book-prose">${processTextForDisplay(value)}</div></div>`;
+                        }
+                        
+                        if (component.type === 'Handout' && component.data.imageUrl) {
+                            fieldsHTML += `<div class="mt-4 w-1/3"><img src="${component.data.imageUrl}" class="rounded-lg shadow-lg"></div>`;
+                        }
+
+                        if (component.type === 'Map' && component.data.imageUrl) {
+                            let pinsHTML = '';
+                            if (component.data.pins) {
+                                component.data.pins.forEach((pin, index) => {
+                                    pinsHTML += `<div class="map-pin component-link" style="left: ${pin.x}%; top: ${pin.y}%;" data-link-id="${pin.componentId}" title="${pin.name}"><span class="map-pin-label">${index + 1}</span></div>`;
+                                });
+                            }
+                            fieldsHTML += `<div class="mt-4 map-container"><img src="${component.data.imageUrl}">${pinsHTML}</div>`;
+                        }
+                        
+                        html += `
+                            <div class="component-card mb-8" id="component-card-${component.id}" style="margin-left: ${level * 2}rem;">
+                                <h2 class="text-3xl mb-4 border-b border-gray-700 pb-2">${name}</h2>
+                                ${fieldsHTML}
+                            </div>
+                        `;
+
+                        if (component.children && component.children.length > 0) {
+                            traverseAndRender(component.children, level + 1);
+                        }
+                    });
+                };
+                traverseAndRender(project.components);
+                mainContent.innerHTML = html;
+            };
+            
+            const renderQuickReferencePanel = () => {
+                quickRefList.innerHTML = '';
+                const keyComponents = getAllComponents(project.components).filter(c => c.type === 'NPC' || c.type === 'Location' || c.type === 'Handout');
+                if (keyComponents.length === 0) {
+                    quickRefList.innerHTML = `<p class="text-sm text-gray-400">No key components found.</p>`;
+                    return;
+                }
+                
+                let listHtml = '<div class="space-y-4">';
+
+                const handouts = keyComponents.filter(c => c.type === 'Handout');
+                if (handouts.length > 0) {
+                    listHtml += '<div><h3 class="font-bold text-lg">Handouts</h3><div class="space-y-1 mt-1">';
+                    handouts.forEach(c => {
+                        listHtml += `<div><a href="#" class="quick-ref-link" data-scroll-to-id="${c.id}">${c.data.title}</a></div>`;
+                    });
+                    listHtml += '</div></div>';
+                }
+                
+                const npcs = keyComponents.filter(c => c.type === 'NPC');
+                if (npcs.length > 0) {
+                    listHtml += '<div><h3 class="font-bold text-lg">NPCs</h3><div class="space-y-1 mt-1">';
+                    npcs.forEach(c => {
+                        listHtml += `<div><a href="#" class="quick-ref-link" data-scroll-to-id="${c.id}">${c.data.name}</a></div>`;
+                    });
+                    listHtml += '</div></div>';
+                }
+
+                const locations = keyComponents.filter(c => c.type === 'Location');
+                 if (locations.length > 0) {
+                    listHtml += '<div><h3 class="font-bold text-lg">Locations</h3><div class="space-y-1 mt-1">';
+                    locations.forEach(c => {
+                        listHtml += `<div><a href="#" class="quick-ref-link" data-scroll-to-id="${c.id}">${c.data.name}</a></div>`;
+                    });
+                    listHtml += '</div></div>';
+                }
+
+                listHtml += '</div>';
+                quickRefList.innerHTML = listHtml;
+            };
+
+            // --- EVENT LISTENERS ---
+            window.addEventListener('resize', () => {
+                if (!isMobile()) {
+                    mainApp.classList.remove('mobile-view-main');
+                    backButton.classList.add('hidden');
+                }
+            });
+            undoButton.addEventListener('click', undoLastAction);
+            settingsButton.addEventListener('click', openSettingsModal);
+            
+            tocPanel.addEventListener('click', (e) => {
+                const actionTarget = e.target.closest('[data-action]');
+                if (!actionTarget) return;
+                const action = actionTarget.dataset.action;
+
+                if (action === 'save') {
+                    const dataStr = JSON.stringify(project, null, 2);
+                    const blob = new Blob([dataStr], {type: 'application/json'});
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${project.title.replace(/[^a-z0-9]/gi, '_') || 'rpg-project'}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                } else if (action === 'load') {
+                    loadFileInput.click();
+                } else if (action === 'print') {
+                    const printArea = document.createElement('div');
+                    printArea.id = 'print-area';
+                    printArea.innerHTML = `<div class="gm-print-view">${document.getElementById('main-scroll-area').innerHTML}<div class="print-creator-tag">RPG SCENARIO GUIDE by Wolfe.BT@TangentLLC</div></div>`;
+                    document.body.appendChild(printArea);
+                    window.print();
+                    document.body.removeChild(printArea);
+                } else if (action === 'help') {
+                    openHelpModal();
+                }
+            });
+            
+            mainPanelHeader.addEventListener('click', (e) => {
+                const actionTarget = e.target.closest('[data-action]');
+                if (!actionTarget) return;
+                const action = actionTarget.dataset.action;
+                
+                if (action === 'back') {
+                    showTocView();
+                }
+            });
+
+            const openHelpModal = () => {
+                helpModal.classList.remove('hidden');
+                helpModal.classList.add('flex');
+                helpContent.innerHTML = `
+                <h3>Welcome to the RPG Scenario Guide!</h3>
+                <p>This guide is designed to be your all-in-one digital binder for creating and running your roleplaying game adventures. Here's how to get the most out of it.</p>
+                <h4>The Core Idea: Your Digital Binder</h4>
+                <p>Think of your entire adventure as a single <strong>Project</strong>. This project holds everything:</p>
+                <ul>
+                    <li>A <strong>Title</strong> and a short <strong>Pitch</strong> to summarize your story.</li>
+                    <li>A collection of <strong>Components</strong>, which are the building blocks of your adventure (like NPCs, Locations, Items, and Encounters).</li>
+                </ul>
+                <p>You can organize these components into a detailed outline by nesting them. For example, you can place an "Encounter" page inside a "Dungeon Room" page, which itself is inside a "Dungeon" location.</p>
+                <h4>The Three-Panel Workspace</h4>
+                <p>The application is split into three main areas to keep your workflow smooth and organized.</p>
+                <ul>
+                    <li><strong>Left Panel (Table of Contents):</strong> This is your adventure's interactive outline.
+                        <ul>
+                            <li><strong>Navigate:</strong> Click any item to view and edit its details in the center panel.</li>
+                            <li><strong>Organize:</strong> Drag and drop items to reorder them. Use the indent/outdent buttons in the editor to create a nested hierarchy.</li>
+                            <li><strong>Find:</strong> Use the filter bar at the top to instantly search for any component by its name or tags.</li>
+                            <li><strong>Fix Mistakes:</strong> The <strong>Undo</strong> button lets you reverse your last major action, like deleting or moving a component.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Center Panel (The Workspace):</strong> This is where you'll do all your writing and editing. It shows the full details of the component you've selected from the Table of Contents.</li>
+                    <li><strong>Right Panel (The Toolbox):</strong> This is where you add new content. Click any button here to add a pre-made template for an NPC, Location, Faction, and more to your project.</li>
+                </ul>
+                <h4>The Editor: What You See Is What You Get</h4>
+                <p>The text editor works just like a modern word processor. There's no code to learn; the text in the editor looks exactly how it will in the final view.</p>
+                <ul>
+                    <li><strong>Toolbar & Shortcuts:</strong> To format text, simply highlight it and use either the toolbar buttons or familiar keyboard shortcuts:
+                        <ul>
+                            <li><strong>Bold:</strong> <code>Ctrl+B</code></li>
+                            <li><strong>Italic:</strong> <code>Ctrl+I</code></li>
+                            <li><strong>Underline:</strong> <code>Ctrl+U</code></li>
+                        </ul>
+                    </li>
+                    <li><strong>Internal Links (Wiki-Style):</strong> This is a powerful feature for connecting your notes.
+                        <ul>
+                            <li>Highlight a piece of text (like an NPC's name) and press <code>Ctrl+L</code> or click the <strong>Link</strong> button on the toolbar.</li>
+                            <li>This creates a special link. In the "GM View," you can click this link to instantly jump to that component's page.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Automatic Saving:</strong> All your changes are saved automatically as you type and when you click away from an editor.</li>
+                </ul>
+                <h4>Key Features</h4>
+                <ul>
+                    <li><strong>Writer Mode vs. GM View:</strong> The application has two modes.
+                        <ul>
+                            <li><strong>Writer Mode:</strong> The default view, where you have access to all editing tools to prepare your adventure.</li>
+                            <li><strong>GM View:</strong> A streamlined, read-only mode designed for use while running your game. It hides all the toolbars and presents your notes in a clean, easy-to-read format. Click the "GM View" button to switch.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Saving and Loading Your Work:</strong>
+                        <ul>
+                            <li><strong>Save:</strong> Click the "Save" icon to download your entire project as a single <code>.json</code> file. This is perfect for making backups or sharing your adventure.</li>
+                            <li><strong>Load:</strong> Click the "Load" icon to open a project file. A window will appear allowing you to choose exactly which components from the file you want to import into your current project.</li>
+                        </ul>
+                    </li>
+                </ul>
+            `;
+            }
+
+            loadFileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        loadedProjectData = JSON.parse(event.target.result);
+                        if (loadedProjectData && loadedProjectData.title && loadedProjectData.components) {
+                           renderImportModal(loadedProjectData);
+                        } else {
+                            alert('Invalid project file.');
+                        }
+                    } catch {
+                        alert('Error reading file.');
+                    }
+                };
+                reader.readAsText(file);
+                e.target.value = '';
+            });
+
+            addComponentButton.addEventListener('click', () => {
+                addComponentModal.classList.remove('hidden');
+                addComponentModal.classList.add('flex');
+            });
+
+            modalAddComponentList.addEventListener('click', (e) => {
+                if (e.target.matches('.add-component-btn')) {
+                    addComponent(e.target.dataset.type);
+                    closeAddComponentModal();
+                }
+            });
+
+            tocList.addEventListener('click', (e) => {
+                const tocItem = e.target.closest('.toc-item');
+                if (tocItem) {
+                    activeComponentId = parseInt(tocItem.dataset.id);
+                    isFullViewActive = false;
+                    mainApp.classList.remove('gm-mode');
+                    mainApp.classList.add('writer-mode');
+                    renderAll();
+                    showMainView();
+                }
+            });
+            
+            gmViewButton.addEventListener('click', () => {
+                isFullViewActive = !isFullViewActive;
+                if(isFullViewActive) {
+                    activeComponentId = null;
+                    mainApp.classList.add('gm-mode');
+                    mainApp.classList.remove('writer-mode');
+                } else {
+                    activeComponentId = project.components.length > 0 ? project.components[0].id : null;
+                    mainApp.classList.remove('gm-mode');
+                    mainApp.classList.add('writer-mode');
+                }
+                renderAll();
+                if (isFullViewActive) {
+                    showMainView();
+                }
+            });
+            
+            confirmOkButton.addEventListener('click', () => {
+                if (typeof confirmCallback === 'function') {
+                    confirmCallback();
+                }
+                closeConfirm();
+            });
+            confirmCancelButton.addEventListener('click', closeConfirm);
+
+            mainContent.addEventListener('input', (e) => {
+                const target = e.target;
+                if (target.matches('[data-key]')) {
+                    const component = findComponent(activeComponentId);
+                    if (component) {
+                        const key = target.dataset.key;
+                        const value = target.isContentEditable ? target.innerHTML : target.value;
+                        component.data[key] = value;
+
+                        if(key === 'name' || key === 'title') {
+                            renderTableOfContents();
+                        }
+                    }
+                }
+            });
+            mainContent.addEventListener('focusout', (e) => { if (e.target.matches('[data-key]')) saveStateToHistory(); });
+
+            projectHeader.addEventListener('input', (e) => {
+                const target = e.target;
+                if (target.matches('[data-key]')) {
+                     const key = target.dataset.key;
+                     const value = target.isContentEditable ? target.innerHTML : target.value;
+                     project[key] = value;
+                     if(key === 'title') {
+                         projectTitleDisplay.textContent = value;
+                    }
+                }
+            });
+            projectHeader.addEventListener('focusout', (e) => { if (e.target.matches('[data-key]')) saveStateToHistory(); });
+            
+            mainContent.addEventListener('click', (e) => {
+                const actionTarget = e.target.closest('[data-action]');
+                const commandTarget = e.target.closest('[data-command]');
+                const mapContainer = e.target.closest('.map-container');
+
+                if (isPinning && mapContainer) {
+                    const mapImage = mapContainer.querySelector('img');
+                    if (!mapImage) return;
+                    const rect = mapImage.getBoundingClientRect();
+                    const x = ((e.clientX - rect.left) / rect.width) * 100;
+                    const y = ((e.clientY - rect.top) / rect.height) * 100;
+                    
+                    const mapComponent = findComponent(activeComponentId);
+                    const linkedComponent = findComponent(pinComponentId);
+                    if (mapComponent && linkedComponent) {
+                        saveStateToHistory();
+                        if (!mapComponent.data.pins) mapComponent.data.pins = [];
+                        mapComponent.data.pins.push({
+                            id: Date.now(),
+                            componentId: pinComponentId,
+                            name: linkedComponent.data.name,
+                            x: x,
+                            y: y
+                        });
+                        isPinning = false;
+                        pinComponentId = null;
+                        renderActiveComponent();
+                    }
+                    return;
+                }
+
+                if (mapContainer && !e.target.closest('.map-pin-delete') && !e.target.closest('.editable-content')) {
+                    const componentCard = mapContainer.closest('.component-card');
+                    if (componentCard) {
+                        const componentId = parseInt(componentCard.dataset.id);
+                        const mapComponent = findComponent(componentId);
+                        if (mapComponent) {
+                            openMapModal(mapComponent);
+                            return;
+                        }
+                    }
+                }
+
+                if (commandTarget) {
+                    const command = commandTarget.dataset.command;
+                    const editor = commandTarget.closest('.editable-content').querySelector('.wysiwyg-editor');
+                    
+                    if (command === 'ai') {
+                        openAiModal(editor);
+                        return;
+                    }
+                    
+                    editor.focus();
+                    
+                    if (command === 'createLink') {
+                        const selection = document.getSelection();
+                        if (!selection.rangeCount || selection.isCollapsed) return;
+                        
+                        const range = selection.getRangeAt(0);
+                        const span = document.createElement('span');
+                        span.className = 'internal-link';
+                        span.appendChild(range.extractContents());
+                        range.insertNode(span);
+                        
+                        editor.dispatchEvent(new Event('input', { bubbles: true }));
+
+                    } else {
+                        document.execCommand(command, false, null);
+                    }
+                }
+                else if (actionTarget) {
+                    const action = actionTarget.dataset.action;
+
+                    if (action === 'deleteComponent') {
+                        showConfirm('Are you sure you want to delete this component and all its sub-components?', () => {
+                            deleteComponent(activeComponentId);
+                        });
+                    } else if (action === 'uploadComponentImage') {
+                        componentImageInput.click();
+                    } else if(action === 'indent') {
+                        indentComponent(activeComponentId);
+                    } else if(action === 'outdent') {
+                        outdentComponent(activeComponentId);
+                    } else if (action === 'addPin') {
+                        const selector = document.getElementById('pin-component-selector');
+                        if (selector.value) {
+                            isPinning = true;
+                            pinComponentId = parseInt(selector.value);
+                            renderActiveComponent(); // Re-render to apply the 'pinning' cursor
+                        } else {
+                            alert('Please select a component to pin first.');
+                        }
+                    } else if (action === 'deletePin') {
+                        const pinIdToDelete = parseInt(actionTarget.dataset.pinId);
+                        const mapComponent = findComponent(activeComponentId);
+                        if (mapComponent && mapComponent.data.pins) {
+                            saveStateToHistory();
+                            mapComponent.data.pins = mapComponent.data.pins.filter(p => p.id !== pinIdToDelete);
+                            renderActiveComponent();
+                        }
+                    } else if (action === 'showPlayerView') {
+                        const component = findComponent(activeComponentId);
+                        if (component && component.type === 'Handout') {
+                            openHandoutModal(component);
+                        }
+                    }
+                } else {
+                    const linkTarget = e.target.closest('.component-link');
+                    if(linkTarget) {
+                        e.preventDefault();
+                        const linkId = parseInt(linkTarget.dataset.linkId);
+                        
+                        if (isFullViewActive) {
+                             const targetElement = document.getElementById(`component-card-${linkId}`);
+                             if(targetElement) {
+                                 targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                 targetElement.style.transition = 'background-color 0.5s';
+                                 targetElement.style.backgroundColor = 'rgba(147, 197, 253, 0.2)';
+                                 setTimeout(() => {
+                                     targetElement.style.backgroundColor = '';
+                                 }, 1500);
+                             }
+                        } else {
+                            activeComponentId = linkId;
+                            mainApp.classList.remove('gm-mode');
+                            mainApp.classList.add('writer-mode');
+                            renderAll();
+                            showMainView();
+                        }
+                    }
+                }
+            });
+
+            // --- RTF SHORTCUTS ---
+            mainContent.addEventListener('keydown', (e) => {
+                if (!e.ctrlKey || !e.target.isContentEditable) {
+                    return;
+                }
+
+                const key = e.key.toLowerCase();
+                if (['b', 'i', 'u', 'l'].includes(key)) {
+                    e.preventDefault();
+                    let command;
+                    switch (key) {
+                        case 'b': command = 'bold'; break;
+                        case 'i': command = 'italic'; break;
+                        case 'u': command = 'underline'; break;
+                        case 'l': command = 'createLink'; break;
+                    }
+
+                    if (command === 'createLink') {
+                        const selection = document.getSelection();
+                        if (!selection.rangeCount || selection.isCollapsed) return;
+                        
+                        const range = selection.getRangeAt(0);
+                        const span = document.createElement('span');
+                        span.className = 'internal-link';
+                        span.appendChild(range.extractContents());
+                        range.insertNode(span);
+
+                        e.target.dispatchEvent(new Event('input', { bubbles: true }));
+                    } else {
+                        document.execCommand(command, false, null);
+                    }
+                }
+            });
+            
+            quickRefList.addEventListener('click', (e) => {
+                if(e.target.matches('.quick-ref-link')) {
+                    e.preventDefault();
+                    const targetId = e.target.dataset.scrollToId;
+                    const targetElement = document.getElementById(`component-card-${targetId}`);
+                    if(targetElement) {
+                        targetElement.scrollIntoView({ behavior: 'smooth' });
+                    }
+                }
+            });
+            
+            componentImageInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const component = findComponent(activeComponentId);
+                    if (component && (component.type === 'Map' || component.type === 'Handout')) {
+                        saveStateToHistory();
+                        component.data.imageUrl = event.target.result;
+                        renderActiveComponent();
+                    }
+                };
+                reader.readAsDataURL(file);
+                e.target.value = '';
+            });
+
+            tocFilterInput.addEventListener('input', renderTableOfContents);
+
+            // --- HIERARCHY AND DRAG/DROP LOGIC ---
+            const indentComponent = (id) => {
+                const info = findComponentAndParent(id);
+                if (!info || info.index === 0) return;
+                
+                const parentArray = info.parent ? info.parent.children : project.components;
+                const newParent = parentArray[info.index - 1];
+                if (!newParent) return;
+
+                saveStateToHistory();
+                const [itemToIndent] = parentArray.splice(info.index, 1);
+                newParent.children.push(itemToIndent);
+                renderAll();
+            };
+
+            const outdentComponent = (id) => {
+                const info = findComponentAndParent(id);
+                if (!info || !info.parent) return;
+
+                const grandParentInfo = findComponentAndParent(info.parent.id);
+                if (!grandParentInfo) {
+                    return;
+                }
+
+                saveStateToHistory();
+                const sourceArray = info.parent.children;
+                const [itemToOutdent] = sourceArray.splice(info.index, 1);
+                
+                const destinationArray = grandParentInfo.parent ? grandParentInfo.parent.children : project.components;
+                destinationArray.splice(grandParentInfo.index + 1, 0, itemToOutdent);
+                renderAll();
+            };
+
+            const moveComponent = (draggedId, targetId) => {
+                if (draggedId === targetId) return;
+                saveStateToHistory();
+
+                const draggedInfo = findComponentAndParent(draggedId);
+                if (!draggedInfo) return;
+                
+                const sourceArray = draggedInfo.parent ? draggedInfo.parent.children : project.components;
+                const [draggedItem] = sourceArray.splice(draggedInfo.index, 1);
+                
+                const targetInfo = findComponentAndParent(targetId);
+                if (!targetInfo) { 
+                    project.components.push(draggedItem);
+                } else {
+                    const targetArray = targetInfo.parent ? targetInfo.parent.children : project.components;
+                    targetArray.splice(targetInfo.index, 0, draggedItem);
+                }
+
+                renderAll();
+            };
+
+            tocList.addEventListener('dragstart', e => {
+                const target = e.target.closest('.toc-item');
+                if (target) {
+                    draggingItemId = parseInt(target.dataset.id);
+                    e.dataTransfer.effectAllowed = 'move';
+                    setTimeout(() => target.classList.add('dragging'), 0);
+                }
+            });
+
+            tocList.addEventListener('dragend', e => {
+                draggingItemId = null;
+                document.querySelectorAll('.toc-item').forEach(el => {
+                    el.classList.remove('dragging', 'drop-target');
+                });
+            });
+            
+            tocList.addEventListener('dragover', e => {
+                e.preventDefault();
+                const dropTargetElement = e.target.closest('.toc-item');
+                if (!dropTargetElement) return;
+
+                document.querySelectorAll('.toc-item').forEach(el => {
+                    el.classList.remove('drop-target');
+                });
+                
+                dropTargetElement.classList.add('drop-target');
+            });
+
+            tocList.addEventListener('drop', e => {
+                e.preventDefault();
+                const dropTargetElement = e.target.closest('.toc-item');
+                document.querySelectorAll('.toc-item').forEach(el => el.classList.remove('drop-target'));
+                if (!dropTargetElement || draggingItemId === null) return;
+                
+                const dropTargetId = parseInt(dropTargetElement.dataset.id);
+                moveComponent(draggingItemId, dropTargetId);
+            });
+            
+            // --- IMPORT LOGIC ---
+            const renderImportModal = (data) => {
+                let html = `
+                    <label class="flex items-center space-x-3 p-2 hover:bg-gray-700 rounded-md">
+                        <input type="checkbox" data-import-key="title" checked class="h-4 w-4 rounded border-gray-600 text-blue-500 focus:ring-blue-500">
+                        <span class="font-bold">Project Title: ${data.title}</span>
+                    </label>
+                    <label class="flex items-center space-x-3 p-2 hover:bg-gray-700 rounded-md">
+                        <input type="checkbox" data-import-key="pitch" checked class="h-4 w-4 rounded border-gray-600 text-blue-500 focus:ring-blue-500">
+                        <span class="font-bold">Project Pitch</span>
+                    </label>
+                    <hr class="border-gray-600 my-4">
+                `;
+
+                const renderImportItems = (components, level = 0) => {
+                    components.forEach(component => {
+                        const nameKey = Object.keys(component.data).find(k => k === 'name' || k === 'title') || 'name';
+                        const name = component.data[nameKey] || `Untitled ${component.type}`;
+                        html += `
+                            <label class="flex items-center space-x-3 p-2 hover:bg-gray-700 rounded-md" style="padding-left: ${1 + level * 1.5}rem;">
+                                <input type="checkbox" data-import-id="${component.id}" checked class="h-4 w-4 rounded border-gray-600 text-blue-500 focus:ring-blue-500">
+                                <span>${name} <span class="text-sm text-gray-400">(${component.type})</span></span>
+                            </label>
+                        `;
+                        if (component.children && component.children.length > 0) {
+                            renderImportItems(component.children, level + 1);
+                        }
+                    });
+                };
+                renderImportItems(data.components);
+                importOptionsList.innerHTML = html;
+                importModal.classList.remove('hidden');
+                importModal.classList.add('flex');
+            };
+            
+            importCancelButton.addEventListener('click', () => {
+                importModal.classList.add('hidden');
+                importModal.classList.remove('flex');
+                loadedProjectData = null;
+            });
+
+            importConfirmButton.addEventListener('click', () => {
+                if (!loadedProjectData) return;
+                saveStateToHistory();
+
+                const importTitle = document.querySelector('[data-import-key="title"]').checked;
+                const importPitch = document.querySelector('[data-import-key="pitch"]').checked;
+
+                if (importTitle) project.title = loadedProjectData.title;
+                if (importPitch) project.pitch = loadedProjectData.pitch;
+
+                const remapIdsAndFilter = (components) => {
+                    const newComponents = [];
+                    components.forEach(comp => {
+                        const checkbox = document.querySelector(`[data-import-id="${comp.id}"]`);
+                        if (checkbox && checkbox.checked) {
+                            const newComp = structuredClone(comp);
+                            newComp.id = nextId++;
+                            if (newComp.children) {
+                                newComp.children = remapIdsAndFilter(newComp.children);
+                            }
+                            newComponents.push(newComp);
+                        }
+                    });
+                    return newComponents;
+                };
+
+                const componentsToImport = remapIdsAndFilter(loadedProjectData.components);
+                project.components.push(...componentsToImport);
+                
+                importModal.classList.add('hidden');
+                importModal.classList.remove('flex');
+                loadedProjectData = null;
+                renderAll();
+            });
+
+            // --- MODAL CLOSE LISTENERS ---
+            addComponentModalCloseButton.addEventListener('click', closeAddComponentModal);
+            addComponentModal.addEventListener('click', (e) => { if (e.target === addComponentModal) closeAddComponentModal(); });
+            aiModalCloseButton.addEventListener('click', closeAiModal);
+            aiModal.addEventListener('click', (e) => { if (e.target === aiModal) closeAiModal(); });
+            settingsModalCloseButton.addEventListener('click', closeSettingsModal);
+            settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) closeSettingsModal(); });
+            settingsSaveButton.addEventListener('click', saveSettings);
+            helpCloseButton.addEventListener('click', closeHelpModal);
+            helpModal.addEventListener('click', (e) => { if(e.target === helpModal) closeHelpModal(); });
+            importModal.addEventListener('click', (e) => { if(e.target === importModal) importCancelButton.click(); });
+            confirmModal.addEventListener('click', (e) => { if(e.target === confirmModal) closeConfirm(); });
+            mapModalCloseButton.addEventListener('click', closeMapModal);
+            mapModal.addEventListener('click', (e) => {
+                if (e.target === mapModal) {
+                    closeMapModal();
+                }
+                const linkTarget = e.target.closest('.component-link');
+                if (linkTarget) {
+                    e.preventDefault();
+                    const linkId = parseInt(linkTarget.dataset.linkId);
+                    activeComponentId = linkId;
+                    isFullViewActive = false;
+                    mainApp.classList.remove('gm-mode');
+                    mainApp.classList.add('writer-mode');
+                    closeMapModal();
+                    renderAll();
+                    showMainView();
+                }
+            });
+            handoutCloseButton.addEventListener('click', closeHandoutModal);
+            handoutPrintButton.addEventListener('click', () => {
+                const printContent = handoutModalContent.innerHTML;
+                const printArea = document.createElement('div');
+                printArea.id = 'print-area';
+                printArea.innerHTML = `<div class="handout-print-content"><h2>${handoutModalTitle.textContent}</h2>${printContent}<div class="print-creator-tag">RPG SCENARIO GUIDE by Wolfe.BT@TangentLLC</div></div>`;
+                document.body.appendChild(printArea);
+                window.print();
+                document.body.removeChild(printArea);
+            });
+            
+            aiGenerateButton.addEventListener('click', async () => {
+                const prompt = aiPrompt.value;
+                if (!prompt || !activeEditorForAI) return;
+                
+                if (!geminiApiKey) {
+                    openSettingsModal();
+                    return;
+                }
+
+                aiGenerateButtonText.classList.add('hidden');
+                aiLoadingSpinner.classList.remove('hidden');
+                aiGenerateButton.disabled = true;
+
+                try {
+                    let chatHistory = [];
+                    chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                    const payload = { contents: chatHistory };
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
+                    
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        const text = result.candidates[0].content.parts[0].text;
+                        activeEditorForAI.innerHTML = text;
+                        // Dispatch an input event to ensure the change is saved
+                        activeEditorForAI.dispatchEvent(new Event('input', { bubbles: true }));
+                        closeAiModal();
+                    } else {
+                        console.error("AI response format was unexpected:", result);
+                        alert("Could not get a valid response from the AI. Check your API key and prompt.");
+                    }
+                } catch (error) {
+                    console.error("Error calling AI:", error);
+                    alert("An error occurred while generating content.");
+                } finally {
+                    aiGenerateButtonText.classList.remove('hidden');
+                    aiLoadingSpinner.classList.add('hidden');
+                    aiGenerateButton.disabled = false;
+                }
+            });
+
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    if (!helpModal.classList.contains('hidden')) closeHelpModal();
+                    if (!importModal.classList.contains('hidden')) importCancelButton.click();
+                    if (!confirmModal.classList.contains('hidden')) closeConfirm();
+                    if (!mapModal.classList.contains('hidden')) closeMapModal();
+                    if (!handoutModal.classList.contains('hidden')) closeHandoutModal();
+                    if (!addComponentModal.classList.contains('hidden')) closeAddComponentModal();
+                    if (!aiModal.classList.contains('hidden')) closeAiModal();
+                    if (!settingsModal.classList.contains('hidden')) closeSettingsModal();
+                     if (isPinning) {
+                        isPinning = false;
+                        pinComponentId = null;
+                        renderActiveComponent();
+                    }
+                }
+            });
+
+
+            // --- INITIALIZE ---
+            initializeApp();
+        });
+    </script>
+</body>
+</html>

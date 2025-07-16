@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Dice Roller</title>
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            /* --- Monochrome Dark Palette --- */
+            --bg-color: #121212;              /* Very dark background */
+            --surface-color: #1e1e1e;         /* Dark gray for cards */
+            --border-color: #333333;          /* Medium-dark gray for borders */
+            --text-color: #e0e0e0;            /* Light gray for primary text */
+            --text-muted-color: #888888;      /* Medium gray for secondary text */
+
+            /* Accent & Action Colors (Monochrome) */
+            --primary-color: #444444;         /* Medium-dark gray for buttons */
+            --primary-hover-color: #555555;   /* Lighter gray for hover */
+            --add-color: #555555;             /* A distinct medium gray for "Add" button */
+            --add-hover-color: #666666;       /* A lighter gray for add hover */
+            --delete-hover-color: #bbbbbb;    /* Light gray for delete hover */
+            --selected-color: #666666;        /* Color for selected items */
+            --selected-border-color: #999999; /* Border for selected items */
+            --editing-color: #8ab4f8;         /* A soft blue for editing to stand out */
+            --editing-bg-color: rgba(138, 180, 248, 0.1); /* Transparent blue bg */
+
+            /* --- Font & Standard Variables --- */
+            --font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+            --border-radius: 8px;
+            --shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        header, footer {
+            text-align: center;
+            padding: 1rem;
+            color: var(--text-muted-color);
+        }
+        
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+
+        main {
+            flex-grow: 1;
+            display: grid;
+            grid-template-columns: 1fr;
+            md:grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        @media (min-width: 768px) {
+            main {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .control-group {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 1.5rem;
+        }
+
+        .control-group legend {
+            font-size: 1.2rem;
+            font-weight: 600;
+            padding: 0 0.5rem;
+            margin-left: 1rem;
+            color: var(--text-color);
+        }
+
+        .quick-rolls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .dice-button {
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: bold;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            background-color: var(--primary-color);
+            color: var(--text-color);
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+
+        .dice-button:hover {
+            background-color: var(--primary-hover-color);
+        }
+
+        .my-rolls-controls {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .add-button {
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: var(--border-radius);
+            background-color: var(--add-color);
+            color: var(--text-color);
+            cursor: pointer;
+            transition: background-color 0.2s;
+            width: 100%;
+        }
+
+        .add-button:hover {
+            background-color: var(--add-hover-color);
+        }
+
+        .custom-rolls-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            min-height: 50px;
+        }
+
+        .custom-roll-wrapper {
+            position: relative;
+        }
+
+        .custom-roll-btn {
+            width: 100%;
+            padding: 1rem 2rem 1rem 1rem;
+            font-family: inherit;
+            font-size: 1.1rem;
+            font-weight: 500;
+            text-align: center;
+            border: 2px solid var(--border-color);
+            border-radius: var(--border-radius);
+            background-color: var(--surface-color);
+            color: var(--text-color);
+            cursor: pointer;
+            transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+        }
+
+        .custom-roll-btn.selected {
+            border-color: var(--selected-border-color);
+            background-color: var(--selected-color);
+            box-shadow: 0 0 0 2px var(--selected-border-color);
+        }
+
+        .custom-roll-btn.editing {
+            border-color: var(--editing-color);
+            background-color: var(--editing-bg-color);
+            cursor: text;
+        }
+        
+        .delete-custom-roll-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 24px;
+            height: 24px;
+            padding: 0;
+            background: transparent;
+            color: var(--text-muted-color);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            line-height: 24px;
+            text-align: center;
+            opacity: 0.6;
+            transition: opacity 0.2s, color 0.2s;
+        }
+
+        .custom-roll-wrapper:hover .delete-custom-roll-btn {
+            opacity: 1;
+        }
+
+        .delete-custom-roll-btn:hover {
+            color: var(--delete-hover-color);
+        }
+
+        .action-results-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .roll-button-large {
+            width: 100%;
+            padding: 1rem;
+            font-size: 1.5rem;
+            font-weight: bold;
+            background-color: var(--primary-color);
+            color: var(--text-muted-color);
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .roll-button-large:not(:disabled) {
+            color: var(--text-color);
+        }
+
+        .roll-button-large:hover:not(:disabled) {
+            background-color: var(--primary-hover-color);
+        }
+
+        .roll-button-large:disabled {
+            cursor: not-allowed;
+        }
+
+        .results-container {
+            width: 100%;
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            min-height: 150px;
+        }
+        
+        .results-output .total {
+            font-weight: bold;
+            font-size: 2rem;
+            color: var(--text-color);
+        }
+
+        .results-output .breakdown {
+            color: var(--text-muted-color);
+            word-break: break-all;
+        }
+        
+        .results-output .error {
+            color: #ff8a80; /* A soft red for errors in dark mode */
+            font-weight: bold;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Dynamic Dice Roller</h1>
+    </header>
+    <main>
+        <div class="roller-container">
+            <fieldset class="control-group">
+                <legend>Quick Rolls</legend>
+                <div class="quick-rolls" id="quickRollsContainer">
+                    <button type="button" class="dice-button" data-sides="4">d4</button>
+                    <button type="button" class="dice-button" data-sides="6">d6</button>
+                    <button type="button" class="dice-button" data-sides="8">d8</button>
+                    <button type="button" class="dice-button" data-sides="10">d10</button>
+                    <button type="button" class="dice-button" data-sides="12">d12</button>
+                    <button type="button" class="dice-button" data-sides="20">d20</button>
+                    <button type="button" class="dice-button" data-sides="100">d100</button>
+                </div>
+            </fieldset>
+
+            <fieldset class="control-group">
+                <legend>My Rolls</legend>
+                <div id="customRollsContainer" class="custom-rolls-container">
+                    <!-- Custom rolls will be injected here -->
+                </div>
+                <div class="my-rolls-controls" style="margin-top: 1.5rem; margin-bottom: 0;">
+                    <button type="button" id="addNewRollBtn" class="add-button">Add New Roll</button>
+                </div>
+            </fieldset>
+        </div>
+        
+        <div class="action-results-container">
+            <button id="executeRollBtn" class="roll-button-large" disabled>Select a Roll</button>
+            <div class="results-container" aria-live="polite">
+                <h2 class="sr-only">Result</h2>
+                <div id="results" class="results-output">
+                    <p>Results will appear here.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+    <footer>
+        <p>Custom rolls are saved in your browser.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Element References ---
+            const quickRollsContainer = document.getElementById('quickRollsContainer');
+            const addNewRollBtn = document.getElementById('addNewRollBtn');
+            const customRollsContainer = document.getElementById('customRollsContainer');
+            const executeRollBtn = document.getElementById('executeRollBtn');
+            const resultsDiv = document.getElementById('results');
+
+            // --- State Management ---
+            let savedRolls = JSON.parse(localStorage.getItem('diceRoller-savedRollsV2')) || ['2d6+3', '1d20-1'];
+            let selectedRoll = null;
+
+            // --- Core Functions ---
+            const parseExpression = (expression) => {
+                const pattern = /^(?:(\d+))?d(\d+)(?:([+-])(\d+))?$/i;
+                const match = expression.replace(/\s+/g, '').match(pattern);
+                if (!match) return null;
+                const [, numDiceStr, numSidesStr, sign, modifierStr] = match;
+                return {
+                    numDice: parseInt(numDiceStr || '1', 10),
+                    numSides: parseInt(numSidesStr, 10),
+                    modifier: (sign === '-' ? -1 : 1) * parseInt(modifierStr || '0', 10),
+                };
+            };
+
+            const rollSingleDie = (sides) => Math.floor(Math.random() * sides) + 1;
+
+            const createRoll = (rollData, expression) => {
+                const { numDice, numSides, modifier } = rollData;
+                if (numDice <= 0 || numSides <= 1 || numDice > 100 || numSides > 1000) {
+                    displayResult({ error: "Invalid dice parameters. Check your expression." });
+                    return;
+                }
+                const rolls = [];
+                let total = 0;
+                for (let i = 0; i < numDice; i++) {
+                    const roll = rollSingleDie(numSides);
+                    rolls.push(roll);
+                    total += roll;
+                }
+                total += modifier;
+                displayResult({ expression, rolls, total, modifier });
+            };
+
+            const displayResult = (result) => {
+                resultsDiv.innerHTML = '';
+                if (result.error) {
+                    resultsDiv.innerHTML = `<p class="error">${result.error}</p>`;
+                    return;
+                }
+                const { expression, rolls, total, modifier } = result;
+                let modifierString = '';
+                if (modifier > 0) modifierString = ` + ${modifier}`;
+                if (modifier < 0) modifierString = ` - ${Math.abs(modifier)}`;
+                
+                resultsDiv.innerHTML = `
+                    <p class="total">${total}</p>
+                    <p class="breakdown">${expression} &rarr; [${rolls.join(', ')}]${modifierString}</p>`;
+            };
+
+            // --- Local Storage and UI Rendering ---
+            const saveRollsToStorage = () => {
+                localStorage.setItem('diceRoller-savedRollsV2', JSON.stringify(savedRolls));
+            };
+
+            const renderCustomRolls = () => {
+                customRollsContainer.innerHTML = '';
+                if (savedRolls.length === 0) {
+                    const placeholder = document.createElement('p');
+                    placeholder.textContent = 'No custom rolls saved yet.';
+                    placeholder.style.color = 'var(--text-muted-color)';
+                    placeholder.style.textAlign = 'center';
+                    placeholder.style.gridColumn = '1 / -1';
+                    customRollsContainer.appendChild(placeholder);
+                } else {
+                    savedRolls.forEach((expression, index) => {
+                        const buttonHtml = `
+                            <div class="custom-roll-wrapper">
+                                <button type="button" class="custom-roll-btn" data-index="${index}" contenteditable="false">${expression}</button>
+                                <button class="delete-custom-roll-btn" data-index="${index}" aria-label="Delete roll ${expression}">&times;</button>
+                            </div>`;
+                        customRollsContainer.insertAdjacentHTML('beforeend', buttonHtml);
+                    });
+                }
+                updateSelectionState();
+            };
+
+            const updateSelectionState = () => {
+                const buttons = customRollsContainer.querySelectorAll('.custom-roll-btn');
+                let hasSelection = false;
+                buttons.forEach(btn => {
+                    const index = parseInt(btn.dataset.index, 10);
+                    if (selectedRoll !== null && selectedRoll.index === index) {
+                        btn.classList.add('selected');
+                        executeRollBtn.disabled = false;
+                        executeRollBtn.textContent = `Roll ${selectedRoll.expression}`;
+                        hasSelection = true;
+                    } else {
+                        btn.classList.remove('selected');
+                    }
+                });
+
+                if (!hasSelection) {
+                    selectedRoll = null;
+                    executeRollBtn.disabled = true;
+                    executeRollBtn.textContent = 'Select a Roll';
+                }
+            };
+
+            const finishEditing = (button, index) => {
+                button.contentEditable = 'false';
+                button.classList.remove('editing');
+                const newExpression = button.textContent.trim();
+
+                if (newExpression && parseExpression(newExpression)) {
+                    savedRolls[index] = newExpression;
+                    saveRollsToStorage();
+                    if (selectedRoll && selectedRoll.index === index) {
+                        selectedRoll.expression = newExpression;
+                    }
+                    updateSelectionState();
+                } else {
+                    button.textContent = savedRolls[index]; // Revert
+                }
+            };
+
+            // --- Event Handlers ---
+            addNewRollBtn.addEventListener('click', () => {
+                if (savedRolls.length === 0) {
+                    customRollsContainer.innerHTML = ''; // Clear "no rolls" message
+                }
+                const newRollExpression = '1d6';
+                const newIndex = savedRolls.length;
+
+                savedRolls.push(newRollExpression);
+                saveRollsToStorage();
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'custom-roll-wrapper';
+
+                const newButton = document.createElement('button');
+                newButton.type = 'button';
+                newButton.className = 'custom-roll-btn editing';
+                newButton.dataset.index = newIndex;
+                newButton.textContent = newRollExpression;
+                newButton.contentEditable = 'true';
+
+                const deleteButton = document.createElement('button');
+                deleteButton.className = 'delete-custom-roll-btn';
+                deleteButton.dataset.index = newIndex;
+                deleteButton.setAttribute('aria-label', `Delete roll ${newRollExpression}`);
+                deleteButton.innerHTML = '&times;';
+
+                wrapper.appendChild(newButton);
+                wrapper.appendChild(deleteButton);
+
+                customRollsContainer.appendChild(wrapper);
+
+                newButton.focus();
+                const selection = window.getSelection();
+                const range = document.createRange();
+                range.selectNodeContents(newButton);
+                selection.removeAllRanges();
+                selection.addRange(range);
+            });
+
+            customRollsContainer.addEventListener('click', (e) => {
+                if (e.target.matches('.delete-custom-roll-btn')) {
+                    const indexToDelete = parseInt(e.target.dataset.index, 10);
+                    savedRolls.splice(indexToDelete, 1);
+                    saveRollsToStorage();
+                    if (selectedRoll && selectedRoll.index === indexToDelete) {
+                        selectedRoll = null;
+                    }
+                    renderCustomRolls();
+                    return;
+                }
+
+                if (e.target.matches('.custom-roll-btn')) {
+                    const button = e.target;
+                    const index = parseInt(button.dataset.index, 10);
+                    selectedRoll = { index, expression: savedRolls[index] };
+                    updateSelectionState();
+                }
+            });
+
+            customRollsContainer.addEventListener('dblclick', (e) => {
+                if (e.target.matches('.custom-roll-btn')) {
+                    const button = e.target;
+                    button.classList.add('editing');
+                    button.contentEditable = 'true';
+                    button.focus();
+                }
+            });
+
+            customRollsContainer.addEventListener('keydown', (e) => {
+                if (e.target.matches('.custom-roll-btn') && e.key === 'Enter') {
+                    e.preventDefault();
+                    const button = e.target;
+                    const index = parseInt(button.dataset.index, 10);
+                    finishEditing(button, index);
+                }
+            });
+
+            customRollsContainer.addEventListener('blur', (e) => {
+                if (e.target.matches('.custom-roll-btn') && e.target.isContentEditable) {
+                    const button = e.target;
+                    const index = parseInt(button.dataset.index, 10);
+                    finishEditing(button, index);
+                }
+            }, true);
+
+            executeRollBtn.addEventListener('click', () => {
+                if (selectedRoll) {
+                    const rollData = parseExpression(selectedRoll.expression);
+                    if (rollData) {
+                        createRoll(rollData, selectedRoll.expression);
+                    }
+                }
+            });
+
+            quickRollsContainer.addEventListener('click', (e) => {
+                if (e.target.matches('.dice-button')) {
+                    const sides = parseInt(e.target.dataset.sides, 10);
+                    createRoll({ numDice: 1, numSides: sides, modifier: 0 }, `1d${sides}`);
+                }
+            });
+
+            // --- Initial Setup ---
+            renderCustomRolls();
+        });
+    </script>
+</body>
+</html>
