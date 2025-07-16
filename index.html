@@ -47,15 +47,15 @@
 </head>
 <body class="flex flex-col h-screen relative">
     <header id="auth-container"></header>
-    <main class="flex-grow flex flex-col items-center justify-center text-center p-4">
+    <main class="flex-grow flex flex-col items-center justify-start text-center p-4 pt-20">
         <div class="mb-8">
             <h1 class="brand-heading text-6xl md:text-8xl">TANGENT</h1>
             <h2 class="brand-subtitle text-xl md:text-2xl text-gray-300 mt-2 font-light tracking-wider">Science Fiction and Fantasy Role Playing Game</h2>
             <p class="text-gray-400 text-sm mt-4">UI Version: 1.5</p>
         </div>
-        <div id="dynamic-content-container" class="w-full max-w-2xl flex flex-col items-center gap-6">
+        <div id="dynamic-content-container" class="w-full max-w-md flex flex-col items-center gap-6">
             <div id="firebaseui-auth-container"></div>
-            <nav id="navigation-menu" class="w-full grid grid-cols-1 md:grid-cols-2 gap-4 hidden">
+            <nav id="navigation-menu" class="w-full grid grid-cols-1 gap-4 hidden">
                 <a href="folio.html" class="nav-button block w-full py-4 rounded-lg text-xl">Persona Folio</a>
                 <a href="dbm.html" class="nav-button block w-full py-4 rounded-lg text-xl">Database Manager</a>
                 <a href="scenario-guide.html" class="nav-button block w-full py-4 rounded-lg text-xl">Scenario Guide</a>
