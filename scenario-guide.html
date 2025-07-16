@@ -479,22 +479,25 @@
             <div class="panel-header">
                 <div class="flex justify-between items-center mb-2">
                     <h2 class="text-xl">Contents</h2>
-                    <div class="relative">
-                        <button id="data-menu-btn" title="Data" class="p-2 rounded-md hover:bg-gray-700">
-                            <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
-                        </button>
-                        <div id="data-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-gray-900 border border-gray-700 rounded-md shadow-lg z-10">
-                            <a href="#" data-action="save" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">Save Project</a>
-                            <a href="#" data-action="load" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">Load Project</a>
-                            <a href="#" data-action="print" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">Print</a>
+                    <div class="flex items-center gap-2">
+                        <div class="relative">
+                            <button id="data-menu-btn" title="Data" class="p-2 rounded-md hover:bg-gray-700">
+                                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+                            </button>
+                            <div id="data-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-gray-900 border border-gray-700 rounded-md shadow-lg z-10">
+                                <div class="px-4 py-2 text-xs text-gray-400 border-b border-gray-700">Local</div>
+                                <a href="#" data-action="save" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">Save Project (.json)</a>
+                                <a href="#" data-action="load" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">Load Project (.json)</a>
+                                <a href="#" data-action="print" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">Print</a>
+                            </div>
                         </div>
+                        <button data-action="help" title="Manual" class="p-2 rounded-md hover:bg-gray-700">
+                            <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
+                        </button>
+                        <button id="settingsButton" title="Settings" class="p-2 rounded-md hover:bg-gray-700">
+                            <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.438 1.001s.145.761.438 1.001l1.003.827c.424.35.534.954.26 1.431l-1.296 2.247a1.125 1.125 0 01-1.37.49l-1.217-.456c-.355-.133-.75-.072-1.075.124a6.57 6.57 0 01-.22.127c-.332.183-.582.495-.645.87l-.213 1.281c-.09.543-.56.94-1.11.94h-2.593c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.063-.374-.313-.686-.645-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.37-.49l-1.296-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.437-1.001s-.145-.761-.437-1.001l-1.004-.827a1.125 1.125 0 01-.26-1.431l1.296-2.247a1.125 1.125 0 011.37-.49l1.217.456c.355.133.75.072 1.076-.124.072-.044.146-.087.22-.127.332-.183.582-.495.645-.87l.213-1.281z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        </button>
                     </div>
-                    <button data-action="help" title="Manual" class="p-2 rounded-md hover:bg-gray-700">
-                        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
-                    </button>
-                    <button id="settingsButton" title="Settings" class="p-2 rounded-md hover:bg-gray-700">
-                        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.438 1.001s.145.761.438 1.001l1.003.827c.424.35.534.954.26 1.431l-1.296 2.247a1.125 1.125 0 01-1.37.49l-1.217-.456c-.355-.133-.75-.072-1.075.124a6.57 6.57 0 01-.22.127c-.332.183-.582.495-.645.87l-.213 1.281c-.09.543-.56.94-1.11.94h-2.593c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.063-.374-.313-.686-.645-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.37-.49l-1.296-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.437-1.001s-.145-.761-.437-1.001l-1.004-.827a1.125 1.125 0 01-.26-1.431l1.296-2.247a1.125 1.125 0 011.37-.49l1.217.456c.355.133.75.072 1.076-.124.072-.044.146-.087.22-.127.332-.183.582-.495.645-.87l.213-1.281z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                    </button>
                 </div>
                 <div class="flex items-center gap-2">
                     <button id="toc-back-btn" title="Back" class="p-2 rounded-md hover:bg-gray-700 flex-1 justify-center flex disabled:opacity-50 disabled:cursor-not-allowed">
@@ -674,7 +677,8 @@
             let project = {};
             let nextId = 1;
             let activeComponentId = null;
-            let historyStack = [];
+            let navigationHistory = [];
+            let navigationFuture = [];
             let draggingItemId = null;
             let confirmCallback = null;
             let isFullViewActive = false;
@@ -919,28 +923,29 @@
             };
 
             const saveStateToHistory = () => {
-                historyStack.push(structuredClone(project));
-                if (historyStack.length > 20) historyStack.shift();
-                updateUndoButtonState();
+                // This function is kept for potential future use, but is not tied to the UI navigation buttons.
+                // It could be used to save states before destructive actions.
             };
 
-            const undoLastAction = () => {
-                if (historyStack.length > 0) {
-                    project = historyStack.pop();
-                    nextId = Math.max(0, ...getAllComponents(project.components).map(c => c.id)) + 1 || 1;
-                    if (!getAllComponents(project.components).some(c => c.id === activeComponentId)) {
-                        activeComponentId = project.components.length > 0 ? project.components[0].id : null;
-                    }
-                    renderAll();
-                }
+            const updateNavigationButtons = () => {
+                tocBackButton.disabled = navigationHistory.length === 0;
+                tocForwardButton.disabled = navigationFuture.length === 0;
             };
 
-            const updateUndoButtonState = () => {
-                tocBackButton.disabled = historyStack.length === 0;
-                // Forward button logic would need a redo stack, which is not implemented here.
-                // For now, it will always be disabled.
-                tocForwardButton.disabled = true;
+            const navigateBack = () => {
+                if (navigationHistory.length === 0) return;
+                navigationFuture.unshift(activeComponentId);
+                activeComponentId = navigationHistory.pop();
+                renderAll();
             };
+            
+            const navigateForward = () => {
+                if (navigationFuture.length === 0) return;
+                navigationHistory.push(activeComponentId);
+                activeComponentId = navigationFuture.shift();
+                renderAll();
+            };
+
 
             // --- SETTINGS & API KEY ---
             const loadSettings = () => {
@@ -965,7 +970,8 @@
                 };
                 nextId = 1;
                 activeComponentId = null;
-                historyStack = [];
+                navigationHistory = [];
+                navigationFuture = [];
                 isFullViewActive = false;
                 renderAll();
             };
@@ -974,6 +980,11 @@
                 saveStateToHistory();
                 const newComponent = { id: nextId++, type, data: getTemplateForType(type), children: [] };
                 project.components.push(newComponent);
+                
+                if(activeComponentId !== null) {
+                    navigationHistory.push(activeComponentId);
+                }
+                navigationFuture = [];
                 activeComponentId = newComponent.id;
                 isFullViewActive = false;
                 renderAll();
@@ -1036,7 +1047,7 @@
 
             // --- RENDER FUNCTIONS ---
             const renderAll = () => {
-                updateUndoButtonState();
+                updateNavigationButtons();
                 renderProjectHeader();
                 renderTableOfContents();
                 renderActiveComponent();
@@ -1370,7 +1381,9 @@
                     backButton.classList.add('hidden');
                 }
             });
-
+            
+            tocBackButton.addEventListener('click', navigateBack);
+            tocForwardButton.addEventListener('click', navigateForward);
             settingsButton.addEventListener('click', openSettingsModal);
             
             tocPanel.addEventListener('click', (e) => {
@@ -1509,12 +1522,19 @@
             tocList.addEventListener('click', (e) => {
                 const tocItem = e.target.closest('.toc-item');
                 if (tocItem) {
-                    activeComponentId = parseInt(tocItem.dataset.id);
-                    isFullViewActive = false;
-                    mainApp.classList.remove('gm-mode');
-                    mainApp.classList.add('writer-mode');
-                    renderAll();
-                    showMainView();
+                    const newActiveId = parseInt(tocItem.dataset.id);
+                    if (activeComponentId !== newActiveId) {
+                        if (activeComponentId !== null) {
+                            navigationHistory.push(activeComponentId);
+                        }
+                        navigationFuture = []; // Clear future on new selection
+                        activeComponentId = newActiveId;
+                        isFullViewActive = false;
+                        mainApp.classList.remove('gm-mode');
+                        mainApp.classList.add('writer-mode');
+                        renderAll();
+                        showMainView();
+                    }
                 }
             });
             
@@ -1696,6 +1716,10 @@
                                  }, 1500);
                              }
                         } else {
+                            if (activeComponentId !== null) {
+                                navigationHistory.push(activeComponentId);
+                            }
+                            navigationFuture = [];
                             activeComponentId = linkId;
                             mainApp.classList.remove('gm-mode');
                             mainApp.classList.add('writer-mode');
@@ -2042,6 +2066,17 @@
                         pinComponentId = null;
                         renderActiveComponent();
                     }
+                }
+            });
+
+            dataMenuBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dataDropdown.classList.toggle('hidden');
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!dataMenuBtn.contains(e.target) && !dataDropdown.contains(e.target)) {
+                    dataDropdown.classList.add('hidden');
                 }
             });
 
