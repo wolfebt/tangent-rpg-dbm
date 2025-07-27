@@ -50,6 +50,25 @@
             --sidebar-width: 240px; 
         }
 
+        /* --- Custom Scrollbar --- */
+        ::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-section);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: var(--bg-input-focus);
+            border-radius: 6px;
+            border: 3px solid var(--bg-section);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: var(--border-main);
+        }
+
         html {
             scroll-behavior: smooth;
         }
