@@ -456,9 +456,9 @@
     <div id="entry-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4 hidden modal-backdrop">
         <div class="modal-content w-3/4 max-w-6xl max-h-[90vh] overflow-y-auto flex flex-col relative">
              <button id="modal-explicit-close-btn" class="absolute top-2 right-2 btn btn-secondary !p-2 z-10">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                   <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
-                </svg>
+                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                     <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                 </svg>
             </button>
             <div class="p-8">
                 <div class="flex justify-between items-center mb-6">
@@ -524,7 +524,8 @@
         import { 
             getAuth, onAuthStateChanged, signOut, 
             GoogleAuthProvider, signInWithPopup,
-            signInAnonymously
+            signInAnonymously,
+            signInWithCustomToken
         } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
         import { getFirestore, doc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, getDocs, getDoc, setDoc, query } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
@@ -535,16 +536,18 @@
         }
 
         // --- Firebase Configuration ---
-        const firebaseConfig = {
-          apiKey: "AIzaSyBA1CC4SXXtWM9UpU1XkAiBFr0RIgrPwGk",
-          authDomain: "tangent-rpg-dbm.firebaseapp.com",
-          projectId: "tangent-rpg-dbm",
-          storageBucket: "tangent-rpg-dbm.appspot.com",
-          messagingSenderId: "559983787369",
-          appId: "1:559983787369:web:d6f3b87daaa82b23d211f8",
-          measurementId: "G-G6NC09PXPC"
-        };
-        const appId = firebaseConfig.projectId;
+        const firebaseConfig = typeof __firebase_config !== 'undefined'
+            ? JSON.parse(__firebase_config)
+            : {
+                apiKey: "YOUR_API_KEY", // Replace with your actual config for local testing
+                authDomain: "tangent-rpg-dbm.firebaseapp.com",
+                projectId: "tangent-rpg-dbm",
+                storageBucket: "tangent-rpg-dbm.appspot.com",
+                messagingSenderId: "559983787369",
+                appId: "1:559983787369:web:d6f3b87daaa82b23d211f8",
+                measurementId: "G-G6NC09PXPC"
+            };
+        const appId = typeof __app_id !== 'undefined' ? __app_id : firebaseConfig.projectId;
 
         // --- Firebase Initialization ---
         const app = initializeApp(firebaseConfig);
@@ -564,10 +567,11 @@
             wikiEntries: [],
             currentWikiEntryId: null,
             activeListeners: {},
+            isSigningIn: false, 
         };
         
         // --- Role-Based Access Control (RBAC) ---
-        const OWNER_UID = "09bdwApxw5UZ9BQTo7LXXdSsqx13";
+        const OWNER_UID = "09bdwApxw5UZ9BQTo7LXXdSsqx13"; // Replace with the actual owner's UID
 
         function hasPermission(action, itemData = null) {
             const { userRole, userId } = appState;
@@ -697,9 +701,22 @@
                 appState.isAnonymous = true;
                 appState.userId = null;
                 appState.userRole = 'guest';
-                signInAnonymously(auth).catch(err => {
+                
+                if (appState.isSigningIn) return; 
+                appState.isSigningIn = true;
+
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (err) {
+                    console.error("Sign-in error:", err);
                     showError("Your session has ended. Please refresh the page.");
-                });
+                } finally {
+                    appState.isSigningIn = false;
+                }
             }
         });
         
@@ -906,11 +923,11 @@
 
             if (isEditMode && fieldConfig.aiEnabled) {
                 labelHtml = `<div class="flex justify-between items-center">
-                                <label for="${fieldKey}" class="global-form-label">${labelText}</label>
-                                <button type="button" id="generate-description-btn" class="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors underline auth-required hidden">
-                                    GENERATE
-                                </button>
-                             </div>`;
+                                    <label for="${fieldKey}" class="global-form-label">${labelText}</label>
+                                    <button type="button" id="generate-description-btn" class="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors underline auth-required hidden">
+                                        GENERATE
+                                    </button>
+                                 </div>`;
             }
 
             let fieldHtml = '';
@@ -934,7 +951,7 @@
             return `<div>${labelHtml}${fieldHtml}</div>`;
         }
 
-        async function openModal(docId = null, data = {}, isEditMode = false) {
+        async function populateModal(docId = null, data = {}, isEditMode = false) {
             const finalEditMode = hasPermission('edit', data) && isEditMode;
             appState.editingDocId = docId;
             
@@ -949,45 +966,50 @@
 
             formFieldsContainer.innerHTML = formHtml.join('');
 
-            const editorContainers = formFieldsContainer.querySelectorAll('.quill-editor-container');
-            editorContainers.forEach(container => {
-                const fieldKey = container.id.replace('editor-', '');
-                const hiddenInput = document.getElementById(fieldKey);
-                const quill = new Quill(container, {
-                    modules: { 
-                        table: false, // Explicitly disable the default table module
-                        "better-table": {
-                            operationMenu: {
-                                items: {
-                                    unmergeCells: { text: 'Unmerge cells' },
-                                    mergeCells: { text: 'Merge cells' },
-                                    deleteRow: { text: 'Delete row' },
-                                    deleteColumn: { text: 'Delete column' },
-                                    insertRowAbove: { text: 'Insert row above' },
-                                    insertRowBelow: { text: 'Insert row below' },
-                                    insertColumnLeft: { text: 'Insert column left' },
-                                    insertColumnRight: { text: 'Insert column right' },
+            if (finalEditMode) {
+                const editorContainers = formFieldsContainer.querySelectorAll('.quill-editor-container');
+                editorContainers.forEach(container => {
+                    const fieldKey = container.id.replace('editor-', '');
+                    const hiddenInput = document.getElementById(fieldKey);
+                    const quill = new Quill(container, {
+                        modules: { 
+                            toolbar: [
+                                [{ 'header': [1, 2, 3, false] }],
+                                ['bold', 'italic', 'underline', 'link'],
+                                [{ 'color': [] }],
+                                ['table']
+                            ],
+                            table: false,
+                            "better-table": {
+                                operationMenu: {
+                                    items: {
+                                        unmergeCells: { text: 'Unmerge cells' },
+                                        mergeCells: { text: 'Merge cells' },
+                                        deleteRow: { text: 'Delete row' },
+                                        deleteColumn: { text: 'Delete column' },
+                                        insertRowAbove: { text: 'Insert row above' },
+                                        insertRowBelow: { text: 'Insert row below' },
+                                        insertColumnLeft: { text: 'Insert column left' },
+                                        insertColumnRight: { text: 'Insert column right' },
+                                    },
+                                    color: {
+                                        colors: ['#fff', '#000', '#d1d5db', '#4b5563', '#b91c1c', '#15803d', '#1d4ed8'],
+                                        text: 'Background Colors'
+                                    }
                                 },
-                                color: {
-                                    colors: ['#fff', '#000', '#d1d5db', '#4b5563', '#b91c1c', '#15803d', '#1d4ed8'],
-                                    text: 'Background Colors'
-                                }
                             },
+                            keyboard: {
+                                bindings: quillBetterTable.keyboardBindings
+                            }
                         },
-                        toolbar: [
-                            [{ 'header': [1, 2, 3, false] }],
-                            ['bold', 'italic', 'underline', 'link'],
-                            [{ 'color': [] }],
-                            ['table']
-                        ]
-                    },
-                    theme: 'snow'
+                        theme: 'snow'
+                    });
+                    quill.root.innerHTML = data[fieldKey] || '';
+                    hiddenInput.value = data[fieldKey] || '';
+                    quill.on('text-change', () => { hiddenInput.value = quill.root.innerHTML; });
+                    container.quill = quill;
                 });
-                quill.root.innerHTML = data[fieldKey] || '';
-                hiddenInput.value = data[fieldKey] || '';
-                quill.on('text-change', () => { hiddenInput.value = quill.root.innerHTML; });
-                container.quill = quill;
-            });
+            }
 
             const creatorInfo = document.getElementById('creator-info');
             creatorInfo.textContent = data.creatorEmail ? `Created by: ${data.creatorEmail}` : '';
@@ -1001,7 +1023,7 @@
             } else if (hasPermission('edit', data)) {
                 const editButton = document.createElement('button');
                 editButton.textContent = 'Edit';
-                editButton.addEventListener('click', () => openModal(docId, data, true));
+                editButton.addEventListener('click', () => populateModal(docId, data, true));
                 modalDataDropdown.appendChild(editButton);
             }
 
@@ -1039,6 +1061,15 @@
                 });
             }
             
+            appState.initialFormState = getFormState(entryForm);
+            updateUIAfterAuthChange();
+        }
+
+        async function openModal(docId = null, data = {}, isEditMode = false) {
+            await populateModal(docId, data, isEditMode);
+            
+            entryModal.classList.remove('hidden');
+            
             document.getElementById('modal-explicit-close-btn').onclick = () => {
                  if (isFormDirty()) {
                     appState.pendingAction = () => closeModal();
@@ -1047,10 +1078,6 @@
                     closeModal();
                 }
             };
-            
-            entryModal.classList.remove('hidden');
-            appState.initialFormState = getFormState(entryForm);
-            updateUIAfterAuthChange();
         }
 
         function closeModal() {
@@ -1064,8 +1091,12 @@
             e.preventDefault();
             const result = await saveCurrentForm();
             if (result.success) {
-                closeModal();
-                openModal(result.docId, result.data, true);
+                // After saving, re-render the modal in edit mode with the new data
+                const docRef = doc(db, `artifacts/${appId}/public/data/rules_codex`, result.docId);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    populateModal(result.docId, { id: result.docId, ...docSnap.data() }, true);
+                }
             }
         }
 
@@ -1091,7 +1122,7 @@
                         showError("You do not have permission to edit this entry.");
                         return { success: false };
                     }
-                    await updateDoc(docRef, { ...sanitizedData, creatorId: docSnap.data().creatorId, creatorEmail: docSnap.data().creatorEmail });
+                    await updateDoc(docRef, { ...sanitizedData, lastUpdated: new Date() });
                 } else {
                     sanitizedData.creatorId = appState.userId;
                     sanitizedData.creatorEmail = auth.currentUser?.email || 'anonymous';
@@ -1100,7 +1131,7 @@
                 }
                 
                 appState.initialFormState = getFormState();
-                return { success: true, docId: newDocId, data: sanitizedData };
+                return { success: true, docId: newDocId };
             } catch (error) {
                 showError(`Error saving data: ${error.message}`);
                 return { success: false };
@@ -1161,7 +1192,7 @@
                     const docSnap = await getDoc(doc(db, `artifacts/${appId}/public/data/rules_codex`, linkedDocId));
                     if (docSnap.exists()) {
                         if (!entryModal.classList.contains('hidden')) closeModal(); 
-                        openModal(linkedDocId, docSnap.data(), false); 
+                        openModal(linkedDocId, {id: docSnap.id, ...docSnap.data()}, false); 
                     } else {
                         showError(`Linked entry not found.`);
                     }
