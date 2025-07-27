@@ -529,728 +529,727 @@
         } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
         import { getFirestore, doc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, getDocs, getDoc, setDoc, query } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
-        // --- Register Quill Modules ---
-        // This is done once globally to prevent re-registration errors.
-        if (!Quill.imports['modules/better-table']) {
-            Quill.register({ 'modules/better-table': quillBetterTable }, true);
-        }
+        window.addEventListener('DOMContentLoaded', () => {
+            // --- Register Quill Modules ---
+            Quill.register({
+                'modules/better-table': quillBetterTable
+            }, true);
 
-        // --- Firebase Configuration ---
-        // This will be replaced by the environment variable in a production environment.
-        const firebaseConfig = typeof __firebase_config !== 'undefined'
-            ? JSON.parse(__firebase_config)
-            : {
-                apiKey: "AIzaSyBA1CC4SXXtWM9UpU1XkAiBFr0RIgrPwGk", // Fallback for local testing
-                authDomain: "tangent-rpg-dbm.firebaseapp.com",
-                projectId: "tangent-rpg-dbm",
-                storageBucket: "tangent-rpg-dbm.appspot.com",
-                messagingSenderId: "559983787369",
-                appId: "1:559983787369:web:d6f3b87daaa82b23d211f8",
-                measurementId: "G-G6NC09PXPC"
-            };
-        const appId = typeof __app_id !== 'undefined' ? __app_id : firebaseConfig.projectId;
+            // --- Firebase Configuration ---
+            const firebaseConfig = typeof __firebase_config !== 'undefined'
+                ? JSON.parse(__firebase_config)
+                : {
+                    apiKey: "AIzaSyBA1CC4SXXtWM9UpU1XkAiBFr0RIgrPwGk", // Fallback for local testing
+                    authDomain: "tangent-rpg-dbm.firebaseapp.com",
+                    projectId: "tangent-rpg-dbm",
+                    storageBucket: "tangent-rpg-dbm.appspot.com",
+                    messagingSenderId: "559983787369",
+                    appId: "1:559983787369:web:d6f3b87daaa82b23d211f8",
+                    measurementId: "G-G6NC09PXPC"
+                };
+            const appId = typeof __app_id !== 'undefined' ? __app_id : firebaseConfig.projectId;
 
-        // --- Firebase Initialization ---
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        
-        // --- Application State ---
-        const appState = {
-            userId: null,
-            isAnonymous: true,
-            userRole: 'guest',
-            authReady: false,
-            editingDocId: null,
-            confirmCallback: null,
-            initialFormState: null,
-            pendingAction: null,
-            wikiEntries: [],
-            currentWikiEntryId: null,
-            activeListeners: {},
-            isSigningIn: false, 
-        };
-        
-        // --- Role-Based Access Control (RBAC) ---
-        const OWNER_UID = "09bdwApxw5UZ9BQTo7LXXdSsqx13"; // Replace with the actual owner's UID
-
-        function hasPermission(action, itemData = null) {
-            const { userRole, userId } = appState;
-            switch (action) {
-                case 'create':
-                    return userRole === 'owner' || userRole === 'admin' || userRole === 'contributor';
-                case 'edit':
-                case 'delete':
-                    if (userRole === 'owner' || userRole === 'admin') return true;
-                    if (userRole === 'contributor') return itemData && itemData.creatorId === userId;
-                    return false;
-                default:
-                    return false;
-            }
-        }
-
-        const categoryConfig = {
-            rules_codex: {
-                label: 'RULES CODEX',
-                fields: {
-                    name: { type: 'text', required: true },
-                    description: { type: 'textarea', aiEnabled: true },
-                    mechanic: { type: 'textarea' },
-                    note: { type: 'textarea' },
-                    guide: { type: 'textarea' },
-                    parent: { type: 'select', source: 'rules_codex', label: 'Parent Entry' },
-                    order: { type: 'number', label: 'Order', default: 0 },
-                }
-            }
-        };
-
-        // --- UI Element References ---
-        const mainContentContainer = document.getElementById('main-content');
-        const entryModal = document.getElementById('entry-modal');
-        const modalTitle = document.getElementById('modal-title');
-        const entryForm = document.getElementById('entry-form');
-        const formFieldsContainer = document.getElementById('form-fields');
-        const confirmModal = document.getElementById('confirm-modal');
-        const confirmMessage = document.getElementById('confirm-message');
-        const confirmOkBtn = document.getElementById('confirm-ok-btn');
-        const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
-        const unsavedChangesModal = document.getElementById('unsaved-changes-modal');
-        const unsavedCancelBtn = document.getElementById('unsaved-cancel-btn');
-        const unsavedDismissBtn = document.getElementById('unsaved-dismiss-btn');
-        const unsavedSaveBtn = document.getElementById('unsaved-save-btn');
-        const errorModal = document.getElementById('error-modal');
-        const errorMessage = document.getElementById('error-message');
-        const errorOkBtn = document.getElementById('error-ok-btn');
-        const settingsIcon = document.getElementById('settings-icon');
-        const settingsModal = document.getElementById('settings-modal');
-        const settingsSaveBtn = document.getElementById('settings-save-btn');
-        const settingsCancelBtn = document.getElementById('settings-cancel-btn');
-        const apiKeyInput = document.getElementById('api-key-input');
-
-        // --- Authentication & UI Updates ---
-        async function handleLogin() {
-            const provider = new GoogleAuthProvider();
-            try {
-                await signInWithPopup(auth, provider);
-            } catch (error) {
-                showError("Could not sign in with Google. Please try again.");
-            }
-        }
-
-        async function handleLogout() {
-            try {
-                await signOut(auth);
-            } catch (error) {
-                showError("An error occurred while signing out.");
-            }
-        }
-
-        function updateUIAfterAuthChange() {
-            const authContainer = document.getElementById('auth-container');
-            const userIdDisplay = document.getElementById('userIdDisplay');
-
-            if (authContainer) {
-                authContainer.innerHTML = appState.isAnonymous
-                    ? `<button id="login-btn" class="btn btn-primary !py-1 !px-3">LOGIN</button>`
-                    : `<button id="logout-btn" class="btn btn-secondary !py-1 !px-3">LOGOUT</button>`;
-                if (appState.isAnonymous) {
-                    document.getElementById('login-btn').addEventListener('click', handleLogin);
-                } else {
-                    document.getElementById('logout-btn').addEventListener('click', handleLogout);
-                }
-            }
+            // --- Firebase Initialization ---
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
             
-            if(userIdDisplay) {
-                 userIdDisplay.textContent = appState.isAnonymous ? 'ANONYMOUS' : (auth.currentUser?.email || appState.userId);
+            // --- Application State ---
+            const appState = {
+                userId: null,
+                isAnonymous: true,
+                userRole: 'guest',
+                authReady: false,
+                editingDocId: null,
+                confirmCallback: null,
+                initialFormState: null,
+                pendingAction: null,
+                wikiEntries: [],
+                currentWikiEntryId: null,
+                activeListeners: {},
+                isSigningIn: false, 
+            };
+            
+            // --- Role-Based Access Control (RBAC) ---
+            const OWNER_UID = "09bdwApxw5UZ9BQTo7LXXdSsqx13"; // Replace with the actual owner's UID
+
+            function hasPermission(action, itemData = null) {
+                const { userRole, userId } = appState;
+                switch (action) {
+                    case 'create':
+                        return userRole === 'owner' || userRole === 'admin' || userRole === 'contributor';
+                    case 'edit':
+                    case 'delete':
+                        if (userRole === 'owner' || userRole === 'admin') return true;
+                        if (userRole === 'contributor') return itemData && itemData.creatorId === userId;
+                        return false;
+                    default:
+                        return false;
+                }
             }
 
-            const authRequiredElements = document.querySelectorAll('.auth-required');
-            authRequiredElements.forEach(el => {
-                el.classList.toggle('hidden', !hasPermission('create'));
-            });
-        }
-
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                appState.userId = user.uid;
-                appState.isAnonymous = user.isAnonymous;
-
-                if (user.isAnonymous) {
-                    appState.userRole = 'guest';
-                } else if (user.uid === OWNER_UID) {
-                    appState.userRole = 'owner';
-                } else {
-                    const roleDocRef = doc(db, "user_roles", user.uid);
-                    try {
-                        const roleDoc = await getDoc(roleDocRef);
-                        appState.userRole = (roleDoc.exists() && roleDoc.data().role) ? roleDoc.data().role : 'contributor';
-                        if (!roleDoc.exists()) {
-                            await setDoc(roleDocRef, { role: 'contributor', email: user.email });
-                        }
-                    } catch (e) {
-                        appState.userRole = 'contributor';
+            const categoryConfig = {
+                rules_codex: {
+                    label: 'RULES CODEX',
+                    fields: {
+                        name: { type: 'text', required: true },
+                        description: { type: 'textarea', aiEnabled: true },
+                        mechanic: { type: 'textarea' },
+                        note: { type: 'textarea' },
+                        guide: { type: 'textarea' },
+                        parent: { type: 'select', source: 'rules_codex', label: 'Parent Entry' },
+                        order: { type: 'number', label: 'Order', default: 0 },
                     }
                 }
-                
-                if (!appState.authReady) {
-                    appState.authReady = true;
-                    renderAppHeader();
-                    renderWikiView();
-                }
-                updateUIAfterAuthChange();
-            } else {
-                appState.isAnonymous = true;
-                appState.userId = null;
-                appState.userRole = 'guest';
-                
-                if (appState.isSigningIn) return; 
-                appState.isSigningIn = true;
+            };
 
+            // --- UI Element References ---
+            const mainContentContainer = document.getElementById('main-content');
+            const entryModal = document.getElementById('entry-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const entryForm = document.getElementById('entry-form');
+            const formFieldsContainer = document.getElementById('form-fields');
+            const confirmModal = document.getElementById('confirm-modal');
+            const confirmMessage = document.getElementById('confirm-message');
+            const confirmOkBtn = document.getElementById('confirm-ok-btn');
+            const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
+            const unsavedChangesModal = document.getElementById('unsaved-changes-modal');
+            const unsavedCancelBtn = document.getElementById('unsaved-cancel-btn');
+            const unsavedDismissBtn = document.getElementById('unsaved-dismiss-btn');
+            const unsavedSaveBtn = document.getElementById('unsaved-save-btn');
+            const errorModal = document.getElementById('error-modal');
+            const errorMessage = document.getElementById('error-message');
+            const errorOkBtn = document.getElementById('error-ok-btn');
+            const settingsIcon = document.getElementById('settings-icon');
+            const settingsModal = document.getElementById('settings-modal');
+            const settingsSaveBtn = document.getElementById('settings-save-btn');
+            const settingsCancelBtn = document.getElementById('settings-cancel-btn');
+            const apiKeyInput = document.getElementById('api-key-input');
+
+            // --- Authentication & UI Updates ---
+            async function handleLogin() {
+                const provider = new GoogleAuthProvider();
                 try {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-                } catch (err) {
-                    console.error("Sign-in error:", err);
-                    showError("Your session has ended. Please refresh the page.");
-                } finally {
-                    appState.isSigningIn = false;
+                    await signInWithPopup(auth, provider);
+                } catch (error) {
+                    showError("Could not sign in with Google. Please try again.");
                 }
             }
-        });
-        
-        // --- View Rendering ---
-        function renderAppHeader() {
-            const headerContainer = document.querySelector('.app-header');
-            headerContainer.innerHTML = `
-                <div class="flex-1"></div>
-                <div class="flex-grow flex justify-center items-center">
-                    <div class="text-center">
-                        <h1 class="text-xl font-bold text-gray-100 whitespace-nowrap">TANGENT SFF RPG</h1>
-                        <p class="text-xs text-gray-400 uppercase">RULES CODEX</p>
-                    </div>
-                </div>
-                <div class="flex-1 flex justify-end items-center gap-4">
-                    <div class="text-right">
-                        <p class="text-xs text-gray-500">USER:</p>
-                        <p id="userIdDisplay" class="text-sm font-semibold"></p>
-                    </div>
-                    <div id="auth-container"></div>
-                </div>
-            `;
-            updateUIAfterAuthChange();
-        }
 
-        function renderWikiView() {
-            mainContentContainer.innerHTML = `
-                <div class="flex" style="height: calc(100vh - var(--header-height));">
-                    <div id="wiki-directory-main" class="w-80 flex-shrink-0 bg-gray-800 p-4 overflow-y-auto border-r-2 border-gray-700">
-                        <button id="add-wiki-entry-btn" class="btn btn-primary w-full mb-4 auth-required hidden">Add New Entry</button>
-                        <ul id="wiki-directory-list"></ul>
-                    </div>
-                    <div class="flex-grow p-6 overflow-y-auto">
-                        <div class="wiki-content prose prose-invert max-w-none" id="wiki-content-main">
-                            <div class="flex justify-end gap-2 mb-4">
-                                <button id="wiki-edit-btn" class="btn btn-secondary auth-required hidden">Edit</button>
-                            </div>
-                            <h2 id="wiki-entry-title">Select an Entry</h2>
-                            <div id="wiki-entry-body"><p class="text-gray-400">Please select an entry from the directory on the left.</p></div>
+            async function handleLogout() {
+                try {
+                    await signOut(auth);
+                } catch (error) {
+                    showError("An error occurred while signing out.");
+                }
+            }
+
+            function updateUIAfterAuthChange() {
+                const authContainer = document.getElementById('auth-container');
+                const userIdDisplay = document.getElementById('userIdDisplay');
+
+                if (authContainer) {
+                    authContainer.innerHTML = appState.isAnonymous
+                        ? `<button id="login-btn" class="btn btn-primary !py-1 !px-3">LOGIN</button>`
+                        : `<button id="logout-btn" class="btn btn-secondary !py-1 !px-3">LOGOUT</button>`;
+                    if (appState.isAnonymous) {
+                        document.getElementById('login-btn').addEventListener('click', handleLogin);
+                    } else {
+                        document.getElementById('logout-btn').addEventListener('click', handleLogout);
+                    }
+                }
+                
+                if(userIdDisplay) {
+                     userIdDisplay.textContent = appState.isAnonymous ? 'ANONYMOUS' : (auth.currentUser?.email || appState.userId);
+                }
+
+                const authRequiredElements = document.querySelectorAll('.auth-required');
+                authRequiredElements.forEach(el => {
+                    el.classList.toggle('hidden', !hasPermission('create'));
+                });
+            }
+
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    appState.userId = user.uid;
+                    appState.isAnonymous = user.isAnonymous;
+
+                    if (user.isAnonymous) {
+                        appState.userRole = 'guest';
+                    } else if (user.uid === OWNER_UID) {
+                        appState.userRole = 'owner';
+                    } else {
+                        const roleDocRef = doc(db, "user_roles", user.uid);
+                        try {
+                            const roleDoc = await getDoc(roleDocRef);
+                            appState.userRole = (roleDoc.exists() && roleDoc.data().role) ? roleDoc.data().role : 'contributor';
+                            if (!roleDoc.exists()) {
+                                await setDoc(roleDocRef, { role: 'contributor', email: user.email });
+                            }
+                        } catch (e) {
+                            appState.userRole = 'contributor';
+                        }
+                    }
+                    
+                    if (!appState.authReady) {
+                        appState.authReady = true;
+                        renderAppHeader();
+                        renderWikiView();
+                    }
+                    updateUIAfterAuthChange();
+                } else {
+                    appState.isAnonymous = true;
+                    appState.userId = null;
+                    appState.userRole = 'guest';
+                    
+                    if (appState.isSigningIn) return; 
+                    appState.isSigningIn = true;
+
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (err) {
+                        console.error("Sign-in error:", err);
+                        showError("Your session has ended. Please refresh the page.");
+                    } finally {
+                        appState.isSigningIn = false;
+                    }
+                }
+            });
+            
+            // --- View Rendering ---
+            function renderAppHeader() {
+                const headerContainer = document.querySelector('.app-header');
+                headerContainer.innerHTML = `
+                    <div class="flex-1"></div>
+                    <div class="flex-grow flex justify-center items-center">
+                        <div class="text-center">
+                            <h1 class="text-xl font-bold text-gray-100 whitespace-nowrap">TANGENT SFF RPG</h1>
+                            <p class="text-xs text-gray-400 uppercase">RULES CODEX</p>
                         </div>
                     </div>
-                </div>
-            `;
-            document.getElementById('add-wiki-entry-btn').addEventListener('click', () => openModal(null, {}, true));
-            document.getElementById('wiki-edit-btn').addEventListener('click', () => {
-                if (appState.currentWikiEntryId) {
-                    const entry = appState.wikiEntries.find(e => e.id === appState.currentWikiEntryId);
-                    if (entry) openModal(entry.id, entry, true);
-                }
-            });
-            listenForWikiEntries();
-            updateUIAfterAuthChange();
-        }
-
-        // --- Data Handling & Firestore ---
-        let rulesCodexMap = new Map();
-
-        function listenForWikiEntries() {
-            const collectionPath = `artifacts/${appId}/public/data/rules_codex`;
-            const q = query(collection(db, collectionPath));
-            
-            if (appState.activeListeners['rules_codex']) appState.activeListeners['rules_codex']();
-
-            appState.activeListeners['rules_codex'] = onSnapshot(q, (snapshot) => {
-                appState.wikiEntries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                rulesCodexMap.clear();
-                appState.wikiEntries.forEach(entry => rulesCodexMap.set(entry.name, entry.id));
-
-                const wikiDirectory = document.getElementById('wiki-directory-list');
-                if (wikiDirectory) {
-                    renderWikiDirectory(wikiDirectory, appState.wikiEntries, null);
-                    if (appState.currentWikiEntryId && appState.wikiEntries.some(e => e.id === appState.currentWikiEntryId)) {
-                        displayWikiEntry(appState.currentWikiEntryId);
-                    }
-                }
-            }, error => {
-                showError("Failed to load wiki entries.");
-            });
-        }
-        
-        async function renderWikiDirectory(container, entries, parent = null, level = 0) {
-            if (!container) return;
-            const ul = document.createElement('ul');
-            ul.className = `space-y-1 ${level > 0 ? 'pl-4' : ''}`;
-
-            const children = entries.filter(entry => (entry.parent || null) === parent).sort((a, b) => (a.order || 0) - (b.order || 0) || a.name.localeCompare(b.name));
-
-            for (const entry of children) {
-                const li = document.createElement('li');
-                const hasChildren = entries.some(e => e.parent === entry.name);
-
-                const itemContent = document.createElement('div');
-                itemContent.className = 'flex items-center text-sm';
-
-                let toggleBtnHtml = `<span class="w-6"></span>`;
-                if (hasChildren) {
-                    toggleBtnHtml = `<button class="toggle-btn w-6 text-center" data-toggle-id="${entry.id}">▾</button>`;
-                }
-
-                itemContent.innerHTML = `
-                    ${toggleBtnHtml}
-                    <a href="#" class="flex-grow p-1 rounded hover:bg-gray-700" data-entry-id="${entry.id}">${entry.name}</a>
+                    <div class="flex-1 flex justify-end items-center gap-4">
+                        <div class="text-right">
+                            <p class="text-xs text-gray-500">USER:</p>
+                            <p id="userIdDisplay" class="text-sm font-semibold"></p>
+                        </div>
+                        <div id="auth-container"></div>
+                    </div>
                 `;
-                li.appendChild(itemContent);
-
-                if (hasChildren) {
-                    const childrenContainer = document.createElement('div');
-                    childrenContainer.id = `children-${entry.id}`;
-                    childrenContainer.style.display = 'block';
-                    await renderWikiDirectory(childrenContainer, entries, entry.name, level + 1);
-                    li.appendChild(childrenContainer);
-
-                    const toggleButton = itemContent.querySelector('.toggle-btn');
-                    toggleButton.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const isHidden = childrenContainer.style.display === 'none';
-                        childrenContainer.style.display = isHidden ? 'block' : 'none';
-                        toggleButton.innerHTML = isHidden ? '▸' : '▾';
-                    });
-                }
-
-                const link = itemContent.querySelector('a');
-                link.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    displayWikiEntry(entry.id);
-                });
-
-                ul.appendChild(li);
+                updateUIAfterAuthChange();
             }
-            container.innerHTML = '';
-            container.appendChild(ul);
-        }
 
-        async function displayWikiEntry(docId) {
-            const wikiTitle = document.getElementById('wiki-entry-title');
-            const wikiBody = document.getElementById('wiki-entry-body');
-            const wikiEditBtn = document.getElementById('wiki-edit-btn');
-
-            if(!wikiTitle || !wikiBody) return;
-
-            wikiTitle.textContent = 'Loading...';
-            wikiBody.innerHTML = '<p class="text-center text-gray-400">Loading entry...</p>';
-            if(wikiEditBtn) wikiEditBtn.classList.add('hidden');
-            appState.currentWikiEntryId = null;
-
-            try {
-                const entry = appState.wikiEntries.find(e => e.id === docId);
-
-                if (entry) {
-                    wikiTitle.textContent = entry.name.toUpperCase();
-                    let contentHtml = '';
-
-                    if (entry.description) contentHtml += parseWikiLinks(entry.description);
-                    if (entry.mechanic) contentHtml += `<h3>Mechanics</h3>` + parseWikiLinks(entry.mechanic);
-                    if (entry.guide) contentHtml += `<h3>Guide</h3>` + parseWikiLinks(entry.guide);
-                    if (entry.note) contentHtml += `<h3>Notes</h3>` + parseWikiLinks(entry.note);
-                    
-                    if (!contentHtml) contentHtml = '<p class="text-gray-400">No content available for this entry.</p>';
-                    
-                    wikiBody.innerHTML = contentHtml;
-                    appState.currentWikiEntryId = docId;
-
-                    if (hasPermission('edit', entry)) {
-                        if(wikiEditBtn) wikiEditBtn.classList.remove('hidden');
+            function renderWikiView() {
+                mainContentContainer.innerHTML = `
+                    <div class="flex" style="height: calc(100vh - var(--header-height));">
+                        <div id="wiki-directory-main" class="w-80 flex-shrink-0 bg-gray-800 p-4 overflow-y-auto border-r-2 border-gray-700">
+                            <button id="add-wiki-entry-btn" class="btn btn-primary w-full mb-4 auth-required hidden">Add New Entry</button>
+                            <ul id="wiki-directory-list"></ul>
+                        </div>
+                        <div class="flex-grow p-6 overflow-y-auto">
+                            <div class="wiki-content prose prose-invert max-w-none" id="wiki-content-main">
+                                <div class="flex justify-end gap-2 mb-4">
+                                    <button id="wiki-edit-btn" class="btn btn-secondary auth-required hidden">Edit</button>
+                                </div>
+                                <h2 id="wiki-entry-title">Select an Entry</h2>
+                                <div id="wiki-entry-body"><p class="text-gray-400">Please select an entry from the directory on the left.</p></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('add-wiki-entry-btn').addEventListener('click', () => openModal(null, {}, true));
+                document.getElementById('wiki-edit-btn').addEventListener('click', () => {
+                    if (appState.currentWikiEntryId) {
+                        const entry = appState.wikiEntries.find(e => e.id === appState.currentWikiEntryId);
+                        if (entry) openModal(entry.id, entry, true);
                     }
-
-                } else {
-                    wikiTitle.textContent = 'Entry Not Found';
-                    wikiBody.innerHTML = '<p class="text-red-400">The requested wiki entry could not be found.</p>';
-                }
-            } catch (error) {
-                showError("Failed to display wiki entry.");
-            }
-        }
-        
-        function getFormDataObject(formElement) {
-            const form = formElement || document.getElementById('entry-form');
-            if (!form) return {};
-            const formData = new FormData(form);
-            const data = {};
-            for (let [key, value] of formData.entries()) {
-                if (data[key]) {
-                    if (!Array.isArray(data[key])) data[key] = [data[key]];
-                    data[key].push(value);
-                } else {
-                    data[key] = value;
-                }
-            }
-            return data;
-        }
-        
-        function getFormState(form) {
-            return JSON.stringify(getFormDataObject(form));
-        }
-
-        function isFormDirty() {
-            if (!entryModal || entryModal.classList.contains('hidden')) return false;
-            return appState.initialFormState !== getFormState(document.getElementById('entry-form'));
-        }
-
-        async function createFormFieldHtml(fieldKey, fieldConfig, savedValue, isEditMode) {
-            const labelText = (fieldConfig.label || fieldKey.replace(/_/g, ' ')).toUpperCase();
-            let labelHtml = `<label for="${fieldKey}" class="global-form-label">${labelText}</label>`;
-
-            if (isEditMode && fieldConfig.aiEnabled) {
-                labelHtml = `<div class="flex justify-between items-center">
-                                    <label for="${fieldKey}" class="global-form-label">${labelText}</label>
-                                    <button type="button" id="generate-description-btn" class="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors underline auth-required hidden">
-                                        GENERATE
-                                    </button>
-                                 </div>`;
-            }
-
-            let fieldHtml = '';
-            if (fieldConfig.type === 'textarea') {
-                fieldHtml = isEditMode 
-                    ? `<div id="editor-${fieldKey}" class="quill-editor-container"></div><input type="hidden" id="${fieldKey}" name="${fieldKey}">`
-                    : `<div class="global-form-input display-only-input p-2 overflow-auto prose prose-invert max-w-none">${parseWikiLinks(savedValue || '')}</div>`;
-            } else if (fieldConfig.type === 'select') {
-                const options = appState.wikiEntries
-                    .filter(entry => entry.id !== appState.editingDocId)
-                    .map(entry => `<option value="${entry.name}" ${savedValue === entry.name ? 'selected' : ''}>${entry.name.toUpperCase()}</option>`).join('');
-                fieldHtml = isEditMode
-                    ? `<select id="${fieldKey}" name="${fieldKey}" class="global-form-input form-select-arrow"><option value="">--CHOOSE--</option>${options}</select>`
-                    : `<div class="global-form-input display-only-input">${(savedValue || '').toUpperCase()}</div>`;
-            } else if (fieldConfig.type === 'number') {
-                 fieldHtml = `<input type="number" id="${fieldKey}" name="${fieldKey}" value="${savedValue || 0}" class="global-form-input ${!isEditMode ? 'display-only-input' : ''}" ${!isEditMode ? 'readonly' : ''}>`;
-            } else {
-                fieldHtml = `<input type="text" id="${fieldKey}" name="${fieldKey}" value="${savedValue || ''}" class="global-form-input ${!isEditMode ? 'display-only-input' : ''}" ${!isEditMode ? 'readonly' : ''}>`;
-            }
-
-            return `<div>${labelHtml}${fieldHtml}</div>`;
-        }
-
-        async function populateModal(docId = null, data = {}, isEditMode = false) {
-            const finalEditMode = hasPermission('edit', data) && isEditMode;
-            appState.editingDocId = docId;
-            
-            modalTitle.textContent = `${finalEditMode ? 'MANAGE' : 'VIEW'} WIKI ENTRY`;
-            
-            const config = categoryConfig.rules_codex;
-            const formHtml = await Promise.all(Object.keys(config.fields).map(async (fieldKey) => {
-                const fieldConfig = config.fields[fieldKey];
-                const savedValue = data[fieldKey];
-                return createFormFieldHtml(fieldKey, fieldConfig, savedValue, finalEditMode);
-            }));
-
-            formFieldsContainer.innerHTML = formHtml.join('');
-
-            if (finalEditMode) {
-                const editorContainers = formFieldsContainer.querySelectorAll('.quill-editor-container');
-                editorContainers.forEach(container => {
-                    const fieldKey = container.id.replace('editor-', '');
-                    const hiddenInput = document.getElementById(fieldKey);
-                    const quill = new Quill(container, {
-                        modules: { 
-                            toolbar: [
-                                [{ 'header': [1, 2, 3, false] }],
-                                ['bold', 'italic', 'underline', 'link'],
-                                [{ 'color': [] }],
-                                ['table']
-                            ],
-                            table: false,
-                            "better-table": {
-                                operationMenu: {
-                                    items: {
-                                        unmergeCells: { text: 'Unmerge cells' },
-                                        mergeCells: { text: 'Merge cells' },
-                                        deleteRow: { text: 'Delete row' },
-                                        deleteColumn: { text: 'Delete column' },
-                                        insertRowAbove: { text: 'Insert row above' },
-                                        insertRowBelow: { text: 'Insert row below' },
-                                        insertColumnLeft: { text: 'Insert column left' },
-                                        insertColumnRight: { text: 'Insert column right' },
-                                    },
-                                    color: {
-                                        colors: ['#fff', '#000', '#d1d5db', '#4b5563', '#b91c1c', '#15803d', '#1d4ed8'],
-                                        text: 'Background Colors'
-                                    }
-                                },
-                            },
-                            keyboard: {
-                                bindings: quillBetterTable.keyboardBindings
-                            }
-                        },
-                        theme: 'snow'
-                    });
-                    quill.root.innerHTML = data[fieldKey] || '';
-                    hiddenInput.value = data[fieldKey] || '';
-                    quill.on('text-change', () => { hiddenInput.value = quill.root.innerHTML; });
-                    container.quill = quill;
                 });
+                listenForWikiEntries();
+                updateUIAfterAuthChange();
             }
 
-            const creatorInfo = document.getElementById('creator-info');
-            creatorInfo.textContent = data.creatorEmail ? `Created by: ${data.creatorEmail}` : '';
-            creatorInfo.classList.toggle('hidden', !data.creatorEmail);
-            
-            const modalDataDropdown = document.getElementById('modal-data-dropdown');
-            modalDataDropdown.innerHTML = '';
+            // --- Data Handling & Firestore ---
+            let rulesCodexMap = new Map();
 
-            if (finalEditMode) {
-                modalDataDropdown.innerHTML += `<button type="submit" form="entry-form">Save</button>`;
-            } else if (hasPermission('edit', data)) {
-                const editButton = document.createElement('button');
-                editButton.textContent = 'Edit';
-                editButton.addEventListener('click', () => populateModal(docId, data, true));
-                modalDataDropdown.appendChild(editButton);
-            }
-
-            const cancelButton = document.createElement('button');
-            cancelButton.textContent = 'Cancel';
-            cancelButton.addEventListener('click', () => {
-                if (isFormDirty()) {
-                    appState.pendingAction = () => closeModal();
-                    unsavedChangesModal.classList.remove('hidden');
-                } else {
-                    closeModal();
-                }
-            });
-            modalDataDropdown.appendChild(cancelButton);
-
-            if (docId && hasPermission('delete', data)) {
-                const deleteButton = document.createElement('button');
-                deleteButton.className = 'text-red-400 hover:bg-red-800';
-                deleteButton.textContent = 'Delete';
-                deleteButton.addEventListener('click', () => deleteEntry(docId));
-                modalDataDropdown.appendChild(deleteButton);
-            }
-
-            document.getElementById('modal-data-btn').onclick = (e) => {
-                e.stopPropagation();
-                modalDataDropdown.classList.toggle('show');
-            };
-
-            const genDescBtn = document.getElementById('generate-description-btn');
-            if(genDescBtn) {
-                genDescBtn.addEventListener('click', () => {
-                    const editorContainer = formFieldsContainer.querySelector('#editor-description');
-                    const quillInstance = editorContainer ? editorContainer.quill : null;
-                    generateDescription(quillInstance);
-                });
-            }
-            
-            appState.initialFormState = getFormState(entryForm);
-            updateUIAfterAuthChange();
-        }
-
-        async function openModal(docId = null, data = {}, isEditMode = false) {
-            await populateModal(docId, data, isEditMode);
-            
-            entryModal.classList.remove('hidden');
-            
-            document.getElementById('modal-explicit-close-btn').onclick = () => {
-                 if (isFormDirty()) {
-                    appState.pendingAction = () => closeModal();
-                    unsavedChangesModal.classList.remove('hidden');
-                } else {
-                    closeModal();
-                }
-            };
-        }
-
-        function closeModal() {
-            appState.initialFormState = null;
-            appState.editingDocId = null;
-            entryForm.reset();
-            entryModal.classList.add('hidden');
-        }
-
-        async function handleFormSubmit(e) {
-            e.preventDefault();
-            const result = await saveCurrentForm();
-            if (result.success) {
-                // After saving, re-render the modal in edit mode with the new data
-                const docRef = doc(db, `artifacts/${appId}/public/data/rules_codex`, result.docId);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    populateModal(result.docId, { id: result.docId, ...docSnap.data() }, true);
-                }
-            }
-        }
-
-        async function saveCurrentForm() {
-            const isCreating = !appState.editingDocId;
-            if (isCreating && !hasPermission('create')) {
-                showError("You do not have permission to create new entries.");
-                return { success: false };
-            }
-
-            const dataFromForm = getFormDataObject();
-            const sanitizedData = { ...dataFromForm };
-            if (sanitizedData.parent === '') sanitizedData.parent = null;
-            
-            const collectionPath = `artifacts/${appId}/public/data/rules_codex`;
-            let newDocId = appState.editingDocId;
-
-            try {
-                if (appState.editingDocId) {
-                    const docRef = doc(db, collectionPath, appState.editingDocId);
-                    const docSnap = await getDoc(docRef);
-                    if (!docSnap.exists() || !hasPermission('edit', docSnap.data())) {
-                        showError("You do not have permission to edit this entry.");
-                        return { success: false };
-                    }
-                    await updateDoc(docRef, { ...sanitizedData, lastUpdated: new Date() });
-                } else {
-                    sanitizedData.creatorId = appState.userId;
-                    sanitizedData.creatorEmail = auth.currentUser?.email || 'anonymous';
-                    const newDocRef = await addDoc(collection(db, collectionPath), sanitizedData);
-                    newDocId = newDocRef.id;
-                }
+            function listenForWikiEntries() {
+                const collectionPath = `artifacts/${appId}/public/data/rules_codex`;
+                const q = query(collection(db, collectionPath));
                 
-                appState.initialFormState = getFormState();
-                return { success: true, docId: newDocId };
-            } catch (error) {
-                showError(`Error saving data: ${error.message}`);
-                return { success: false };
-            }
-        }
-        
-        async function deleteEntry(docId) {
-            if (!docId) return;
-            const docRef = doc(db, `artifacts/${appId}/public/data/rules_codex`, docId);
-            const docSnap = await getDoc(docRef);
+                if (appState.activeListeners['rules_codex']) appState.activeListeners['rules_codex']();
 
-            if (!hasPermission('delete', docSnap.data())) {
-                 showError("You do not have permission to delete this entry.");
-                return;
+                appState.activeListeners['rules_codex'] = onSnapshot(q, (snapshot) => {
+                    appState.wikiEntries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    rulesCodexMap.clear();
+                    appState.wikiEntries.forEach(entry => rulesCodexMap.set(entry.name, entry.id));
+
+                    const wikiDirectory = document.getElementById('wiki-directory-list');
+                    if (wikiDirectory) {
+                        renderWikiDirectory(wikiDirectory, appState.wikiEntries, null);
+                        if (appState.currentWikiEntryId && appState.wikiEntries.some(e => e.id === appState.currentWikiEntryId)) {
+                            displayWikiEntry(appState.currentWikiEntryId);
+                        }
+                    }
+                }, error => {
+                    showError("Failed to load wiki entries.");
+                });
+            }
+            
+            async function renderWikiDirectory(container, entries, parent = null, level = 0) {
+                if (!container) return;
+                const ul = document.createElement('ul');
+                ul.className = `space-y-1 ${level > 0 ? 'pl-4' : ''}`;
+
+                const children = entries.filter(entry => (entry.parent || null) === parent).sort((a, b) => (a.order || 0) - (b.order || 0) || a.name.localeCompare(b.name));
+
+                for (const entry of children) {
+                    const li = document.createElement('li');
+                    const hasChildren = entries.some(e => e.parent === entry.name);
+
+                    const itemContent = document.createElement('div');
+                    itemContent.className = 'flex items-center text-sm';
+
+                    let toggleBtnHtml = `<span class="w-6"></span>`;
+                    if (hasChildren) {
+                        toggleBtnHtml = `<button class="toggle-btn w-6 text-center" data-toggle-id="${entry.id}">▾</button>`;
+                    }
+
+                    itemContent.innerHTML = `
+                        ${toggleBtnHtml}
+                        <a href="#" class="flex-grow p-1 rounded hover:bg-gray-700" data-entry-id="${entry.id}">${entry.name}</a>
+                    `;
+                    li.appendChild(itemContent);
+
+                    if (hasChildren) {
+                        const childrenContainer = document.createElement('div');
+                        childrenContainer.id = `children-${entry.id}`;
+                        childrenContainer.style.display = 'block';
+                        await renderWikiDirectory(childrenContainer, entries, entry.name, level + 1);
+                        li.appendChild(childrenContainer);
+
+                        const toggleButton = itemContent.querySelector('.toggle-btn');
+                        toggleButton.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const isHidden = childrenContainer.style.display === 'none';
+                            childrenContainer.style.display = isHidden ? 'block' : 'none';
+                            toggleButton.innerHTML = isHidden ? '▸' : '▾';
+                        });
+                    }
+
+                    const link = itemContent.querySelector('a');
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        displayWikiEntry(entry.id);
+                    });
+
+                    ul.appendChild(li);
+                }
+                container.innerHTML = '';
+                container.appendChild(ul);
             }
 
-            showConfirmModal(`ARE YOU SURE YOU WANT TO DELETE THIS ENTRY?`, async () => {
-                closeModal();
+            async function displayWikiEntry(docId) {
+                const wikiTitle = document.getElementById('wiki-entry-title');
+                const wikiBody = document.getElementById('wiki-entry-body');
+                const wikiEditBtn = document.getElementById('wiki-edit-btn');
+
+                if(!wikiTitle || !wikiBody) return;
+
+                wikiTitle.textContent = 'Loading...';
+                wikiBody.innerHTML = '<p class="text-center text-gray-400">Loading entry...</p>';
+                if(wikiEditBtn) wikiEditBtn.classList.add('hidden');
+                appState.currentWikiEntryId = null;
+
                 try {
-                    await deleteDoc(docRef);
-                    if (appState.currentWikiEntryId === docId) {
-                        document.getElementById('wiki-entry-title').textContent = 'Select an Entry';
-                        document.getElementById('wiki-entry-body').innerHTML = '<p class="text-gray-400">Please select an entry.</p>';
-                        appState.currentWikiEntryId = null;
+                    const entry = appState.wikiEntries.find(e => e.id === docId);
+
+                    if (entry) {
+                        wikiTitle.textContent = entry.name.toUpperCase();
+                        let contentHtml = '';
+
+                        if (entry.description) contentHtml += parseWikiLinks(entry.description);
+                        if (entry.mechanic) contentHtml += `<h3>Mechanics</h3>` + parseWikiLinks(entry.mechanic);
+                        if (entry.guide) contentHtml += `<h3>Guide</h3>` + parseWikiLinks(entry.guide);
+                        if (entry.note) contentHtml += `<h3>Notes</h3>` + parseWikiLinks(entry.note);
+                        
+                        if (!contentHtml) contentHtml = '<p class="text-gray-400">No content available for this entry.</p>';
+                        
+                        wikiBody.innerHTML = contentHtml;
+                        appState.currentWikiEntryId = docId;
+
+                        if (hasPermission('edit', entry)) {
+                            if(wikiEditBtn) wikiEditBtn.classList.remove('hidden');
+                        }
+
+                    } else {
+                        wikiTitle.textContent = 'Entry Not Found';
+                        wikiBody.innerHTML = '<p class="text-red-400">The requested wiki entry could not be found.</p>';
                     }
                 } catch (error) {
-                    showError("Error deleting entry.");
+                    showError("Failed to display wiki entry.");
                 }
-            });
-        }
-        
-        async function generateDescription(quillInstance) {
-            const userApiKey = localStorage.getItem('geminiApiKey');
-            if (!userApiKey) {
-                showError("Please enter your Gemini API key in settings.");
-                return;
             }
-            // ... (API call logic remains the same)
-        }
-        
-        function parseWikiLinks(text) {
-            if (!text) return '';
-            return text.replace(/\[\[(.*?)\]\]/g, (match, p1) => {
-                const entryName = p1.trim();
-                const docId = rulesCodexMap.get(entryName);
-                if (docId) {
-                    return `<a href="#" class="wiki-link" data-linked-id="${docId}">${entryName}</a>`;
-                }
-                return entryName;
-            });
-        }
-
-        document.body.addEventListener('click', async (event) => {
-            if (event.target.classList.contains('wiki-link')) {
-                event.preventDefault();
-                const linkedDocId = event.target.dataset.linkedId;
-                if (linkedDocId) {
-                    const docSnap = await getDoc(doc(db, `artifacts/${appId}/public/data/rules_codex`, linkedDocId));
-                    if (docSnap.exists()) {
-                        if (!entryModal.classList.contains('hidden')) closeModal(); 
-                        openModal(linkedDocId, {id: docSnap.id, ...docSnap.data()}, false); 
+            
+            function getFormDataObject(formElement) {
+                const form = formElement || document.getElementById('entry-form');
+                if (!form) return {};
+                const formData = new FormData(form);
+                const data = {};
+                for (let [key, value] of formData.entries()) {
+                    if (data[key]) {
+                        if (!Array.isArray(data[key])) data[key] = [data[key]];
+                        data[key].push(value);
                     } else {
-                        showError(`Linked entry not found.`);
+                        data[key] = value;
+                    }
+                }
+                return data;
+            }
+            
+            function getFormState(form) {
+                return JSON.stringify(getFormDataObject(form));
+            }
+
+            function isFormDirty() {
+                if (!entryModal || entryModal.classList.contains('hidden')) return false;
+                return appState.initialFormState !== getFormState(document.getElementById('entry-form'));
+            }
+
+            async function createFormFieldHtml(fieldKey, fieldConfig, savedValue, isEditMode) {
+                const labelText = (fieldConfig.label || fieldKey.replace(/_/g, ' ')).toUpperCase();
+                let labelHtml = `<label for="${fieldKey}" class="global-form-label">${labelText}</label>`;
+
+                if (isEditMode && fieldConfig.aiEnabled) {
+                    labelHtml = `<div class="flex justify-between items-center">
+                                        <label for="${fieldKey}" class="global-form-label">${labelText}</label>
+                                        <button type="button" id="generate-description-btn" class="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors underline auth-required hidden">
+                                            GENERATE
+                                        </button>
+                                     </div>`;
+                }
+
+                let fieldHtml = '';
+                if (fieldConfig.type === 'textarea') {
+                    fieldHtml = isEditMode 
+                        ? `<div id="editor-${fieldKey}" class="quill-editor-container"></div><input type="hidden" id="${fieldKey}" name="${fieldKey}">`
+                        : `<div class="global-form-input display-only-input p-2 overflow-auto prose prose-invert max-w-none">${parseWikiLinks(savedValue || '')}</div>`;
+                } else if (fieldConfig.type === 'select') {
+                    const options = appState.wikiEntries
+                        .filter(entry => entry.id !== appState.editingDocId)
+                        .map(entry => `<option value="${entry.name}" ${savedValue === entry.name ? 'selected' : ''}>${entry.name.toUpperCase()}</option>`).join('');
+                    fieldHtml = isEditMode
+                        ? `<select id="${fieldKey}" name="${fieldKey}" class="global-form-input form-select-arrow"><option value="">--CHOOSE--</option>${options}</select>`
+                        : `<div class="global-form-input display-only-input">${(savedValue || '').toUpperCase()}</div>`;
+                } else if (fieldConfig.type === 'number') {
+                     fieldHtml = `<input type="number" id="${fieldKey}" name="${fieldKey}" value="${savedValue || 0}" class="global-form-input ${!isEditMode ? 'display-only-input' : ''}" ${!isEditMode ? 'readonly' : ''}>`;
+                } else {
+                    fieldHtml = `<input type="text" id="${fieldKey}" name="${fieldKey}" value="${savedValue || ''}" class="global-form-input ${!isEditMode ? 'display-only-input' : ''}" ${!isEditMode ? 'readonly' : ''}>`;
+                }
+
+                return `<div>${labelHtml}${fieldHtml}</div>`;
+            }
+
+            async function populateModal(docId = null, data = {}, isEditMode = false) {
+                const finalEditMode = hasPermission('edit', data) && isEditMode;
+                appState.editingDocId = docId;
+                
+                modalTitle.textContent = `${finalEditMode ? 'MANAGE' : 'VIEW'} WIKI ENTRY`;
+                
+                const config = categoryConfig.rules_codex;
+                const formHtml = await Promise.all(Object.keys(config.fields).map(async (fieldKey) => {
+                    const fieldConfig = config.fields[fieldKey];
+                    const savedValue = data[fieldKey];
+                    return createFormFieldHtml(fieldKey, fieldConfig, savedValue, finalEditMode);
+                }));
+
+                formFieldsContainer.innerHTML = formHtml.join('');
+
+                if (finalEditMode) {
+                    const editorContainers = formFieldsContainer.querySelectorAll('.quill-editor-container');
+                    editorContainers.forEach(container => {
+                        const fieldKey = container.id.replace('editor-', '');
+                        const hiddenInput = document.getElementById(fieldKey);
+                        const quill = new Quill(container, {
+                            modules: { 
+                                toolbar: [
+                                    [{ 'header': [1, 2, 3, false] }],
+                                    ['bold', 'italic', 'underline', 'link'],
+                                    [{ 'color': [] }],
+                                    ['table']
+                                ],
+                                table: true,
+                                "better-table": {
+                                    operationMenu: {
+                                        items: {
+                                            unmergeCells: { text: 'Unmerge cells' },
+                                            mergeCells: { text: 'Merge cells' },
+                                            deleteRow: { text: 'Delete row' },
+                                            deleteColumn: { text: 'Delete column' },
+                                            insertRowAbove: { text: 'Insert row above' },
+                                            insertRowBelow: { text: 'Insert row below' },
+                                            insertColumnLeft: { text: 'Insert column left' },
+                                            insertColumnRight: { text: 'Insert column right' },
+                                        },
+                                        color: {
+                                            colors: ['#fff', '#000', '#d1d5db', '#4b5563', '#b91c1c', '#15803d', '#1d4ed8'],
+                                            text: 'Background Colors'
+                                        }
+                                    },
+                                },
+                                keyboard: {
+                                    bindings: quillBetterTable.keyboardBindings
+                                }
+                            },
+                            theme: 'snow'
+                        });
+                        quill.root.innerHTML = data[fieldKey] || '';
+                        hiddenInput.value = data[fieldKey] || '';
+                        quill.on('text-change', () => { hiddenInput.value = quill.root.innerHTML; });
+                        container.quill = quill;
+                    });
+                }
+
+                const creatorInfo = document.getElementById('creator-info');
+                creatorInfo.textContent = data.creatorEmail ? `Created by: ${data.creatorEmail}` : '';
+                creatorInfo.classList.toggle('hidden', !data.creatorEmail);
+                
+                const modalDataDropdown = document.getElementById('modal-data-dropdown');
+                modalDataDropdown.innerHTML = '';
+
+                if (finalEditMode) {
+                    modalDataDropdown.innerHTML += `<button type="submit" form="entry-form">Save</button>`;
+                } else if (hasPermission('edit', data)) {
+                    const editButton = document.createElement('button');
+                    editButton.textContent = 'Edit';
+                    editButton.addEventListener('click', () => populateModal(docId, data, true));
+                    modalDataDropdown.appendChild(editButton);
+                }
+
+                const cancelButton = document.createElement('button');
+                cancelButton.textContent = 'Cancel';
+                cancelButton.addEventListener('click', () => {
+                    if (isFormDirty()) {
+                        appState.pendingAction = () => closeModal();
+                        unsavedChangesModal.classList.remove('hidden');
+                    } else {
+                        closeModal();
+                    }
+                });
+                modalDataDropdown.appendChild(cancelButton);
+
+                if (docId && hasPermission('delete', data)) {
+                    const deleteButton = document.createElement('button');
+                    deleteButton.className = 'text-red-400 hover:bg-red-800';
+                    deleteButton.textContent = 'Delete';
+                    deleteButton.addEventListener('click', () => deleteEntry(docId));
+                    modalDataDropdown.appendChild(deleteButton);
+                }
+
+                document.getElementById('modal-data-btn').onclick = (e) => {
+                    e.stopPropagation();
+                    modalDataDropdown.classList.toggle('show');
+                };
+
+                const genDescBtn = document.getElementById('generate-description-btn');
+                if(genDescBtn) {
+                    genDescBtn.addEventListener('click', () => {
+                        const editorContainer = formFieldsContainer.querySelector('#editor-description');
+                        const quillInstance = editorContainer ? editorContainer.quill : null;
+                        generateDescription(quillInstance);
+                    });
+                }
+                
+                appState.initialFormState = getFormState(entryForm);
+                updateUIAfterAuthChange();
+            }
+
+            async function openModal(docId = null, data = {}, isEditMode = false) {
+                await populateModal(docId, data, isEditMode);
+                
+                entryModal.classList.remove('hidden');
+                
+                document.getElementById('modal-explicit-close-btn').onclick = () => {
+                     if (isFormDirty()) {
+                        appState.pendingAction = () => closeModal();
+                        unsavedChangesModal.classList.remove('hidden');
+                    } else {
+                        closeModal();
+                    }
+                };
+            }
+
+            function closeModal() {
+                appState.initialFormState = null;
+                appState.editingDocId = null;
+                entryForm.reset();
+                entryModal.classList.add('hidden');
+            }
+
+            async function handleFormSubmit(e) {
+                e.preventDefault();
+                const result = await saveCurrentForm();
+                if (result.success) {
+                    // After saving, re-render the modal in edit mode with the new data
+                    const docRef = doc(db, `artifacts/${appId}/public/data/rules_codex`, result.docId);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        populateModal(result.docId, { id: result.docId, ...docSnap.data() }, true);
                     }
                 }
             }
-        });
 
-        // --- Global Event Listeners & Modal Helpers ---
-        confirmOkBtn.addEventListener('click', () => { if (appState.confirmCallback) appState.confirmCallback(); hideConfirmModal(); });
-        confirmCancelBtn.addEventListener('click', hideConfirmModal);
-        unsavedCancelBtn.addEventListener('click', hideUnsavedChangesModal);
-        unsavedDismissBtn.addEventListener('click', () => { if (appState.pendingAction) appState.pendingAction(); hideUnsavedChangesModal(); });
-        unsavedSaveBtn.addEventListener('click', async () => {
-            const result = await saveCurrentForm();
-            if (result.success && appState.pendingAction) appState.pendingAction();
-            hideUnsavedChangesModal();
-        });
-        errorOkBtn.addEventListener('click', hideErrorModal);
-        settingsIcon.addEventListener('click', () => {
-            apiKeyInput.value = localStorage.getItem('geminiApiKey') || '';
-            settingsModal.classList.remove('hidden');
-        });
-        settingsCancelBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
-        settingsSaveBtn.addEventListener('click', () => {
-            localStorage.setItem('geminiApiKey', apiKeyInput.value);
-            settingsModal.classList.add('hidden');
-        });
+            async function saveCurrentForm() {
+                const isCreating = !appState.editingDocId;
+                if (isCreating && !hasPermission('create')) {
+                    showError("You do not have permission to create new entries.");
+                    return { success: false };
+                }
 
-        function showConfirmModal(message, onConfirm) { confirmMessage.textContent = message.toUpperCase(); appState.confirmCallback = onConfirm; confirmModal.classList.remove('hidden'); }
-        function hideConfirmModal() { appState.confirmCallback = null; confirmModal.classList.add('hidden'); }
-        function hideUnsavedChangesModal() { appState.pendingAction = null; unsavedChangesModal.classList.add('hidden'); }
-        function showError(message) { errorMessage.textContent = message.toUpperCase(); errorModal.classList.remove('hidden'); }
-        function hideErrorModal() { errorModal.classList.add('hidden'); }
+                const dataFromForm = getFormDataObject();
+                const sanitizedData = { ...dataFromForm };
+                if (sanitizedData.parent === '') sanitizedData.parent = null;
+                
+                const collectionPath = `artifacts/${appId}/public/data/rules_codex`;
+                let newDocId = appState.editingDocId;
 
-        window.addEventListener('click', (event) => {
-            const tableModal = document.getElementById('table-modal');
-            if (event.target == confirmModal) hideConfirmModal();
-            else if (event.target == errorModal) hideErrorModal();
-            else if (event.target == unsavedChangesModal) hideUnsavedChangesModal();
-            else if (event.target == settingsModal) settingsModal.classList.add('hidden');
-            else if (tableModal && event.target == tableModal) tableModal.classList.add('hidden');
+                try {
+                    if (appState.editingDocId) {
+                        const docRef = doc(db, collectionPath, appState.editingDocId);
+                        const docSnap = await getDoc(docRef);
+                        if (!docSnap.exists() || !hasPermission('edit', docSnap.data())) {
+                            showError("You do not have permission to edit this entry.");
+                            return { success: false };
+                        }
+                        await updateDoc(docRef, { ...sanitizedData, lastUpdated: new Date() });
+                    } else {
+                        sanitizedData.creatorId = appState.userId;
+                        sanitizedData.creatorEmail = auth.currentUser?.email || 'anonymous';
+                        const newDocRef = await addDoc(collection(db, collectionPath), sanitizedData);
+                        newDocId = newDocRef.id;
+                    }
+                    
+                    appState.initialFormState = getFormState();
+                    return { success: true, docId: newDocId };
+                } catch (error) {
+                    showError(`Error saving data: ${error.message}`);
+                    return { success: false };
+                }
+            }
             
-            const modalDataBtn = document.getElementById('modal-data-btn');
-            const modalDataDropdown = document.getElementById('modal-data-dropdown');
-            if (modalDataBtn && modalDataDropdown && !modalDataBtn.contains(event.target) && !modalDataDropdown.contains(event.target)) {
-                modalDataDropdown.classList.remove('show');
-            }
-        });
+            async function deleteEntry(docId) {
+                if (!docId) return;
+                const docRef = doc(db, `artifacts/${appId}/public/data/rules_codex`, docId);
+                const docSnap = await getDoc(docRef);
 
-        window.addEventListener('beforeunload', (event) => {
-            if (isFormDirty()) {
-                event.preventDefault();
-                event.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
-            }
-        });
-        entryForm.addEventListener('submit', handleFormSubmit);
+                if (!hasPermission('delete', docSnap.data())) {
+                     showError("You do not have permission to delete this entry.");
+                    return;
+                }
 
+                showConfirmModal(`ARE YOU SURE YOU WANT TO DELETE THIS ENTRY?`, async () => {
+                    closeModal();
+                    try {
+                        await deleteDoc(docRef);
+                        if (appState.currentWikiEntryId === docId) {
+                            document.getElementById('wiki-entry-title').textContent = 'Select an Entry';
+                            document.getElementById('wiki-entry-body').innerHTML = '<p class="text-gray-400">Please select an entry.</p>';
+                            appState.currentWikiEntryId = null;
+                        }
+                    } catch (error) {
+                        showError("Error deleting entry.");
+                    }
+                });
+            }
+            
+            async function generateDescription(quillInstance) {
+                const userApiKey = localStorage.getItem('geminiApiKey');
+                if (!userApiKey) {
+                    showError("Please enter your Gemini API key in settings.");
+                    return;
+                }
+                // ... (API call logic remains the same)
+            }
+            
+            function parseWikiLinks(text) {
+                if (!text) return '';
+                return text.replace(/\[\[(.*?)\]\]/g, (match, p1) => {
+                    const entryName = p1.trim();
+                    const docId = rulesCodexMap.get(entryName);
+                    if (docId) {
+                        return `<a href="#" class="wiki-link" data-linked-id="${docId}">${entryName}</a>`;
+                    }
+                    return entryName;
+                });
+            }
+
+            document.body.addEventListener('click', async (event) => {
+                if (event.target.classList.contains('wiki-link')) {
+                    event.preventDefault();
+                    const linkedDocId = event.target.dataset.linkedId;
+                    if (linkedDocId) {
+                        const docSnap = await getDoc(doc(db, `artifacts/${appId}/public/data/rules_codex`, linkedDocId));
+                        if (docSnap.exists()) {
+                            if (!entryModal.classList.contains('hidden')) closeModal(); 
+                            openModal(linkedDocId, {id: docSnap.id, ...docSnap.data()}, false); 
+                        } else {
+                            showError(`Linked entry not found.`);
+                        }
+                    }
+                }
+            });
+
+            // --- Global Event Listeners & Modal Helpers ---
+            confirmOkBtn.addEventListener('click', () => { if (appState.confirmCallback) appState.confirmCallback(); hideConfirmModal(); });
+            confirmCancelBtn.addEventListener('click', hideConfirmModal);
+            unsavedCancelBtn.addEventListener('click', hideUnsavedChangesModal);
+            unsavedDismissBtn.addEventListener('click', () => { if (appState.pendingAction) appState.pendingAction(); hideUnsavedChangesModal(); });
+            unsavedSaveBtn.addEventListener('click', async () => {
+                const result = await saveCurrentForm();
+                if (result.success && appState.pendingAction) appState.pendingAction();
+                hideUnsavedChangesModal();
+            });
+            errorOkBtn.addEventListener('click', hideErrorModal);
+            settingsIcon.addEventListener('click', () => {
+                apiKeyInput.value = localStorage.getItem('geminiApiKey') || '';
+                settingsModal.classList.remove('hidden');
+            });
+            settingsCancelBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
+            settingsSaveBtn.addEventListener('click', () => {
+                localStorage.setItem('geminiApiKey', apiKeyInput.value);
+                settingsModal.classList.add('hidden');
+            });
+
+            function showConfirmModal(message, onConfirm) { confirmMessage.textContent = message.toUpperCase(); appState.confirmCallback = onConfirm; confirmModal.classList.remove('hidden'); }
+            function hideConfirmModal() { appState.confirmCallback = null; confirmModal.classList.add('hidden'); }
+            function hideUnsavedChangesModal() { appState.pendingAction = null; unsavedChangesModal.classList.add('hidden'); }
+            function showError(message) { errorMessage.textContent = message.toUpperCase(); errorModal.classList.remove('hidden'); }
+            function hideErrorModal() { errorModal.classList.add('hidden'); }
+
+            window.addEventListener('click', (event) => {
+                const tableModal = document.getElementById('table-modal');
+                if (event.target == confirmModal) hideConfirmModal();
+                else if (event.target == errorModal) hideErrorModal();
+                else if (event.target == unsavedChangesModal) hideUnsavedChangesModal();
+                else if (event.target == settingsModal) settingsModal.classList.add('hidden');
+                else if (tableModal && event.target == tableModal) tableModal.classList.add('hidden');
+                
+                const modalDataBtn = document.getElementById('modal-data-btn');
+                const modalDataDropdown = document.getElementById('modal-data-dropdown');
+                if (modalDataBtn && modalDataDropdown && !modalDataBtn.contains(event.target) && !modalDataDropdown.contains(event.target)) {
+                    modalDataDropdown.classList.remove('show');
+                }
+            });
+
+            window.addEventListener('beforeunload', (event) => {
+                if (isFormDirty()) {
+                    event.preventDefault();
+                    event.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+                }
+            });
+            entryForm.addEventListener('submit', handleFormSubmit);
+        });
     </script>
 </body>
 </html>
