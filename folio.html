@@ -2431,6 +2431,10 @@
                 const hiddenInput = document.getElementById(fieldKey);
                 const savedData = data[fieldKey] || '';
 
+                // Register the table module with Quill
+                const Table = Quill.import('formats/table-container');
+                Quill.register(Table, true);
+
                 const quill = new Quill(container, {
                     modules: {
                         toolbar: [
@@ -2439,9 +2443,10 @@
                             ['blockquote', 'code-block'],
                             [{ 'list': 'ordered'}, { 'list': 'bullet' }],
                             [{ 'indent': '-1'}, { 'indent': '+1' }],
-                            [{ 'color': ['#000000', '#FFFFFF', '#FF0000', '#0000FF', '#008000', '#FFFF00', '#FFA500'] }, { 'background': [] }],
+                            [{ 'color': [] }, { 'background': [] }],
                             ['clean']
-                        ]
+                        ],
+                        table: true // Enable the table module
                     },
                     placeholder: 'Compose an epic...',
                     theme: 'snow'
@@ -3161,7 +3166,7 @@
             
             const modalDataBtn = document.getElementById('modal-data-btn');
             const modalDataDropdown = document.getElementById('modal-data-dropdown');
-            if (modalDataBtn && modalDataDropdown && !modalDataBtn.contains(event.target) && !modalDataDropdown.contains(event.target)) {
+            if (modalDataBtn && modalDataDropdown && !modalDataDropdown.contains(event.target) && !modalDataDropdown.contains(event.target)) {
                 modalDataDropdown.classList.remove('show');
             }
         });
