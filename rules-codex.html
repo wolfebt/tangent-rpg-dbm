@@ -1066,7 +1066,14 @@
             }
 
             async function openModal(docId = null, data = {}, isEditMode = false) {
-                await populateModal(docId, data, isEditMode);
+                let entryData = data;
+                if (docId && !data.name) { // Check if full data is missing
+                    const entry = appState.wikiEntries.find(e => e.id === docId);
+                    if (entry) {
+                        entryData = entry;
+                    }
+                }
+                await populateModal(docId, entryData, isEditMode);
                 
                 entryModal.classList.remove('hidden');
                 
