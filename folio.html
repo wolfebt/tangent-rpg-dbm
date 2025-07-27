@@ -13,6 +13,10 @@
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
 
+    <!-- Quill Better Table Module -->
+    <link rel="stylesheet" href="https://unpkg.com/quill-better-table@1.2.10/dist/quill-better-table.css">
+    <script type="text/javascript" src="https://unpkg.com/quill-better-table@1.2.10/dist/quill-better-table.js"></script>
+
     <style>
         /* --- Global Theme --- */
         :root {
@@ -489,6 +493,23 @@
         .ql-snow .ql-picker.ql-color .ql-picker-item.ql-selected {
             border-color: var(--border-focus);
         }
+        
+        /* Better Table Dark Theme */
+        .ql-snow .ql-picker.ql-table .ql-picker-item {
+            border: 1px solid var(--text-subtle);
+        }
+        .ql-snow .ql-picker.ql-table .ql-picker-item:hover {
+            border-color: var(--text-light);
+        }
+        #quill-better-table-tool-tip {
+            background-color: var(--bg-section);
+            border: 1px solid var(--border-main);
+            color: var(--text-light);
+        }
+        #quill-better-table-tool-tip .operation-menu .menu-item:hover {
+            background-color: var(--bg-hover);
+        }
+
 
         /* Prose styles for rendered Quill content */
         .prose { color: var(--text-light); }
@@ -2431,9 +2452,10 @@
                 const hiddenInput = document.getElementById(fieldKey);
                 const savedData = data[fieldKey] || '';
 
-                // Register the table module with Quill
-                const Table = Quill.import('formats/table-container');
-                Quill.register(Table, true);
+                // Register the better-table module
+                Quill.register({
+                    'modules/better-table': window.quillBetterTable
+                }, true);
 
                 const quill = new Quill(container, {
                     modules: {
@@ -2444,10 +2466,20 @@
                             [{ 'list': 'ordered'}, { 'list': 'bullet' }],
                             [{ 'indent': '-1'}, { 'indent': '+1' }],
                             [{ 'color': [] }, { 'background': [] }],
-                            ['table'], // Add table button
+                            ['table'], // Add table button from better-table
                             ['clean']
                         ],
-                        table: true // Enable the table module
+                        table: false, // disable base table module
+                        'better-table': {
+                            operationMenu: {
+                                items: {
+                                    unmergeCell: { text: 'Unmerge cell' }
+                                }
+                            }
+                        },
+                        keyboard: {
+                            bindings: window.quillBetterTable.keyboardBindings
+                        }
                     },
                     placeholder: 'Compose an epic...',
                     theme: 'snow'
