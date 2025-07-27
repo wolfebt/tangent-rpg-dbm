@@ -254,14 +254,6 @@
             font-weight: bold;
         }
 
-        .sticky-sidebar {
-            position: -webkit-sticky; /* For Safari */
-            position: sticky;
-            top: calc(var(--header-height) + 1.5rem); /* header height + main content padding */
-            align-self: start; /* Important for sticky to work in a flex/grid container */
-            max-height: calc(100vh - var(--header-height) - 3rem); /* Prevent it from being taller than viewport */
-        }
-
         .btn {
             font-family: var(--font-body);
             font-weight: bold;
@@ -370,6 +362,11 @@
         }
         .submenu-container:hover .submenu {
             display: block;
+        }
+
+        #modal-data-dropdown {
+            left: 0;
+            right: auto;
         }
 
         /* Quill Dark Theme Overrides */
@@ -1718,7 +1715,6 @@
         function renderCategoryView(categoryKey) {
             if (!appState.authReady) return; 
             
-            // Clear all previous listeners
             Object.values(appState.activeListeners).forEach(unsub => unsub());
             appState.activeListeners = {};
 
@@ -1731,20 +1727,25 @@
                 return;
             }
             
+            mainContentContainer.style.padding = '1.5rem';
+
             if (config.viewType === 'wiki') {
+                mainContentContainer.style.padding = '0';
                 mainContentContainer.innerHTML = `
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-                        <div id="wiki-directory-main" class="sticky-sidebar md:col-span-1 bg-gray-800 p-4 rounded-lg overflow-y-auto border-2 border-gray-700">
+                    <div class="flex" style="height: calc(100vh - var(--header-height));">
+                        <div id="wiki-directory-main" class="w-80 flex-shrink-0 bg-gray-800 p-4 overflow-y-auto border-r-2 border-gray-700">
                             <button id="add-wiki-entry-btn" class="btn btn-primary w-full mb-4 auth-required hidden">Add New Entry</button>
                             <ul id="wiki-directory-list"></ul>
                         </div>
-                        <div class="md:col-span-3 wiki-content prose prose-invert max-w-none" id="wiki-content-main">
-                            <div class="flex justify-end gap-2 mb-4">
-                                <button id="wiki-edit-btn" class="btn btn-secondary auth-required hidden">Edit</button>
-                            </div>
-                            <h2 id="wiki-entry-title">Select an Entry</h2>
-                            <div id="wiki-entry-body">
-                                <p class="text-gray-400">Please select an entry from the directory on the left.</p>
+                        <div class="flex-grow p-6 overflow-y-auto">
+                            <div class="wiki-content prose prose-invert max-w-none" id="wiki-content-main">
+                                <div class="flex justify-end gap-2 mb-4">
+                                    <button id="wiki-edit-btn" class="btn btn-secondary auth-required hidden">Edit</button>
+                                </div>
+                                <h2 id="wiki-entry-title">Select an Entry</h2>
+                                <div id="wiki-entry-body">
+                                    <p class="text-gray-400">Please select an entry from the directory on the left.</p>
+                                </div>
                             </div>
                         </div>
                     </div>
