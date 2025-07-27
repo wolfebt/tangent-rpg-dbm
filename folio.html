@@ -2444,6 +2444,7 @@
                             [{ 'list': 'ordered'}, { 'list': 'bullet' }],
                             [{ 'indent': '-1'}, { 'indent': '+1' }],
                             [{ 'color': [] }, { 'background': [] }],
+                            ['table'], // Add table button
                             ['clean']
                         ],
                         table: true // Enable the table module
@@ -3166,7 +3167,7 @@
             
             const modalDataBtn = document.getElementById('modal-data-btn');
             const modalDataDropdown = document.getElementById('modal-data-dropdown');
-            if (modalDataBtn && modalDataDropdown && !modalDataDropdown.contains(event.target) && !modalDataDropdown.contains(event.target)) {
+            if (modalDataBtn && modalDataDropdown && !modalDataBtn.contains(event.target) && !modalDataDropdown.contains(event.target)) {
                 modalDataDropdown.classList.remove('show');
             }
         });
