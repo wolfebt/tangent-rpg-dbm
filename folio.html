@@ -462,6 +462,22 @@
             color: var(--text-light);
             padding: 4px 8px;
         }
+        
+        .ql-editor table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+        .ql-editor td, .ql-editor th {
+            border: 1px solid var(--border-main);
+            padding: 0.5rem;
+            text-align: left;
+        }
+        .ql-editor th {
+            background-color: var(--bg-header);
+            font-weight: bold;
+        }
+
         /* Style for color picker swatches */
         .ql-snow .ql-picker.ql-color .ql-picker-item {
             width: 20px;
@@ -473,12 +489,6 @@
         .ql-snow .ql-picker.ql-color .ql-picker-item.ql-selected {
             border-color: var(--border-focus);
         }
-        .ql-snow .ql-picker.ql-table .ql-picker-item {
-            border-color: var(--border-subtle) !important;
-        }
-        .ql-snow .ql-picker.ql-table .ql-picker-item:hover {
-            border-color: var(--border-focus) !important;
-        }
 
         /* Prose styles for rendered Quill content */
         .prose { color: var(--text-light); }
@@ -487,31 +497,23 @@
         .prose a:hover { color: #90cdf4; }
         .prose blockquote { color: var(--text-subtle); border-left-color: var(--border-main); }
         .prose code { background-color: var(--bg-header); color: #a5f3fc; padding: 0.2rem 0.4rem; border-radius: 0.25rem; font-weight: bold; }
-        
-        /* Table Styles */
-        .prose table, .ql-editor table {
+        .prose thead { border-bottom-color: var(--border-main); }
+        .prose tbody tr { border-bottom-color: var(--border-subtle); }
+        .prose ul > li::before { background-color: var(--text-subtle); }
+        .prose table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 1em;
             margin-bottom: 1em;
         }
-        .prose th, .prose td, .ql-editor th, .ql-editor td {
-            border: 1px solid var(--border-subtle);
+        .prose th, .prose td {
+            border: 1px solid var(--border-main);
             padding: 0.5rem 0.75rem;
-            text-align: left;
         }
-        .prose thead, .ql-editor thead {
-             border-bottom-color: var(--border-main);
-        }
-        .prose th, .ql-editor th {
+        .prose th {
             background-color: var(--bg-header);
-            color: var(--text-subtle);
             font-weight: bold;
         }
-        .prose tbody tr, .ql-editor tbody tr {
-            border-bottom-color: var(--border-subtle);
-        }
-        .prose ul > li::before { background-color: var(--text-subtle); }
 
     </style>
 </head>
@@ -727,10 +729,10 @@
                 viewType: 'wiki',
                 fields: {
                     name: { type: 'text', required: true },
-                    description: { type: 'textarea', richText: true, aiEnabled: true },
-                    mechanic: { type: 'textarea', richText: true },
-                    note: { type: 'textarea', richText: true },
-                    guide: { type: 'textarea', richText: true },
+                    description: { type: 'textarea', aiEnabled: true },
+                    mechanic: { type: 'textarea' },
+                    note: { type: 'textarea' },
+                    guide: { type: 'textarea' },
                     parent: { type: 'select', source: 'rules_codex', label: 'Parent Entry', manageable: false },
                     order: { type: 'number', label: 'Order', default: 0 },
                 }
@@ -742,7 +744,7 @@
                     name: { type: 'text', required: true },
                     description: { type: 'textarea', aiEnabled: true },
                     modifier: { type: 'multiselect', source: 'modifier', manageable: true },
-                    mechanic: { type: 'textarea', richText: true },
+                    mechanic: { type: 'textarea' },
                     cp: { type: 'number' }
                 }
             },
@@ -753,7 +755,7 @@
                     name: { type: 'text', required: true },
                     description: { type: 'textarea', aiEnabled: true },
                     modifier: { type: 'multiselect', source: 'modifier', manageable: true },
-                    mechanic: { type: 'textarea', richText: true },
+                    mechanic: { type: 'textarea' },
                     cp: { type: 'number' }
                 }
             },
@@ -764,7 +766,7 @@
                     name: { type: 'text', required: true },
                     description: { type: 'textarea', aiEnabled: true },
                     modifier: { type: 'multiselect', source: 'modifier', manageable: true },
-                    mechanic: { type: 'textarea', richText: true },
+                    mechanic: { type: 'textarea' },
                     cp: { type: 'number' }
                 }
             },
@@ -792,7 +794,7 @@
                             prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
                             modifier: { type: 'multiselect', source: 'modifier', manageable: true },
                             description: { type:'textarea', aiEnabled: true}, 
-                            mechanic: { type: 'textarea', richText: true },
+                            mechanic: { type: 'textarea' },
                             note: { type: 'textarea' },
                             cp: { type: 'readonlytext', label: 'TOTAL CP'} 
                         } 
@@ -808,7 +810,7 @@
                             height_length_range: { type: 'text', label: 'Height/Length Range' },
                             weight_range: { type: 'text', label: 'Weight Range' },
                             reach: { type: 'text', label: 'Reach' },
-                            mechanic: { type: 'textarea', richText: true },
+                            mechanic: { type: 'textarea' },
                             note: { type: 'textarea' },
                             dc: { type: 'number', label: 'DC' },
                             cp: { type: 'readonlytext', label: 'TOTAL CP'} 
@@ -822,7 +824,7 @@
                             prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
                             modifier: { type: 'multiselect', source: 'modifier', manageable: true },
                             description: { type:'textarea', aiEnabled: true},
-                            mechanic: { type: 'textarea', richText: true },
+                            mechanic: { type: 'textarea' },
                             note: { type: 'textarea' },
                             cp: { type: 'readonlytext', label: 'TOTAL CP' } 
                         } 
@@ -843,7 +845,7 @@
                     goals: { type: 'textarea' },
                     social_strengths: { type: 'textarea' },
                     social_weaknesses: { type: 'textarea' },
-                    mechanic: { type: 'textarea', richText: true },
+                    mechanic: { type: 'textarea' },
                     note: { type: 'textarea' }
                 } 
             },
@@ -857,7 +859,7 @@
                     prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
                     modifier: { type: 'multiselect', source: 'modifier', manageable: true },
                     trait: { type: 'multiselect', source: 'trait', manageable: true },
-                    mechanic: { type: 'textarea', richText: true },
+                    mechanic: { type: 'textarea' },
                     note: { type: 'textarea' }
                 },
                 subcategories: {
@@ -871,7 +873,7 @@
                             meta_level: { type: 'select', label: 'Meta Level', options: [0, 1, 2, 3, 4, 5] },
                             modifier: { type: 'multiselect', source: 'modifier', manageable: true },
                             description: { type:'textarea', aiEnabled: true}, 
-                            mechanic: { type: 'textarea', richText: true },
+                            mechanic: { type: 'textarea' },
                             note: { type: 'textarea' },
                             cp: { type: 'readonlytext', label: 'TOTAL CP' } 
                         } 
@@ -888,7 +890,7 @@
                     prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
                     modifier: { type: 'multiselect', source: 'modifier', manageable: true },
                     trait: { type: 'multiselect', source: 'trait', manageable: true },
-                    mechanic: { type: 'textarea', richText: true },
+                    mechanic: { type: 'textarea' },
                     note: { type: 'textarea' }
                 } 
             },
@@ -904,7 +906,7 @@
                     prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
                     modifier: { type: 'multiselect', source: 'modifier', manageable: true },
                     cp: { type: 'number'},
-                    mechanic: { type: 'textarea', richText: true },
+                    mechanic: { type: 'textarea' },
                     note: { type: 'textarea' }
                 } 
             },
@@ -921,7 +923,7 @@
                     prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true},
                     modifier: { type: 'multiselect', source: 'modifier', manageable: true },
                     cp: { type: 'readonlytext', label: 'TOTAL CP' },
-                    mechanic: { type: 'textarea', richText: true },
+                    mechanic: { type: 'textarea' },
                     note: { type: 'textarea' }
                 } 
             },
@@ -938,7 +940,7 @@
                     description: { type:'textarea', aiEnabled: true},
                     tech_level: { type: 'select', label: 'Tech Level', options: [0, 1, 2, 3, 4, 5] },
                     meta_level: { type: 'select', label: 'Meta Level', options: [0, 1, 2, 3, 4, 5] },
-                    mechanic: { type: 'textarea', richText: true },
+                    mechanic: { type: 'textarea' },
                     note: { type: 'textarea' }
                 } 
             },
@@ -953,7 +955,7 @@
                     aspect_subtype: { type: 'select' },
                     value: { type: 'number' },
                     dc: { type: 'number', label: 'DC' },
-                    mechanic: { type: 'textarea', richText: true},
+                    mechanic: { type: 'textarea'},
                     note: { type: 'textarea'},
                     cp: { type: 'number' }
                 }
@@ -970,7 +972,7 @@
                     value: { type: 'number' },
                     modifier_type: { type: 'radio', label: 'Modifier Type', options: ['constant', 'situational', 'optional', 'temporary'] },
                     dc: { type: 'number', label: 'DC' },
-                    mechanic: { type: 'textarea', richText: true},
+                    mechanic: { type: 'textarea'},
                     note: { type: 'textarea'},
                     cp: { type: 'number' }
                 }
@@ -1000,7 +1002,7 @@
                     restricted: { type: 'boolean', label: 'Restricted' },
                     design_dc: { type: 'readonlytext', label: 'DESIGN DC' },
                     cp: { type: 'number' },
-                    mechanic: { type: 'textarea', richText: true },
+                    mechanic: { type: 'textarea' },
                     note: { type: 'textarea' }
                 },
                 subcategories: {
@@ -1012,7 +1014,7 @@
                             description: { type: 'textarea' },
                             prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
                             modifier: { type: 'multiselect', source: 'modifier', manageable: true },
-                            mechanic: { type: 'textarea', richText: true },
+                            mechanic: { type: 'textarea' },
                             note: { type: 'textarea' }
                         }
                     }
@@ -1036,7 +1038,7 @@
                     critical_success_effect: { type: 'multiselect', source: 'critical_success_effect', manageable: true },
                     critical_failure_effect: { type: 'multiselect', source: 'critical_failure_effect', manageable: true },
                     design_dc: { type: 'readonlytext', label: 'DESIGN DC' },
-                    mechanic: { type: 'textarea', richText: true },
+                    mechanic: { type: 'textarea' },
                     note: { type: 'textarea' }
                 },
                 subcategories: {
@@ -1048,7 +1050,7 @@
                             description: { type: 'textarea' },
                             prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
                             modifier: { type: 'multiselect', source: 'modifier', manageable: true },
-                            mechanic: { type: 'textarea', richText: true },
+                            mechanic: { type: 'textarea' },
                             note: { type: 'textarea' }
                         }
                     }
@@ -1092,7 +1094,7 @@
                     component_slots: { type: 'number', label: 'Component Slots' },
                     modes: { type: 'multiselect', source: 'mode', manageable: true, label: 'Modes' },
                     modifier: { type: 'multiselect', source: 'modifier', manageable: true },
-                    mechanic: { type: 'textarea', richText: true },
+                    mechanic: { type: 'textarea' },
                     note: { type: 'textarea' }
                 },
                 subcategories: {
@@ -1145,7 +1147,7 @@
                     component: { type: 'multiselect', source: 'component', manageable: true },
                     component_slots: { type: 'number', label: 'Component Slots' },
                     modifier: { type: 'multiselect', source: 'modifier', manageable: true },
-                    mechanic: { type: 'textarea', richText: true },
+                    mechanic: { type: 'textarea' },
                     note: { type: 'textarea' }
                 },
                 subcategories: {
@@ -1175,7 +1177,7 @@
                     availability: { type: 'select', source: 'availability', manageable: true },
                     prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
                     modifier: { type: 'multiselect', source: 'modifier', manageable: true },
-                    mechanic: { type: 'textarea', richText: true },
+                    mechanic: { type: 'textarea' },
                     note: { type: 'textarea' }
                 },
                 subcategories: {
@@ -1219,7 +1221,7 @@
                     component_slots: { type: 'number', label: 'Component Slots' },
                     modes: { type: 'multiselect', source: 'mode', manageable: true, label: 'Modes' },
                     modifier: { type: 'multiselect', source: 'modifier', manageable: true },
-                    mechanic: { type: 'textarea', richText: true },
+                    mechanic: { type: 'textarea' },
                     note: { type: 'textarea' }
                 }
             },
@@ -1247,24 +1249,24 @@
                     medicine: { type: 'multiselect', source: 'society_medicine', manageable: true },
                     synthetics: { type: 'multiselect', source: 'society_synthetics', manageable: true, label: 'Synthetics' },
                     weaponry: { type: 'multiselect', source: 'society_weaponry', manageable: true },
-                    mechanic: { type: 'textarea', richText: true},
+                    mechanic: { type: 'textarea'},
                     note: { type: 'textarea'}
                 },
                 subcategories: {
-                    society_agriculture: { label: 'AGRICULTURE', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea', richText: true} }},
-                    society_architecture: { label: 'ARCHITECTURE', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea', richText: true} }},
-                    society_biotechnology: { label: 'BIOTECHNOLOGY', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea', richText: true} }},
-                    society_commerce: { label: 'COMMERCE', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea', richText: true} }},
-                    society_communication: { label: 'COMMUNICATION', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea', richText: true} }},
-                    society_devices: { label: 'DEVICES', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea', richText: true} }},
-                    society_education: { label: 'EDUCATION', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea', richText: true} }},
-                    society_energy: { label: 'ENERGY', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea', richText: true} }},
-                    society_manufacturing: { label: 'MANUFACTURING', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea', richText: true} }},
-                    society_materials: { label: 'MATERIALS', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea', richText: true} }},
-                    society_medicine: { label: 'MEDICINE', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea', richText: true} }},
-                    society_society: { label: 'SOCIETY', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea', richText: true} }},
-                    society_synthetics: { label: 'SYNTHETICS', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea', richText: true} }},
-                    society_weaponry: { label: 'WEAPONRY', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea', richText: true} }}}
+                    society_agriculture: { label: 'AGRICULTURE', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+                    society_architecture: { label: 'ARCHITECTURE', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+                    society_biotechnology: { label: 'BIOTECHNOLOGY', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+                    society_commerce: { label: 'COMMERCE', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+                    society_communication: { label: 'COMMUNICATION', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+                    society_devices: { label: 'DEVICES', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+                    society_education: { label: 'EDUCATION', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+                    society_energy: { label: 'ENERGY', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+                    society_manufacturing: { label: 'MANUFACTURING', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+                    society_materials: { label: 'MATERIALS', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+                    society_medicine: { label: 'MEDICINE', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+                    society_society: { label: 'SOCIETY', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+                    society_synthetics: { label: 'SYNTHETICS', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+                    society_weaponry: { label: 'WEAPONRY', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }}}
             }
         };
 
@@ -2177,8 +2179,8 @@
             return `<input type="number" id="${fieldKey}" name="${fieldKey}" value="${savedValue || 0}" class="global-form-input ${displayClass}" ${readonlyAttr}>`;
         }
 
-        function createTextareaField(fieldKey, savedValue, isEditMode, collectionKey, fieldConfig) {
-            const isRichText = fieldConfig.richText === true;
+        function createTextareaField(fieldKey, savedValue, isEditMode, collectionKey) {
+            const isRichText = collectionKey === 'rules_codex';
 
             if (!isEditMode) {
                 const content = isRichText ? parseWikiLinks(savedValue || '') : convertMarkdownToHtml(parseWikiLinks(savedValue || ''));
@@ -2189,7 +2191,7 @@
                 return `<div id="editor-${fieldKey}" class="quill-editor-container"></div>
                         <input type="hidden" id="${fieldKey}" name="${fieldKey}">`;
             } else {
-                return `<textarea id="${fieldKey}" name="${fieldKey}" class="global-form-input" rows="1">${savedValue || ''}</textarea>`;
+                return `<textarea id="${fieldKey}" name="${fieldKey}" class="global-form-input" rows="1">${savedValue}</textarea>`;
             }
         }
 
@@ -2335,7 +2337,7 @@
                 case 'select': fieldHtml = await createSelectField(fieldKey, fieldConfig, savedValue, isEditMode); break;
                 case 'multiselect': fieldHtml = await createMultiselectField(fieldKey, fieldConfig, savedValue, isEditMode); break;
                 case 'json_list': fieldHtml = createJsonListField(fieldKey, savedValue, isEditMode); break;
-                case 'textarea': fieldHtml = createTextareaField(fieldKey, savedValue, isEditMode, collectionKey, fieldConfig); break;
+                case 'textarea': fieldHtml = createTextareaField(fieldKey, savedValue, isEditMode, collectionKey); break;
                 case 'readonlytext': fieldHtml = createReadonlyTextField(fieldKey, savedValue); break;
                 case 'number': fieldHtml = createNumberField(fieldKey, savedValue, isEditMode); break;
                 default: fieldHtml = createTextField(fieldKey, savedValue, isEditMode);
@@ -2433,10 +2435,11 @@
                     modules: {
                         toolbar: [
                             [{ 'header': [1, 2, 3, false] }],
-                            ['bold', 'italic', 'underline', 'link', 'blockquote', 'code-block'],
+                            ['bold', 'italic', 'underline', 'strike', 'link'],
+                            ['blockquote', 'code-block'],
                             [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                            ['table'],
-                            [{ 'color': [] }, { 'background': [] }],
+                            [{ 'indent': '-1'}, { 'indent': '+1' }],
+                            [{ 'color': ['#000000', '#FFFFFF', '#FF0000', '#0000FF', '#008000', '#FFFF00', '#FFA500'] }, { 'background': [] }],
                             ['clean']
                         ]
                     },
