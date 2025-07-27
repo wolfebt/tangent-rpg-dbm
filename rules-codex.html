@@ -528,6 +528,9 @@
         } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
         import { getFirestore, doc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, getDocs, getDoc, setDoc, query } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
+        // --- Register Quill Modules ---
+        Quill.register({ 'modules/better-table': quillBetterTable }, true);
+
         // --- Firebase Configuration ---
         const firebaseConfig = {
           apiKey: "AIzaSyBA1CC4SXXtWM9UpU1XkAiBFr0RIgrPwGk",
@@ -942,8 +945,6 @@
             }));
 
             formFieldsContainer.innerHTML = formHtml.join('');
-
-            Quill.register({ 'modules/better-table': quillBetterTable }, true);
 
             const editorContainers = formFieldsContainer.querySelectorAll('.quill-editor-container');
             editorContainers.forEach(container => {
