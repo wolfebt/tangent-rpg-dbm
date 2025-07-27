@@ -536,10 +536,11 @@
         }
 
         // --- Firebase Configuration ---
+        // This will be replaced by the environment variable in a production environment.
         const firebaseConfig = typeof __firebase_config !== 'undefined'
             ? JSON.parse(__firebase_config)
             : {
-                apiKey: "YOUR_API_KEY", // Replace with your actual config for local testing
+                apiKey: "AIzaSyBA1CC4SXXtWM9UpU1XkAiBFr0RIgrPwGk", // Fallback for local testing
                 authDomain: "tangent-rpg-dbm.firebaseapp.com",
                 projectId: "tangent-rpg-dbm",
                 storageBucket: "tangent-rpg-dbm.appspot.com",
@@ -834,7 +835,7 @@
                         e.stopPropagation();
                         const isHidden = childrenContainer.style.display === 'none';
                         childrenContainer.style.display = isHidden ? 'block' : 'none';
-                        toggleButton.innerHTML = isHidden ? '▾' : '▸';
+                        toggleButton.innerHTML = isHidden ? '▸' : '▾';
                     });
                 }
 
