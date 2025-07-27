@@ -623,10 +623,8 @@
         const settingsCancelBtn = document.getElementById('settings-cancel-btn');
         const apiKeyInput = document.getElementById('api-key-input');
 
-        // --- Register Quill Better Table Module ---
-        Quill.register({
-            'modules/better-table': quillBetterTable
-        }, true);
+        // --- Register Quill Better Table Module to override the default table module ---
+        Quill.register('modules/table', quillBetterTable, true);
 
         // --- Authentication & UI Updates ---
         async function handleLogin() {
@@ -968,8 +966,7 @@
                             [{ 'color': [] }],
                             ['table']
                         ],
-                        table: false, // Important: disable default table module
-                        'better-table': {
+                        table: { // The plugin is now the 'table' module
                             operationMenu: {
                                 items: {
                                     unmergeCell: { text: 'Unmerge cell' },
