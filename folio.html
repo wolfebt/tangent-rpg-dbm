@@ -598,7 +598,7 @@
         const primaryToSubAttributeMap = {
             'attr-strength': 'attr-might',
             'attr-agility': 'attr-reflex',
-            'attr-constitution': 'attr-fortitude',
+            'attr-stamina': 'attr-fortitude',
             'attr-intellect': 'attr-logic',
             'attr-wisdom': 'attr-will',
             'attr-charisma': 'attr-etiquette',
@@ -1133,7 +1133,7 @@
             const row = document.createElement('div');
             row.className = 'skill-row';
             row.dataset.skillId = skillId;
-            const attributeOptions = [{ value: 'attr-strength', text: 'Strength' }, { value: 'attr-agility', text: 'Agility' },{ value: 'attr-constitution', text: 'Constitution' }, { value: 'attr-intellect', text: 'Intellect' },{ value: 'attr-wisdom', text: 'Wisdom' }, { value: 'attr-charisma', text: 'Charisma' }];
+            const attributeOptions = [{ value: 'attr-strength', text: 'Strength' }, { value: 'attr-agility', text: 'Agility' },{ value: 'attr-stamina', text: 'Stamina' }, { value: 'attr-intellect', text: 'Intellect' },{ value: 'attr-wisdom', text: 'Wisdom' }, { value: 'attr-charisma', text: 'Charisma' }];
             let optionsHtml = '<option value="">--</option>' + attributeOptions.map(opt => `<option value="${opt.value}">${opt.text}</option>`).join('');
             
             row.innerHTML = `
@@ -1859,7 +1859,7 @@
             html += `<p><strong>Faction:</strong> ${data['char-faction'] || 'N/A'}</p>`;
 
             html += '<h3>Attributes</h3><ul>';
-            const attributes = ['strength', 'agility', 'constitution', 'intellect', 'wisdom', 'charisma'];
+            const attributes = ['strength', 'agility', 'stamina', 'intellect', 'wisdom', 'charisma'];
             attributes.forEach(attr => {
                 const total = document.getElementById(`attr-${attr}-total`)?.value || 0;
                 html += `<li><strong>${attr.charAt(0).toUpperCase() + attr.slice(1)}:</strong> ${total}</li>`;
@@ -2100,7 +2100,7 @@
                                          ${[
                                              { name: 'Strength', id: 'attr-strength' }, { name: 'Might', id: 'attr-might', sub: true },
                                              { name: 'Agility', id: 'attr-agility' }, { name: 'Reflex', id: 'attr-reflex', sub: true },
-                                             { name: 'Constitution', id: 'attr-constitution' }, { name: 'Fortitude', id: 'attr-fortitude', sub: true },
+                                             { name: 'Stamina', id: 'attr-stamina' }, { name: 'Fortitude', id: 'attr-fortitude', sub: true },
                                              { name: 'Intellect', id: 'attr-intellect' }, { name: 'Logic', id: 'attr-logic', sub: true },
                                              { name: 'Wisdom', id: 'attr-wisdom' }, { name: 'Will', id: 'attr-will', sub: true },
                                              { name: 'Charisma', id: 'attr-charisma' }, { name: 'Etiquette', id: 'attr-etiquette', sub: true }
