@@ -12,8 +12,6 @@
     <!-- Quill Rich Text Editor -->
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
-    <!-- Quill Table Module -->
-    <script src="https://unpkg.com/quill-better-table@1.2.10/dist/quill-better-table.min.js"></script>
 
     <style>
         /* --- Global Theme --- */
@@ -320,11 +318,16 @@
         .ql-snow .ql-fill, .ql-snow .ql-stroke.ql-fill {
             fill: var(--text-subtle);
         }
+        .ql-snow.ql-toolbar button:hover,
+        .ql-snow .ql-toolbar button:hover,
+        .ql-snow.ql-toolbar button.ql-active,
+        .ql-snow .ql-toolbar button.ql-active {
+            color: var(--text-light);
+        }
         .ql-snow.ql-toolbar button:hover .ql-stroke,
         .ql-snow .ql-toolbar button:hover .ql-stroke,
         .ql-snow.ql-toolbar button.ql-active .ql-stroke,
-        .ql-snow .ql-toolbar button.ql-active .ql-stroke,
-        .ql-snow .ql-toolbar button.ql-table:hover .ql-stroke {
+        .ql-snow .ql-toolbar button.ql-active .ql-stroke {
             stroke: var(--text-light);
         }
         .ql-snow.ql-toolbar button:hover .ql-fill,
@@ -370,42 +373,7 @@
         .ql-snow .ql-picker.ql-color .ql-picker-item.ql-selected {
             border-color: var(--border-focus);
         }
-        
-        /* Table Styles for Quill */
-        .ql-snow .ql-table-picker .ql-picker-item {
-            border-color: var(--text-subtle) !important;
-        }
-        .ql-snow .ql-table-picker .ql-picker-item:hover {
-            border-color: var(--text-light) !important;
-        }
-        .ql-snow .ql-table-col-tool .ql-picker-item,
-        .ql-snow .ql-table-row-tool .ql-picker-item {
-            background-color: var(--bg-section);
-        }
-        .ql-snow .ql-table-col-tool .ql-picker-item:hover,
-        .ql-snow .ql-table-row-tool .ql-picker-item:hover {
-            background-color: var(--bg-hover);
-        }
 
-
-        /* Prose & Editor Table Styles */
-        .prose table, .ql-editor table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 1em;
-            margin-bottom: 1em;
-        }
-        .prose th, .prose td, .ql-editor th, .ql-editor td {
-            border: 1px solid var(--border-subtle);
-            padding: 0.5rem;
-            text-align: left;
-        }
-        .prose th, .ql-editor th {
-            background-color: var(--bg-section);
-            font-weight: bold;
-            color: var(--text-light);
-        }
-        
         /* Prose styles for rendered Quill content */
         .prose { color: var(--text-light); }
         .prose h1, .prose h2, .prose h3, .prose h4, .prose strong { color: var(--text-light); }
@@ -527,12 +495,6 @@
             signInAnonymously
         } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
         import { getFirestore, doc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, getDocs, getDoc, setDoc, query } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
-
-        // --- Register Quill Modules ---
-        // This is done once globally to prevent re-registration errors.
-        if (!Quill.imports['modules/better-table']) {
-            Quill.register({ 'modules/better-table': quillBetterTable }, true);
-        }
 
         // --- Firebase Configuration ---
         const firebaseConfig = {
@@ -954,33 +916,7 @@
                 const fieldKey = container.id.replace('editor-', '');
                 const hiddenInput = document.getElementById(fieldKey);
                 const quill = new Quill(container, {
-                    modules: { 
-                        table: false, // Explicitly disable the default table module
-                        "better-table": {
-                            operationMenu: {
-                                items: {
-                                    unmergeCells: { text: 'Unmerge cells' },
-                                    mergeCells: { text: 'Merge cells' },
-                                    deleteRow: { text: 'Delete row' },
-                                    deleteColumn: { text: 'Delete column' },
-                                    insertRowAbove: { text: 'Insert row above' },
-                                    insertRowBelow: { text: 'Insert row below' },
-                                    insertColumnLeft: { text: 'Insert column left' },
-                                    insertColumnRight: { text: 'Insert column right' },
-                                },
-                                color: {
-                                    colors: ['#fff', '#000', '#d1d5db', '#4b5563', '#b91c1c', '#15803d', '#1d4ed8'],
-                                    text: 'Background Colors'
-                                }
-                            },
-                        },
-                        toolbar: [
-                            [{ 'header': [1, 2, 3, false] }],
-                            ['bold', 'italic', 'underline', 'link'],
-                            [{ 'color': [] }],
-                            ['table']
-                        ]
-                    },
+                    modules: { toolbar: [[{ 'header': [1, 2, 3, false] }], ['bold', 'italic', 'underline', 'link'], [{ 'color': [] }]] },
                     theme: 'snow'
                 });
                 quill.root.innerHTML = data[fieldKey] || '';
@@ -1197,12 +1133,10 @@
         function hideErrorModal() { errorModal.classList.add('hidden'); }
 
         window.addEventListener('click', (event) => {
-            const tableModal = document.getElementById('table-modal');
             if (event.target == confirmModal) hideConfirmModal();
             else if (event.target == errorModal) hideErrorModal();
             else if (event.target == unsavedChangesModal) hideUnsavedChangesModal();
             else if (event.target == settingsModal) settingsModal.classList.add('hidden');
-            else if (tableModal && event.target == tableModal) tableModal.classList.add('hidden');
             
             const modalDataBtn = document.getElementById('modal-data-btn');
             const modalDataDropdown = document.getElementById('modal-data-dropdown');
