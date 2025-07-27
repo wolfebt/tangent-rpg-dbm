@@ -955,7 +955,7 @@
                 const hiddenInput = document.getElementById(fieldKey);
                 const quill = new Quill(container, {
                     modules: { 
-                        table: false, // Disable native table module
+                        table: false, // Explicitly disable the default table module
                         "better-table": {
                             operationMenu: {
                                 items: {
@@ -974,20 +974,12 @@
                                 }
                             },
                         },
-                        toolbar: {
-                            container: [
-                                [{ 'header': [1, 2, 3, false] }],
-                                ['bold', 'italic', 'underline', 'link'],
-                                [{ 'color': [] }],
-                                ['table']
-                            ],
-                            handlers: {
-                                'table': function() { 
-                                    const tableModule = this.quill.getModule('better-table');
-                                    tableModule.insertTable(3, 3);
-                                }
-                            }
-                        }
+                        toolbar: [
+                            [{ 'header': [1, 2, 3, false] }],
+                            ['bold', 'italic', 'underline', 'link'],
+                            [{ 'color': [] }],
+                            ['table']
+                        ]
                     },
                     theme: 'snow'
                 });
