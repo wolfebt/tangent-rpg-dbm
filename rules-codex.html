@@ -529,7 +529,7 @@
         } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
         import { getFirestore, doc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, getDocs, getDoc, setDoc, query } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
-        window.addEventListener('DOMContentLoaded', () => {
+        window.onload = () => {
             // --- Register Quill Modules ---
             Quill.register({
                 'modules/better-table': quillBetterTable
@@ -979,7 +979,7 @@
                                     [{ 'color': [] }],
                                     ['table']
                                 ],
-                                table: false,
+                                table: true,
                                 "better-table": {
                                     operationMenu: {
                                         items: {
@@ -1249,7 +1249,7 @@
                 }
             });
             entryForm.addEventListener('submit', handleFormSubmit);
-        });
+        };
     </script>
 </body>
 </html>
