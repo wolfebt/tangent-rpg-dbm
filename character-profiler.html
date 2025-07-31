@@ -414,16 +414,28 @@
             // --- API Key Management ---
             function loadApiKey() {
                 apiKey = localStorage.getItem('geminiApiKey') || '';
-                apiKeyInput.value = apiKey;
+                if (apiKey) {
+                    apiKeyInput.value = apiKey;
+                } else {
+                    // If no key, show the modal immediately.
+                    apiKeyModal.classList.remove('hidden');
+                }
             }
 
             function saveApiKey() {
                 const newKey = apiKeyInput.value.trim();
-                apiKey = newKey;
-                localStorage.setItem('geminiApiKey', newKey);
-                apiKeyModal.classList.add('hidden');
-                apiKeyError.classList.add('hidden');
-                apiKeyInput.classList.remove('border-red-500');
+                if (newKey) {
+                    apiKey = newKey;
+                    localStorage.setItem('geminiApiKey', newKey);
+                    apiKeyModal.classList.add('hidden');
+                    apiKeyError.classList.add('hidden');
+                    apiKeyInput.classList.remove('border-red-500');
+                } else {
+                    // Handle case where user tries to save an empty key
+                    apiKeyError.textContent = "API Key cannot be empty.";
+                    apiKeyError.classList.remove('hidden');
+                    apiKeyInput.classList.add('border-red-500');
+                }
             }
 
             // --- Modal Controls ---
@@ -442,13 +454,16 @@
             async function callGemini(prompt, outputElement) {
                 outputElement.textContent = 'Generating...';
                 
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                // Construct the API URL with the user-provided key
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
                 const payload = { contents: [{ parts: [{ text: prompt }] }] };
 
                 try {
                     const response = await fetch(apiUrl, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 
+                            'Content-Type': 'application/json',
+                        },
                         body: JSON.stringify(payload)
                     });
 
@@ -456,7 +471,9 @@
                         const errorData = await response.json().catch(() => ({}));
                         let errorMsg = errorData.error?.message || 'An unknown error occurred.';
                         if (response.status === 400) {
-                            errorMsg = "Invalid API Key. Please check your key in the settings. " + errorMsg;
+                            errorMsg = "Invalid request. This may be due to a bad API key or a problem with the input. " + errorMsg;
+                        } else if (response.status === 403) {
+                             errorMsg = "API Key is invalid or missing. Please provide a valid key in Settings. " + errorMsg;
                         }
                         displayError(outputElement, `API Request Failed (Status: ${response.status})`, errorMsg);
                         return null;
@@ -475,7 +492,7 @@
                     }
                 } catch (error) {
                     console.error("Error during API call:", error);
-                    displayError(outputElement, "An unexpected error occurred.", `Failed to connect to the API. Error: ${error.message}`);
+                    displayError(outputElement, "An unexpected error occurred.", `Failed to connect to the API. Check your network connection. Error: ${error.message}`);
                     return null;
                 }
             }
@@ -499,7 +516,6 @@
                     });
                 });
                 document.querySelectorAll('textarea').forEach(textarea => {
-                    // Set initial height based on content to ensure consistency on load
                     autoResizeTextarea({ target: textarea });
                     textarea.addEventListener('input', autoResizeTextarea, false);
                 });
@@ -508,6 +524,7 @@
             // --- Primary Generation Function ---
             async function generateAllOutputs() {
                 if (!apiKey) {
+                    apiKeyError.textContent = 'API Key is required to generate content.';
                     apiKeyError.classList.remove('hidden');
                     apiKeyInput.classList.add('border-red-500');
                     apiKeyModal.classList.remove('hidden');
@@ -543,7 +560,6 @@
                     return;
                 }
 
-                // Modified prompt to be more direct and avoid conversational filler
                 let basePrompt = `Generate a complete and cohesive character profile based on the following data.
 **USER-PROVIDED DATA:**
 Here is the information provided by the user. Use this as the primary context for the entire character.
@@ -579,8 +595,23 @@ Return the **complete and final character profile** as a single document. Use ea
                 const jsonPrompt = `Distill the following Markdown character sheet into a basic and simplified JSON object. The JSON should be optimized for chatbot token economy. Use simple key-value pairs. For lists like skills or equipment, use an array of strings. The entire output must be a single, valid JSON object only.\n\n---START MARKDOWN---\n${markdownOutput}\n---END MARKDOWN---`;
                 const jsonOutput = await callGemini(jsonPrompt, outputs.json);
                 if (jsonOutput) {
-                    outputs.json.textContent = jsonOutput;
+                    // Clean the output to ensure it's valid JSON
+                    let cleanedJson = jsonOutput.trim();
+                    if (cleanedJson.startsWith('```json')) {
+                        cleanedJson = cleanedJson.substring(7);
+                    }
+                    if (cleanedJson.endsWith('```')) {
+                        cleanedJson = cleanedJson.substring(0, cleanedJson.length - 3);
+                    }
+                    try {
+                        const parsed = JSON.parse(cleanedJson);
+                        outputs.json.textContent = JSON.stringify(parsed, null, 2);
+                    } catch (e) {
+                        console.error("Failed to parse JSON:", e);
+                        displayError(outputs.json, "JSON Parsing Error", "The model returned invalid JSON. Raw output:\n" + cleanedJson);
+                    }
                 }
+
 
                 generateBtn.disabled = false;
                 generateBtn.textContent = 'Generate';
