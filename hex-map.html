@@ -49,9 +49,6 @@
             outline: none;
             border-bottom-color: #3b82f6; /* border-blue-500 */
         }
-        #topRightControls #mapScaleInput {
-             color: #9ca3af; /* text-gray-400 */
-        }
          #topRightControls label {
              font-size: 0.75rem;
              color: #9ca3af; /* text-gray-400 */
@@ -519,13 +516,6 @@
                                  <h3 class="!border-b-0 !pb-2 text-base font-semibold">Map Generation</h3>
                                  <div id="mapGenerationContent" class="collapsible-content">
                                      <div class="mb-4">
-                                         <h4 class="font-semibold text-gray-200 mb-2">Map Shape</h4>
-                                         <label for="mapShape">Shape</label>
-                                         <select id="mapShape" class="!mb-2">
-                                             <option value="rectangle">Rectangle</option>
-                                             <option value="parallelogram">Parallelogram</option>
-                                             <option value="circle">Circle</option>
-                                         </select>
                                          <div id="dimensionInputs">
                                              <div class="grid grid-cols-2 gap-2">
                                                  <div>
@@ -536,10 +526,6 @@
                                                      <label for="mapHeight">Height</label>
                                                      <input type="number" id="mapHeight" value="50" min="1">
                                                  </div>
-                                             </div>
-                                             <div class="hidden">
-                                                 <label for="mapRadius">Radius</label>
-                                                 <input type="number" id="mapRadius" value="15" min="1">
                                              </div>
                                          </div>
                                          <button id="generateBaseMapBtn" class="mt-2">Generate Blank Map</button>
@@ -561,10 +547,6 @@
             <div>
                 <label for="mapNameInput">Map Name</label>
                 <input type="text" id="mapNameInput" placeholder="Untitled Map" class="text-lg w-48">
-            </div>
-            <div>
-                 <label for="mapScaleInput">Scale (m)</label>
-                 <input type="number" id="mapScaleInput" value="10" min="1" class="text-lg w-20">
             </div>
         </div>
     </div>
@@ -588,7 +570,6 @@
             const drawingCanvas = document.getElementById('drawingCanvas');
             const drawingCtx = drawingCanvas.getContext('2d');
             const mapNameInput = document.getElementById('mapNameInput');
-            const mapScaleInput = document.getElementById('mapScaleInput');
             const brushSizeSlider = document.getElementById('brushSize');
             const brushSizeValue = document.getElementById('brushSizeValue');
             const terrainSelector = document.getElementById('terrainSelector');
@@ -601,10 +582,8 @@
             const redoBtn = document.getElementById('redoBtn');
             const gridColorPicker = document.getElementById('gridColorPicker');
             const gridVisibleCheckbox = document.getElementById('gridVisibleCheckbox');
-            const mapShapeSelect = document.getElementById('mapShape');
             const mapWidthInput = document.getElementById('mapWidth');
             const mapHeightInput = document.getElementById('mapHeight');
-            const mapRadiusInput = document.getElementById('mapRadius');
             const generateBaseMapBtn = document.getElementById('generateBaseMapBtn');
             const layerList = document.getElementById('layerList');
             const addLayerBtn = document.getElementById('addLayerBtn');
@@ -650,7 +629,6 @@
             // --- State ---
             let mapGrid = {}; 
             let mapName = 'Untitled Map';
-            let mapScale = 10;
             let layers = [];
             let activeLayerIndex = 0;
             let currentTool = 'terrain';
@@ -739,11 +717,9 @@
             }
             
             function generateBaseMap() {
-                const shape = mapShapeSelect.value;
                 const width = mapWidthInput.value;
                 const height = mapHeightInput.value;
-                const radius = mapRadiusInput.value;
-                mapGrid = generateBaseMapGrid(shape, width, height, radius);
+                mapGrid = generateBaseMapGrid(width, height);
                 // Start with empty layers
                 layers = [
                     { name: 'Ground', visible: true, data: {} }, 
@@ -759,37 +735,16 @@
                 updateMapKey();
             }
 
-            function generateBaseMapGrid(shape, width, height, radius) {
+            function generateBaseMapGrid(width, height) {
                 const newGrid = {};
                 const w = parseInt(width);
                 const h = parseInt(height);
-                const r_rad = parseInt(radius);
 
-                switch(shape) {
-                    case 'rectangle':
-                        for (let row = 0; row < h; row++) {
-                            const r_offset = Math.floor(row / 2);
-                            for (let col = -r_offset; col < w - r_offset; col++) {
-                                newGrid[`${col},${row}`] = true;
-                            }
-                        }
-                        break;
-                    case 'parallelogram':
-                        for (let q = 0; q < w; q++) {
-                            for (let r = 0; r < h; r++) {
-                                newGrid[`${q},${r}`] = true;
-                            }
-                        }
-                        break;
-                    case 'circle':
-                        for (let q = -r_rad; q <= r_rad; q++) {
-                            for (let r = -r_rad; r <= r_rad; r++) {
-                                if (axialDistance({q:0, r:0}, {q, r}) <= r_rad) {
-                                    newGrid[`${q},${r}`] = true;
-                                }
-                            }
-                        }
-                        break;
+                for (let row = 0; row < h; row++) {
+                    const r_offset = Math.floor(row / 2);
+                    for (let col = -r_offset; col < w - r_offset; col++) {
+                        newGrid[`${col},${row}`] = true;
+                    }
                 }
                 return newGrid;
             }
@@ -1379,11 +1334,7 @@
                 return name.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'untitled-map';
             }
 
-            function saveAsPNG() {
-                if (mapName.trim() === '' || mapName.toLowerCase().includes('untitled')) {
-                    showModal("Please enter a unique name for your map before saving.");
-                    return;
-                }
+            function saveAsPNGLogic() {
                 const { mapPixelWidth, mapPixelHeight, minPxX, minPxY } = getMapPixelBounds();
                 
                 if (mapPixelWidth <= 0 || mapPixelHeight <= 0) {
@@ -1405,6 +1356,7 @@
                 
                 offscreenCtx.save();
                 offscreenCtx.translate(-minPxX, -minPxY);
+                drawFreestyleTerrainPathsForExport(offscreenCtx);
                 drawPencilPathsForExport(offscreenCtx);
                 offscreenCtx.restore();
 
@@ -1432,31 +1384,10 @@
                 link.href = dataUrl;
                 link.click();
             }
-            
-            function drawPencilPathsForExport(targetCtx) {
-                targetCtx.lineCap = 'round';
-                targetCtx.lineJoin = 'round';
-                pencilPaths.forEach(path => {
-                    if (path.points.length < 2) return;
-                    targetCtx.beginPath();
-                    targetCtx.strokeStyle = path.color;
-                    targetCtx.lineWidth = path.width;
-                    targetCtx.moveTo(path.points[0].x, path.points[0].y);
-                    for (let i = 1; i < path.points.length; i++) {
-                        targetCtx.lineTo(path.points[i].x, path.points[i].y);
-                    }
-                    targetCtx.stroke();
-                });
-            }
 
-            function saveAsJSON() {
-                 if (mapName.trim() === '' || mapName.toLowerCase().includes('untitled')) {
-                    showModal("Please enter a unique name for your map before saving.");
-                    return;
-                }
+            function saveAsJSONLogic() {
                 const mapData = {
                     name: mapName,
-                    scale: mapScale,
                     grid: mapGrid,
                     layers: layers,
                     pencilPaths: pencilPaths,
@@ -1470,6 +1401,82 @@
                 link.href = url;
                 link.click();
                 URL.revokeObjectURL(url);
+            }
+
+            function promptForMapNameAndSave(saveFunction) {
+                if (mapName.trim() === '' || mapName.toLowerCase().includes('untitled')) {
+                    showNamePromptModal(saveFunction);
+                } else {
+                    saveFunction();
+                }
+            }
+            
+            function drawFreestyleTerrainPathsForExport(targetCtx) {
+                freestyleTerrainPaths.forEach(path => {
+                    if (path.points.length < 1) return;
+                    const terrain = terrains[path.terrain];
+                    if (!terrain || !terrain.canvasPattern) return;
+
+                    targetCtx.strokeStyle = terrain.canvasPattern;
+                    targetCtx.lineWidth = path.width;
+                    targetCtx.lineCap = 'round';
+                    targetCtx.lineJoin = 'round';
+                    
+                    if (path.points.length < 2) {
+                        targetCtx.fillStyle = terrain.canvasPattern;
+                        targetCtx.beginPath();
+                        targetCtx.arc(path.points[0].x, path.points[0].y, path.width / 2, 0, 2 * Math.PI);
+                        targetCtx.fill();
+                    } else {
+                        targetCtx.beginPath();
+                        targetCtx.moveTo(path.points[0].x, path.points[0].y);
+                        for(let i=1; i < path.points.length; i++) {
+                            targetCtx.lineTo(path.points[i].x, path.points[i].y);
+                        }
+                        targetCtx.stroke();
+                    }
+                });
+            }
+
+            function drawPencilPathsForExport(targetCtx) {
+                pencilPaths.forEach(path => {
+                     if (path.type === 'freestyle') {
+                        if (path.points.length < 2) return;
+                        targetCtx.beginPath();
+                        targetCtx.strokeStyle = path.color;
+                        targetCtx.lineWidth = path.width;
+                        targetCtx.lineCap = 'round';
+                        targetCtx.lineJoin = 'round';
+                        targetCtx.moveTo(path.points[0].x, path.points[0].y);
+                        for(let i=1; i < path.points.length; i++) {
+                            targetCtx.lineTo(path.points[i].x, path.points[i].y);
+                        }
+                        targetCtx.stroke();
+                    } else if (path.type === 'line') {
+                        targetCtx.beginPath();
+                        targetCtx.strokeStyle = path.color;
+                        targetCtx.lineWidth = path.width;
+                        targetCtx.moveTo(path.start.x, path.start.y);
+                        targetCtx.lineTo(path.end.x, path.end.y);
+                        targetCtx.stroke();
+                    } else if (path.type === 'rectangle') {
+                        targetCtx.beginPath();
+                        targetCtx.strokeStyle = path.color;
+                        targetCtx.lineWidth = path.width;
+                        targetCtx.rect(path.start.x, path.start.y, path.end.x - path.start.x, path.end.y - path.start.y);
+                        targetCtx.stroke();
+                    } else if (path.type === 'ellipse') {
+                        targetCtx.beginPath();
+                        targetCtx.strokeStyle = path.color;
+                        targetCtx.lineWidth = path.width;
+                        const rx = Math.abs(path.end.x - path.start.x) / 2;
+                        const ry = Math.abs(path.end.y - path.start.y) / 2;
+                        const cx = path.start.x + (path.end.x - start.x) / 2;
+                        const cy = path.start.y + (path.end.y - start.y) / 2;
+                        targetCtx.ellipse(cx, cy, rx, ry, 0, 0, 2 * Math.PI);
+                        targetCtx.stroke();
+                    }
+                });
             }
 
             function loadFromJSON(e) {
@@ -1486,9 +1493,7 @@
                             pencilPaths = loadedData.pencilPaths || [];
                             freestyleTerrainPaths = loadedData.freestyleTerrainPaths || [];
                             mapName = loadedData.name || 'Untitled Loaded Map';
-                            mapScale = loadedData.scale || 10;
                             mapNameInput.value = mapName;
-                            mapScaleInput.value = mapScale;
                             activeLayerIndex = 0;
                             undoStack = [];
                             redoStack = [];
@@ -1651,7 +1656,7 @@
                         <ul class="list-disc list-inside space-y-1 pl-4">
                             <li><strong>Left:</strong> The <strong>Control Panel</strong> is where you'll find all your tools for drawing, painting, and managing your map.</li>
                             <li><strong>Center:</strong> The <strong>Canvas</strong> is your main workspace where you'll build your map.</li>
-                            <li><strong>Top-Right:</strong> Here you can set your <strong>Map Name</strong> and the <strong>Map's Scale</strong>.</li>
+                            <li><strong>Top-Right:</strong> Here you can set your <strong>Map Name</strong>.</li>
                         </ul>
 
                         <h4 class="text-lg font-bold text-white border-t border-gray-600 pt-3 mt-4">2. The Control Panel: Your Creative Toolkit</h4>
@@ -1718,6 +1723,50 @@
                          document.body.removeChild(modalBackdrop);
                     }
                 }
+            }
+            
+            function showNamePromptModal(callback) {
+                const existingModal = document.querySelector('.modal-backdrop');
+                if(existingModal) existingModal.remove();
+
+                const modalBackdrop = document.createElement('div');
+                modalBackdrop.className = 'modal-backdrop fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50';
+                modalBackdrop.innerHTML = `
+                    <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm text-white">
+                        <h3 class="text-lg font-bold mb-4">Enter Map Name</h3>
+                        <p class="mb-4 text-sm text-gray-400">Please provide a name for your map before saving.</p>
+                        <input type="text" id="modalMapNameInput" class="w-full p-2 rounded border border-gray-600 bg-gray-700 text-white mb-4" placeholder="My Awesome Map">
+                        <div class="flex justify-end gap-4">
+                            <button id="modalSaveName" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 transition">Save</button>
+                            <button id="modalCancelName" class="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 transition">Cancel</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modalBackdrop);
+
+                const nameInput = modalBackdrop.querySelector('#modalMapNameInput');
+                nameInput.focus();
+
+                modalBackdrop.querySelector('#modalCancelName').onclick = () => document.body.removeChild(modalBackdrop);
+                
+                const saveButton = modalBackdrop.querySelector('#modalSaveName');
+                saveButton.onclick = () => {
+                    const newName = nameInput.value.trim();
+                    if (newName) {
+                        mapName = newName;
+                        mapNameInput.value = newName;
+                        callback();
+                        document.body.removeChild(modalBackdrop);
+                    } else {
+                        nameInput.classList.add('border-red-500');
+                    }
+                };
+
+                nameInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        saveButton.click();
+                    }
+                });
             }
 
             function showModal(message, onConfirm) {
@@ -2099,7 +2148,6 @@
                 });
 
                 mapNameInput.addEventListener('input', (e) => { mapName = e.target.value; });
-                mapScaleInput.addEventListener('input', (e) => { mapScale = parseInt(e.target.value) || 10; });
                 brushSizeSlider.addEventListener('input', e => {
                     brushSize = parseInt(e.target.value);
                     brushSizeValue.textContent = brushSize;
@@ -2145,8 +2193,8 @@
                         graphicsChevron.classList.remove('rotate-180');
                     }
                 });
-                savePngBtn.addEventListener('click', saveAsPNG);
-                saveJsonBtn.addEventListener('click', saveAsJSON);
+                savePngBtn.addEventListener('click', () => promptForMapNameAndSave(saveAsPNGLogic));
+                saveJsonBtn.addEventListener('click', () => promptForMapNameAndSave(saveAsJSONLogic));
                 loadJsonBtn.addEventListener('click', () => loadJsonInput.click());
                 loadJsonInput.addEventListener('change', loadFromJSON);
                 accordionHeaders.forEach((header) => {
