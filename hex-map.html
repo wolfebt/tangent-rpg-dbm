@@ -683,8 +683,6 @@
             let isPenciling = false;
             let currentPencilPath = null;
             let pencilPaths = [];
-            let freeformPaths = [];
-            let currentFreeformPath = null;
             let undoStack = [];
             let redoStack = [];
             // Map Key State
@@ -758,7 +756,6 @@
                     { name: 'Objects', visible: true, data: {} }
                 ];
                 pencilPaths = [];
-                freeformPaths = [];
                 undoStack = [];
                 redoStack = [];
                 activeLayerIndex = 0; // Default to ground layer
@@ -822,7 +819,6 @@
                     ctx.clearRect(0,0, canvas.width, canvas.height);
                     drawingCtx.clearRect(0,0, drawingCanvas.width, drawingCanvas.height);
                     drawFrame(ctx);
-                    drawFreeformPaths();
                     drawPencilPaths();
                 });
             }
@@ -925,41 +921,6 @@
                 targetCtx.textAlign = 'center';
                 targetCtx.textBaseline = 'middle';
                 targetCtx.fillText(text, x, y);
-            }
-            
-            function drawFreeformPaths() {
-                drawingCtx.save();
-                drawingCtx.translate(view.offsetX, view.offsetY);
-                drawingCtx.scale(view.zoom, view.zoom);
-                drawingCtx.lineCap = 'round';
-                drawingCtx.lineJoin = 'round';
-
-                const allPaths = [...freeformPaths];
-                if (isPainting && currentFreeformPath) {
-                    allPaths.push(currentFreeformPath);
-                }
-
-                allPaths.forEach(path => {
-                    if (path.points.length < 1) return;
-
-                    drawingCtx.beginPath();
-                    drawingCtx.lineWidth = path.width / view.zoom;
-
-                    if (path.tool === 'eraser') {
-                        drawingCtx.globalCompositeOperation = 'destination-out';
-                    } else {
-                        drawingCtx.globalCompositeOperation = 'source-over';
-                        drawingCtx.strokeStyle = path.color;
-                    }
-
-                    drawingCtx.moveTo(path.points[0].x, path.points[0].y);
-                    for (let i = 1; i < path.points.length; i++) {
-                        drawingCtx.lineTo(path.points[i].x, path.points[i].y);
-                    }
-                    drawingCtx.stroke();
-                });
-
-                drawingCtx.restore();
             }
 
             function drawPencilPaths() {
@@ -1097,7 +1058,6 @@
                 undoStack.push({
                     layers: JSON.parse(JSON.stringify(layers)),
                     pencilPaths: JSON.parse(JSON.stringify(pencilPaths)),
-                    freeformPaths: JSON.parse(JSON.stringify(freeformPaths))
                 });
                 redoStack = [];
                 updateUndoRedoButtons();
@@ -1108,14 +1068,12 @@
                 const currentState = {
                     layers: JSON.parse(JSON.stringify(layers)),
                     pencilPaths: JSON.parse(JSON.stringify(pencilPaths)),
-                    freeformPaths: JSON.parse(JSON.stringify(freeformPaths))
                 };
                 redoStack.push(currentState);
                 
                 const previousState = undoStack.pop();
                 layers = previousState.layers;
                 pencilPaths = previousState.pencilPaths;
-                freeformPaths = previousState.freeformPaths;
 
                 drawAll();
                 renderLayers();
@@ -1128,14 +1086,12 @@
                 const currentState = {
                     layers: JSON.parse(JSON.stringify(layers)),
                     pencilPaths: JSON.parse(JSON.stringify(pencilPaths)),
-                    freeformPaths: JSON.parse(JSON.stringify(freeformPaths))
                 };
                 undoStack.push(currentState);
 
                 const nextState = redoStack.pop();
                 layers = nextState.layers;
                 pencilPaths = nextState.pencilPaths;
-                freeformPaths = nextState.freeformPaths;
                 
                 drawAll();
                 renderLayers();
@@ -1151,8 +1107,6 @@
             function applyTool(e, endHex, toolOverride = null) {
                 if (!layers.length) return;
                 const toolToUse = toolOverride || currentTool;
-
-                if (toolToUse !== 'pencil') saveState(); 
 
                 const activeLayer = layers[activeLayerIndex];
                 const affectedHexes = getHexesForTool(e, endHex, toolToUse);
@@ -1193,8 +1147,8 @@
                 const startHex = shapeStartPoint ? axialRound(shapeStartPoint.q, shapeStartPoint.r) : centerHex;
 
                 if (toolToUse === 'terrain') {
-                    if(terrainBrushMode === 'freestyle') return []; // Handled separately
                     switch(terrainBrushMode) {
+                        case 'freestyle':
                         case 'hex':
                              return getHexesInBrush(centerHex);
                         case 'line':
@@ -1401,7 +1355,6 @@
                 offscreenCtx.save();
                 offscreenCtx.translate(-minPxX, -minPxY);
                 drawPencilPathsForExport(offscreenCtx);
-                drawFreeformPathsForExport(offscreenCtx);
                 offscreenCtx.restore();
 
                 if (!mapKeyWindow.classList.contains('hidden')) {
@@ -1445,26 +1398,6 @@
                 });
             }
 
-            function drawFreeformPathsForExport(targetCtx) {
-                targetCtx.lineCap = 'round';
-                targetCtx.lineJoin = 'round';
-                freeformPaths.forEach(path => {
-                    if (path.points.length < 1) return;
-                    targetCtx.beginPath();
-                    targetCtx.lineWidth = path.width;
-                    if (path.tool === 'eraser') {
-                       // Eraser can't be exported easily this way, skip for now
-                    } else {
-                        targetCtx.strokeStyle = path.color;
-                    }
-                    targetCtx.moveTo(path.points[0].x, path.points[0].y);
-                    for (let i = 1; i < path.points.length; i++) {
-                        targetCtx.lineTo(path.points[i].x, path.points[i].y);
-                    }
-                    targetCtx.stroke();
-                });
-            }
-
             function saveAsJSON() {
                  if (mapName.trim() === '' || mapName.toLowerCase().includes('untitled')) {
                     showModal("Please enter a unique name for your map before saving.");
@@ -1476,7 +1409,6 @@
                     grid: mapGrid,
                     layers: layers,
                     pencilPaths: pencilPaths,
-                    freeformPaths: freeformPaths,
                 };
                 const jsonString = JSON.stringify(mapData, null, 2);
                 const blob = new Blob([jsonString], {type: "application/json"});
@@ -1500,7 +1432,6 @@
                             mapGrid = loadedData.grid;
                             layers = loadedData.layers;
                             pencilPaths = loadedData.pencilPaths || [];
-                            freeformPaths = loadedData.freeformPaths || [];
                             mapName = loadedData.name || 'Untitled Loaded Map';
                             mapScale = loadedData.scale || 10;
                             mapNameInput.value = mapName;
@@ -1935,6 +1866,7 @@
 
                     if (e.button === 0) { // Left-click for tools
                         if (nextClickAction) {
+                            saveState();
                             applyTool(e, null, nextClickAction);
                             nextClickAction = null;
                             currentTool = 'terrain'; // Revert to terrain tool after placement
@@ -1950,24 +1882,15 @@
                             shapeStartPoint = pixelToHex(mouseX, mouseY, true);
                         } else if (currentTool === 'terrain') {
                              isPainting = true;
-                             if(terrainBrushMode === 'freestyle'){
-                                saveState();
-                                const worldPoint = pixelToHex(mouseX, mouseY, true);
-                                currentFreeformPath = {
-                                    tool: 'terrain',
-                                    color: terrains[selectedTerrain].color,
-                                    width: brushSize * 10,
-                                    points: [worldPoint]
-                                };
-                             } else {
-                                applyTool(e);
-                             }
+                             saveState();
+                             applyTool(e);
                         } else if (currentTool === 'pencil') {
                             isPenciling = true;
                             saveState();
                             currentPencilPath = { type: 'freestyle', color: pencilColor, width: pencilWidth, points: [pixelToHex(mouseX, mouseY, true)] };
                         } else if (currentTool === 'eraser') {
                             isPainting = true;
+                            saveState();
                             applyTool(e, null, 'eraser');
                         }
                     }
@@ -2025,14 +1948,7 @@
                         previewCtx.restore();
                         drawAll();
                     } else if (isPainting) {
-                        if (currentTool === 'terrain' && terrainBrushMode === 'freestyle') {
-                            if (currentFreeformPath) {
-                                currentFreeformPath.points.push(pixelToHex(mouseX, mouseY, true));
-                                drawAll();
-                            }
-                        } else {
-                            applyTool(e, null, currentTool === 'eraser' ? 'eraser' : null);
-                        }
+                        applyTool(e, null, currentTool === 'eraser' ? 'eraser' : null);
                     } else if (isPenciling) { // Pencil freestyle
                         currentPencilPath.points.push(pixelToHex(mouseX, mouseY, true));
                         drawAll();
@@ -2061,10 +1977,6 @@
                         }
                         
                         if (isPainting) {
-                            if (currentTool === 'terrain' && terrainBrushMode === 'freestyle' && currentFreeformPath) {
-                                freeformPaths.push(currentFreeformPath);
-                                currentFreeformPath = null;
-                            }
                             isPainting = false;
                         }
                         if (isPenciling) {
@@ -2092,10 +2004,6 @@
                          currentPencilPath = null;
                      }
                      if (isPainting) {
-                        if (currentTool === 'terrain' && terrainBrushMode === 'freestyle' && currentFreeformPath) {
-                            freeformPaths.push(currentFreeformPath);
-                            currentFreeformPath = null;
-                        }
                         isPainting = false;
                      }
                     isPanning = false;
