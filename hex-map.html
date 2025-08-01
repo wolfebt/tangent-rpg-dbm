@@ -246,14 +246,6 @@
         .collapsed-bar.hidden {
             display: none;
         }
-
-        #graphicsDropdown {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background-color: #111827;
-        }
         
         /* Map Key Styles */
         #mapKeyWindow {
@@ -491,72 +483,72 @@
                             </div>
                          </div>
                     </div>
-                </div>
 
-                <div id="graphicsDropdown" class="mt-auto relative">
-                     <button id="graphicsBtn" class="w-full !mb-0 flex justify-between items-center bg-gray-800 p-3 rounded-md">
-                         <span>Graphics Options</span>
-                         <svg id="graphicsChevron" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform"><polyline points="18 15 12 9 6 15"></polyline></svg>
-                     </button>
-                     <div id="graphicsContent" class="absolute bottom-full left-0 right-0 p-4 bg-gray-800 border border-gray-700 rounded-md mb-2 hidden">
-                         <div class="control-panel mb-4">
-                             <h3 class="!border-b-0 !pb-2 text-base font-semibold">Layers</h3>
-                             <div id="layerContent" class="collapsible-content">
-                                 <div id="layerList" class="flex flex-col gap-2 mb-4"></div>
-                                 <div class="grid grid-cols-2 gap-2">
-                                     <button id="addLayerBtn">Add Layer</button>
-                                     <button id="deleteLayerBtn">Delete Layer</button>
-                                 </div>
-                             </div>
-                         </div>
-
-                         <div class="control-panel mb-4">
-                             <h3 class="!border-b-0 !pb-2 text-base font-semibold">Grid Options</h3>
-                             <div class="grid grid-cols-2 gap-4 items-center">
-                                 <div>
-                                     <label for="gridColorPicker" class="text-sm">Color</label>
-                                     <input type="color" id="gridColorPicker" value="#111827" class="!p-1 !h-9 !mb-0">
-                                 </div>
-                                 <div class="flex items-center justify-end pt-5">
-                                     <input type="checkbox" id="gridVisibleCheckbox" class="h-4 w-4 rounded !mb-0" checked>
-                                     <label for="gridVisibleCheckbox" class="ml-2 !mb-0">Visible</label>
-                                 </div>
-                             </div>
-                         </div>
-                         
-                         <div class="control-panel">
-                             <h3 class="!border-b-0 !pb-2 text-base font-semibold">Map Generation</h3>
-                             <div id="mapGenerationContent" class="collapsible-content">
-                                 <div class="mb-4">
-                                     <h4 class="font-semibold text-gray-200 mb-2">Map Shape</h4>
-                                     <label for="mapShape">Shape</label>
-                                     <select id="mapShape" class="!mb-2">
-                                         <option value="rectangle">Rectangle</option>
-                                         <option value="parallelogram">Parallelogram</option>
-                                         <option value="circle">Circle</option>
-                                     </select>
-                                     <div id="dimensionInputs">
-                                         <div class="grid grid-cols-2 gap-2">
-                                             <div>
-                                                 <label for="mapWidth">Width</label>
-                                                 <input type="number" id="mapWidth" value="50" min="1">
-                                             </div>
-                                             <div>
-                                                 <label for="mapHeight">Height</label>
-                                                 <input type="number" id="mapHeight" value="50" min="1">
-                                             </div>
-                                         </div>
-                                         <div class="hidden">
-                                             <label for="mapRadius">Radius</label>
-                                             <input type="number" id="mapRadius" value="15" min="1">
-                                         </div>
+                    <div id="graphicsDropdown" class="mt-4">
+                         <button id="graphicsBtn" class="w-full !mb-0 flex justify-between items-center bg-gray-800 p-3 rounded-md">
+                             <span>Graphics Options</span>
+                             <svg id="graphicsChevron" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                         </button>
+                         <div id="graphicsContent" class="p-4 bg-gray-800 border border-gray-700 rounded-md mt-2 hidden">
+                             <div class="control-panel mb-4">
+                                 <h3 class="!border-b-0 !pb-2 text-base font-semibold">Layers</h3>
+                                 <div id="layerContent" class="collapsible-content">
+                                     <div id="layerList" class="flex flex-col gap-2 mb-4"></div>
+                                     <div class="grid grid-cols-2 gap-2">
+                                         <button id="addLayerBtn">Add Layer</button>
+                                         <button id="deleteLayerBtn">Delete Layer</button>
                                      </div>
-                                     <button id="generateBaseMapBtn" class="mt-2">Generate Blank Map</button>
                                  </div>
                              </div>
-                         </div>
 
-                     </div>
+                             <div class="control-panel mb-4">
+                                 <h3 class="!border-b-0 !pb-2 text-base font-semibold">Grid Options</h3>
+                                 <div class="grid grid-cols-2 gap-4 items-center">
+                                     <div>
+                                         <label for="gridColorPicker" class="text-sm">Color</label>
+                                         <input type="color" id="gridColorPicker" value="#111827" class="!p-1 !h-9 !mb-0">
+                                     </div>
+                                     <div class="flex items-center justify-end pt-5">
+                                         <input type="checkbox" id="gridVisibleCheckbox" class="h-4 w-4 rounded !mb-0" checked>
+                                         <label for="gridVisibleCheckbox" class="ml-2 !mb-0">Visible</label>
+                                     </div>
+                                 </div>
+                             </div>
+                             
+                             <div class="control-panel">
+                                 <h3 class="!border-b-0 !pb-2 text-base font-semibold">Map Generation</h3>
+                                 <div id="mapGenerationContent" class="collapsible-content">
+                                     <div class="mb-4">
+                                         <h4 class="font-semibold text-gray-200 mb-2">Map Shape</h4>
+                                         <label for="mapShape">Shape</label>
+                                         <select id="mapShape" class="!mb-2">
+                                             <option value="rectangle">Rectangle</option>
+                                             <option value="parallelogram">Parallelogram</option>
+                                             <option value="circle">Circle</option>
+                                         </select>
+                                         <div id="dimensionInputs">
+                                             <div class="grid grid-cols-2 gap-2">
+                                                 <div>
+                                                     <label for="mapWidth">Width</label>
+                                                     <input type="number" id="mapWidth" value="50" min="1">
+                                                 </div>
+                                                 <div>
+                                                     <label for="mapHeight">Height</label>
+                                                     <input type="number" id="mapHeight" value="50" min="1">
+                                                 </div>
+                                             </div>
+                                             <div class="hidden">
+                                                 <label for="mapRadius">Radius</label>
+                                                 <input type="number" id="mapRadius" value="15" min="1">
+                                             </div>
+                                         </div>
+                                         <button id="generateBaseMapBtn" class="mt-2">Generate Blank Map</button>
+                                     </div>
+                                 </div>
+                             </div>
+
+                         </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -922,7 +914,7 @@
                 targetCtx.textBaseline = 'middle';
                 targetCtx.fillText(text, x, y);
             }
-
+            
             function drawPencilPaths() {
                 drawingCtx.save();
                 drawingCtx.translate(view.offsetX, view.offsetY);
@@ -965,8 +957,8 @@
                         drawingCtx.lineWidth = path.width / view.zoom;
                         const rx = Math.abs(path.end.x - path.start.x) / 2;
                         const ry = Math.abs(path.end.y - path.start.y) / 2;
-                        const cx = path.start.x + (path.end.x - startPoint.x) / 2;
-                        const cy = startPoint.y + (path.end.y - startPoint.y) / 2;
+                        const cx = path.start.x + (path.end.x - path.start.x) / 2;
+                        const cy = path.start.y + (path.end.y - path.start.y) / 2;
                         drawingCtx.ellipse(cx, cy, rx, ry, 0, 0, 2 * Math.PI);
                         drawingCtx.stroke();
                     }
@@ -1880,7 +1872,8 @@
                         if (isShapeMode) {
                             isDrawingShape = true;
                             shapeStartPoint = pixelToHex(mouseX, mouseY, true);
-                        } else if (currentTool === 'terrain') {
+                            saveState(); // Save state at the beginning of a shape draw
+                        } else if (currentTool === 'terrain' || currentTool === 'eraser') {
                              isPainting = true;
                              saveState();
                              applyTool(e);
@@ -1888,10 +1881,6 @@
                             isPenciling = true;
                             saveState();
                             currentPencilPath = { type: 'freestyle', color: pencilColor, width: pencilWidth, points: [pixelToHex(mouseX, mouseY, true)] };
-                        } else if (currentTool === 'eraser') {
-                            isPainting = true;
-                            saveState();
-                            applyTool(e, null, 'eraser');
                         }
                     }
                 });
@@ -1948,7 +1937,7 @@
                         previewCtx.restore();
                         drawAll();
                     } else if (isPainting) {
-                        applyTool(e, null, currentTool === 'eraser' ? 'eraser' : null);
+                        applyTool(e);
                     } else if (isPenciling) { // Pencil freestyle
                         currentPencilPath.points.push(pixelToHex(mouseX, mouseY, true));
                         drawAll();
@@ -1965,7 +1954,6 @@
                             if (currentTool === 'terrain') {
                                 applyTool(e, pixelToHex(e.clientX - canvas.getBoundingClientRect().left, e.clientY - canvas.getBoundingClientRect().top));
                             } else if (currentTool === 'pencil') {
-                                saveState();
                                 pencilPaths.push({
                                     type: pencilBrushMode,
                                     start: shapeStartPoint,
