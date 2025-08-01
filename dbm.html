@@ -114,6 +114,8 @@
             padding: 1rem;
             overflow-y: auto;
             z-index: 30;
+            display: flex;
+            flex-direction: column;
         }
 
         main#main-content {
@@ -615,7 +617,7 @@
             GoogleAuthProvider, signInWithPopup,
             signInWithCustomToken, signInAnonymously
         } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, getDocs, getDoc, setDoc, setLogLevel, serverTimestamp, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+        import { getFirestore, doc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, getDocs, getDoc, setDoc, setLogLevel, serverTimestamp, query, where, orderBy, limit, deleteField } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
         // --- Firebase Configuration ---
         const firebaseConfig = {
@@ -1333,7 +1335,7 @@
             renderTableView(collectionKey, config.label, mainContentContainer, parentCollectionKey);
         }
 
-        const viewFunctions = { renderCategoryView, renderManagementView };
+        const viewFunctions = { renderCategoryView, renderManagementView, renderDataExplorerView };
         
         function navigateTo(viewDescriptor, pushState = true) {
             if (pushState && appState.currentView) {
@@ -1488,7 +1490,7 @@
                         if (savedViewJSON) {
                             try {
                                 const viewDescriptor = JSON.parse(savedViewJSON);
-                                if (viewDescriptor.args && categoryConfig[viewDescriptor.args[0]]) {
+                                if (viewDescriptor.args && (categoryConfig[viewDescriptor.args[0]] || viewDescriptor.view === 'renderDataExplorerView')) {
                                     appState.navigationHistory = JSON.parse(sessionStorage.getItem('navigationHistory') || '[]');
                                     appState.navigationFuture = JSON.parse(sessionStorage.getItem('navigationFuture') || '[]');
                                     navigateTo(viewDescriptor, false);
@@ -1602,6 +1604,7 @@
             const sidebar = document.getElementById('app-sidebar');
             sidebar.innerHTML = '';
 
+            const mainCategoriesContainer = document.createElement('div');
             const activeConfig = categoryConfig[activeCategoryKey] || {};
             const activeParentKey = activeConfig.parent || activeCategoryKey;
 
@@ -1622,7 +1625,7 @@
                         requestNavigation({ view: 'renderCategoryView', args: [key] });
                     });
                 }
-                sidebar.appendChild(tab);
+                mainCategoriesContainer.appendChild(tab);
 
                 if (key === activeParentKey && config.isParent && config.subItems) {
                     const subDirContainer = document.createElement('div');
@@ -1648,9 +1651,29 @@
                     });
                     
                     subDirContainer.appendChild(subList);
-                    sidebar.appendChild(subDirContainer);
+                    mainCategoriesContainer.appendChild(subDirContainer);
                 }
             });
+            sidebar.appendChild(mainCategoriesContainer);
+
+            const spacer = document.createElement('div');
+            spacer.className = 'flex-grow';
+            sidebar.appendChild(spacer);
+
+            if (appState.userRole === 'owner' || appState.userRole === 'admin') {
+                const explorerContainer = document.createElement('div');
+                explorerContainer.className = 'pt-4 border-t border-border-subtle';
+                const explorerButton = document.createElement('button');
+                explorerButton.id = 'data-explorer-btn';
+                const isExplorerActive = appState.currentView && appState.currentView.view === 'renderDataExplorerView';
+                explorerButton.className = `sidebar-tab ${isExplorerActive ? 'active' : ''}`;
+                explorerButton.textContent = 'DATA EXPLORER';
+                explorerButton.addEventListener('click', () => {
+                    requestNavigation({ view: 'renderDataExplorerView', args: [] });
+                });
+                explorerContainer.appendChild(explorerButton);
+                sidebar.appendChild(explorerContainer);
+            }
         }
 
         function renderCategoryView(categoryKey) {
@@ -1686,6 +1709,308 @@
                 </div>
             `;
         }
+
+        // --- Data Explorer Functions ---
+        function renderDataExplorerView() {
+            if (!appState.authReady) return;
+            if (appState.userRole !== 'owner' && appState.userRole !== 'admin') {
+                mainContentContainer.innerHTML = `<div class="p-8 text-center text-red-400">ACCESS DENIED. THIS FEATURE IS FOR ADMINS ONLY.</div>`;
+                renderSidebar(null);
+                return;
+            }
+
+            Object.values(appState.activeListeners).forEach(unsub => unsub());
+            appState.activeListeners = {};
+
+            renderSidebar(null);
+
+            mainContentContainer.innerHTML = `
+                <div id="data-explorer-container" class="p-4 h-full flex flex-col">
+                    <h2 class="text-3xl font-bold uppercase mb-4">Data Explorer</h2>
+                    <div id="explorer-breadcrumbs" class="mb-2 text-sm text-gray-400"></div>
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="text-gray-400">Path:</span>
+                        <input type="text" id="explorer-path-input" class="global-form-input flex-grow" value="/">
+                        <button id="explorer-go-btn" class="btn btn-primary">Explore</button>
+                    </div>
+                    <div id="explorer-results" class="flex-grow overflow-auto p-4 rounded-md" style="background-color: var(--bg-header);">
+                        <p class="text-gray-500">Enter a collection path to begin exploring.</p>
+                    </div>
+                </div>
+            `;
+            mainContentContainer.style.padding = '0';
+
+            document.getElementById('explorer-go-btn').addEventListener('click', () => {
+                const path = document.getElementById('explorer-path-input').value;
+                explorePath(path);
+            });
+            
+            explorePath('/');
+        }
+
+        async function explorePath(path) {
+            const resultsContainer = document.getElementById('explorer-results');
+            const pathInput = document.getElementById('explorer-path-input');
+            if(pathInput) pathInput.value = path;
+            if(resultsContainer) resultsContainer.innerHTML = '<div class="loader mx-auto"></div>';
+            
+            renderBreadcrumbs(path);
+
+            const segments = path.split('/').filter(s => s.length > 0);
+
+            try {
+                if (segments.length === 0) { // Root path
+                    resultsContainer.innerHTML = `
+                        <div class="text-gray-400">
+                            <p>The client-side SDK cannot list root collections directly.</p>
+                            <p class="mt-2">Please enter the path to a known collection to begin. Common collections in this project structure are:</p>
+                            <ul class="list-disc pl-6 mt-2 space-y-1">
+                                <li><a href="#" class="underline hover:text-white" data-path="artifacts">artifacts</a></li>
+                                <li><a href="#" class="underline hover:text-white" data-path="user_roles">user_roles</a></li>
+                            </ul>
+                        </div>
+                    `;
+                    resultsContainer.querySelectorAll('a[data-path]').forEach(a => {
+                        a.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            explorePath(a.dataset.path);
+                        });
+                    });
+                } else if (segments.length % 2 !== 0) { // Collection path
+                    const collectionRef = collection(db, path);
+                    const snapshot = await getDocs(collectionRef);
+                    renderExplorerCollection(snapshot, resultsContainer, path);
+                } else { // Document path
+                    const docRef = doc(db, path);
+                    const snapshot = await getDoc(docRef);
+                    renderExplorerDocument(snapshot, resultsContainer, path);
+                }
+            } catch (error) {
+                console.error(`Error exploring path "${path}":`, error);
+                if(resultsContainer) resultsContainer.innerHTML = `<p class="text-red-400">Error: ${error.message}</p>`;
+            }
+        }
+
+        function renderBreadcrumbs(path) {
+            const container = document.getElementById('explorer-breadcrumbs');
+            if (!container) return;
+            container.innerHTML = '';
+            const segments = path.split('/').filter(s => s.length > 0);
+            let currentPath = '';
+
+            const rootLink = document.createElement('a');
+            rootLink.href = '#';
+            rootLink.textContent = 'root';
+            rootLink.className = 'hover:underline';
+            rootLink.addEventListener('click', e => { e.preventDefault(); explorePath('/'); });
+            container.appendChild(rootLink);
+
+            segments.forEach(segment => {
+                currentPath += `/${segment}`;
+                const separator = document.createElement('span');
+                separator.className = 'mx-1';
+                separator.textContent = '/';
+                container.appendChild(separator);
+
+                const link = document.createElement('a');
+                link.href = '#';
+                link.textContent = segment;
+                link.className = 'hover:underline';
+                link.dataset.path = currentPath;
+                link.addEventListener('click', e => { e.preventDefault(); explorePath(e.target.dataset.path); });
+                container.appendChild(link);
+            });
+        }
+
+        function renderExplorerCollection(snapshot, container, path) {
+            if (snapshot.empty) {
+                container.innerHTML = '<p class="text-gray-500">This collection is empty.</p>';
+                return;
+            }
+            
+            const ul = document.createElement('ul');
+            ul.className = 'space-y-1';
+            snapshot.docs.forEach(doc => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <a href="#" class="flex items-center gap-2 p-2 rounded-md hover:bg-gray-700" data-path="${path}/${doc.id}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark-text flex-shrink-0" viewBox="0 0 16 16"><path d="M5.5 7a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1h-5zM5 9.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5z"/><path d="M9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.5L9.5 0zm0 1v2.5a.5.5 0 0 0 .5.5h2.5a.5.5 0 0 0 .5-.5V2l-3-3z"/></svg>
+                        <span>${doc.id}</span>
+                    </a>
+                `;
+                ul.appendChild(li);
+            });
+
+            container.innerHTML = '';
+            container.appendChild(ul);
+
+            container.querySelectorAll('a[data-path]').forEach(a => {
+                a.addEventListener('click', e => {
+                    e.preventDefault();
+                    explorePath(e.currentTarget.dataset.path);
+                });
+            });
+        }
+
+        function renderExplorerDocument(snapshot, container, path) {
+            if (!snapshot.exists()) {
+                container.innerHTML = '<p class="text-gray-500">This document does not exist.</p>';
+                return;
+            }
+            
+            const data = snapshot.data();
+            const content = document.createElement('div');
+            content.appendChild(renderDataNode(data, 0, path));
+            
+            const subcollectionInfo = document.createElement('p');
+            subcollectionInfo.className = 'mt-4 pt-4 border-t border-gray-700 text-sm text-gray-500';
+            subcollectionInfo.textContent = 'Note: Subcollections within this document cannot be automatically listed. To view a subcollection, you must manually type its full path in the input bar above (e.g., ' + path + '/subcollectionName).';
+            
+            container.innerHTML = '';
+            container.appendChild(content);
+            container.appendChild(subcollectionInfo);
+        }
+
+        function renderDataNode(data, level, docPath = null) {
+            const container = document.createElement('div');
+            if (level > 0) {
+               container.style.paddingLeft = '20px';
+               container.style.borderLeft = '1px solid var(--border-subtle)';
+               container.style.marginLeft = '5px';
+            }
+
+            const entries = Array.isArray(data) ? data.entries() : Object.entries(data);
+
+            for (const [key, value] of entries) {
+                const row = document.createElement('div');
+                row.className = 'flex items-start py-1 group';
+
+                const keyEl = document.createElement('span');
+                keyEl.className = 'font-semibold text-cyan-400 flex-shrink-0';
+                keyEl.textContent = `${key}: `;
+                row.appendChild(keyEl);
+
+                const valueContainer = document.createElement('div');
+                valueContainer.className = 'flex items-center gap-2 flex-grow';
+
+                const valueEl = document.createElement('span');
+                valueEl.className = 'text-gray-300 ml-2 break-all';
+
+                if (value === null) {
+                    valueEl.textContent = 'null';
+                    valueEl.classList.add('italic', 'text-gray-500');
+                } else if (typeof value === 'object' && value.toDate) { // Firestore Timestamp
+                    valueEl.textContent = `${value.toDate().toLocaleString()} `;
+                    const typeSpan = document.createElement('span');
+                    typeSpan.textContent = '(Timestamp)';
+                    typeSpan.className = 'text-xs text-gray-500';
+                    valueEl.appendChild(typeSpan);
+                } else if (typeof value === 'object' && value.latitude !== undefined && value.longitude !== undefined) { // Firestore GeoPoint
+                     valueEl.textContent = `Lat: ${value.latitude}, Lng: ${value.longitude} `;
+                    const typeSpan = document.createElement('span');
+                    typeSpan.textContent = '(GeoPoint)';
+                    typeSpan.className = 'text-xs text-gray-500';
+                    valueEl.appendChild(typeSpan);
+                } else if (typeof value === 'object') {
+                    const typeLabel = Array.isArray(value) ? 'Array' : 'Map';
+                    valueEl.textContent = `(${typeLabel})`;
+                    valueEl.classList.add('italic', 'text-gray-500');
+                    valueContainer.appendChild(valueEl);
+                    row.appendChild(valueContainer);
+                    container.appendChild(row);
+                    container.appendChild(renderDataNode(value, level + 1, null)); // No path for nested objects
+                    continue;
+                } else {
+                    valueEl.textContent = `"${String(value)}"`;
+                     if (typeof value === 'string') valueEl.classList.add('text-amber-300');
+                     if (typeof value === 'number') valueEl.classList.add('text-lime-400');
+                     if (typeof value === 'boolean') valueEl.classList.add('text-purple-400');
+                }
+                valueContainer.appendChild(valueEl);
+
+                // Add Edit/Delete buttons for top-level, non-object fields
+                if (level === 0 && docPath && typeof value !== 'object') {
+                    const controls = document.createElement('div');
+                    controls.className = 'flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity ml-4';
+                    
+                    // Edit button
+                    const editBtn = document.createElement('button');
+                    editBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16"><path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/><path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/></svg>`;
+                    editBtn.className = 'text-gray-400 hover:text-white';
+                    editBtn.onclick = () => enterEditMode(key, value, valueContainer, docPath);
+                    controls.appendChild(editBtn);
+
+                    // Delete button
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/></svg>`;
+                    deleteBtn.className = 'text-gray-400 hover:text-red-500';
+                    deleteBtn.onclick = () => deleteDocumentField(key, docPath);
+                    controls.appendChild(deleteBtn);
+                    
+                    valueContainer.appendChild(controls);
+                }
+
+                row.appendChild(valueContainer);
+                container.appendChild(row);
+            }
+            return container;
+        }
+        
+        function enterEditMode(key, value, valueContainer, docPath) {
+            const originalContent = valueContainer.innerHTML;
+            valueContainer.innerHTML = ''; // Clear the container
+
+            const input = document.createElement('input');
+            input.type = typeof value === 'number' ? 'number' : 'text';
+            input.value = value;
+            input.className = 'global-form-input !py-1 !px-2 flex-grow';
+
+            const saveBtn = document.createElement('button');
+            saveBtn.textContent = 'Save';
+            saveBtn.className = 'btn btn-primary !py-1 !px-2 !text-xs';
+            saveBtn.onclick = async () => {
+                let newValue = input.value;
+                if (typeof value === 'number') newValue = Number(newValue);
+                if (typeof value === 'boolean') newValue = newValue.toLowerCase() === 'true';
+
+                const docRef = doc(db, docPath);
+                try {
+                    await updateDoc(docRef, { [key]: newValue });
+                    explorePath(docPath); // Refresh view
+                } catch (error) {
+                    console.error("Error updating document:", error);
+                    showError(`Failed to update field: ${error.message}`);
+                    valueContainer.innerHTML = originalContent; // Restore on failure
+                }
+            };
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = 'Cancel';
+            cancelBtn.className = 'btn btn-secondary !py-1 !px-2 !text-xs';
+            cancelBtn.onclick = () => {
+                valueContainer.innerHTML = originalContent;
+            };
+
+            valueContainer.appendChild(input);
+            valueContainer.appendChild(saveBtn);
+            valueContainer.appendChild(cancelBtn);
+            input.focus();
+        }
+
+        function deleteDocumentField(key, docPath) {
+            showConfirmModal(`Are you sure you want to delete the field "${key}"? This cannot be undone.`, async () => {
+                const docRef = doc(db, docPath);
+                try {
+                    await updateDoc(docRef, { [key]: deleteField() });
+                    explorePath(docPath); // Refresh view
+                } catch (error) {
+                    console.error("Error deleting field:", error);
+                    showError(`Failed to delete field: ${error.message}`);
+                }
+            });
+        }
+
+        // --- End Data Explorer Functions ---
         
         async function getCollectionOptions(collectionName) {
             if (!appState.authReady) return [];
