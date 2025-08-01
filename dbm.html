@@ -1713,7 +1713,7 @@
         // --- Data Explorer Functions ---
         function renderDataExplorerView() {
             if (!appState.authReady) return;
-            if (appState.userRole !== 'owner' && appState.userRole !== 'admin') {
+             if (appState.userRole !== 'owner' && appState.userRole !== 'admin') {
                 mainContentContainer.innerHTML = `<div class="p-8 text-center text-red-400">ACCESS DENIED. THIS FEATURE IS FOR ADMINS ONLY.</div>`;
                 renderSidebar(null);
                 return;
@@ -1730,7 +1730,7 @@
                     <div id="explorer-breadcrumbs" class="mb-2 text-sm text-gray-400"></div>
                     <div class="flex items-center gap-2 mb-4">
                         <span class="text-gray-400">Path:</span>
-                        <input type="text" id="explorer-path-input" class="global-form-input flex-grow" value="/">
+                        <input type="text" id="explorer-path-input" class="global-form-input flex-grow" value="artifacts/${appId}/public/data">
                         <button id="explorer-go-btn" class="btn btn-primary">Explore</button>
                     </div>
                     <div id="explorer-results" class="flex-grow overflow-auto p-4 rounded-md" style="background-color: var(--bg-header);">
@@ -1745,7 +1745,7 @@
                 explorePath(path);
             });
             
-            explorePath('/');
+            explorePath(`artifacts/${appId}/public/data`);
         }
 
         async function explorePath(path) {
