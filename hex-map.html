@@ -391,7 +391,7 @@
                         <label for="terrainBrushMode">Terrain Brush</label>
                         <select id="terrainBrushMode">
                             <option value="hex">Hex</option>
-                            <option value="freestyle">Freestyle</option>
+                            <option value="spray">Spray</option>
                             <option value="line">Line</option>
                             <option value="rectangle">Rectangle</option>
                             <option value="ellipse">Ellipse</option>
@@ -415,7 +415,7 @@
                             </div>
                              <div>
                                 <label for="pencilWidth">Width: <span id="pencilWidthValue">5</span></label>
-                                <input type="range" id="pencilWidth" min="1" max="20" value="5" class="!mb-0">
+                                <input type="range" id="pencilWidth" min="1" max="50" value="5" class="!mb-0">
                             </div>
                         </div>
                     </div>
@@ -675,6 +675,8 @@
             let isPenciling = false;
             let currentPencilPath = null;
             let pencilPaths = [];
+            let freestyleTerrainPaths = [];
+            let currentFreestyleTerrainPath = null;
             let undoStack = [];
             let redoStack = [];
             // Map Key State
@@ -748,6 +750,7 @@
                     { name: 'Objects', visible: true, data: {} }
                 ];
                 pencilPaths = [];
+                freestyleTerrainPaths = [];
                 undoStack = [];
                 redoStack = [];
                 activeLayerIndex = 0; // Default to ground layer
@@ -811,6 +814,7 @@
                     ctx.clearRect(0,0, canvas.width, canvas.height);
                     drawingCtx.clearRect(0,0, drawingCanvas.width, drawingCanvas.height);
                     drawFrame(ctx);
+                    drawFreestyleTerrainPaths();
                     drawPencilPaths();
                 });
             }
@@ -915,6 +919,43 @@
                 targetCtx.fillText(text, x, y);
             }
             
+            function drawFreestyleTerrainPaths() {
+                drawingCtx.save();
+                drawingCtx.translate(view.offsetX, view.offsetY);
+                drawingCtx.scale(view.zoom, view.zoom);
+                
+                const allPaths = [...freestyleTerrainPaths];
+                if(isPainting && currentFreestyleTerrainPath) {
+                    allPaths.push(currentFreestyleTerrainPath);
+                }
+
+                allPaths.forEach(path => {
+                    if (path.points.length < 1) return;
+                    const terrain = terrains[path.terrain];
+                    if (!terrain || !terrain.canvasPattern) return;
+
+                    drawingCtx.strokeStyle = terrain.canvasPattern;
+                    drawingCtx.lineWidth = path.width;
+                    drawingCtx.lineCap = 'round';
+                    drawingCtx.lineJoin = 'round';
+                    
+                    if (path.points.length < 2) {
+                        drawingCtx.fillStyle = terrain.canvasPattern;
+                        drawingCtx.beginPath();
+                        drawingCtx.arc(path.points[0].x, path.points[0].y, path.width / 2, 0, 2 * Math.PI);
+                        drawingCtx.fill();
+                    } else {
+                        drawingCtx.beginPath();
+                        drawingCtx.moveTo(path.points[0].x, path.points[0].y);
+                        for(let i=1; i < path.points.length; i++) {
+                            drawingCtx.lineTo(path.points[i].x, path.points[i].y);
+                        }
+                        drawingCtx.stroke();
+                    }
+                });
+                drawingCtx.restore();
+            }
+
             function drawPencilPaths() {
                 drawingCtx.save();
                 drawingCtx.translate(view.offsetX, view.offsetY);
@@ -930,7 +971,7 @@
                         if (path.points.length < 2) return;
                         drawingCtx.beginPath();
                         drawingCtx.strokeStyle = path.color;
-                        drawingCtx.lineWidth = path.width / view.zoom;
+                        drawingCtx.lineWidth = path.width;
                         drawingCtx.lineCap = 'round';
                         drawingCtx.lineJoin = 'round';
                         drawingCtx.moveTo(path.points[0].x, path.points[0].y);
@@ -941,20 +982,20 @@
                     } else if (path.type === 'line') {
                         drawingCtx.beginPath();
                         drawingCtx.strokeStyle = path.color;
-                        drawingCtx.lineWidth = path.width / view.zoom;
+                        drawingCtx.lineWidth = path.width;
                         drawingCtx.moveTo(path.start.x, path.start.y);
                         drawingCtx.lineTo(path.end.x, path.end.y);
                         drawingCtx.stroke();
                     } else if (path.type === 'rectangle') {
                         drawingCtx.beginPath();
                         drawingCtx.strokeStyle = path.color;
-                        drawingCtx.lineWidth = path.width / view.zoom;
+                        drawingCtx.lineWidth = path.width;
                         drawingCtx.rect(path.start.x, path.start.y, path.end.x - path.start.x, path.end.y - path.start.y);
                         drawingCtx.stroke();
                     } else if (path.type === 'ellipse') {
                         drawingCtx.beginPath();
                         drawingCtx.strokeStyle = path.color;
-                        drawingCtx.lineWidth = path.width / view.zoom;
+                        drawingCtx.lineWidth = path.width;
                         const rx = Math.abs(path.end.x - path.start.x) / 2;
                         const ry = Math.abs(path.end.y - path.start.y) / 2;
                         const cx = path.start.x + (path.end.x - path.start.x) / 2;
@@ -1050,6 +1091,7 @@
                 undoStack.push({
                     layers: JSON.parse(JSON.stringify(layers)),
                     pencilPaths: JSON.parse(JSON.stringify(pencilPaths)),
+                    freestyleTerrainPaths: JSON.parse(JSON.stringify(freestyleTerrainPaths)),
                 });
                 redoStack = [];
                 updateUndoRedoButtons();
@@ -1060,12 +1102,14 @@
                 const currentState = {
                     layers: JSON.parse(JSON.stringify(layers)),
                     pencilPaths: JSON.parse(JSON.stringify(pencilPaths)),
+                    freestyleTerrainPaths: JSON.parse(JSON.stringify(freestyleTerrainPaths)),
                 };
                 redoStack.push(currentState);
                 
                 const previousState = undoStack.pop();
                 layers = previousState.layers;
                 pencilPaths = previousState.pencilPaths;
+                freestyleTerrainPaths = previousState.freestyleTerrainPaths;
 
                 drawAll();
                 renderLayers();
@@ -1078,12 +1122,14 @@
                 const currentState = {
                     layers: JSON.parse(JSON.stringify(layers)),
                     pencilPaths: JSON.parse(JSON.stringify(pencilPaths)),
+                    freestyleTerrainPaths: JSON.parse(JSON.stringify(freestyleTerrainPaths)),
                 };
                 undoStack.push(currentState);
 
                 const nextState = redoStack.pop();
                 layers = nextState.layers;
                 pencilPaths = nextState.pencilPaths;
+                freestyleTerrainPaths = nextState.freestyleTerrainPaths;
                 
                 drawAll();
                 renderLayers();
@@ -1136,11 +1182,24 @@
                 const mouseX = e.clientX - rect.left;
                 const mouseY = e.clientY - rect.top;
                 const centerHex = endHex || pixelToHex(mouseX, mouseY);
-                const startHex = shapeStartPoint ? axialRound(shapeStartPoint.q, shapeStartPoint.r) : centerHex;
+                const startHex = shapeStartPoint ? shapeStartPoint : centerHex;
 
                 if (toolToUse === 'terrain') {
                     switch(terrainBrushMode) {
-                        case 'freestyle':
+                        case 'spray':
+                        {
+                            const results = [];
+                            const allHexesInBrush = getHexesInBrush(centerHex);
+                            const density = Math.min(1, 0.1 + (brushSize / 10)); 
+                            const numToPick = Math.max(1, Math.floor(allHexesInBrush.length * density));
+                            
+                            for (let i = 0; i < numToPick; i++) {
+                                const randomIndex = Math.floor(Math.random() * allHexesInBrush.length);
+                                results.push(allHexesInBrush[randomIndex]);
+                                allHexesInBrush.splice(randomIndex, 1);
+                            }
+                            return results;
+                        }
                         case 'hex':
                              return getHexesInBrush(centerHex);
                         case 'line':
@@ -1401,6 +1460,7 @@
                     grid: mapGrid,
                     layers: layers,
                     pencilPaths: pencilPaths,
+                    freestyleTerrainPaths: freestyleTerrainPaths,
                 };
                 const jsonString = JSON.stringify(mapData, null, 2);
                 const blob = new Blob([jsonString], {type: "application/json"});
@@ -1424,6 +1484,7 @@
                             mapGrid = loadedData.grid;
                             layers = loadedData.layers;
                             pencilPaths = loadedData.pencilPaths || [];
+                            freestyleTerrainPaths = loadedData.freestyleTerrainPaths || [];
                             mapName = loadedData.name || 'Untitled Loaded Map';
                             mapScale = loadedData.scale || 10;
                             mapNameInput.value = mapName;
@@ -1871,8 +1932,12 @@
 
                         if (isShapeMode) {
                             isDrawingShape = true;
-                            shapeStartPoint = pixelToHex(mouseX, mouseY, true);
-                            saveState(); // Save state at the beginning of a shape draw
+                            shapeStartPoint = pixelToHex(mouseX, mouseY, currentTool === 'pencil');
+                            saveState();
+                        } else if (currentTool === 'terrain' && terrainBrushMode === 'spray') {
+                            isPainting = true;
+                            saveState();
+                            currentFreestyleTerrainPath = { terrain: selectedTerrain, width: brushSize * 10, points: [pixelToHex(mouseX, mouseY, true)] };
                         } else if (currentTool === 'terrain' || currentTool === 'eraser') {
                              isPainting = true;
                              saveState();
@@ -1900,7 +1965,7 @@
 
                     if (isDrawingShape) {
                         previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
-                        const endPoint = pixelToHex(mouseX, mouseY, true);
+                        const endPoint = pixelToHex(mouseX, mouseY, currentTool === 'pencil');
                         const startPoint = shapeStartPoint;
                         
                         previewCtx.save();
@@ -1908,8 +1973,7 @@
                         previewCtx.scale(view.zoom, view.zoom);
                         
                         if (currentTool === 'terrain') {
-                            const endHex = pixelToHex(mouseX, mouseY);
-                            const shapeHexes = getHexesForTool(e, endHex);
+                            const shapeHexes = getHexesForTool(e, endPoint);
                             shapeHexes.forEach(hex => {
                                 const {x, y} = hexToPixel(hex.q, hex.r);
                                 drawHex(previewCtx, x, y, 'rgba(100, 150, 255, 0.5)');
@@ -1917,7 +1981,7 @@
                         } else if (currentTool === 'pencil') {
                             previewCtx.beginPath();
                             previewCtx.strokeStyle = pencilColor;
-                            previewCtx.lineWidth = pencilWidth / view.zoom;
+                            previewCtx.lineWidth = pencilWidth;
                             const brushMode = pencilBrushMode;
                             if (brushMode === 'line') {
                                 previewCtx.moveTo(startPoint.x, startPoint.y);
@@ -1937,7 +2001,12 @@
                         previewCtx.restore();
                         drawAll();
                     } else if (isPainting) {
-                        applyTool(e);
+                        if (currentTool === 'terrain' && terrainBrushMode === 'spray' && currentFreestyleTerrainPath) {
+                            currentFreestyleTerrainPath.points.push(pixelToHex(mouseX, mouseY, true));
+                            drawAll();
+                        } else {
+                            applyTool(e);
+                        }
                     } else if (isPenciling) { // Pencil freestyle
                         currentPencilPath.points.push(pixelToHex(mouseX, mouseY, true));
                         drawAll();
@@ -1950,9 +2019,9 @@
                         const isShapeMode = ['line', 'rectangle', 'ellipse'].includes(brushMode);
 
                         if (isDrawingShape && isShapeMode) {
-                            const endPoint = pixelToHex(e.clientX - canvas.getBoundingClientRect().left, e.clientY - canvas.getBoundingClientRect().top, true);
+                            const endPoint = pixelToHex(e.clientX - canvas.getBoundingClientRect().left, e.clientY - canvas.getBoundingClientRect().top, currentTool === 'pencil');
                             if (currentTool === 'terrain') {
-                                applyTool(e, pixelToHex(e.clientX - canvas.getBoundingClientRect().left, e.clientY - canvas.getBoundingClientRect().top));
+                                applyTool(e, endPoint);
                             } else if (currentTool === 'pencil') {
                                 pencilPaths.push({
                                     type: pencilBrushMode,
@@ -1965,6 +2034,10 @@
                         }
                         
                         if (isPainting) {
+                            if (currentTool === 'terrain' && terrainBrushMode === 'spray' && currentFreestyleTerrainPath) {
+                                freestyleTerrainPaths.push(currentFreestyleTerrainPath);
+                                currentFreestyleTerrainPath = null;
+                            }
                             isPainting = false;
                         }
                         if (isPenciling) {
@@ -1992,6 +2065,10 @@
                          currentPencilPath = null;
                      }
                      if (isPainting) {
+                        if (currentTool === 'terrain' && terrainBrushMode === 'spray' && currentFreestyleTerrainPath) {
+                            freestyleTerrainPaths.push(currentFreestyleTerrainPath);
+                            currentFreestyleTerrainPath = null;
+                        }
                         isPainting = false;
                      }
                     isPanning = false;
