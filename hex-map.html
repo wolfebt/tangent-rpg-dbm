@@ -640,7 +640,6 @@
             let selectedObjectKey = 'Fantasy.Outside.tree';
             let view = { zoom: 1, offsetX: 0, offsetY: 0 };
             let gridColor = '#111827';
-            let isGridVisible = true;
             let isPanning = false;
             let panStart = { x: 0, y: 0 };
             let isDrawingShape = false;
@@ -720,9 +719,10 @@
                 const width = mapWidthInput.value;
                 const height = mapHeightInput.value;
                 mapGrid = generateBaseMapGrid(width, height);
-                // Start with empty layers
+                
                 layers = [
                     { name: 'Ground', visible: true, data: {} }, 
+                    { name: 'Grid', visible: true, type: 'grid' },
                     { name: 'Objects', visible: true, data: {} }
                 ];
                 pencilPaths = [];
@@ -774,6 +774,14 @@
                 });
             }
 
+            function drawGrid(targetCtx) {
+                 for (const key in mapGrid) {
+                    const [q, r] = key.split(',').map(Number);
+                    const { x, y } = hexToPixel(q, r);
+                    drawHexOutline(targetCtx, x, y, gridColor);
+                }
+            }
+
             function drawFrame(targetCtx, bounds = null) {
                 targetCtx.save();
 
@@ -796,16 +804,14 @@
                     }
                 }
                 
-                if (isGridVisible) {
-                    for (const key in mapGrid) {
-                        const [q, r] = key.split(',').map(Number);
-                        const { x, y } = hexToPixel(q, r);
-                        drawHexOutline(targetCtx, x, y, gridColor);
-                    }
-                }
-
                 layers.forEach(layer => {
                     if (!layer.visible) return;
+
+                    if (layer.type === 'grid') {
+                        drawGrid(targetCtx);
+                        return;
+                    }
+
                     for (const key in layer.data) {
                         const [q, r] = key.split(',').map(Number);
                         const { x, y } = hexToPixel(q, r);
@@ -1032,7 +1038,7 @@
                 const topTerrains = {};
                 for (let i = 0; i < layers.length; i++) { // Iterate from bottom to top
                     const layer = layers[i];
-                    if (!layer.visible) continue;
+                    if (!layer.visible || layer.type === 'grid') continue;
                     for (const key in layer.data) {
                         if (layer.data[key].terrain) { // If terrain exists, it overwrites lower layers
                             topTerrains[key] = layer.data[key].terrain;
@@ -1102,6 +1108,10 @@
                 const toolToUse = toolOverride || currentTool;
 
                 const activeLayer = layers[activeLayerIndex];
+                if (activeLayer.type === 'grid') {
+                    showModal("Cannot draw on the Grid layer. Please select another layer.");
+                    return;
+                }
                 const affectedHexes = getHexesForTool(e, endHex, toolToUse);
 
                 affectedHexes.forEach(hex => {
@@ -1296,7 +1306,12 @@
             }
 
             function deleteActiveLayer() {
-                if (layers.length <= 1) {
+                const layer = layers[activeLayerIndex];
+                if (layer.name === 'Ground' || layer.name === 'Grid') {
+                    showModal("The Ground and Grid layers cannot be deleted.");
+                    return;
+                }
+                if (layers.length <= 2) {
                     showModal("You cannot delete the last layer.");
                     return;
                 }
@@ -2157,7 +2172,14 @@
                 undoBtn.addEventListener('click', undo);
                 redoBtn.addEventListener('click', redo);
                 gridColorPicker.addEventListener('input', e => { gridColor = e.target.value; drawAll(); });
-                gridVisibleCheckbox.addEventListener('change', e => { isGridVisible = e.target.checked; drawAll(); });
+                gridVisibleCheckbox.addEventListener('change', e => { 
+                    const gridLayer = layers.find(l => l.type === 'grid');
+                    if (gridLayer) {
+                        gridLayer.visible = e.target.checked;
+                        drawAll();
+                        renderLayers();
+                    }
+                });
                 toolTerrainBtn.addEventListener('click', () => { currentTool = 'terrain'; nextClickAction = null; updateActiveSwatches(); });
                 toolPencilBtn.addEventListener('click', () => { currentTool = 'pencil'; nextClickAction = null; updateActiveSwatches(); });
                 terrainBrushModeSelect.addEventListener('change', (e) => { terrainBrushMode = e.target.value; });
@@ -2242,7 +2264,8 @@
                 
                 addEventListeners();
                 gridColorPicker.value = gridColor;
-                gridVisibleCheckbox.checked = isGridVisible;
+                const gridLayer = layers.find(l => l.type === 'grid');
+                gridVisibleCheckbox.checked = gridLayer ? gridLayer.visible : true;
                 updateUndoRedoButtons();
                 updateActiveSwatches();
 
