@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scene Builder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-panel: rgba(31, 41, 55, 0.85);
+            --bg-input: #424242;
+            --bg-input-focus: #616161;
+            --text-light: #f5f5f5;
+            --text-subtle: #9e9e9e;
+            --text-header: #60a5fa;
+            --border-subtle: #616161;
+            --border-focus: #f5f5f5;
+            --btn-primary-bg: #2563EB;
+            --btn-primary-hover-bg: #1D4ED8;
+            --btn-secondary-bg: #4B5563;
+            --btn-secondary-hover-bg: #374151;
+            --font-body: 'Inter', sans-serif;
+            --font-display: 'Trebuchet MS', sans-serif;
+        }
+        body {
+            font-family: var(--font-body);
+            background-image: url('https://wolfebt.github.io/tangent-rpg-dbm/spaceport-background.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-color: #111827;
+            color: var(--text-light);
+        }
+        .content-panel {
+            background-color: var(--bg-panel);
+            backdrop-filter: blur(4px);
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .form-input {
+            background-color: var(--bg-input);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-light);
+            width: 100%;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            transition: all 0.2s ease;
+            line-height: 1.5;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: var(--border-focus);
+            background-color: var(--bg-input-focus);
+        }
+        textarea.form-input {
+            resize: vertical;
+            overflow-y: hidden;
+            min-height: calc(1.5em + 1.2rem); 
+        }
+        .form-section-header {
+            font-weight: bold;
+            font-size: 1.25rem;
+            color: var(--text-header);
+            border-bottom: 1px solid var(--border-subtle);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .btn {
+            font-weight: bold;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            text-transform: uppercase;
+            border: none;
+        }
+        .btn-primary { background-color: var(--btn-primary-bg); color: white; }
+        .btn-primary:hover { background-color: var(--btn-primary-hover-bg); }
+        .btn-secondary { background-color: var(--btn-secondary-bg); color: white; }
+        .btn-secondary:hover { background-color: var(--btn-secondary-hover-bg); }
+        .btn:disabled { background-color: #4B5563; cursor: not-allowed; opacity: 0.7; }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #3B82F6;
+            animation: spin 1s ease infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        input[type="checkbox"] {
+            appearance: none; -webkit-appearance: none;
+            width: 1.5em; height: 1.5em;
+            border: 2px solid var(--border-subtle);
+            border-radius: 50%;
+            background-color: var(--bg-input);
+            display: grid; place-content: center;
+            cursor: pointer; transition: all 120ms ease-in-out;
+            flex-shrink: 0;
+        }
+        input[type="checkbox"]::before {
+            content: ""; width: 0.8em; height: 0.8em;
+            border-radius: 50%; transform: scale(0);
+            transition: 120ms transform ease-in-out;
+            background-color: var(--text-light);
+        }
+        input[type="checkbox"]:checked {
+            background-color: var(--btn-primary-bg);
+            border-color: var(--text-header);
+        }
+        input[type="checkbox"]:checked::before { transform: scale(1); }
+        .output-box {
+            background-color: rgba(0,0,0,0.3);
+            border: 1px solid var(--border-subtle);
+            padding: 1rem; border-radius: 0.5rem;
+            height: 250px; overflow-y: auto;
+            font-family: monospace;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-backdrop { background-color: rgba(0,0,0,0.75); backdrop-filter: blur(5px); }
+        .modal-content { background-color: var(--bg-panel); border: 2px solid var(--border-subtle); }
+        .custom-radio-label {
+            display: block;
+            background-color: var(--bg-input);
+            color: var(--text-subtle);
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            text-align: center;
+        }
+        .custom-radio-label:hover { background-color: var(--bg-input-focus); }
+        input[type="radio"]:checked + .custom-radio-label {
+            background-color: var(--btn-primary-bg);
+            color: white;
+            border-color: var(--text-header);
+        }
+        .collapsible-content {
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body class="text-white">
+
+    <div class="max-w-screen-2xl mx-auto p-4 sm:p-6 md:p-8">
+        <header class="text-center mb-8 relative">
+            <h1 class="text-4xl font-bold text-white" style="font-family: var(--font-display);">Scene & Building Generator</h1>
+            <p class="text-lg text-gray-400 mt-2">Design detailed locations and generate stunning visuals all in one place.</p>
+            <button id="global-settings-btn" class="absolute top-0 right-0 p-2 rounded-full hover:bg-gray-700 bg-gray-800 bg-opacity-50" title="API Key Settings">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+        </header>
+        
+        <main class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- LEFT COLUMN - INPUTS -->
+            <div class="content-panel space-y-6">
+                <form id="scene-form-unified">
+                    <div class="form-section-header">Location Details</div>
+                    <p class="text-sm text-gray-400 -mt-4 mb-4">Fill in the fields or check the box to have the AI generate the content for you.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                        <div>
+                            <label for="location-name" class="block text-sm font-medium text-gray-300 mb-1">Location Name</label>
+                            <div class="input-wrapper"><input type="text" id="location-name" name="location-name" placeholder="e.g., The Spire, Blackwood Manor" class="form-input"><input type="checkbox" id="cb-location-name" name="cb-location-name" checked title="Check to generate with AI"></div>
+                        </div>
+                        <div>
+                            <label for="genre" class="block text-sm font-medium text-gray-300 mb-1">Genre</label>
+                            <div class="input-wrapper"><input type="text" id="genre" name="genre" placeholder="e.g., Sci-Fi, Fantasy, Noir" class="form-input"><input type="checkbox" id="cb-genre" name="cb-genre" checked title="Check to generate with AI"></div>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="overview" class="block text-sm font-medium text-gray-300 mb-1">Overview</label>
+                            <div class="input-wrapper"><textarea id="overview" name="overview" placeholder="A high-level summary of the location." class="form-input"></textarea><input type="checkbox" id="cb-overview" name="cb-overview" checked title="Check to generate with AI"></div>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="exterior-description" class="block text-sm font-medium text-gray-300 mb-1">Exterior Description</label>
+                            <div class="input-wrapper"><textarea id="exterior-description" name="exterior-description" placeholder="Describe the outside appearance and architecture." class="form-input"></textarea><input type="checkbox" id="cb-exterior-description" name="cb-exterior-description" checked title="Check to generate with AI"></div>
+                        </div>
+                         <div class="md:col-span-2">
+                            <label for="interior-details" class="block text-sm font-medium text-gray-300 mb-1">Interior Details</label>
+                            <div class="input-wrapper"><textarea id="interior-details" name="interior-details" placeholder="Describe the layout, key rooms, and decor." class="form-input"></textarea><input type="checkbox" id="cb-interior-details" name="cb-interior-details" checked title="Check to generate with AI"></div>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="history" class="block text-sm font-medium text-gray-300 mb-1">History</label>
+                            <div class="input-wrapper"><textarea id="history" name="history" placeholder="Detail its origins, significant events, and past." class="form-input"></textarea><input type="checkbox" id="cb-history" name="cb-history" checked title="Check to generate with AI"></div>
+                        </div>
+                         <div class="md:col-span-2">
+                            <label for="atmosphere" class="block text-sm font-medium text-gray-300 mb-1">Atmosphere / Mood</label>
+                            <div class="input-wrapper"><textarea id="atmosphere" name="atmosphere" placeholder="e.g., Oppressive, serene, bustling, eerie..." class="form-input"></textarea><input type="checkbox" id="cb-atmosphere" name="cb-atmosphere" checked title="Check to generate with AI"></div>
+                        </div>
+                         <div class="md:col-span-2">
+                            <label for="time_of_day" class="block text-sm font-medium text-gray-300 mb-1">Time of Day</label>
+                            <input type="text" id="time_of_day" name="time_of_day" placeholder="e.g., Sunrise, Midday, Night" class="form-input">
+                        </div>
+                         <div class="md:col-span-2">
+                            <label for="weather" class="block text-sm font-medium text-gray-300 mb-1">Weather</label>
+                            <input type="text" id="weather" name="weather" placeholder="e.g., Sunny, Raining, Foggy" class="form-input">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="architectural_style" class="block text-sm font-medium text-gray-300 mb-1">Architectural Style / Vibe</label>
+                            <input type="text" id="architectural_style" name="architectural_style" placeholder="e.g., Gothic, Modern, Ethereal" class="form-input">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="negative_prompts" class="block text-sm font-medium text-gray-300 mb-1 text-red-400">Negative Prompts (for Image)</label>
+                            <textarea id="negative_prompts" name="negative_prompts" class="form-input" placeholder="e.g., people, vehicles, text, watermark..."></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- RIGHT COLUMN - OUTPUTS -->
+            <div class="space-y-6">
+                <div class="content-panel">
+                    <h2 class="text-xl font-bold mb-4 text-white">Generation Controls</h2>
+                    <div class="space-y-4">
+                        <button id="generate-text-btn" class="btn btn-primary w-full bg-green-600 hover:bg-green-700">Generate Text</button>
+                        <div class="border-t border-gray-700 pt-4">
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Art Style</label>
+                            <div class="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                                <input type="radio" name="style" value="painting" id="style_painting" class="hidden" checked>
+                                <label for="style_painting" class="custom-radio-label">Painting</label>
+                                <input type="radio" name="style" value="photorealistic" id="style_photorealistic" class="hidden">
+                                <label for="style_photorealistic" class="custom-radio-label">Photorealistic</label>
+                                <input type="radio" name="style" value="anime" id="style_anime" class="hidden">
+                                <label for="style_anime" class="custom-radio-label">Anime</label>
+                                <input type="radio" name="style" value="sketch" id="style_sketch" class="hidden">
+                                <label for="style_sketch" class="custom-radio-label">Sketch</label>
+                            </div>
+                        </div>
+                        <button id="generate-image-btn" class="btn btn-primary w-full">Generate Image</button>
+                        <p id="master-error-message" class="text-red-400 text-sm text-center h-5"></p>
+                    </div>
+                </div>
+
+                 <div class="content-panel output-container">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-xl font-bold text-white">Workup</h2>
+                        <div class="flex items-center space-x-2">
+                             <button class="copy-btn btn btn-secondary !py-1 !px-2" data-target="output-workup">Copy</button>
+                             <button class="save-btn btn btn-secondary !py-1 !px-2" data-target="output-workup" data-format="txt">Save</button>
+                             <button class="toggle-btn p-1 rounded-full hover:bg-gray-700">
+                                <svg class="w-5 h-5 transition-transform transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                             </button>
+                        </div>
+                    </div>
+                    <div class="collapsible-content hidden w-full">
+                        <div class="output-box mt-2"><div id="loading-spinner-workup" class="spinner hidden"></div><pre id="output-workup" class="whitespace-pre-wrap text-sm w-full h-full"></pre></div>
+                    </div>
+                </div>
+                <div class="content-panel output-container">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-xl font-bold text-white">Markdown</h2>
+                         <div class="flex items-center space-x-2">
+                            <button class="copy-btn btn btn-secondary !py-1 !px-2" data-target="output-markdown">Copy</button>
+                            <button class="save-btn btn btn-secondary !py-1 !px-2" data-target="output-markdown" data-format="md">Save</button>
+                            <button class="toggle-btn p-1 rounded-full hover:bg-gray-700">
+                                <svg class="w-5 h-5 transition-transform transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="collapsible-content hidden w-full">
+                        <div class="output-box mt-2"><div id="loading-spinner-markdown" class="spinner hidden"></div><pre id="output-markdown" class="whitespace-pre-wrap text-sm w-full h-full"></pre></div>
+                    </div>
+                </div>
+                <div class="content-panel output-container">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-xl font-bold text-white">JSON</h2>
+                        <div class="flex items-center space-x-2">
+                             <button class="copy-btn btn btn-secondary !py-1 !px-2" data-target="output-json">Copy</button>
+                             <button class="save-btn btn btn-secondary !py-1 !px-2" data-target="output-json" data-format="json">Save</button>
+                             <button class="toggle-btn p-1 rounded-full hover:bg-gray-700">
+                                <svg class="w-5 h-5 transition-transform transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="collapsible-content hidden w-full">
+                        <div class="output-box mt-2"><div id="loading-spinner-json" class="spinner hidden"></div><pre id="output-json" class="whitespace-pre-wrap text-sm w-full h-full"></pre></div>
+                    </div>
+                </div>
+                 <p id="copy-feedback" class="text-sm text-green-400 mt-2 h-4 text-center"></p>
+                 <div class="content-panel">
+                    <h2 class="text-2xl font-bold mb-4 text-white">Generated Image</h2>
+                    <div id="image-container" class="w-full aspect-square bg-gray-900 rounded-md flex items-center justify-center border border-gray-700">
+                        <div id="loading-spinner-image" class="spinner hidden"></div>
+                        <img id="generated-image" src="" alt="Generated Scene" class="hidden w-full h-full object-cover rounded-md">
+                        <span id="image-placeholder" class="text-gray-500">Your scene image will appear here</span>
+                    </div>
+                    <button id="download-image-btn" class="hidden mt-4 btn btn-secondary w-full">Download Image</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Global API Key Modal -->
+    <div id="api-key-modal" class="hidden fixed inset-0 modal-backdrop flex items-center justify-center z-50">
+        <div class="modal-content rounded-lg p-8 w-full max-w-md mx-4">
+            <h2 class="text-2xl font-bold mb-4">API Key Settings</h2>
+            <p class="text-gray-400 mb-4">Please provide your Google AI API key. This will be stored in your browser's local storage.</p>
+            <div>
+                <label for="api-key-input" class="block text-sm font-medium text-gray-300 mb-1">Google AI API Key</label>
+                <input type="password" id="api-key-input" class="form-input">
+            </div>
+            <div class="mt-6 flex justify-end space-x-4">
+                <button id="close-modal-btn" class="btn btn-secondary">Cancel</button>
+                <button id="save-api-key-btn" class="btn btn-primary">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        let userApiKey = '';
+
+        const fieldDefinitions = [
+            { name: 'location-name', label: 'Location Name' },
+            { name: 'genre', label: 'Genre' },
+            { name: 'overview', label: 'Overview' },
+            { name: 'exterior-description', label: 'Exterior Description' },
+            { name: 'interior-details', label: 'Interior Details' },
+            { name: 'history', label: 'History' },
+            { name: 'atmosphere', label: 'Atmosphere' }
+        ];
+
+        // --- Element Selectors ---
+        const generateTextBtn = document.getElementById('generate-text-btn');
+        const generateImageBtn = document.getElementById('generate-image-btn');
+        const form = document.getElementById('scene-form-unified');
+        const masterErrorEl = document.getElementById('master-error-message');
+        const copyFeedbackEl = document.getElementById('copy-feedback');
+        
+        const imageElements = {
+            container: document.getElementById('image-container'),
+            spinner: document.getElementById('loading-spinner-image'),
+            img: document.getElementById('generated-image'),
+            placeholder: document.getElementById('image-placeholder'),
+            downloadBtn: document.getElementById('download-image-btn')
+        };
+
+        const outputElements = {
+            workup: {
+                pre: document.getElementById('output-workup'),
+                spinner: document.getElementById('loading-spinner-workup')
+            },
+            markdown: {
+                pre: document.getElementById('output-markdown'),
+                spinner: document.getElementById('loading-spinner-markdown')
+            },
+            json: {
+                pre: document.getElementById('output-json'),
+                spinner: document.getElementById('loading-spinner-json')
+            }
+        };
+
+        // --- API Key Modal Logic ---
+        const apiKeyModal = document.getElementById('api-key-modal');
+        const apiKeyInput = document.getElementById('api-key-input');
+        
+        function openModal() {
+            apiKeyInput.value = localStorage.getItem('googleApiKey') || '';
+            apiKeyModal.classList.remove('hidden');
+        }
+        function closeModal() { apiKeyModal.classList.add('hidden'); }
+        function saveApiKey() {
+            const key = apiKeyInput.value.trim();
+            localStorage.setItem('googleApiKey', key);
+            userApiKey = key;
+            closeModal();
+        }
+        document.getElementById('global-settings-btn').addEventListener('click', openModal);
+        document.getElementById('close-modal-btn').addEventListener('click', closeModal);
+        document.getElementById('save-api-key-btn').addEventListener('click', saveApiKey);
+        apiKeyModal.addEventListener('click', (e) => { if (e.target === apiKeyModal) closeModal(); });
+
+        function checkApiKeyOnLoad() {
+            userApiKey = localStorage.getItem('googleApiKey') || 'AIzaSyC2hF_f2tJGsQG6bp-zHnGmNLYf-1QbRxk';
+            if (!localStorage.getItem('googleApiKey')) {
+                localStorage.setItem('googleApiKey', userApiKey);
+            }
+        }
+        checkApiKeyOnLoad();
+
+        // --- UI Helpers ---
+        function autoResizeTextarea(event) {
+            const textarea = event.target;
+            textarea.style.height = 'auto';
+            textarea.style.height = (textarea.scrollHeight) + 'px';
+        }
+        document.querySelectorAll('textarea.form-input').forEach(textarea => {
+            autoResizeTextarea({ target: textarea });
+            textarea.addEventListener('input', autoResizeTextarea, false);
+        });
+
+        document.querySelectorAll('.input-wrapper input[type="text"], .input-wrapper textarea').forEach(input => {
+            const wrapper = input.closest('.input-wrapper');
+            if (!wrapper) return;
+            const checkbox = wrapper.querySelector('input[type="checkbox"]');
+            if(input && checkbox) {
+                input.addEventListener('input', () => {
+                    if (input.value.trim() !== '') {
+                        checkbox.checked = false;
+                    }
+                });
+            }
+        });
+
+        document.querySelectorAll('.toggle-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                const content = button.closest('.output-container').querySelector('.collapsible-content');
+                const icon = button.querySelector('svg');
+                content.classList.toggle('hidden');
+                icon.classList.toggle('rotate-180');
+            });
+        });
+
+
+        // --- Generation Logic ---
+        async function callGemini(prompt) {
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${userApiKey}`;
+            const payload = { contents: [{ parts: [{ text: prompt }] }] };
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error?.message || `API request failed with status ${response.status}`);
+            }
+            const result = await response.json();
+            if (result.candidates?.[0]?.content?.parts?.[0]?.text) {
+                return result.candidates[0].content.parts[0].text;
+            }
+            throw new Error(result.promptFeedback?.blockReason ? `Request blocked: ${result.promptFeedback.blockReason}` : 'No content generated.');
+        }
+
+        async function callImagen(positivePrompt, negativePrompt) {
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${userApiKey}`;
+            const payload = {
+                instances: [{ prompt: positivePrompt, negativePrompt: negativePrompt }],
+                parameters: { "sampleCount": 1 }
+            };
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+            }
+            const result = await response.json();
+            if (result.predictions?.[0]?.bytesBase64Encoded) {
+                return `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
+            }
+            throw new Error('API returned a valid response but no image data was found.');
+        }
+
+        async function handleTextGeneration() {
+            if (!userApiKey) {
+                masterErrorEl.textContent = 'API Key not set. Please add it in settings.';
+                openModal();
+                return;
+            }
+            generateTextBtn.disabled = true;
+            generateTextBtn.textContent = 'Generating...';
+            masterErrorEl.textContent = '';
+            
+            Object.values(outputElements).forEach(elements => {
+                elements.spinner.classList.remove('hidden');
+                elements.pre.textContent = '';
+            });
+
+            const formData = new FormData(form);
+            const allFieldsData = [];
+            const sectionsToGenerate = [];
+            fieldDefinitions.forEach(field => {
+                const value = formData.get(field.name)?.trim() || '';
+                allFieldsData.push(`- **${field.label}:** ${value}`);
+                const checkbox = document.querySelector(`#cb-${field.name}`);
+                if (checkbox && checkbox.checked) {
+                    sectionsToGenerate.push(field.label);
+                }
+            });
+
+            try {
+                const basePrompt = `Generate a complete and cohesive location profile.
+                **USER-PROVIDED DATA:**\n${allFieldsData.join('\n')}
+                **YOUR TASK:** Create a single, cohesive profile. Integrate all provided data. Generate new, compelling content for any empty fields, and specifically refine or expand upon these requested sections: **${sectionsToGenerate.join(', ')}**.
+                **OUTPUT FORMAT:** Return a complete profile with each field as a bold heading.`;
+                
+                const workupOutput = await callGemini(basePrompt);
+                outputElements.workup.pre.textContent = workupOutput;
+                outputElements.workup.spinner.classList.add('hidden');
+
+                // Fire and forget markdown/json generation
+                (async () => {
+                    const markdownPrompt = `Condense the following workup into a concise Markdown format for notes.\n\n---START WORKUP---\n${workupOutput}\n---END WORKUP---`;
+                    const markdownOutput = await callGemini(markdownPrompt);
+                    outputElements.markdown.pre.textContent = markdownOutput;
+                    outputElements.markdown.spinner.classList.add('hidden');
+                })();
+                (async () => {
+                    const jsonPrompt = `Distill the following workup into a simple, token-efficient JSON object. Use simple key-value pairs and arrays of strings.\n\n---START WORKUP---\n${workupOutput}\n---END WORKUP---`;
+                    const jsonOutput = await callGemini(jsonPrompt);
+                    let cleanedJson = jsonOutput.trim().replace(/^```json\s*|```$/g, '');
+                    outputElements.json.pre.textContent = JSON.stringify(JSON.parse(cleanedJson), null, 2);
+                    outputElements.json.spinner.classList.add('hidden');
+                })();
+            } catch (error) {
+                console.error("Text Generation Error:", error);
+                masterErrorEl.textContent = `Text Gen Error: ${error.message}`;
+                Object.values(outputElements).forEach(elements => elements.spinner.classList.add('hidden'));
+            } finally {
+                generateTextBtn.disabled = false;
+                generateTextBtn.textContent = 'Generate Text';
+            }
+        }
+
+        async function handleImageGeneration() {
+            if (!userApiKey) {
+                masterErrorEl.textContent = 'API Key not set. Please add it in settings.';
+                openModal();
+                return;
+            }
+            generateImageBtn.disabled = true;
+            generateImageBtn.textContent = 'Generating...';
+            masterErrorEl.textContent = '';
+
+            imageElements.spinner.classList.remove('hidden');
+            imageElements.placeholder.classList.add('hidden');
+            imageElements.img.classList.add('hidden');
+            imageElements.downloadBtn.classList.add('hidden');
+
+            try {
+                const formData = new FormData(form);
+                const attributes = Object.fromEntries(formData.entries());
+                const style = document.querySelector('input[name="style"]:checked').value;
+                let styleDescription = "epic digital painting, detailed brushwork, dramatic lighting, fantasy art";
+                if (style === 'photorealistic') styleDescription = "photorealistic, hyperdetailed, 8k, cinematic lighting";
+                if (style === 'anime') styleDescription = "anime art style, vibrant colors, by Makoto Shinkai";
+                if (style === 'sketch') styleDescription = "detailed architectural sketch, perspective lines";
+                
+                const positivePrompt = `A wide-angle shot of a ${attributes['location-name'] || attributes['genre'] || 'scene'}, ${attributes['exterior-description']}.
+                **Style:** ${attributes.architectural_style}.
+                **Environment:** ${attributes.time_of_day}, ${attributes.weather}.
+                **Atmosphere:** ${attributes.atmosphere}.
+                **Art Style:** ${styleDescription}`.replace(/\s+/g, ' ').trim();
+                const negativePrompt = attributes.negative_prompts || 'blurry, low quality, text, watermark, people, vehicles';
+
+                const imageUrl = await callImagen(positivePrompt, negativePrompt);
+                imageElements.img.src = imageUrl;
+                imageElements.img.classList.remove('hidden');
+                imageElements.downloadBtn.classList.remove('hidden');
+            } catch (error) {
+                console.error("Image Generation Error:", error);
+                masterErrorEl.textContent = `Image Gen Error: ${error.message}`;
+                imageElements.placeholder.innerHTML = `<span class="text-red-400 text-center p-4">Image Error: ${error.message}</span>`;
+                imageElements.placeholder.classList.remove('hidden');
+            } finally {
+                imageElements.spinner.classList.add('hidden');
+                generateImageBtn.disabled = false;
+                generateImageBtn.textContent = 'Generate Image';
+            }
+        }
+
+        generateTextBtn.addEventListener('click', handleTextGeneration);
+        generateImageBtn.addEventListener('click', handleImageGeneration);
+
+        // --- Copy/Save Logic ---
+        document.querySelectorAll('.copy-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const targetId = e.currentTarget.getAttribute('data-target');
+                const textToCopy = document.getElementById(targetId).textContent;
+                if (textToCopy) {
+                    const el = document.createElement('textarea');
+                    el.value = textToCopy;
+                    document.body.appendChild(el);
+                    el.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(el);
+                    copyFeedbackEl.textContent = `Copied ${targetId.split('-')[1]}!`;
+                    setTimeout(() => { copyFeedbackEl.textContent = ''; }, 2000);
+                }
+            });
+        });
+
+        document.querySelectorAll('.save-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const targetId = e.currentTarget.getAttribute('data-target');
+                const format = e.currentTarget.getAttribute('data-format');
+                const textToSave = document.getElementById(targetId).textContent;
+                if (!textToSave) return;
+                const locationName = document.getElementById('location-name').value.trim().replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'location';
+                const filename = `${locationName}_profile.${format}`;
+                const blob = new Blob([textToSave], { type: `text/${format};charset=utf-8` });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                link.click();
+                URL.revokeObjectURL(url);
+            });
+        });
+        
+        imageElements.downloadBtn.addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.href = imageElements.img.src;
+            link.download = 'scene_image.png';
+            link.click();
+        });
+    });
+    </script>
+</body>
+</html>
