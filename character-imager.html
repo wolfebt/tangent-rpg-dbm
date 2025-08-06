@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Character Imager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Simple spinner animation */
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #09f;
+            animation: spin 1s ease infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Custom radio button styling */
+        .custom-radio-label {
+            display: block;
+            background-color: #374151; /* gray-700 */
+            color: #D1D5DB; /* gray-300 */
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem; /* rounded-md */
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            text-align: center;
+        }
+        .custom-radio-label:hover {
+            background-color: #4B5563; /* gray-600 */
+        }
+        input[type="radio"]:checked + .custom-radio-label {
+            background-color: #0891B2; /* cyan-600 */
+            color: white;
+            border-color: #67E8F9; /* cyan-300 */
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white p-4 sm:p-6 md:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-white">Character Imager</h1>
+            <p class="text-lg text-gray-400 mt-2">Create detailed prompts and generate character portraits with AI.</p>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Left Column: Input Form -->
+            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                <form id="character-form">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Physique & Appearance -->
+                        <div class="md:col-span-2 font-bold text-xl text-cyan-400 border-b border-gray-700 pb-2 mb-2">Physique & Appearance</div>
+                        <div>
+                            <label for="gender" class="block text-sm font-medium text-gray-300 mb-1">Gender / Sex</label>
+                            <input type="text" id="gender" name="gender" value="Female" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500">
+                        </div>
+                        <div>
+                            <label for="build" class="block text-sm font-medium text-gray-300 mb-1">Build</label>
+                            <input type="text" id="build" name="build" value="Athletic" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Height</label>
+                            <div class="flex items-center space-x-2">
+                                <input type="number" id="height_ft" name="height_ft" value="5" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500">
+                                <span class="text-gray-400">ft</span>
+                                <input type="number" id="height_in" name="height_in" value="7" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500">
+                                <span class="text-gray-400">in</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="weight" class="block text-sm font-medium text-gray-300 mb-1">Weight (lbs)</label>
+                            <input type="number" id="weight" name="weight" value="145" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500">
+                        </div>
+                        <div>
+                            <label for="hairStyle" class="block text-sm font-medium text-gray-300 mb-1">Hair Style</label>
+                            <input type="text" id="hairStyle" name="hairStyle" value="Long and straight" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500">
+                        </div>
+                        <div>
+                            <label for="hairColor" class="block text-sm font-medium text-gray-300 mb-1">Hair Color</label>
+                            <input type="text" id="hairColor" name="hairColor" value="Black" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500">
+                        </div>
+                        <div>
+                            <label for="eyeColor" class="block text-sm font-medium text-gray-300 mb-1">Eye Color</label>
+                            <input type="text" id="eyeColor" name="eyeColor" value="Brown" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500">
+                        </div>
+                        <div>
+                            <label for="faceShape" class="block text-sm font-medium text-gray-300 mb-1">Face Shape</label>
+                            <input type="text" id="faceShape" name="faceShape" value="Oval" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500">
+                        </div>
+                         <div class="md:col-span-2">
+                            <label for="skinTone" class="block text-sm font-medium text-gray-300 mb-1">Skin Tone</label>
+                            <input type="text" id="skinTone" name="skinTone" value="Fair" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="scars" class="block text-sm font-medium text-gray-300 mb-1">Scars</label>
+                            <textarea id="scars" name="scars" rows="2" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500"></textarea>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="tattoos" class="block text-sm font-medium text-gray-300 mb-1">Tattoos</label>
+                            <textarea id="tattoos" name="tattoos" rows="2" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500"></textarea>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="details" class="block text-sm font-medium text-gray-300 mb-1">Other Details (Race, Species, etc.)</label>
+                            <textarea id="details" name="details" rows="2" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500" placeholder="e.g., Human with rounded ears, Elf with pointed ears..."></textarea>
+                        </div>
+
+                        <!-- Outfit -->
+                        <div class="md:col-span-2 font-bold text-xl text-cyan-400 border-b border-gray-700 pb-2 mb-2 mt-4">Outfit</div>
+                        <div class="md:col-span-2">
+                            <label for="clothing" class="block text-sm font-medium text-gray-300 mb-1">Clothing</label>
+                            <textarea id="clothing" name="clothing" rows="2" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500"></textarea>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="accessories" class="block text-sm font-medium text-gray-300 mb-1">Accessories</label>
+                            <textarea id="accessories" name="accessories" rows="2" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500"></textarea>
+                        </div>
+
+                        <!-- Persona & Setting -->
+                        <div class="md:col-span-2 font-bold text-xl text-cyan-400 border-b border-gray-700 pb-2 mb-2 mt-4">Persona & Setting</div>
+                        <div class="md:col-span-2">
+                            <label for="archetype" class="block text-sm font-medium text-gray-300 mb-1">Archetype</label>
+                            <input type="text" id="archetype" name="archetype" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500" placeholder="e.g., Warrior, Rogue, Merchant...">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="expression" class="block text-sm font-medium text-gray-300 mb-1">Expression / Mood</label>
+                            <textarea id="expression" name="expression" rows="2" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500"></textarea>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="background" class="block text-sm font-medium text-gray-300 mb-1">Background / Setting</label>
+                            <textarea id="background" name="background" rows="2" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500"></textarea>
+                        </div>
+
+                        <!-- Negative Prompts -->
+                        <div class="md:col-span-2 font-bold text-xl text-red-400 border-b border-gray-700 pb-2 mb-2 mt-4">Negative Prompts</div>
+                        <div class="md:col-span-2">
+                            <label for="negative_prompts" class="block text-sm font-medium text-gray-300 mb-1">Features to Exclude</label>
+                            <textarea id="negative_prompts" name="negative_prompts" rows="3" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-red-500 focus:border-red-500" placeholder="e.g., eyepatch, pointed ears, helmet, blurry background..."></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Right Column: Output -->
+            <div class="space-y-8">
+                <!-- Image Composition -->
+                <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="md:col-span-2 font-bold text-xl text-cyan-400 border-b border-gray-700 pb-2 mb-2 flex items-center justify-between">
+                            <span>Image Composition</span>
+                            <button id="settings-btn" class="text-gray-400 hover:text-white" title="API Key Settings">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </button>
+                        </div>
+                        <div class="md:col-span-1">
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Framing</label>
+                            <div class="space-y-2">
+                                <input type="radio" name="framing" value="portrait" id="framing_portrait" class="hidden" checked>
+                                <label for="framing_portrait" class="custom-radio-label">Portrait</label>
+                                <input type="radio" name="framing" value="full_body" id="framing_full_body" class="hidden">
+                                <label for="framing_full_body" class="custom-radio-label">Full Body</label>
+                                <input type="radio" name="framing" value="sheet" id="framing_sheet" class="hidden">
+                                <label for="framing_sheet" class="custom-radio-label">Concept Sheet</label>
+                            </div>
+                        </div>
+                        <div class="md:col-span-1">
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Style</label>
+                            <div class="space-y-2">
+                                <input type="radio" name="style" value="painting" id="style_painting" class="hidden" checked>
+                                <label for="style_painting" class="custom-radio-label">Painting</label>
+                                <input type="radio" name="style" value="photorealistic" id="style_photorealistic" class="hidden">
+                                <label for="style_photorealistic" class="custom-radio-label">Photorealistic</label>
+                                <input type="radio" name="style" value="anime" id="style_anime" class="hidden">
+                                <label for="style_anime" class="custom-radio-label">Anime</label>
+                                <input type="radio" name="style" value="sketch" id="style_sketch" class="hidden">
+                                <label for="style_sketch" class="custom-radio-label">Sketch</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Prompt Section -->
+                <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4 text-white">Generated Prompt</h2>
+                    <div class="flex items-center space-x-4 mb-4">
+                        <button id="generate-prompt-btn" class="flex-grow bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-md transition duration-300">
+                            1. Generate Prompt
+                        </button>
+                    </div>
+                    <textarea id="generated-prompt" rows="10" class="w-full bg-gray-900 border border-gray-700 text-gray-300 rounded-md p-3 focus:ring-cyan-500 focus:border-cyan-500" readonly placeholder="Your detailed character prompt will appear here..."></textarea>
+                    <button id="copy-prompt-btn" class="mt-2 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md transition duration-300 w-full">
+                        Copy Prompt
+                    </button>
+                    <div id="copy-message" class="text-green-400 text-sm mt-2 text-center h-5"></div>
+                </div>
+
+                <!-- Image Section -->
+                <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4 text-white">Generated Image</h2>
+                     <button id="generate-image-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition duration-300 w-full disabled:bg-gray-500 disabled:cursor-not-allowed">
+                        2. Generate Image
+                    </button>
+                    <button id="download-image-btn" class="hidden mt-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition duration-300 w-full">
+                        Download Image
+                    </button>
+                    <div id="error-message" class="text-red-400 text-sm my-4 text-center h-5"></div>
+                    <div id="image-container" class="mt-4 w-full aspect-square bg-gray-900 rounded-md flex items-center justify-center border border-gray-700">
+                        <div id="loading-spinner" class="spinner hidden"></div>
+                        <img id="generated-image" src="" alt="Generated Character" class="hidden w-full h-full object-cover rounded-md">
+                        <span id="image-placeholder" class="text-gray-500">Your character image will appear here</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <footer class="text-center py-8">
+        <p class="text-gray-500 text-sm font-extralight">Character Imager</p>
+        <p class="text-gray-500 text-sm font-extralight">Wolfe.BT@TangentLLC</p>
+    </footer>
+
+    <!-- API Key Modal -->
+    <div id="api-key-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-gray-800 rounded-lg p-8 w-full max-w-md mx-4">
+            <h2 class="text-2xl font-bold mb-4">API Key Settings</h2>
+            <p class="text-gray-400 mb-4">Please provide your Google AI API key. This will be stored in your browser's local storage and will not be shared.</p>
+            <div>
+                <label for="api-key-input" class="block text-sm font-medium text-gray-300 mb-1">Google AI API Key</label>
+                <input type="password" id="api-key-input" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500">
+            </div>
+            <div class="mt-6 flex justify-end space-x-4">
+                <button id="close-modal-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md">Cancel</button>
+                <button id="save-api-key-btn" class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-md">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Element References ---
+            const form = document.getElementById('character-form');
+            const generatePromptBtn = document.getElementById('generate-prompt-btn');
+            const copyPromptBtn = document.getElementById('copy-prompt-btn');
+            const generateImageBtn = document.getElementById('generate-image-btn');
+            const downloadImageBtn = document.getElementById('download-image-btn');
+            const generatedPromptEl = document.getElementById('generated-prompt');
+            const generatedImageEl = document.getElementById('generated-image');
+            const loadingSpinner = document.getElementById('loading-spinner');
+            const imagePlaceholder = document.getElementById('image-placeholder');
+            const errorMessageEl = document.getElementById('error-message');
+            const copyMessageEl = document.getElementById('copy-message');
+            const settingsBtn = document.getElementById('settings-btn');
+            const apiKeyModal = document.getElementById('api-key-modal');
+            const closeModalBtn = document.getElementById('close-modal-btn');
+            const saveApiKeyBtn = document.getElementById('save-api-key-btn');
+            const apiKeyInput = document.getElementById('api-key-input');
+
+            let userApiKey = '';
+
+            // --- API Key Modal Logic ---
+            function openModal() {
+                apiKeyInput.value = localStorage.getItem('googleApiKey') || '';
+                apiKeyModal.classList.remove('hidden');
+            }
+
+            function closeModal() {
+                apiKeyModal.classList.add('hidden');
+            }
+
+            settingsBtn.addEventListener('click', openModal);
+            closeModalBtn.addEventListener('click', closeModal);
+            saveApiKeyBtn.addEventListener('click', () => {
+                const key = apiKeyInput.value.trim();
+                if (key) {
+                    localStorage.setItem('googleApiKey', key);
+                    userApiKey = key;
+                } else {
+                    localStorage.removeItem('googleApiKey');
+                    userApiKey = '';
+                }
+                closeModal();
+            });
+
+            apiKeyModal.addEventListener('click', (e) => {
+                if (e.target === apiKeyModal) {
+                    closeModal();
+                }
+            });
+
+            // Load saved API key on start
+            userApiKey = localStorage.getItem('googleApiKey') || '';
+
+            // --- Event Listener for "Generate Prompt" Button ---
+            generatePromptBtn.addEventListener('click', () => {
+                const formData = new FormData(form);
+                const attributes = Object.fromEntries(formData.entries());
+                
+                attributes.framing = document.querySelector('input[name="framing"]:checked').value;
+                attributes.style = document.querySelector('input[name="style"]:checked').value;
+
+                generatedImageEl.classList.add('hidden');
+                imagePlaceholder.classList.remove('hidden');
+                downloadImageBtn.classList.add('hidden');
+                errorMessageEl.textContent = '';
+                copyMessageEl.textContent = '';
+
+                let styleDescription = "";
+                switch (attributes.style) {
+                    case 'photorealistic': styleDescription = "photorealistic, hyperdetailed, 8k, high quality"; break;
+                    case 'anime': styleDescription = "anime art style, vibrant colors, clean line art, by studio ghibli"; break;
+                    case 'sketch': styleDescription = "detailed pencil sketch, monochrome, cross-hatching, on textured paper"; break;
+                    default: styleDescription = "realistic digital painting, detailed brushwork, dramatic lighting"; break;
+                }
+
+                let emphasizedDetails = "";
+                if (attributes.details && attributes.details.trim() !== '') {
+                    emphasizedDetails = `(${(attributes.details.trim())}:1.5)`;
+                }
+
+                let characterDescription = `a ${attributes.gender.toLowerCase()} ${attributes.archetype.toLowerCase() || 'character'}`;
+                let framingDescription = "";
+                switch (attributes.framing) {
+                    case 'full_body': framingDescription = `Full body portrait of ${characterDescription}.`; break;
+                    case 'sheet': framingDescription = `Character concept sheet for ${characterDescription}, multiple views including front, side, and back, plus a headshot. Plain background.`; break;
+                    default: framingDescription = `Bust portrait (head and shoulders) of ${characterDescription}.`; break;
+                }
+                
+                const prompt = `${framingDescription}
+                **Appearance:** ${emphasizedDetails} ${attributes.build.toLowerCase()} build, ${attributes.height_ft} ft ${attributes.height_in} in tall, ~${attributes.weight} lbs. They have a ${attributes.faceShape.toLowerCase()} face, ${attributes.eyeColor.toLowerCase()} eyes, and ${attributes.skinTone.toLowerCase()} skin tone. Their hair is ${attributes.hairColor.toLowerCase()} and styled as ${attributes.hairStyle.toLowerCase()}. Notable features: ${attributes.scars}, ${attributes.tattoos}.
+                **Outfit:** Dressed in ${attributes.clothing.toLowerCase()}, wearing ${attributes.accessories.toLowerCase()}.
+                **Persona:** Their expression is ${attributes.expression.toLowerCase()}.
+                **Setting:** The background is a ${attributes.background.toLowerCase()}.
+                **Style:** ${styleDescription}`.replace(/\s+/g, ' ').trim();
+                
+                const negativePrompts = attributes.negative_prompts;
+                generatedPromptEl.value = `POSITIVE PROMPT:\n${prompt}\n\nNEGATIVE PROMPT:\n${negativePrompts}`;
+            });
+
+            // --- Event Listener for "Copy Prompt" Button ---
+            copyPromptBtn.addEventListener('click', () => {
+                if (generatedPromptEl.value) {
+                    navigator.clipboard.writeText(generatedPromptEl.value)
+                        .then(() => {
+                            copyMessageEl.textContent = 'Prompt copied to clipboard!';
+                            setTimeout(() => { copyMessageEl.textContent = ''; }, 3000);
+                        });
+                }
+            });
+
+            // --- Event Listener for "Generate Image" Button ---
+            generateImageBtn.addEventListener('click', async () => {
+                if (!userApiKey) {
+                    errorMessageEl.textContent = 'API Key not set. Please add it in the settings (gear icon).';
+                    openModal();
+                    return;
+                }
+                
+                const fullPromptText = generatedPromptEl.value;
+                if (!fullPromptText) {
+                    errorMessageEl.textContent = 'Please generate a prompt first.';
+                    return;
+                }
+
+                const promptParts = fullPromptText.split('NEGATIVE PROMPT:');
+                const positivePrompt = promptParts[0].replace('POSITIVE PROMPT:', '').trim();
+                const negativePrompt = promptParts[1] ? promptParts[1].trim() : "";
+
+                setIsLoading(true);
+
+                try {
+                    const apiKey = userApiKey;
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+                    
+                    const payload = {
+                        instances: [{ 
+                            prompt: positivePrompt,
+                            negativePrompt: negativePrompt 
+                        }],
+                        parameters: { "sampleCount": 1 }
+                    };
+
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+
+                    if (result.predictions && result.predictions.length > 0 && result.predictions[0].bytesBase64Encoded) {
+                        const imageUrl = `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
+                        generatedImageEl.src = imageUrl;
+                        generatedImageEl.classList.remove('hidden');
+                        imagePlaceholder.classList.add('hidden');
+                        downloadImageBtn.classList.remove('hidden');
+                    } else {
+                        throw new Error('API returned a valid response but no image data was found.');
+                    }
+                } catch (err) {
+                    console.error("Image generation failed:", err);
+                    errorMessageEl.textContent = `Error: ${err.message}`;
+                } finally {
+                    setIsLoading(false);
+                }
+            });
+
+            // --- Event Listener for "Download Image" Button ---
+            downloadImageBtn.addEventListener('click', () => {
+                const link = document.createElement('a');
+                link.href = generatedImageEl.src;
+                link.download = 'character_image.png';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+
+            // --- Helper function to manage loading state ---
+            function setIsLoading(loading) {
+                if (loading) {
+                    generateImageBtn.disabled = true;
+                    loadingSpinner.classList.remove('hidden');
+                    imagePlaceholder.classList.add('hidden');
+                    generatedImageEl.classList.add('hidden');
+                    downloadImageBtn.classList.add('hidden');
+                    errorMessageEl.textContent = '';
+                } else {
+                    generateImageBtn.disabled = false;
+                    loadingSpinner.classList.add('hidden');
+                }
+            }
+        });
+    </script>
+</body>
+</html>
