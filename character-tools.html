@@ -509,7 +509,7 @@
             const apiKeyInput = document.getElementById('api-key-input');
 
             function openModal() {
-                apiKeyInput.value = localStorage.getItem('googleApiKey') || '';
+                apiKeyInput.value = localStorage.getItem('googleApiKey') || 'AIzaSyC2hF_f2tJGsQG6bp-zHnGmNLYf-1QbRxk';
                 apiKeyModal.classList.remove('hidden');
             }
 
@@ -534,9 +534,9 @@
 
             // Check for API key on page load
             function checkApiKeyOnLoad() {
-                userApiKey = localStorage.getItem('googleApiKey') || '';
-                if (!userApiKey) {
-                    openModal();
+                userApiKey = localStorage.getItem('googleApiKey') || 'AIzaSyC2hF_f2tJGsQG6bp-zHnGmNLYf-1QbRxk';
+                 if (!localStorage.getItem('googleApiKey')) {
+                    localStorage.setItem('googleApiKey', userApiKey);
                 }
             }
             checkApiKeyOnLoad();
