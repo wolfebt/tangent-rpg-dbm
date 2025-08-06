@@ -553,11 +553,22 @@
                 if (style === 'anime') styleDescription = "anime art style, vibrant colors, by Makoto Shinkai";
                 if (style === 'sketch') styleDescription = "detailed architectural sketch, perspective lines";
                 
-                const positivePrompt = `A wide-angle shot of a ${attributes['location-name'] || attributes['genre'] || 'scene'}, ${attributes['exterior-description']}.
-                **Style:** ${attributes.architectural_style}.
-                **Environment:** ${attributes.time_of_day}, ${attributes.weather}.
-                **Atmosphere:** ${attributes.atmosphere}.
-                **Art Style:** ${styleDescription}`.replace(/\s+/g, ' ').trim();
+                const workupText = outputElements.workup.pre.textContent.trim();
+                let positivePrompt;
+
+                if (workupText) {
+                    // If workup text exists, use it to generate a more detailed image prompt
+                    const imagePromptGenPrompt = `Based on the following detailed location description, create a concise but evocative visual prompt for an AI image generator. Focus on key visual elements, the environment, and the overall mood. The prompt should be a single paragraph. Do not use markdown or headings. Add the following art style to the end of the prompt: "${styleDescription}".\n\n---DESCRIPTION---\n${workupText}`;
+                    positivePrompt = await callGemini(imagePromptGenPrompt);
+                } else {
+                    // Fallback to original method if no workup text is available
+                    positivePrompt = `A wide-angle shot of a ${attributes['location-name'] || attributes['genre'] || 'scene'}, ${attributes['exterior-description']}.
+                    **Style:** ${attributes.architectural_style}.
+                    **Environment:** ${attributes.time_of_day}, ${attributes.weather}.
+                    **Atmosphere:** ${attributes.atmosphere}.
+                    **Art Style:** ${styleDescription}`.replace(/\s+/g, ' ').trim();
+                }
+                
                 const negativePrompt = attributes.negative_prompts || 'blurry, low quality, text, watermark, people, vehicles';
 
                 const imageUrl = await callImagen(positivePrompt, negativePrompt);
