@@ -214,6 +214,10 @@
                             <input type="text" id="architectural_style" name="architectural_style" placeholder="e.g., Gothic, Modern, Ethereal" class="form-input">
                         </div>
                         <div class="md:col-span-2">
+                            <label for="other_details" class="block text-sm font-medium text-gray-300 mb-1">Other Details</label>
+                            <textarea id="other_details" name="other_details" class="form-input" placeholder="e.g., specific flora, unique technology, magical elements..."></textarea>
+                        </div>
+                        <div class="md:col-span-2">
                             <label for="negative_prompts" class="block text-sm font-medium text-gray-300 mb-1 text-red-400">Negative Prompts (for Image)</label>
                             <textarea id="negative_prompts" name="negative_prompts" class="form-input" placeholder="e.g., people, vehicles, text, watermark..."></textarea>
                         </div>
@@ -548,27 +552,23 @@
                 const formData = new FormData(form);
                 const attributes = Object.fromEntries(formData.entries());
                 const style = document.querySelector('input[name="style"]:checked').value;
-                let styleDescription = "epic digital painting, detailed brushwork, dramatic lighting, fantasy art";
-                if (style === 'photorealistic') styleDescription = "photorealistic, hyperdetailed, 8k, cinematic lighting";
-                if (style === 'anime') styleDescription = "anime art style, vibrant colors, by Makoto Shinkai";
-                if (style === 'sketch') styleDescription = "detailed architectural sketch, perspective lines";
+                
+                let styleKeywords = "epic digital painting, detailed brushwork, dramatic lighting, fantasy art, trending on ArtStation";
+                if (style === 'photorealistic') styleKeywords = "photorealistic, hyperdetailed, 8k, cinematic, professional photography, sharp focus";
+                if (style === 'anime') styleKeywords = "anime style, vibrant, cinematic, detailed background art, by Makoto Shinkai and Studio Ghibli";
+                if (style === 'sketch') styleKeywords = "detailed pencil sketch, black and white, monochrome, architectural drawing, hand-drawn, graphite on textured paper";
                 
                 const workupText = outputElements.workup.pre.textContent.trim();
-                let positivePrompt;
+                let corePrompt;
 
                 if (workupText) {
-                    // If workup text exists, use it to generate a more detailed image prompt
-                    const imagePromptGenPrompt = `Based on the following detailed location description, create a concise but evocative visual prompt for an AI image generator. Focus on key visual elements, the environment, and the overall mood. The prompt should be a single paragraph. Do not use markdown or headings. Add the following art style to the end of the prompt: "${styleDescription}".\n\n---DESCRIPTION---\n${workupText}`;
-                    positivePrompt = await callGemini(imagePromptGenPrompt);
+                    const imagePromptGenPrompt = `Based on the following detailed location description, create a concise but evocative visual prompt for an AI image generator. Focus on key visual elements, the environment, and the overall mood. The prompt should be a single paragraph. Do not use markdown or headings. Do NOT include any art style descriptions. \n\n---DESCRIPTION---\n${workupText}`;
+                    corePrompt = await callGemini(imagePromptGenPrompt);
                 } else {
-                    // Fallback to original method if no workup text is available
-                    positivePrompt = `A wide-angle shot of a ${attributes['location-name'] || attributes['genre'] || 'scene'}, ${attributes['exterior-description']}.
-                    **Style:** ${attributes.architectural_style}.
-                    **Environment:** ${attributes.time_of_day}, ${attributes.weather}.
-                    **Atmosphere:** ${attributes.atmosphere}.
-                    **Art Style:** ${styleDescription}`.replace(/\s+/g, ' ').trim();
+                    corePrompt = `A wide-angle shot of a ${attributes['location-name'] || attributes['genre'] || 'scene'}, ${attributes['exterior-description']}. Style: ${attributes.architectural_style}. Environment: ${attributes.time_of_day}, ${attributes.weather}. Atmosphere: ${attributes.atmosphere}. Details: ${attributes.other_details}`;
                 }
                 
+                const positivePrompt = `${corePrompt.replace(/\s+/g, ' ').trim()}, ${styleKeywords}`;
                 const negativePrompt = attributes.negative_prompts || 'blurry, low quality, text, watermark, people, vehicles';
 
                 const imageUrl = await callImagen(positivePrompt, negativePrompt);
