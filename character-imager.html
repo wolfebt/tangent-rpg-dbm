@@ -41,9 +41,9 @@
             background-color: #4B5563; /* gray-600 */
         }
         input[type="radio"]:checked + .custom-radio-label {
-            background-color: #0891B2; /* cyan-600 */
+            background-color: #2563EB; /* blue-600 */
             color: white;
-            border-color: #67E8F9; /* cyan-300 */
+            border-color: #93C5FD; /* blue-300 */
         }
     </style>
 </head>
@@ -61,85 +61,85 @@
                 <form id="character-form">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <!-- Physique & Appearance -->
-                        <div class="md:col-span-2 font-bold text-xl text-cyan-400 border-b border-gray-700 pb-2 mb-2">Physique & Appearance</div>
+                        <div class="md:col-span-2 font-bold text-xl text-blue-400 border-b border-gray-700 pb-2 mb-2">Physique & Appearance</div>
                         <div>
                             <label for="gender" class="block text-sm font-medium text-gray-300 mb-1">Gender / Sex</label>
-                            <input type="text" id="gender" name="gender" value="Female" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500">
+                            <input type="text" id="gender" name="gender" placeholder="e.g., Female, Male" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
                         </div>
                         <div>
                             <label for="build" class="block text-sm font-medium text-gray-300 mb-1">Build</label>
-                            <input type="text" id="build" name="build" value="Athletic" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500">
+                            <input type="text" id="build" name="build" placeholder="e.g., Athletic, Slender" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
                         </div>
                         <div class="md:col-span-2">
                             <label class="block text-sm font-medium text-gray-300 mb-1">Height</label>
                             <div class="flex items-center space-x-2">
-                                <input type="number" id="height_ft" name="height_ft" value="5" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500">
+                                <input type="number" id="height_ft" name="height_ft" placeholder="5" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
                                 <span class="text-gray-400">ft</span>
-                                <input type="number" id="height_in" name="height_in" value="7" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500">
+                                <input type="number" id="height_in" name="height_in" placeholder="7" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
                                 <span class="text-gray-400">in</span>
                             </div>
                         </div>
                         <div>
                             <label for="weight" class="block text-sm font-medium text-gray-300 mb-1">Weight (lbs)</label>
-                            <input type="number" id="weight" name="weight" value="145" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500">
+                            <input type="number" id="weight" name="weight" placeholder="145" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
                         </div>
                         <div>
                             <label for="hairStyle" class="block text-sm font-medium text-gray-300 mb-1">Hair Style</label>
-                            <input type="text" id="hairStyle" name="hairStyle" value="Long and straight" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500">
+                            <input type="text" id="hairStyle" name="hairStyle" placeholder="e.g., Long and straight" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
                         </div>
                         <div>
                             <label for="hairColor" class="block text-sm font-medium text-gray-300 mb-1">Hair Color</label>
-                            <input type="text" id="hairColor" name="hairColor" value="Black" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500">
+                            <input type="text" id="hairColor" name="hairColor" placeholder="e.g., Black, Blonde" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
                         </div>
                         <div>
                             <label for="eyeColor" class="block text-sm font-medium text-gray-300 mb-1">Eye Color</label>
-                            <input type="text" id="eyeColor" name="eyeColor" value="Brown" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500">
+                            <input type="text" id="eyeColor" name="eyeColor" placeholder="e.g., Brown, Blue" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
                         </div>
                         <div>
                             <label for="faceShape" class="block text-sm font-medium text-gray-300 mb-1">Face Shape</label>
-                            <input type="text" id="faceShape" name="faceShape" value="Oval" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500">
+                            <input type="text" id="faceShape" name="faceShape" placeholder="e.g., Oval, Square" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
                         </div>
                          <div class="md:col-span-2">
                             <label for="skinTone" class="block text-sm font-medium text-gray-300 mb-1">Skin Tone</label>
-                            <input type="text" id="skinTone" name="skinTone" value="Fair" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500">
+                            <input type="text" id="skinTone" name="skinTone" placeholder="e.g., Fair, Dark" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
                         </div>
                         <div class="md:col-span-2">
                             <label for="scars" class="block text-sm font-medium text-gray-300 mb-1">Scars</label>
-                            <textarea id="scars" name="scars" rows="2" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500"></textarea>
+                            <textarea id="scars" name="scars" rows="2" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
                         </div>
                         <div class="md:col-span-2">
                             <label for="tattoos" class="block text-sm font-medium text-gray-300 mb-1">Tattoos</label>
-                            <textarea id="tattoos" name="tattoos" rows="2" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500"></textarea>
+                            <textarea id="tattoos" name="tattoos" rows="2" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
                         </div>
                         <div class="md:col-span-2">
                             <label for="details" class="block text-sm font-medium text-gray-300 mb-1">Other Details (Race, Species, etc.)</label>
-                            <textarea id="details" name="details" rows="2" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500" placeholder="e.g., Human with rounded ears, Elf with pointed ears..."></textarea>
+                            <textarea id="details" name="details" rows="2" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., Human with rounded ears, Elf with pointed ears..."></textarea>
                         </div>
 
                         <!-- Outfit -->
-                        <div class="md:col-span-2 font-bold text-xl text-cyan-400 border-b border-gray-700 pb-2 mb-2 mt-4">Outfit</div>
+                        <div class="md:col-span-2 font-bold text-xl text-blue-400 border-b border-gray-700 pb-2 mb-2 mt-4">Outfit</div>
                         <div class="md:col-span-2">
                             <label for="clothing" class="block text-sm font-medium text-gray-300 mb-1">Clothing</label>
-                            <textarea id="clothing" name="clothing" rows="2" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500"></textarea>
+                            <textarea id="clothing" name="clothing" rows="2" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
                         </div>
                         <div class="md:col-span-2">
                             <label for="accessories" class="block text-sm font-medium text-gray-300 mb-1">Accessories</label>
-                            <textarea id="accessories" name="accessories" rows="2" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500"></textarea>
+                            <textarea id="accessories" name="accessories" rows="2" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
                         </div>
 
                         <!-- Persona & Setting -->
-                        <div class="md:col-span-2 font-bold text-xl text-cyan-400 border-b border-gray-700 pb-2 mb-2 mt-4">Persona & Setting</div>
+                        <div class="md:col-span-2 font-bold text-xl text-blue-400 border-b border-gray-700 pb-2 mb-2 mt-4">Persona & Setting</div>
                         <div class="md:col-span-2">
                             <label for="archetype" class="block text-sm font-medium text-gray-300 mb-1">Archetype</label>
-                            <input type="text" id="archetype" name="archetype" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500" placeholder="e.g., Warrior, Rogue, Merchant...">
+                            <input type="text" id="archetype" name="archetype" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., Warrior, Rogue, Merchant...">
                         </div>
                         <div class="md:col-span-2">
                             <label for="expression" class="block text-sm font-medium text-gray-300 mb-1">Expression / Mood</label>
-                            <textarea id="expression" name="expression" rows="2" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500"></textarea>
+                            <textarea id="expression" name="expression" rows="2" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
                         </div>
                         <div class="md:col-span-2">
                             <label for="background" class="block text-sm font-medium text-gray-300 mb-1">Background / Setting</label>
-                            <textarea id="background" name="background" rows="2" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500"></textarea>
+                            <textarea id="background" name="background" rows="2" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
                         </div>
 
                         <!-- Negative Prompts -->
@@ -157,7 +157,7 @@
                 <!-- Image Composition -->
                 <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="md:col-span-2 font-bold text-xl text-cyan-400 border-b border-gray-700 pb-2 mb-2 flex items-center justify-between">
+                        <div class="md:col-span-2 font-bold text-xl text-blue-400 border-b border-gray-700 pb-2 mb-2 flex items-center justify-between">
                             <span>Image Composition</span>
                             <button id="settings-btn" class="text-gray-400 hover:text-white" title="API Key Settings">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -194,11 +194,11 @@
                 <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
                     <h2 class="text-2xl font-bold mb-4 text-white">Generated Prompt</h2>
                     <div class="flex items-center space-x-4 mb-4">
-                        <button id="generate-prompt-btn" class="flex-grow bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-md transition duration-300">
+                        <button id="generate-prompt-btn" class="flex-grow bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition duration-300">
                             1. Generate Prompt
                         </button>
                     </div>
-                    <textarea id="generated-prompt" rows="10" class="w-full bg-gray-900 border border-gray-700 text-gray-300 rounded-md p-3 focus:ring-cyan-500 focus:border-cyan-500" readonly placeholder="Your detailed character prompt will appear here..."></textarea>
+                    <textarea id="generated-prompt" rows="10" class="w-full bg-gray-900 border border-gray-700 text-gray-300 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500" readonly placeholder="Your detailed character prompt will appear here..."></textarea>
                     <button id="copy-prompt-btn" class="mt-2 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md transition duration-300 w-full">
                         Copy Prompt
                     </button>
@@ -237,11 +237,11 @@
             <p class="text-gray-400 mb-4">Please provide your Google AI API key. This will be stored in your browser's local storage and will not be shared.</p>
             <div>
                 <label for="api-key-input" class="block text-sm font-medium text-gray-300 mb-1">Google AI API Key</label>
-                <input type="password" id="api-key-input" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-cyan-500 focus:border-cyan-500">
+                <input type="password" id="api-key-input" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
             </div>
             <div class="mt-6 flex justify-end space-x-4">
                 <button id="close-modal-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md">Cancel</button>
-                <button id="save-api-key-btn" class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-md">Save</button>
+                <button id="save-api-key-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md">Save</button>
             </div>
         </div>
     </div>
