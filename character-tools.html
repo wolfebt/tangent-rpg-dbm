@@ -375,7 +375,7 @@
                 <p class="mt-3 text-md sm:text-lg text-gray-400 max-w-2xl mx-auto">Fill in the fields or check the box for AI generation.</p>
             </header>
             <main class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div class="content-panel lg:col-span-2">
+                <div class="content-panel">
                     <form id="character-form-profiler">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
@@ -440,41 +440,39 @@
                         </div>
                     </form>
                 </div>
-                <div class="space-y-8 lg:col-span-2">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        <div class="content-panel output-container">
-                            <div class="flex justify-between items-center mb-2">
-                                <h2 class="text-xl font-bold text-white">Workup</h2>
-                                <div class="flex space-x-2">
-                                     <button class="copy-btn btn btn-secondary !py-1 !px-2" data-target="output-workup">Copy</button>
-                                     <button class="save-btn btn btn-secondary !py-1 !px-2" data-target="output-workup" data-format="txt">Save</button>
-                                </div>
+                <div class="space-y-8">
+                    <div class="content-panel output-container">
+                        <div class="flex justify-between items-center mb-2">
+                            <h2 class="text-xl font-bold text-white">Workup</h2>
+                            <div class="flex space-x-2">
+                                 <button class="copy-btn btn btn-secondary !py-1 !px-2" data-target="output-workup">Copy</button>
+                                 <button class="save-btn btn btn-secondary !py-1 !px-2" data-target="output-workup" data-format="txt">Save</button>
                             </div>
-                            <p class="text-sm text-gray-400 mb-4">Full character details.</p>
-                            <div class="output-box"><pre id="output-workup" class="whitespace-pre-wrap text-sm"></pre></div>
                         </div>
-                        <div class="content-panel output-container">
-                            <div class="flex justify-between items-center mb-2">
-                                <h2 class="text-xl font-bold text-white">Markdown</h2>
-                                 <div class="flex space-x-2">
-                                    <button class="copy-btn btn btn-secondary !py-1 !px-2" data-target="output-markdown">Copy</button>
-                                    <button class="save-btn btn btn-secondary !py-1 !px-2" data-target="output-markdown" data-format="md">Save</button>
-                                </div>
+                        <p class="text-sm text-gray-400 mb-4">Full character details.</p>
+                        <div class="output-box"><pre id="output-workup" class="whitespace-pre-wrap text-sm"></pre></div>
+                    </div>
+                    <div class="content-panel output-container">
+                        <div class="flex justify-between items-center mb-2">
+                            <h2 class="text-xl font-bold text-white">Markdown</h2>
+                             <div class="flex space-x-2">
+                                <button class="copy-btn btn btn-secondary !py-1 !px-2" data-target="output-markdown">Copy</button>
+                                <button class="save-btn btn btn-secondary !py-1 !px-2" data-target="output-markdown" data-format="md">Save</button>
                             </div>
-                            <p class="text-sm text-gray-400 mb-4">Condensed for short notes.</p>
-                             <div class="output-box"><pre id="output-markdown" class="whitespace-pre-wrap text-sm"></pre></div>
                         </div>
-                        <div class="content-panel output-container">
-                            <div class="flex justify-between items-center mb-2">
-                                <h2 class="text-xl font-bold text-white">JSON</h2>
-                                <div class="flex space-x-2">
-                                     <button class="copy-btn btn btn-secondary !py-1 !px-2" data-target="output-json">Copy</button>
-                                     <button class="save-btn btn btn-secondary !py-1 !px-2" data-target="output-json" data-format="json">Save</button>
-                                </div>
+                        <p class="text-sm text-gray-400 mb-4">Condensed for short notes.</p>
+                         <div class="output-box"><pre id="output-markdown" class="whitespace-pre-wrap text-sm"></pre></div>
+                    </div>
+                    <div class="content-panel output-container">
+                        <div class="flex justify-between items-center mb-2">
+                            <h2 class="text-xl font-bold text-white">JSON</h2>
+                            <div class="flex space-x-2">
+                                 <button class="copy-btn btn btn-secondary !py-1 !px-2" data-target="output-json">Copy</button>
+                                 <button class="save-btn btn btn-secondary !py-1 !px-2" data-target="output-json" data-format="json">Save</button>
                             </div>
-                            <p class="text-sm text-gray-400 mb-4">Optimized for token economy.</p>
-                             <div class="output-box"><pre id="output-json" class="whitespace-pre-wrap text-sm"></pre></div>
                         </div>
+                        <p class="text-sm text-gray-400 mb-4">Optimized for token economy.</p>
+                         <div class="output-box"><pre id="output-json" class="whitespace-pre-wrap text-sm"></pre></div>
                     </div>
                      <p id="copy-feedback-profiler" class="text-sm text-green-400 mt-2 h-4 text-center"></p>
                 </div>
