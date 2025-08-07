@@ -1,4 +1,4 @@
-// Version 1.3 - UI/UX Update: Accordion Menu
+// Version 1.6 - AI Map Enhancement Implemented
 document.addEventListener('DOMContentLoaded', () => {
     // --- UI Elements ---
     const canvas = document.getElementById('mapCanvas');
@@ -57,6 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveApiKeyBtn = document.getElementById('saveApiKey');
     const cancelApiKeyBtn = document.getElementById('cancelApiKey');
     const generateMapBtn = document.getElementById('generateMapBtn');
+    const enhanceMapBtn = document.getElementById('enhanceMapBtn');
     const artStyleSelect = document.getElementById('artStyle');
     // AI Prompt Fields
     const aiPrimaryFeature = document.getElementById('aiPrimaryFeature');
@@ -66,6 +67,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const aiTimeOfDay = document.getElementById('aiTimeOfDay');
     const aiWeather = document.getElementById('aiWeather');
     const aiMood = document.getElementById('aiMood');
+    const aiOtherDetails = document.getElementById('aiOtherDetails');
+    const aiNegativePrompt = document.getElementById('aiNegativePrompt');
+    const enhancePrompt = document.getElementById('enhancePrompt');
 
     // Map Key UI
     const mapKeyBtn = document.getElementById('mapKeyBtn');
@@ -998,7 +1002,7 @@ document.addEventListener('DOMContentLoaded', () => {
             drawKeyOnContext(offscreenCtx, keyDrawX, keyDrawY);
         }
 
-        const tagText = "MAP MAKER by Wolfe.BT@TangentLLC";
+        const tagText = "TTRPG HEX MAP MAKER by Wolfe.BT@TangentLLC";
         offscreenCtx.font = "200 14px 'Trebuchet MS'";
         offscreenCtx.fillStyle = "rgba(0, 0, 0, 0.8)";
         offscreenCtx.textAlign = "left";
@@ -1952,19 +1956,27 @@ document.addEventListener('DOMContentLoaded', () => {
         
         generateMapBtn.addEventListener('click', async () => {
             const artStyle = artStyleSelect.value;
-            const promptParts = [
-                `top-down, 2d, ttrpg ${currentScale} map`,
+            
+            const promptCore = [
                 aiPrimaryFeature.value,
                 aiOverview.value,
                 `Primary biome: ${aiPrimaryBiome.value}`,
                 aiSecondaryFeatures.value,
                 `Time of day: ${aiTimeOfDay.value}`,
                 `Atmosphere: ${aiWeather.value}`,
-                `Mood: ${aiMood.value}`,
-                `${artStyle} style`,
-                "no figures, no characters, no people"
-            ];
-            const fullPrompt = promptParts.filter(p => p).join(', ');
+                `Mood: ${aiMood.value}`
+            ].filter(p => p).join(', ');
+
+            let otherDetailsPrompt = '';
+            if (aiOtherDetails.value) {
+                otherDetailsPrompt = `(highly detailed with: ${aiOtherDetails.value}:1.5)`;
+            }
+
+            const userNegativePrompt = aiNegativePrompt.value;
+            const baseNegativePrompts = "no figures, no characters, no people, no buildings, no structures, no objects, terrain only";
+            const combinedNegativePrompt = `${baseNegativePrompts}, ${userNegativePrompt}`.trim();
+
+            const fullPrompt = `top-down, 2d, ttrpg ${currentScale} map, ${promptCore}, ${otherDetailsPrompt}, ${artStyle} style, ${combinedNegativePrompt}`;
 
             if (!apiKey) {
                 showModal("Please enter your API key in the settings (gear icon).");
@@ -2016,6 +2028,73 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (error) {
                 console.error('Error generating map:', error);
                 showModal("Error generating map. Please check your API key and prompt.");
+                drawAll(); // Redraw to remove loading indicator
+            }
+        });
+
+        enhanceMapBtn.addEventListener('click', async () => {
+            const userPrompt = enhancePrompt.value;
+            if (!userPrompt) {
+                showModal("Please enter a prompt to enhance the map.");
+                return;
+            }
+            if (!apiKey) {
+                showModal("Please enter your API key in the settings (gear icon).");
+                return;
+            }
+
+            // Show loading indicator
+            ctx.save();
+            ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "white";
+            ctx.textAlign = "center";
+            ctx.font = "24px 'Trebuchet MS'";
+            ctx.fillText("Enhancing map...", canvas.width / 2, canvas.height / 2);
+            ctx.restore();
+            
+            const base64ImageData = canvas.toDataURL('image/png').split(',')[1];
+
+            try {
+                const payload = {
+                    contents: [
+                        {
+                            role: "user",
+                            parts: [
+                                { text: userPrompt },
+                                {
+                                    inlineData: {
+                                        mimeType: "image/png",
+                                        data: base64ImageData
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                };
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                const text = result.candidates[0].content.parts[0].text;
+                // For now, we'll just log the text response. 
+                // In the future, we can parse this to make specific edits.
+                console.log("AI Enhancement suggestion:", text);
+                showModal("AI Enhancement suggestions received. Check the console for details. Automatic editing is not yet implemented.");
+                drawAll(); // Redraw to remove loading indicator
+
+
+            } catch (error) {
+                console.error('Error enhancing map:', error);
+                showModal("Error enhancing map. Please check your API key and prompt.");
                 drawAll(); // Redraw to remove loading indicator
             }
         });
