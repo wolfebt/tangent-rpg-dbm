@@ -1,4 +1,4 @@
-// Version 1.6 - AI Map Enhancement Implemented
+// Version 1.8 - Enhanced UI Highlighting
 document.addEventListener('DOMContentLoaded', () => {
     // --- UI Elements ---
     const canvas = document.getElementById('mapCanvas');
@@ -57,7 +57,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveApiKeyBtn = document.getElementById('saveApiKey');
     const cancelApiKeyBtn = document.getElementById('cancelApiKey');
     const generateMapBtn = document.getElementById('generateMapBtn');
-    const enhanceMapBtn = document.getElementById('enhanceMapBtn');
     const artStyleSelect = document.getElementById('artStyle');
     // AI Prompt Fields
     const aiPrimaryFeature = document.getElementById('aiPrimaryFeature');
@@ -69,7 +68,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const aiMood = document.getElementById('aiMood');
     const aiOtherDetails = document.getElementById('aiOtherDetails');
     const aiNegativePrompt = document.getElementById('aiNegativePrompt');
-    const enhancePrompt = document.getElementById('enhancePrompt');
+    const aiEditPrompt = document.getElementById('aiEditPrompt');
+    const aiEditBtn = document.getElementById('aiEditBtn');
 
     // Map Key UI
     const mapKeyBtn = document.getElementById('mapKeyBtn');
@@ -321,8 +321,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const groundLayer = layers.find(l => l.name === 'Ground');
         if (groundLayer && groundLayer.backgroundImage) {
-            const { mapPixelWidth, mapPixelHeight } = getMapPixelBounds();
-            targetCtx.drawImage(groundLayer.backgroundImage, 0, 0, mapPixelWidth, mapPixelHeight);
+            const { mapPixelWidth, mapPixelHeight, minPxX, minPxY } = getMapPixelBounds();
+            const destX = minPxX;
+            const destY = minPxY;
+            targetCtx.drawImage(groundLayer.backgroundImage, destX, destY, mapPixelWidth, mapPixelHeight);
         }
 
         const topTerrains = getTopTerrains();
@@ -1250,18 +1252,37 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateActiveSwatches() {
+        // --- Clear all dynamic active classes first ---
         document.querySelectorAll('.item-container.active, .control-panel button.active, .collapsible-header.active').forEach(el => el.classList.remove('active'));
+
+        // --- Hide panels by default ---
         terrainOptionsPanel.classList.add('hidden');
         pencilOptionsPanel.classList.add('hidden');
         canvas.classList.remove('pencil');
 
+        // --- Set active states based on current variables ---
+
+        // Highlight Genre and Scale
+        document.querySelector(`#genreSelector .control-btn[data-genre="${currentGenre}"]`)?.classList.add('active');
+        document.querySelector(`#scaleSelector .control-btn[data-scale="${currentScale}"]`)?.classList.add('active');
+
+        // Handle tool-specific highlighting
         if (nextClickAction === 'placeObject') {
+            // Highlight the selected object
             document.querySelector(`.item-container[data-object-key="${selectedObjectKey}"]`)?.classList.add('active');
+            // Keep the base tool (terrain) highlighted
+            toolTerrainBtn.classList.add('active');
+            terrainOptionsPanel.classList.remove('hidden');
         } else if (nextClickAction === 'placeText') {
+            // Highlight the text panel header
             textHeader.classList.add('active');
+            // Keep the base tool (terrain) highlighted
+            toolTerrainBtn.classList.add('active');
+            terrainOptionsPanel.classList.remove('hidden');
         } else if (currentTool === 'terrain') {
             toolTerrainBtn.classList.add('active');
             terrainOptionsPanel.classList.remove('hidden');
+            // Highlight the selected terrain
             document.querySelector(`.item-container[data-terrain="${selectedTerrain}"]`)?.classList.add('active');
         } else if (currentTool === 'pencil') {
             toolPencilBtn.classList.add('active');
@@ -1269,6 +1290,7 @@ document.addEventListener('DOMContentLoaded', () => {
             canvas.classList.add('pencil');
         } else if (currentTool === 'eraser') {
             eraserBtn.classList.add('active');
+            terrainOptionsPanel.classList.remove('hidden'); // Eraser also uses brush options
         }
     }
 
@@ -1881,8 +1903,6 @@ document.addEventListener('DOMContentLoaded', () => {
         genreSelector.addEventListener('click', (e) => {
             if (e.target.matches('.control-btn')) {
                 currentGenre = e.target.dataset.genre;
-                document.querySelectorAll('#genreSelector .control-btn').forEach(btn => btn.classList.remove('active'));
-                e.target.classList.add('active');
                 populateSelectors();
             }
         });
@@ -1890,8 +1910,6 @@ document.addEventListener('DOMContentLoaded', () => {
         scaleSelector.addEventListener('click', (e) => {
             if (e.target.matches('.control-btn')) {
                 currentScale = e.target.dataset.scale;
-                 document.querySelectorAll('#scaleSelector .control-btn').forEach(btn => btn.classList.remove('active'));
-                e.target.classList.add('active');
                 populateSelectors();
             }
         });
@@ -1973,10 +1991,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const userNegativePrompt = aiNegativePrompt.value;
-            const baseNegativePrompts = "no figures, no characters, no people, no buildings, no structures, no objects, terrain only";
+            const baseNegativePrompts = "text, words, labels, signs, figures, characters, people, animals, creatures, buildings, structures, man-made objects, ruins, furniture, vehicles, roads, paths";
             const combinedNegativePrompt = `${baseNegativePrompts}, ${userNegativePrompt}`.trim();
 
-            const fullPrompt = `top-down, 2d, ttrpg ${currentScale} map, ${promptCore}, ${otherDetailsPrompt}, ${artStyle} style, ${combinedNegativePrompt}`;
+            const fullPrompt = `Purely natural landscape, terrain only, top-down, 2d, ttrpg ${currentScale} map, ${promptCore}, ${otherDetailsPrompt}, ${artStyle} style, negative prompt: ${combinedNegativePrompt}`;
 
             if (!apiKey) {
                 showModal("Please enter your API key in the settings (gear icon).");
@@ -2032,16 +2050,22 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        enhanceMapBtn.addEventListener('click', async () => {
-            const userPrompt = enhancePrompt.value;
+        aiEditBtn.addEventListener('click', async () => {
+            const userPrompt = aiEditPrompt.value;
             if (!userPrompt) {
-                showModal("Please enter a prompt to enhance the map.");
+                showModal("Please enter an edit instruction.");
                 return;
             }
             if (!apiKey) {
                 showModal("Please enter your API key in the settings (gear icon).");
                 return;
             }
+             const groundLayer = layers.find(l => l.name === 'Ground');
+            if (!groundLayer || !groundLayer.backgroundImage) {
+                showModal("Please generate a base map first before editing.");
+                return;
+            }
+
 
             // Show loading indicator
             ctx.save();
@@ -2050,29 +2074,38 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.fillStyle = "white";
             ctx.textAlign = "center";
             ctx.font = "24px 'Trebuchet MS'";
-            ctx.fillText("Enhancing map...", canvas.width / 2, canvas.height / 2);
+            ctx.fillText("Applying AI Edit...", canvas.width / 2, canvas.height / 2);
             ctx.restore();
             
-            const base64ImageData = canvas.toDataURL('image/png').split(',')[1];
+            // Create a temporary canvas to get the current map image data without grid/UI
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            const { mapPixelWidth, mapPixelHeight, minPxX, minPxY } = getMapPixelBounds();
+            tempCanvas.width = mapPixelWidth;
+            tempCanvas.height = mapPixelHeight;
+            drawFrame(tempCtx, { width: mapPixelWidth, height: mapPixelHeight, minPxX, minPxY });
+            const base64ImageData = tempCanvas.toDataURL('image/png').split(',')[1];
+
 
             try {
                 const payload = {
-                    contents: [
-                        {
-                            role: "user",
-                            parts: [
-                                { text: userPrompt },
-                                {
-                                    inlineData: {
-                                        mimeType: "image/png",
-                                        data: base64ImageData
-                                    }
-                                }
-                            ]
+                  contents: [{
+                    parts: [
+                      { text: userPrompt },
+                      {
+                        inlineData: {
+                          mimeType: "image/png",
+                          data: base64ImageData
                         }
-                    ],
+                      }
+                    ]
+                  }],
+                  generationConfig: {
+                    responseModalities: ['TEXT', 'IMAGE']
+                  },
                 };
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${apiKey}`;
                 const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -2084,17 +2117,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 const result = await response.json();
-                const text = result.candidates[0].content.parts[0].text;
-                // For now, we'll just log the text response. 
-                // In the future, we can parse this to make specific edits.
-                console.log("AI Enhancement suggestion:", text);
-                showModal("AI Enhancement suggestions received. Check the console for details. Automatic editing is not yet implemented.");
-                drawAll(); // Redraw to remove loading indicator
+                const base64Data = result?.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
 
+                if (base64Data) {
+                    const imageUrl = `data:image/png;base64,${base64Data}`;
+                    const img = new Image();
+                    img.onload = () => {
+                        if (groundLayer) {
+                            groundLayer.backgroundImage = img;
+                        }
+                        drawAll();
+                    };
+                    img.src = imageUrl;
+                } else {
+                     throw new Error("No image data in API response for editing.");
+                }
 
             } catch (error) {
-                console.error('Error enhancing map:', error);
-                showModal("Error enhancing map. Please check your API key and prompt.");
+                console.error('Error editing map:', error);
+                showModal("Error editing map. Please check your API key and prompt.");
                 drawAll(); // Redraw to remove loading indicator
             }
         });

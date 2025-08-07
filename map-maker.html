@@ -71,6 +71,7 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </div>
                         <div id="aiAssistantContent" class="collapsible-content hidden">
+                            <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Generate New Map</h4>
                             <label for="aiPrimaryFeature">Primary Feature/Location</label>
                             <input type="text" id="aiPrimaryFeature" placeholder="e.g., The Sunken City of A'zura" class="mb-2">
                             
@@ -117,7 +118,12 @@
                                 <option value="painted">Painted</option>
                                 <option value="drawn">Drawn</option>
                             </select>
-                            <button id="generateMapBtn" class="mb-2">Generate Map</button>
+                            <button id="generateMapBtn" class="mb-4">Generate Map</button>
+
+                            <h4 class="text-md font-semibold text-gray-200 mb-2 mt-4 border-b border-gray-600 pb-1">Edit Existing Map</h4>
+                            <label for="aiEditPrompt">Edit Instruction</label>
+                            <textarea id="aiEditPrompt" placeholder="e.g., Add a river from north to south. Make the forest more dense. Remove any buildings." class="mb-2"></textarea>
+                            <button id="aiEditBtn">Apply AI Edit</button>
                         </div>
                     </div>
 
