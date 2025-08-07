@@ -1,4 +1,4 @@
-// Version 2.9 - Improved Negative Prompts & AI Edit Fixes
+// Version 3.1 - Added Resizable Sidebar
 document.addEventListener('DOMContentLoaded', () => {
     // --- UI Elements ---
     const canvas = document.getElementById('mapCanvas');
@@ -62,6 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancelApiKeyBtn = document.getElementById('cancelApiKey');
     const generateMapBtn = document.getElementById('generateMapBtn');
     const artStyleSelect = document.getElementById('artStyle');
+    const resizer = document.getElementById('resizer');
     // AI Prompt Fields
     const aiPrimaryFeature = document.getElementById('aiPrimaryFeature');
     const aiOverview = document.getElementById('aiOverview');
@@ -2097,7 +2098,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    const errorBody = await response.json();
+                    throw new Error(`HTTP error! status: ${response.status} - ${errorBody.error.message}`);
                 }
 
                 const result = await response.json();
@@ -2121,7 +2123,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             } catch (error) {
                 console.error('Error generating map:', error);
-                showModal("Error generating map. Please check your API key and prompt.");
+                showModal(`Error generating map: ${error.message}`);
                 drawAll(); // Redraw to remove loading indicator
             }
         });
@@ -2160,10 +2162,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const aspectRatio = mapPixelWidth / mapPixelHeight;
             if (aspectRatio > 2 || aspectRatio < 0.5) {
                 showModal("AI Edit failed: The map's aspect ratio is too extreme. Please make it closer to a square.");
+                drawAll();
                 return;
             }
             if (mapPixelWidth < 64 || mapPixelHeight < 64 || mapPixelWidth > 4096 || mapPixelHeight > 4096) {
                 showModal(`AI Edit failed: The map's dimensions (${mapPixelWidth}x${mapPixelHeight}) are outside the allowed range (64x64 to 4096x4096).`);
+                drawAll();
                 return;
             }
 
@@ -2255,7 +2259,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    const errorBody = await response.json();
+                    throw new Error(`HTTP error! status: ${response.status} - ${errorBody.error.message}`);
                 }
 
                 const result = await response.json();
@@ -2288,7 +2293,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             } catch (error) {
                 console.error('Error editing map:', error);
-                showModal("Error editing map. Please check your API key and prompt.");
+                showModal(`Error editing map: ${error.message}`);
                 drawAll();
             }
         }
@@ -2299,6 +2304,40 @@ document.addEventListener('DOMContentLoaded', () => {
         togglePanel(false); // Start with panel open
         
         addEventListeners();
+        
+        const resizer = document.getElementById('resizer');
+        let isResizing = false;
+
+        resizer.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+
+            const mouseMoveHandler = (e) => {
+                if (!isResizing) return;
+                const panel = document.getElementById('panelWrapper');
+                const newWidth = e.clientX;
+                const minWidth = 250;
+                const maxWidth = window.innerWidth / 2;
+
+                if (newWidth > minWidth && newWidth < maxWidth) {
+                    panel.style.setProperty('--panel-width', `${newWidth}px`);
+                    resizeCanvas();
+                }
+            };
+
+            const mouseUpHandler = () => {
+                isResizing = false;
+                document.body.style.cursor = 'default';
+                document.body.style.removeProperty('user-select');
+                document.removeEventListener('mousemove', mouseMoveHandler);
+                document.removeEventListener('mouseup', mouseUpHandler);
+            };
+
+            document.addEventListener('mousemove', mouseMoveHandler);
+            document.addEventListener('mouseup', mouseUpHandler);
+        });
+        
         gridColorPicker.value = gridColor;
         gridVisibleCheckbox.checked = true;
         updateUndoRedoButtons();

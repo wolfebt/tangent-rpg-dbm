@@ -106,14 +106,17 @@ body {
 
 /* Control Panel Styles */
 #panelWrapper {
-    width: 20rem; /* 320px */
+    width: var(--panel-width, 20rem); /* Default width, can be changed by JS */
+    min-width: 250px;
+    max-width: 50vw;
     height: 100vh;
     display: flex;
-    transition: width 0.3s ease-in-out;
+    transition: min-width 0.3s ease-in-out; /* Smooth transition for collapse */
     flex-shrink: 0;
     overflow: hidden;
 }
 #panelWrapper.closed {
+    min-width: 0;
     width: 0;
 }
 
@@ -123,7 +126,22 @@ body {
     width: 100%;
     height: 100%;
     flex-shrink: 0;
+    overflow: hidden; /* Hide content when panel is collapsing */
 }
+
+/* Resizer Handle */
+.resizer {
+    width: 5px;
+    cursor: col-resize;
+    background-color: #374151; /* bg-gray-700 */
+    height: 100%;
+    flex-shrink: 0;
+    transition: background-color 0.2s;
+}
+.resizer:hover {
+    background-color: #4b5563; /* bg-gray-600 */
+}
+
 
 .control-panel {
     background-color: #1f2937; /* bg-gray-800 */
@@ -363,6 +381,4 @@ body {
 }
 .modal-backdrop {
     transition: opacity 0.3s ease;
-}
-
 }
