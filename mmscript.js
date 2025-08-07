@@ -1,4 +1,4 @@
-// Version 3.5 - Implemented Multi-Step AI Generation & Fixed Resizer
+// Version 4.0 - Full AI Functionality Enabled
 document.addEventListener('DOMContentLoaded', () => {
     // --- UI Elements ---
     const canvas = document.getElementById('mapCanvas');
@@ -339,47 +339,38 @@ document.addEventListener('DOMContentLoaded', () => {
             targetCtx.scale(view.zoom, view.zoom);
         }
 
-        const groundLayer = layers.find(l => l.name === 'Ground');
-        if (groundLayer && groundLayer.backgroundImage) {
-            const { mapPixelWidth, mapPixelHeight, minPxX, minPxY } = getMapPixelBounds();
-            const destX = minPxX;
-            const destY = minPxY;
-            targetCtx.drawImage(groundLayer.backgroundImage, destX, destY, mapPixelWidth, mapPixelHeight);
-        }
-
-        const topTerrains = getTopTerrains();
-
-        for (const key in mapGrid) {
-            const coords = key.split(',').map(Number);
-            const terrainKey = topTerrains[key];
-            if (terrainKey) {
-                if (gridType === 'hex') {
-                    const {x, y} = hexToPixel(coords[0], coords[1]);
-                    drawHex(targetCtx, x, y, terrains[terrainKey]);
-                } else {
-                    const {x, y} = squareToPixel(coords[0], coords[1]);
-                    drawSquare(targetCtx, x, y, terrains[terrainKey]);
-                }
-            }
-        }
-        
-        placedAssets.forEach(asset => {
-            const {x, y} = (gridType === 'hex') ? hexToPixel(asset.q, asset.r) : squareToPixel(asset.q, asset.r);
-            drawObject(targetCtx, x, y, asset.symbol, asset.size);
-        });
-
+        // Draw layers in order
         layers.forEach(layer => {
             if (!layer.visible) return;
 
+            // Draw background image if it exists for this layer (e.g., ground, water)
+            if (layer.backgroundImage && layer.backgroundImage.complete) {
+                const { mapPixelWidth, mapPixelHeight, minPxX, minPxY } = getMapPixelBounds();
+                targetCtx.drawImage(layer.backgroundImage, minPxX, minPxY, mapPixelWidth, mapPixelHeight);
+            }
+
+            // Draw hex/square data for this layer
             for (const key in layer.data) {
                 const coords = key.split(',').map(Number);
                 const hexData = layer.data[key];
                 const {x, y} = (gridType === 'hex') ? hexToPixel(coords[0], coords[1]) : squareToPixel(coords[0], coords[1]);
 
+                if (hexData.terrain) {
+                    if (gridType === 'hex') {
+                        drawHex(targetCtx, x, y, terrains[hexData.terrain]);
+                    } else {
+                        drawSquare(targetCtx, x, y, terrains[hexData.terrain]);
+                    }
+                }
                 if (hexData.text) {
                     drawText(targetCtx, x, y, hexData.text, hexData.textSize, hexData.textColor);
                 }
             }
+        });
+        
+        placedAssets.forEach(asset => {
+            const {x, y} = (gridType === 'hex') ? hexToPixel(asset.q, asset.r) : squareToPixel(asset.q, asset.r);
+            drawObject(targetCtx, x, y, asset.symbol, asset.size);
         });
         
         targetCtx.restore();
@@ -690,8 +681,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function saveState() {
+        const serializableLayers = layers.map(layer => {
+            const newLayer = { ...layer };
+            if (newLayer.backgroundImage && newLayer.backgroundImage.src) {
+                newLayer.backgroundImage = { src: newLayer.backgroundImage.src };
+            } else {
+                newLayer.backgroundImage = null;
+            }
+            return newLayer;
+        });
+
         undoStack.push({
-            layers: JSON.parse(JSON.stringify(layers)),
+            layers: JSON.parse(JSON.stringify(serializableLayers)),
             pencilPaths: JSON.parse(JSON.stringify(pencilPaths)),
             freestyleTerrainPaths: JSON.parse(JSON.stringify(freestyleTerrainPaths)),
             placedAssets: JSON.parse(JSON.stringify(placedAssets))
@@ -702,8 +703,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function undo() {
         if (undoStack.length === 0) return;
+        
+        const serializableLayers = layers.map(layer => {
+            const newLayer = { ...layer };
+            if (newLayer.backgroundImage && newLayer.backgroundImage.src) {
+                newLayer.backgroundImage = { src: newLayer.backgroundImage.src };
+            } else {
+                newLayer.backgroundImage = null;
+            }
+            return newLayer;
+        });
         const currentState = {
-            layers: JSON.parse(JSON.stringify(layers)),
+            layers: JSON.parse(JSON.stringify(serializableLayers)),
             pencilPaths: JSON.parse(JSON.stringify(pencilPaths)),
             freestyleTerrainPaths: JSON.parse(JSON.stringify(freestyleTerrainPaths)),
             placedAssets: JSON.parse(JSON.stringify(placedAssets))
@@ -711,7 +722,15 @@ document.addEventListener('DOMContentLoaded', () => {
         redoStack.push(currentState);
         
         const previousState = undoStack.pop();
-        layers = previousState.layers;
+        layers = previousState.layers.map(layerData => {
+            if (layerData.backgroundImage && layerData.backgroundImage.src) {
+                const img = new Image();
+                img.src = layerData.backgroundImage.src;
+                layerData.backgroundImage = img;
+                img.onload = () => drawAll();
+            }
+            return layerData;
+        });
         pencilPaths = previousState.pencilPaths;
         freestyleTerrainPaths = previousState.freestyleTerrainPaths;
         placedAssets = previousState.placedAssets;
@@ -724,8 +743,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function redo() {
         if (redoStack.length === 0) return;
+        
+        const serializableLayers = layers.map(layer => {
+            const newLayer = { ...layer };
+            if (newLayer.backgroundImage && newLayer.backgroundImage.src) {
+                newLayer.backgroundImage = { src: newLayer.backgroundImage.src };
+            } else {
+                newLayer.backgroundImage = null;
+            }
+            return newLayer;
+        });
         const currentState = {
-            layers: JSON.parse(JSON.stringify(layers)),
+            layers: JSON.parse(JSON.stringify(serializableLayers)),
             pencilPaths: JSON.parse(JSON.stringify(pencilPaths)),
             freestyleTerrainPaths: JSON.parse(JSON.stringify(freestyleTerrainPaths)),
             placedAssets: JSON.parse(JSON.stringify(placedAssets))
@@ -733,7 +762,15 @@ document.addEventListener('DOMContentLoaded', () => {
         undoStack.push(currentState);
 
         const nextState = redoStack.pop();
-        layers = nextState.layers;
+        layers = nextState.layers.map(layerData => {
+            if (layerData.backgroundImage && layerData.backgroundImage.src) {
+                const img = new Image();
+                img.src = layerData.backgroundImage.src;
+                layerData.backgroundImage = img;
+                img.onload = () => drawAll();
+            }
+            return layerData;
+        });
         pencilPaths = nextState.pencilPaths;
         freestyleTerrainPaths = nextState.freestyleTerrainPaths;
         placedAssets = nextState.placedAssets;
@@ -963,19 +1000,19 @@ document.addEventListener('DOMContentLoaded', () => {
     function addNewLayer(name = 'New Layer') {
         saveState();
         const newName = name === 'New Layer' ? `${name} ${layers.length + 1}` : name;
-        layers.push({ name: newName, visible: true, data: {} });
+        layers.push({ name: newName, visible: true, data: {}, backgroundImage: null });
         activeLayerIndex = layers.length - 1;
         renderLayers();
     }
 
     function deleteActiveLayer() {
         const layer = layers[activeLayerIndex];
-        if (layer.name === 'Ground' || layer.name === 'Grid') {
-            showModal("The Ground and Grid layers cannot be deleted.");
+        if (layer.name === 'Ground' || layer.name === 'Objects') {
+            showModal("The Ground and Objects layers cannot be deleted.");
             return;
         }
         if (layers.length <= 2) {
-            showModal("You cannot delete the last layer.");
+            showModal("You must keep at least the Ground and Objects layers.");
             return;
         }
         saveState();
@@ -1064,10 +1101,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function saveAsJSONLogic() {
+        // Create a serializable version of layers
+        const serializableLayers = layers.map(layer => {
+            const newLayer = { ...layer };
+            if (newLayer.backgroundImage && newLayer.backgroundImage.src) {
+                newLayer.backgroundImage = { src: newLayer.backgroundImage.src };
+            } else {
+                newLayer.backgroundImage = null;
+            }
+            return newLayer;
+        });
+
         const mapData = {
             name: mapName,
             grid: mapGrid,
-            layers: layers,
+            layers: serializableLayers,
             pencilPaths: pencilPaths,
             freestyleTerrainPaths: freestyleTerrainPaths,
             placedAssets: placedAssets
@@ -1168,11 +1216,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 const loadedData = JSON.parse(event.target.result);
                 if (loadedData && loadedData.grid && Array.isArray(loadedData.layers)) {
                     mapGrid = loadedData.grid;
-                    layers = loadedData.layers;
                     pencilPaths = loadedData.pencilPaths || [];
                     freestyleTerrainPaths = loadedData.freestyleTerrainPaths || [];
                     placedAssets = loadedData.placedAssets || [];
                     mapName = loadedData.name || 'Untitled Loaded Map';
+                    
+                    // Re-hydrate layers with Image objects
+                    layers = loadedData.layers.map(layerData => {
+                        if (layerData.backgroundImage && layerData.backgroundImage.src) {
+                            const img = new Image();
+                            img.src = layerData.backgroundImage.src;
+                            layerData.backgroundImage = img;
+                            // Redraw when the image loads to ensure it appears
+                            img.onload = () => drawAll();
+                        }
+                        return layerData;
+                    });
+
                     mapNameInput.value = mapName;
                     activeLayerIndex = 0;
                     undoStack = [];
@@ -1647,6 +1707,281 @@ document.addEventListener('DOMContentLoaded', () => {
         drawSection(objectItems, 'Objects');
     }
 
+    // --- AI and Helper Functions ---
+
+    /**
+     * A generic function to show a loading indicator and handle API calls to Google AI.
+     * @param {string} prompt - The text prompt for the AI.
+     * @param {string | null} imageBase64 - The base64 encoded source image (optional).
+     * @param {string | null} maskBase64 - The base64 encoded mask image (optional).
+     * @returns {Promise<string|null>} - A promise that resolves with the base64 string of the generated image.
+     */
+    async function callGenerativeAI(prompt, imageBase64 = null, maskBase64 = null) {
+        if (!apiKey) {
+            showModal("Please set your API key in the settings first.");
+            return null;
+        }
+
+        showModal("AI is generating... Please wait.", null);
+
+        let apiUrl;
+        let payload;
+        const modelForTextToImage = "imagen-3.0-generate-002"; // Best for pure generation
+        const modelForImageEdit = "gemini-2.5-flash-preview-05-20"; // Best for understanding + editing
+
+        if (!imageBase64) {
+            // --- Text-to-Image Generation (Step 1: Landform) ---
+            apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelForTextToImage}:predict?key=${apiKey}`;
+            payload = {
+                instances: [{ prompt: prompt }],
+                parameters: { "sampleCount": 1 }
+            };
+        } else {
+            // --- Image-to-Image / Inpainting (Steps 2, 3, Edit) ---
+            apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelForImageEdit}:generateContent?key=${apiKey}`;
+            const parts = [{ text: prompt }];
+            parts.push({
+                inlineData: {
+                    mimeType: "image/png",
+                    data: imageBase64
+                }
+            });
+            if (maskBase64) {
+                // Add the mask for inpainting tasks
+                parts.push({
+                    inlineData: {
+                        mimeType: "image/png",
+                        data: maskBase64
+                    }
+                });
+            }
+            payload = {
+                contents: [{ role: "user", parts: parts }]
+            };
+        }
+
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                console.error("AI API Error:", error);
+                throw new Error(`API request failed with status ${response.status}: ${error.error?.message || 'Unknown error'}`);
+            }
+
+            const result = await response.json();
+            let base64Data;
+
+            if (!imageBase64) {
+                // Imagen response structure
+                base64Data = result.predictions?.[0]?.bytesBase64Encoded;
+            } else {
+                // Gemini response structure
+                base64Data = result.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+            }
+
+            if (!base64Data) {
+                console.error("Unexpected API response structure:", result);
+                throw new Error("Could not find generated image data in the API response.");
+            }
+
+            document.querySelector('.modal-backdrop')?.remove(); // Hide loading
+            return base64Data;
+
+        } catch (error) {
+            console.error("AI Generation Error:", error);
+            showModal(`An error occurred during AI generation: ${error.message}`);
+            // Ensure loading modal is always removed, even on error
+            const loadingModal = document.querySelector('.modal-backdrop');
+            if (loadingModal && loadingModal.textContent.includes("AI is generating")) {
+                loadingModal.remove();
+            }
+            return null;
+        }
+    }
+
+
+    /**
+     * Captures the current map view as a base64 encoded image.
+     * @returns {string | null} - The base64 encoded PNG string, without the 'data:image/png;base64,' prefix.
+     */
+    function getCanvasAsBase64() {
+        const { mapPixelWidth, mapPixelHeight, minPxX, minPxY } = getMapPixelBounds();
+        if (mapPixelWidth <= 0 || mapPixelHeight <= 0) return null;
+        
+        const offscreenCanvas = document.createElement('canvas');
+        offscreenCanvas.width = mapPixelWidth;
+        offscreenCanvas.height = mapPixelHeight;
+        const offscreenCtx = offscreenCanvas.getContext('2d');
+        
+        const bounds = { width: mapPixelWidth, height: mapPixelHeight, minPxX, minPxY };
+        drawFrame(offscreenCtx, bounds);
+        
+        return offscreenCanvas.toDataURL('image/png').split(',')[1];
+    }
+
+    /**
+     * Gets the mask canvas as a black and white base64 image.
+     * @returns {string} - The base64 encoded PNG string, without the 'data:image/png;base64,' prefix.
+     */
+    function getMaskAsBase64() {
+        return maskCanvas.toDataURL('image/png').split(',')[1];
+    }
+
+    /**
+     * Updates the UI to show the current AI generation step.
+     * @param {number} stepNumber - The step to make active (1, 2, or 3).
+     */
+    function updateAiStep(stepNumber) {
+        document.querySelectorAll('.ai-step').forEach(step => step.classList.remove('active-step'));
+        const activeStep = document.getElementById(`aiStep${stepNumber}`);
+        if (activeStep) {
+            activeStep.classList.add('active-step');
+        }
+    }
+
+
+    // --- Event Handler Implementations ---
+
+    async function handleLandformGeneration() {
+        saveState();
+        const prompt = aiLandformPrompt.value;
+        const style = artStyleSelect.value;
+        if (!prompt) {
+            showModal("Please describe the landform you want to generate.");
+            return;
+        }
+
+        const fullPrompt = `A ${style} map of ${prompt}. Grayscale heightmap.`;
+        const generatedImageBase64 = await callGenerativeAI(fullPrompt);
+
+        if (generatedImageBase64) {
+            const img = new Image();
+            img.onload = () => {
+                const groundLayer = layers.find(l => l.name === 'Ground');
+                if (groundLayer) {
+                    groundLayer.backgroundImage = img;
+                    heightmapImage = img; // Save for the next step
+                    drawAll();
+                    updateAiStep(2); // Move to the next step
+                }
+            };
+            img.src = `data:image/png;base64,${generatedImageBase64}`;
+        }
+    }
+
+    async function handleWaterGeneration() {
+        saveState();
+        const prompt = aiWaterPrompt.value;
+        if (!prompt || !heightmapImage) {
+            showModal("Please generate a landform first and describe the water features.");
+            return;
+        }
+
+        const landformBase64 = getCanvasAsBase64();
+        if (!landformBase64) {
+            showModal("Could not capture the current map to send to the AI.");
+            return;
+        }
+        const fullPrompt = `Using the provided heightmap, add water features as described: ${prompt}. The water should realistically fill the low-lying areas. Return only the water on a transparent background.`;
+        const waterImageBase64 = await callGenerativeAI(fullPrompt, landformBase64);
+
+        if (waterImageBase64) {
+            const img = new Image();
+            img.onload = () => {
+                let waterLayer = layers.find(l => l.name === 'Water Features');
+                if (!waterLayer) {
+                    // We call the non-state-saving version because saveState was already called.
+                    const newName = 'Water Features';
+                    layers.push({ name: newName, visible: true, data: {}, backgroundImage: null });
+                    activeLayerIndex = layers.length - 1;
+                    renderLayers();
+                    waterLayer = layers[activeLayerIndex];
+                }
+                waterLayer.backgroundImage = img;
+                drawAll();
+                updateAiStep(3);
+            };
+            img.src = `data:image/png;base64,${waterImageBase64}`;
+        }
+    }
+
+    async function handleBiomeGeneration() {
+        saveState();
+        const prompt = aiBiomePrompt.value;
+        const style = artStyleSelect.value;
+        if (!prompt) {
+            showModal("Please describe the biomes to apply.");
+            return;
+        }
+
+        const currentMapBase64 = getCanvasAsBase64();
+        if (!currentMapBase64) {
+            showModal("Could not capture the current map to send to the AI.");
+            return;
+        }
+        const fullPrompt = `Based on the provided map with its landforms and water, apply biomes as described: ${prompt}. Use the specified art style: ${style}.`;
+        const biomeImageBase64 = await callGenerativeAI(fullPrompt, currentMapBase64);
+
+        if (biomeImageBase64) {
+            const img = new Image();
+            img.onload = () => {
+                const groundLayer = layers.find(l => l.name === 'Ground');
+                if (groundLayer) {
+                    groundLayer.backgroundImage = img; 
+                    let waterLayer = layers.find(l => l.name === 'Water Features');
+                    if(waterLayer) waterLayer.backgroundImage = null;
+                    
+                    drawAll();
+                }
+            };
+            img.src = `data:image/png;base64,${biomeImageBase64}`;
+        }
+    }
+
+    async function handleAiEdit() {
+        saveState();
+        const prompt = aiEditPrompt.value;
+        if (!prompt) {
+            showModal("Please provide an edit instruction.");
+            return;
+        }
+
+        const currentMapBase64 = getCanvasAsBase64();
+        if (!currentMapBase64) {
+            showModal("Could not capture the current map to send to the AI.");
+            return;
+        }
+        const maskBase64 = maskPaths.length > 0 ? getMaskAsBase64() : null;
+        
+        let fullPrompt;
+        if (maskBase64) {
+            fullPrompt = `Perform this edit: "${prompt}" in the style of the base image. Apply this change ONLY to the non-black areas of the provided mask. Return the entire image with the change applied.`;
+        } else {
+            fullPrompt = `Perform this edit: "${prompt}" in the style of the base image. Apply it to the entire image.`;
+        }
+        
+        const editedImageBase64 = await callGenerativeAI(fullPrompt, currentMapBase64, maskBase64);
+
+        if (editedImageBase64) {
+            const img = new Image();
+            img.onload = () => {
+                const groundLayer = layers.find(l => l.name === 'Ground');
+                if (groundLayer) {
+                    groundLayer.backgroundImage = img;
+                    maskPaths = []; // Clear the mask after use
+                    drawAll(); // Redraw to clear the visual mask
+                }
+            };
+            img.src = `data:image/png;base64,${editedImageBase64}`;
+        }
+    }
+
+
     function addEventListeners() {
         window.addEventListener('resize', resizeCanvas);
         canvas.addEventListener('contextmenu', e => e.preventDefault());
@@ -2050,7 +2385,6 @@ document.addEventListener('DOMContentLoaded', () => {
         generateLandformBtn.addEventListener('click', handleLandformGeneration);
         addWaterBtn.addEventListener('click', handleWaterGeneration);
         applyBiomeBtn.addEventListener('click', handleBiomeGeneration);
-
         applyAiEditBtn.addEventListener('click', handleAiEdit);
     }
 
