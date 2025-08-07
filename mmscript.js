@@ -998,7 +998,7 @@ document.addEventListener('DOMContentLoaded', () => {
             drawKeyOnContext(offscreenCtx, keyDrawX, keyDrawY);
         }
 
-        const tagText = "TTRPG HEX MAP MAKER by Wolfe.BT@TangentLLC";
+        const tagText = "MAP MAKER by Wolfe.BT@TangentLLC";
         offscreenCtx.font = "200 14px 'Trebuchet MS'";
         offscreenCtx.fillStyle = "rgba(0, 0, 0, 0.8)";
         offscreenCtx.textAlign = "left";
