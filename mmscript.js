@@ -1,4 +1,4 @@
-// Version 3.1 - Added Resizable Sidebar
+// Version 3.2 - Fixed AI Edit Response Modalities
 document.addEventListener('DOMContentLoaded', () => {
     // --- UI Elements ---
     const canvas = document.getElementById('mapCanvas');
@@ -2247,7 +2247,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const payload = {
                   contents: [{ parts: parts }],
                   generationConfig: {
-                    responseModalities: ['IMAGE']
+                    responseModalities: ['IMAGE', 'TEXT']
                   },
                 };
 
