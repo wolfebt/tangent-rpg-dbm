@@ -1,4 +1,4 @@
-// Version 4.0 - Full AI Functionality Enabled
+// Version 4.1 - Corrected AI Image Editing Payload
 document.addEventListener('DOMContentLoaded', () => {
     // --- UI Elements ---
     const canvas = document.getElementById('mapCanvas');
@@ -1727,7 +1727,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let apiUrl;
         let payload;
         const modelForTextToImage = "imagen-3.0-generate-002"; 
-        const modelForImageEdit = "gemini-2.0-flash-preview-image-generation"; // *** CORRECTED MODEL ***
+        const modelForImageEdit = "gemini-2.0-flash-preview-image-generation";
 
         if (!imageBase64) {
             // --- Text-to-Image Generation (Step 1: Landform) ---
@@ -1755,7 +1755,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
             payload = {
-                contents: [{ role: "user", parts: parts }]
+                contents: [{ role: "user", parts: parts }],
+                // *** FIX: Explicitly request an IMAGE response modality ***
+                generationConfig: {
+                    responseModalities: ['TEXT', 'IMAGE']
+                },
             };
         }
 
