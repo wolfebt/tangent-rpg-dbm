@@ -79,6 +79,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const applyAiEditBtn = document.getElementById('applyAiEditBtn');
     const lastPromptInput = document.getElementById('lastPromptInput');
     const regenerateBtn = document.getElementById('regenerateBtn');
+
+    // NEW Advanced AI Controls
+    const territoryStyleSelect = document.getElementById('territoryStyle');
+    const routeNetworkSelect = document.getElementById('routeNetwork');
+    const poiDensitySlider = document.getElementById('poiDensity');
+    const poiDensityValue = document.getElementById('poiDensityValue');
+    const districtStyleCheckboxes = document.getElementById('districtStyleCheckboxes');
+    const infrastructureDensitySlider = document.getElementById('infrastructureDensity');
+    const infrastructureDensityValue = document.getElementById('infrastructureDensityValue');
+    const furnishingsDensitySlider = document.getElementById('furnishingsDensity');
+    const furnishingsDensityValue = document.getElementById('furnishingsDensityValue');
+    const tacticalCoverSlider = document.getElementById('tacticalCover');
+    const tacticalCoverValue = document.getElementById('tacticalCoverValue');
+    const hazardDensitySlider = document.getElementById('hazardDensity');
+    const hazardDensityValue = document.getElementById('hazardDensityValue');
+    const verticalitySelect = document.getElementById('verticality');
     
     // Map Key UI
     const mapKeyBtn = document.getElementById('mapKeyBtn');
@@ -1860,6 +1876,38 @@ document.addEventListener('DOMContentLoaded', () => {
             activeStep.classList.add('active-step');
         }
     }
+    
+    /**
+     * Gathers all advanced AI settings from the UI controls.
+     * @returns {string} A comma-separated string of descriptive phrases for the prompt.
+     */
+    function getAdvancedAISettings() {
+        const settings = [];
+
+        // Macro
+        if (territoryStyleSelect.value) settings.push(territoryStyleSelect.value);
+        if (routeNetworkSelect.value) settings.push(routeNetworkSelect.value);
+        const poiMap = ['with only a few points of interest', 'dotted with some towns and landmarks', 'dotted with numerous towns, ruins, and other landmarks'];
+        settings.push(poiMap[poiDensitySlider.value]);
+
+        // Meso
+        const districts = [];
+        districtStyleCheckboxes.querySelectorAll('input:checked').forEach(cb => districts.push(cb.value));
+        if (districts.length > 0) settings.push(`a city map featuring ${districts.join(', ')}`);
+        const infraMap = ['a small town with simple dirt roads', 'a fortified city with stone walls and bridges', 'a metropolis with wide avenues and canals'];
+        settings.push(infraMap[infrastructureDensitySlider.value]);
+        
+        // Micro
+        const furnishMap = ['the rooms are bare and empty', 'the rooms are moderately furnished', 'the rooms are cluttered with furniture, crates, and debris'];
+        settings.push(furnishMap[furnishingsDensitySlider.value]);
+        const coverMap = ['an open area with little cover', 'a mix of open space and some tactical cover', 'a dense environment with many pillars and obstacles providing ample cover'];
+        settings.push(coverMap[tacticalCoverSlider.value]);
+        const hazardMap = ['a safe, clean area', 'containing a few minor hazards', 'filled with dangerous pits, rubble, and environmental hazards'];
+        settings.push(hazardMap[hazardDensitySlider.value]);
+        if (verticalitySelect.value) settings.push(verticalitySelect.value);
+
+        return settings.filter(s => s).join(', ');
+    }
 
 
     // --- Event Handler Implementations ---
@@ -1873,7 +1921,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const fullPrompt = `A ${style} map of ${prompt}. Grayscale heightmap.`;
+        const advancedSettings = getAdvancedAISettings();
+        const fullPrompt = `A ${style} map of ${prompt}, ${advancedSettings}. Grayscale heightmap.`;
         lastAIPrompt = fullPrompt;
         lastAIFunction = () => handleLandformGeneration(lastPromptInput.value);
         lastPromptInput.value = fullPrompt;
@@ -1948,7 +1997,8 @@ document.addEventListener('DOMContentLoaded', () => {
             showModal("Could not capture the current map to send to the AI.");
             return;
         }
-        const fullPrompt = `Based on the provided map with its landforms and water, apply biomes as described: ${prompt}. Use the specified art style: ${style}.`;
+        const advancedSettings = getAdvancedAISettings();
+        const fullPrompt = `Based on the provided map with its landforms and water, apply biomes as described: ${prompt}, ${advancedSettings}. Use the specified art style: ${style}.`;
         lastAIPrompt = fullPrompt;
         lastAIFunction = () => handleBiomeGeneration(lastPromptInput.value);
         lastPromptInput.value = fullPrompt;
@@ -2444,6 +2494,22 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         lastPromptInput.addEventListener('blur', () => {
             lastPromptInput.readOnly = true;
+        });
+        
+        // Listeners for advanced AI control labels
+        const sliderLabelMap = {
+            poiDensity: { el: poiDensityValue, map: ['Low', 'Medium', 'High'] },
+            infrastructureDensity: { el: infrastructureDensityValue, map: ['Rural', 'Town', 'Metropolis'] },
+            furnishingsDensity: { el: furnishingsDensityValue, map: ['Empty', 'Moderate', 'Cluttered'] },
+            tacticalCover: { el: tacticalCoverValue, map: ['Open', 'Medium', 'Dense'] },
+            hazardDensity: { el: hazardDensityValue, map: ['Low', 'Medium', 'High'] },
+        };
+        Object.keys(sliderLabelMap).forEach(id => {
+            const slider = document.getElementById(id);
+            const { el, map } = sliderLabelMap[id];
+            slider.addEventListener('input', () => {
+                el.textContent = map[slider.value];
+            });
         });
     }
 

@@ -428,14 +428,12 @@ body {
     transform: rotate(180deg);
 }
 #aiBottomPanelContent {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr; /* Three columns */
     gap: 1rem;
     padding: 1rem;
-    max-height: 40vh;
+    max-height: 80vh; /* Allow panel to expand */
     overflow-y: auto;
-}
-#aiBottomPanelContent > div {
-    flex: 1;
 }
 #promptEditorPanel textarea {
     resize: none;
