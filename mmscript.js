@@ -1,4 +1,4 @@
-// Version 2.7 - AI Assist Overhaul
+// Version 2.9 - Improved Negative Prompts for Terrain Generation
 document.addEventListener('DOMContentLoaded', () => {
     // --- UI Elements ---
     const canvas = document.getElementById('mapCanvas');
@@ -73,8 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const aiOtherDetails = document.getElementById('aiOtherDetails');
     const aiNegativePrompt = document.getElementById('aiNegativePrompt');
     const aiEditPrompt = document.getElementById('aiEditPrompt');
-    const applyAiEditBtn = document.getElementById('applyAiEditBtn');
-
+    
     // Map Key UI
     const mapKeyBtn = document.getElementById('mapKeyBtn');
     const mapKeyWindow = document.getElementById('mapKeyWindow');
@@ -2068,10 +2067,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const userNegativePrompt = aiNegativePrompt.value;
-            const baseNegativePrompts = "text, words, labels, signs, figures, characters, people, animals, creatures, buildings, structures, man-made objects, ruins, furniture, vehicles, roads, paths";
+            const baseNegativePrompts = "text, words, labels, signs, figures, characters, people, animals, creatures, buildings, structures, man-made objects, ruins, furniture, vehicles, roads, paths, civilization";
             const combinedNegativePrompt = `${baseNegativePrompts}, ${userNegativePrompt}`.trim();
 
-            const fullPrompt = `Purely natural landscape, terrain only, top-down, 2d, ttrpg ${currentScale} map, ${promptCore}, ${otherDetailsPrompt}, (${selectedStylePrompt}:1.4), negative prompt: ${combinedNegativePrompt}`;
+            const fullPrompt = `Purely natural landscape, untouched wilderness, terrain only, top-down, 2d, ttrpg ${currentScale} map, ${promptCore}, ${otherDetailsPrompt}, (${selectedStylePrompt}:1.4), negative prompt: ${combinedNegativePrompt}`;
 
             if (!apiKey) {
                 showModal("Please enter your API key in the settings (gear icon).");
@@ -2127,7 +2126,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        applyAiEditBtn.addEventListener('click', handleAiEdit);
+        const applyAiEditBtn = document.getElementById('applyAiEditBtn');
+        if (applyAiEditBtn) {
+            applyAiEditBtn.addEventListener('click', handleAiEdit);
+        } else {
+            console.error("AI Edit Button not found on page load.");
+        }
+
 
         async function handleAiEdit() {
             const userPrompt = aiEditPrompt.value.trim();
