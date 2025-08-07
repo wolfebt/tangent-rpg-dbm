@@ -1,8 +1,10 @@
-// Version 1.9 - AI Swatch Generation (Proof of Concept)
+// Version 2.0 - Masking Tool Implemented
 document.addEventListener('DOMContentLoaded', () => {
     // --- UI Elements ---
     const canvas = document.getElementById('mapCanvas');
     const ctx = canvas.getContext('2d');
+    const maskCanvas = document.getElementById('maskCanvas');
+    const maskCtx = maskCanvas.getContext('2d');
     const drawingCanvas = document.getElementById('drawingCanvas');
     const drawingCtx = drawingCanvas.getContext('2d');
     const mapNameInput = document.getElementById('mapNameInput');
@@ -35,6 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadJsonInput = document.getElementById('loadJsonInput');
     const toolTerrainBtn = document.getElementById('toolTerrainBtn');
     const toolPencilBtn = document.getElementById('toolPencilBtn');
+    const toolMaskBtn = document.getElementById('toolMaskBtn');
+    const clearMaskBtn = document.getElementById('clearMaskBtn');
     const terrainOptionsPanel = document.getElementById('terrainOptionsPanel');
     const pencilOptionsPanel = document.getElementById('pencilOptionsPanel');
     const terrainBrushModeSelect = document.getElementById('terrainBrushMode');
@@ -70,6 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const aiNegativePrompt = document.getElementById('aiNegativePrompt');
     const aiEditPrompt = document.getElementById('aiEditPrompt');
     const aiEditBtn = document.getElementById('aiEditBtn');
+    const aiMaskEditBtn = document.getElementById('aiMaskEditBtn');
     const generateSwatchesBtn = document.getElementById('generateSwatchesBtn');
 
     // Map Key UI
@@ -114,6 +119,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let pencilPaths = [];
     let freestyleTerrainPaths = [];
     let currentFreestyleTerrainPath = null;
+    let isMasking = false;
+    let currentMaskPath = null;
+    let maskPaths = [];
     let undoStack = [];
     let redoStack = [];
     let currentGenre = 'fantasy';
@@ -192,6 +200,8 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.height = height;
         drawingCanvas.width = width;
         drawingCanvas.height = height;
+        maskCanvas.width = width;
+        maskCanvas.height = height;
         previewCanvas.width = width;
         previewCanvas.height = height;
         drawAll();
@@ -208,6 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ];
         pencilPaths = [];
         freestyleTerrainPaths = [];
+        maskPaths = [];
         placedAssets = [];
         undoStack = [];
         redoStack = [];
@@ -260,6 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
         requestAnimationFrame(() => {
             ctx.clearRect(0,0, canvas.width, canvas.height);
             drawingCtx.clearRect(0,0, drawingCanvas.width, drawingCanvas.height);
+            maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
             
             // Draw map content first
             drawFrame(ctx);
@@ -267,6 +279,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // Draw freestyle paths on the main canvas
             drawFreestyleTerrainPaths(ctx);
             drawPencilPaths(ctx);
+
+            // Draw the mask
+            drawMaskPaths(maskCtx);
 
             // Draw the grid on the drawing canvas so it's on top
             if (gridVisibleCheckbox.checked) {
@@ -517,6 +532,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 targetCtx.ellipse(cx, cy, rx, ry, 0, 0, 2 * Math.PI);
                 targetCtx.stroke();
             }
+        });
+        targetCtx.restore();
+    }
+
+    function drawMaskPaths(targetCtx) {
+        targetCtx.save();
+        targetCtx.globalAlpha = 0.5;
+        targetCtx.fillStyle = '#3b82f6'; // blue-500
+        
+        const allPaths = [...maskPaths];
+        if(isMasking && currentMaskPath) {
+            allPaths.push(currentMaskPath);
+        }
+
+        allPaths.forEach(path => {
+             if (path.points.length < 2) return;
+             targetCtx.beginPath();
+             targetCtx.strokeStyle = '#3b82f6';
+             targetCtx.lineWidth = path.width;
+             targetCtx.lineCap = 'round';
+             targetCtx.lineJoin = 'round';
+             targetCtx.moveTo(path.points[0].x, path.points[0].y);
+             for(let i=1; i < path.points.length; i++) {
+                 targetCtx.lineTo(path.points[i].x, path.points[i].y);
+             }
+             targetCtx.stroke();
         });
         targetCtx.restore();
     }
@@ -1264,6 +1305,7 @@ document.addEventListener('DOMContentLoaded', () => {
         terrainOptionsPanel.classList.add('hidden');
         pencilOptionsPanel.classList.add('hidden');
         canvas.classList.remove('pencil');
+        canvas.classList.remove('masking');
 
         // --- Set active states based on current variables ---
 
@@ -1273,26 +1315,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Handle tool-specific highlighting
         if (nextClickAction === 'placeObject') {
-            // Highlight the selected object
             document.querySelector(`.item-container[data-object-key="${selectedObjectKey}"]`)?.classList.add('active');
-            // Keep the base tool (terrain) highlighted
             toolTerrainBtn.classList.add('active');
             terrainOptionsPanel.classList.remove('hidden');
         } else if (nextClickAction === 'placeText') {
-            // Highlight the text panel header
             textHeader.classList.add('active');
-            // Keep the base tool (terrain) highlighted
             toolTerrainBtn.classList.add('active');
             terrainOptionsPanel.classList.remove('hidden');
         } else if (currentTool === 'terrain') {
             toolTerrainBtn.classList.add('active');
             terrainOptionsPanel.classList.remove('hidden');
-            // Highlight the selected terrain
             document.querySelector(`.item-container[data-terrain="${selectedTerrain}"]`)?.classList.add('active');
         } else if (currentTool === 'pencil') {
             toolPencilBtn.classList.add('active');
             pencilOptionsPanel.classList.remove('hidden');
             canvas.classList.add('pencil');
+        } else if (currentTool === 'mask') {
+            toolMaskBtn.classList.add('active');
+            terrainOptionsPanel.classList.remove('hidden'); // Mask uses brush size
+            canvas.classList.add('masking');
         } else if (currentTool === 'eraser') {
             eraserBtn.classList.add('active');
             terrainOptionsPanel.classList.remove('hidden'); // Eraser also uses brush options
@@ -1621,19 +1662,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (e.button === 0) { // Left-click for tools
                 let assetClicked = false;
-                for (let i = placedAssets.length - 1; i >= 0; i--) {
-                    const asset = placedAssets[i];
-                    const {x, y} = (gridType === 'hex') ? hexToPixel(asset.q, asset.r) : squareToPixel(asset.q, asset.r);
-                    const size = (gridType === 'hex' ? baseHexSize : baseSquareSize) * 1.2 * asset.size;
-                    const worldClick = pixelToGrid(mouseX, mouseY, true);
-                    if (worldClick.x > x - size/2 && worldClick.x < x + size/2 &&
-                        worldClick.y > y - size/2 && worldClick.y < y + size/2) {
-                        selectedPlacedAssetIndex = i;
-                        isDragging = true;
-                        dragOffsetX = worldMousePos.q - asset.q;
-                        dragOffsetY = worldMousePos.r - asset.r;
-                        assetClicked = true;
-                        break;
+                if (currentTool !== 'mask') {
+                    for (let i = placedAssets.length - 1; i >= 0; i--) {
+                        const asset = placedAssets[i];
+                        const {x, y} = (gridType === 'hex') ? hexToPixel(asset.q, asset.r) : squareToPixel(asset.q, asset.r);
+                        const size = (gridType === 'hex' ? baseHexSize : baseSquareSize) * 1.2 * asset.size;
+                        const worldClick = pixelToGrid(mouseX, mouseY, true);
+                        if (worldClick.x > x - size/2 && worldClick.x < x + size/2 &&
+                            worldClick.y > y - size/2 && worldClick.y < y + size/2) {
+                            selectedPlacedAssetIndex = i;
+                            isDragging = true;
+                            dragOffsetX = worldMousePos.q - asset.q;
+                            dragOffsetY = worldMousePos.r - asset.r;
+                            assetClicked = true;
+                            break;
+                        }
                     }
                 }
                 
@@ -1668,6 +1711,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     isPenciling = true;
                     saveState();
                     currentPencilPath = { type: 'freestyle', color: pencilColor, width: pencilWidth, points: [pixelToGrid(mouseX, mouseY, true)] };
+                } else if (currentTool === 'mask') {
+                    isMasking = true;
+                    currentMaskPath = { width: brushSize * 15, points: [{x: mouseX, y: mouseY}] };
                 }
             }
         });
@@ -1744,6 +1790,9 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (isPenciling) { // Pencil freestyle
                 currentPencilPath.points.push(pixelToGrid(mouseX, mouseY, true));
                 drawAll();
+            } else if (isMasking && currentMaskPath) {
+                currentMaskPath.points.push({x: mouseX, y: mouseY});
+                drawAll();
             }
         });
         
@@ -1780,6 +1829,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     pencilPaths.push(currentPencilPath);
                     currentPencilPath = null;
                 }
+                if (isMasking) {
+                    isMasking = false;
+                    maskPaths.push(currentMaskPath);
+                    currentMaskPath = null;
+                }
                 isDrawingShape = false;
                 shapeStartPoint = null;
                 drawAll();
@@ -1805,6 +1859,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     currentFreestyleTerrainPath = null;
                 }
                 isPainting = false;
+             }
+             if (isMasking) {
+                if(currentMaskPath && currentMaskPath.points.length > 1) {
+                    maskPaths.push(currentMaskPath);
+                }
+                isMasking = false;
+                currentMaskPath = null;
              }
             isPanning = false;
             isDrawingShape = false;
@@ -1846,6 +1907,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         toolTerrainBtn.addEventListener('click', () => { currentTool = 'terrain'; nextClickAction = null; updateActiveSwatches(); });
         toolPencilBtn.addEventListener('click', () => { currentTool = 'pencil'; nextClickAction = null; updateActiveSwatches(); });
+        toolMaskBtn.addEventListener('click', () => { currentTool = 'mask'; nextClickAction = null; updateActiveSwatches(); });
+        clearMaskBtn.addEventListener('click', () => {
+            maskPaths = [];
+            drawAll();
+        });
         terrainBrushModeSelect.addEventListener('change', (e) => { terrainBrushMode = e.target.value; });
         pencilBrushModeSelect.addEventListener('change', (e) => { pencilBrushMode = e.target.value; });
         pencilColorPicker.addEventListener('input', e => { pencilColor = e.target.value; });
@@ -2055,7 +2121,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        aiEditBtn.addEventListener('click', async () => {
+        aiEditBtn.addEventListener('click', () => performAiEdit(false));
+        aiMaskEditBtn.addEventListener('click', () => performAiEdit(true));
+
+
+        async function performAiEdit(useMask) {
             const userPrompt = aiEditPrompt.value;
             if (!userPrompt) {
                 showModal("Please enter an edit instruction.");
@@ -2068,6 +2138,10 @@ document.addEventListener('DOMContentLoaded', () => {
              const groundLayer = layers.find(l => l.name === 'Ground');
             if (!groundLayer || !groundLayer.backgroundImage) {
                 showModal("Please generate a base map first before editing.");
+                return;
+            }
+            if (useMask && maskPaths.length === 0) {
+                showModal("Please use the Mask Tool to select an area to edit first.");
                 return;
             }
 
@@ -2091,22 +2165,37 @@ document.addEventListener('DOMContentLoaded', () => {
             drawFrame(tempCtx, { width: mapPixelWidth, height: mapPixelHeight, minPxX, minPxY });
             const base64ImageData = tempCanvas.toDataURL('image/png').split(',')[1];
 
+            let base64MaskData;
+            if(useMask) {
+                const maskTempCanvas = document.createElement('canvas');
+                const maskTempCtx = maskTempCanvas.getContext('2d');
+                maskTempCanvas.width = mapPixelWidth;
+                maskTempCanvas.height = mapPixelHeight;
+                
+                // Draw the mask paths onto the temp canvas, scaled and positioned correctly
+                maskTempCtx.save();
+                maskTempCtx.translate(-minPxX, -minPxY);
+                drawMaskPaths(maskTempCtx);
+                maskTempCtx.restore();
+
+                base64MaskData = maskTempCanvas.toDataURL('image/png').split(',')[1];
+            }
+
 
             try {
+                const parts = [
+                  { text: userPrompt },
+                  { inlineData: { mimeType: "image/png", data: base64ImageData } }
+                ];
+
+                if (useMask) {
+                    parts.push({ inlineData: { mimeType: "image/png", data: base64MaskData } });
+                }
+
                 const payload = {
-                  contents: [{
-                    parts: [
-                      { text: userPrompt },
-                      {
-                        inlineData: {
-                          mimeType: "image/png",
-                          data: base64ImageData
-                        }
-                      }
-                    ]
-                  }],
+                  contents: [{ parts: parts }],
                   generationConfig: {
-                    responseModalities: ['TEXT', 'IMAGE']
+                    responseModalities: ['IMAGE']
                   },
                 };
 
@@ -2131,6 +2220,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (groundLayer) {
                             groundLayer.backgroundImage = img;
                         }
+                        maskPaths = []; // Clear mask after use
                         drawAll();
                     };
                     img.src = imageUrl;
@@ -2143,7 +2233,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 showModal("Error editing map. Please check your API key and prompt.");
                 drawAll(); // Redraw to remove loading indicator
             }
-        });
+        }
 
         generateSwatchesBtn.addEventListener('click', async () => {
             if (!apiKey) {
