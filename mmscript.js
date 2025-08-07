@@ -1,4 +1,4 @@
-// Version 2.9 - Improved Negative Prompts for Terrain Generation
+// Version 2.9 - Improved Negative Prompts & AI Edit Fixes
 document.addEventListener('DOMContentLoaded', () => {
     // --- UI Elements ---
     const canvas = document.getElementById('mapCanvas');
@@ -2067,10 +2067,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const userNegativePrompt = aiNegativePrompt.value;
-            const baseNegativePrompts = "text, words, labels, signs, figures, characters, people, animals, creatures, buildings, structures, man-made objects, ruins, furniture, vehicles, roads, paths, civilization";
+            const baseNegativePrompts = "buildings, structures, ruins, roads, paths, signs, text, people, figures, civilization";
             const combinedNegativePrompt = `${baseNegativePrompts}, ${userNegativePrompt}`.trim();
 
-            const fullPrompt = `Purely natural landscape, untouched wilderness, terrain only, top-down, 2d, ttrpg ${currentScale} map, ${promptCore}, ${otherDetailsPrompt}, (${selectedStylePrompt}:1.4), negative prompt: ${combinedNegativePrompt}`;
+            const fullPrompt = `Top-down, 2d, ttrpg ${currentScale} map of an empty, uninhabited, purely natural landscape with ${promptCore}. The style is (${selectedStylePrompt}:1.4). IMPORTANT: The image must contain ONLY natural terrain like rocks, water, and plants. Strictly NO ${combinedNegativePrompt}. ${otherDetailsPrompt}`;
 
             if (!apiKey) {
                 showModal("Please enter your API key in the settings (gear icon).");
@@ -2154,6 +2154,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            const { mapPixelWidth, mapPixelHeight } = getMapPixelBounds();
+
+            // Safety Check for image dimensions and aspect ratio
+            const aspectRatio = mapPixelWidth / mapPixelHeight;
+            if (aspectRatio > 2 || aspectRatio < 0.5) {
+                showModal("AI Edit failed: The map's aspect ratio is too extreme. Please make it closer to a square.");
+                return;
+            }
+            if (mapPixelWidth < 64 || mapPixelHeight < 64 || mapPixelWidth > 4096 || mapPixelHeight > 4096) {
+                showModal(`AI Edit failed: The map's dimensions (${mapPixelWidth}x${mapPixelHeight}) are outside the allowed range (64x64 to 4096x4096).`);
+                return;
+            }
+
+
             // Show loading indicator
             ctx.save();
             ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
@@ -2167,7 +2181,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Create a temporary canvas to get the current map image data
             const tempCanvas = document.createElement('canvas');
             const tempCtx = tempCanvas.getContext('2d');
-            const { mapPixelWidth, mapPixelHeight, minPxX, minPxY } = getMapPixelBounds();
+            const { minPxX, minPxY } = getMapPixelBounds();
             tempCanvas.width = mapPixelWidth;
             tempCanvas.height = mapPixelHeight;
             drawFrame(tempCtx, { width: mapPixelWidth, height: mapPixelHeight, minPxX, minPxY });
