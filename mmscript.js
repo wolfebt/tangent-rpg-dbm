@@ -1,4 +1,4 @@
-// Version 2.5 - Added Hand Drawn Style
+// Version 2.6 - Removed Swatch Generation, Fixed Stylize
 document.addEventListener('DOMContentLoaded', () => {
     // --- UI Elements ---
     const canvas = document.getElementById('mapCanvas');
@@ -75,7 +75,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const aiEditPrompt = document.getElementById('aiEditPrompt');
     const aiEditBtn = document.getElementById('aiEditBtn');
     const aiMaskEditBtn = document.getElementById('aiMaskEditBtn');
-    const generateSwatchesBtn = document.getElementById('generateSwatchesBtn');
     const aiStylizeBtn = document.getElementById('aiStylizeBtn');
 
     // Map Key UI
@@ -2162,7 +2161,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const { mapPixelWidth, mapPixelHeight, minPxX, minPxY } = getMapPixelBounds();
             tempCanvas.width = mapPixelWidth;
             tempCanvas.height = mapPixelHeight;
+            
+            // Draw all elements to the temporary canvas for stylization
             drawFrame(tempCtx, { width: mapPixelWidth, height: mapPixelHeight, minPxX, minPxY });
+            tempCtx.save();
+            tempCtx.translate(-minPxX, -minPxY);
+            drawFreestyleTerrainPathsForExport(tempCtx);
+            drawPencilPathsForExport(tempCtx);
+            tempCtx.restore();
+            
             const base64ImageData = tempCanvas.toDataURL('image/png').split(',')[1];
 
             try {
@@ -2365,79 +2372,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 drawAll(); // Redraw to remove loading indicator
             }
         }
-
-        generateSwatchesBtn.addEventListener('click', async () => {
-            if (!apiKey) {
-                showModal("Please enter your API key in the settings (gear icon).");
-                return;
-            }
-            const groundLayer = layers.find(l => l.name === 'Ground');
-            if (!groundLayer || !groundLayer.backgroundImage) {
-                showModal("Please generate a base map first to establish an art style.");
-                return;
-            }
-
-            const grassSwatchEl = document.querySelector('.item-container[data-terrain="grass"] .texture-swatch');
-            grassSwatchEl.textContent = '...'; // Loading indicator
-
-            const tempCanvas = document.createElement('canvas');
-            const tempCtx = tempCanvas.getContext('2d');
-            const { mapPixelWidth, mapPixelHeight, minPxX, minPxY } = getMapPixelBounds();
-            tempCanvas.width = mapPixelWidth;
-            tempCanvas.height = mapPixelHeight;
-            drawFrame(tempCtx, { width: mapPixelWidth, height: mapPixelHeight, minPxX, minPxY });
-            const base64ImageData = tempCanvas.toDataURL('image/png').split(',')[1];
-
-            try {
-                const prompt = "A seamless, tileable texture of lush green grass, top-down view, matching the art style of the provided image.";
-                 const payload = {
-                  contents: [{
-                    parts: [
-                      { text: prompt },
-                      {
-                        inlineData: {
-                          mimeType: "image/png",
-                          data: base64ImageData
-                        }
-                      }
-                    ]
-                  }],
-                  generationConfig: {
-                    responseModalities: ['IMAGE']
-                  },
-                };
-                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${apiKey}`;
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                
-                const result = await response.json();
-                const base64Data = result?.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
-
-                if (base64Data) {
-                    const imageUrl = `data:image/png;base64,${base64Data}`;
-                    const img = new Image();
-                    img.onload = () => {
-                        terrains.grass.canvasPattern = ctx.createPattern(img, 'repeat');
-                        terrains.grass.aiGenerated = imageUrl; // Store for re-rendering selector
-                        populateSelectors(); // Redraw selectors with the new swatch
-                    };
-                    img.src = imageUrl;
-                } else {
-                    throw new Error("No image data in API response for swatch.");
-                }
-
-            } catch (error) {
-                console.error('Error generating swatch:', error);
-                showModal("Error generating swatch.");
-                grassSwatchEl.textContent = ''; // Clear loading
-                populateSelectors(); // Reset the swatch
-            }
-        });
     }
 
     async function initialize() {
