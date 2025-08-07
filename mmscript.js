@@ -1,4 +1,4 @@
-// Version 2.6 - Removed Swatch Generation, Fixed Stylize
+// Version 2.7 - AI Assist Overhaul
 document.addEventListener('DOMContentLoaded', () => {
     // --- UI Elements ---
     const canvas = document.getElementById('mapCanvas');
@@ -73,9 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const aiOtherDetails = document.getElementById('aiOtherDetails');
     const aiNegativePrompt = document.getElementById('aiNegativePrompt');
     const aiEditPrompt = document.getElementById('aiEditPrompt');
-    const aiEditBtn = document.getElementById('aiEditBtn');
-    const aiMaskEditBtn = document.getElementById('aiMaskEditBtn');
-    const aiStylizeBtn = document.getElementById('aiStylizeBtn');
+    const applyAiEditBtn = document.getElementById('applyAiEditBtn');
 
     // Map Key UI
     const mapKeyBtn = document.getElementById('mapKeyBtn');
@@ -2129,128 +2127,27 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        aiEditBtn.addEventListener('click', () => performAiEdit(false));
-        aiMaskEditBtn.addEventListener('click', () => performAiEdit(true));
-        aiStylizeBtn.addEventListener('click', performAiStylize);
+        applyAiEditBtn.addEventListener('click', handleAiEdit);
 
+        async function handleAiEdit() {
+            const userPrompt = aiEditPrompt.value.trim();
+            const useMask = maskPaths.length > 0;
+            const hasUserAdditions = pencilPaths.length > 0 || freestyleTerrainPaths.length > 0 || placedAssets.length > 0;
+            const isStylize = !userPrompt && hasUserAdditions;
 
-        async function performAiStylize() {
+            if (!userPrompt && !isStylize) {
+                showModal("Please enter an edit instruction, or add manual drawings to stylize.");
+                return;
+            }
             if (!apiKey) {
                 showModal("Please enter your API key in the settings (gear icon).");
                 return;
             }
             const groundLayer = layers.find(l => l.name === 'Ground');
             if (!groundLayer || !groundLayer.backgroundImage) {
-                showModal("Please generate a base map first before stylizing.");
-                return;
-            }
-
-            // Show loading indicator
-            ctx.save();
-            ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "white";
-            ctx.textAlign = "center";
-            ctx.font = "24px 'Trebuchet MS'";
-            ctx.fillText("Stylizing additions...", canvas.width / 2, canvas.height / 2);
-            ctx.restore();
-
-            // Create a temporary canvas with the complete current map state
-            const tempCanvas = document.createElement('canvas');
-            const tempCtx = tempCanvas.getContext('2d');
-            const { mapPixelWidth, mapPixelHeight, minPxX, minPxY } = getMapPixelBounds();
-            tempCanvas.width = mapPixelWidth;
-            tempCanvas.height = mapPixelHeight;
-            
-            // Draw all elements to the temporary canvas for stylization
-            drawFrame(tempCtx, { width: mapPixelWidth, height: mapPixelHeight, minPxX, minPxY });
-            tempCtx.save();
-            tempCtx.translate(-minPxX, -minPxY);
-            drawFreestyleTerrainPathsForExport(tempCtx);
-            drawPencilPathsForExport(tempCtx);
-            tempCtx.restore();
-            
-            const base64ImageData = tempCanvas.toDataURL('image/png').split(',')[1];
-
-            try {
-                const prompt = "Redraw this entire image in a single, cohesive, and consistent art style. Make sure all elements, including any crudely drawn shapes or icons, are integrated seamlessly into the overall artistic vision of the background landscape. The result should be a beautiful, unified ttrpg map.";
-                const payload = {
-                  contents: [{
-                    parts: [
-                      { text: prompt },
-                      { inlineData: { mimeType: "image/png", data: base64ImageData } }
-                    ]
-                  }],
-                  generationConfig: {
-                    responseModalities: ['IMAGE']
-                  },
-                };
-
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${apiKey}`;
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                
-                const result = await response.json();
-                const base64Data = result?.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
-
-                if (base64Data) {
-                    const imageUrl = `data:image/png;base64,${base64Data}`;
-                    const img = new Image();
-                    img.onload = () => {
-                        // Set new background
-                        groundLayer.backgroundImage = img;
-                        
-                        // Clear user-added elements as they are now baked in
-                        layers.forEach(layer => {
-                            if (layer.name !== 'Ground') {
-                                layer.data = {};
-                            }
-                        });
-                        placedAssets = [];
-                        freestyleTerrainPaths = [];
-                        pencilPaths = [];
-
-                        saveState(); // Save this new "clean" state
-                        drawAll();
-                        updateMapKey();
-                    };
-                    img.src = imageUrl;
-                } else {
-                    throw new Error("No image data in API response for stylizing.");
-                }
-
-            } catch (error) {
-                console.error('Error stylizing map:', error);
-                showModal("Error stylizing map. Please check your API key.");
-                drawAll();
-            }
-        }
-
-        async function performAiEdit(useMask) {
-            const userPrompt = aiEditPrompt.value;
-            if (!userPrompt) {
-                showModal("Please enter an edit instruction.");
-                return;
-            }
-            if (!apiKey) {
-                showModal("Please enter your API key in the settings (gear icon).");
-                return;
-            }
-             const groundLayer = layers.find(l => l.name === 'Ground');
-            if (!groundLayer || !groundLayer.backgroundImage) {
                 showModal("Please generate a base map first before editing.");
                 return;
             }
-            if (useMask && maskPaths.length === 0) {
-                showModal("Please use the Mask Tool to select an area to edit first.");
-                return;
-            }
-
 
             // Show loading indicator
             ctx.save();
@@ -2262,71 +2159,65 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.fillText("Applying AI Edit...", canvas.width / 2, canvas.height / 2);
             ctx.restore();
             
-            // Create a temporary canvas to get the current map image data without grid/UI
+            // Create a temporary canvas to get the current map image data
             const tempCanvas = document.createElement('canvas');
             const tempCtx = tempCanvas.getContext('2d');
             const { mapPixelWidth, mapPixelHeight, minPxX, minPxY } = getMapPixelBounds();
             tempCanvas.width = mapPixelWidth;
             tempCanvas.height = mapPixelHeight;
             drawFrame(tempCtx, { width: mapPixelWidth, height: mapPixelHeight, minPxX, minPxY });
+            tempCtx.save();
+            tempCtx.translate(-minPxX, -minPxY);
+            drawFreestyleTerrainPathsForExport(tempCtx);
+            drawPencilPathsForExport(tempCtx);
+            tempCtx.restore();
             const base64ImageData = tempCanvas.toDataURL('image/png').split(',')[1];
 
+            let finalPrompt;
+            if (isStylize) {
+                finalPrompt = "Redraw this entire image in a single, cohesive, and consistent art style. Make sure all elements, including any crudely drawn shapes or icons, are integrated seamlessly into the overall artistic vision of the background landscape. The result should be a beautiful, unified ttrpg map.";
+            } else {
+                finalPrompt = userPrompt;
+            }
+            
             let base64MaskData;
-            if(useMask) {
+            if (useMask) {
                 const maskTempCanvas = document.createElement('canvas');
                 const maskTempCtx = maskTempCanvas.getContext('2d');
                 maskTempCanvas.width = mapPixelWidth;
                 maskTempCanvas.height = mapPixelHeight;
-                
-                // Fill background with black (area to keep)
                 maskTempCtx.fillStyle = 'black';
                 maskTempCtx.fillRect(0, 0, maskTempCanvas.width, maskTempCanvas.height);
-
-                // Prepare to draw the mask area in white (area to edit)
                 maskTempCtx.save();
-                // Apply the same transformation used for the main image export
                 maskTempCtx.translate(-minPxX, -minPxY);
-
                 maskTempCtx.strokeStyle = 'white';
                 maskTempCtx.fillStyle = 'white';
                 
-                // The mask paths are in screen coordinates, so we need to convert them to world coordinates
                 maskPaths.forEach(path => {
                     if (path.points.length < 2) return;
                     maskTempCtx.beginPath();
-                    // The line width on the mask should also be scaled from screen to world
                     maskTempCtx.lineWidth = path.width / view.zoom;
                     maskTempCtx.lineCap = 'round';
                     maskTempCtx.lineJoin = 'round';
-                    
                     const firstPoint = path.points[0];
-                    const worldX = (firstPoint.x - view.offsetX) / view.zoom;
-                    const worldY = (firstPoint.y - view.offsetY) / view.zoom;
-                    maskTempCtx.moveTo(worldX, worldY);
-
+                    maskTempCtx.moveTo((firstPoint.x - view.offsetX) / view.zoom, (firstPoint.y - view.offsetY) / view.zoom);
                     for (let i = 1; i < path.points.length; i++) {
                         const point = path.points[i];
-                        const wX = (point.x - view.offsetX) / view.zoom;
-                        const wY = (point.y - view.offsetY) / view.zoom;
-                        maskTempCtx.lineTo(wX, wY);
+                        maskTempCtx.lineTo((point.x - view.offsetX) / view.zoom, (point.y - view.offsetY) / view.zoom);
                     }
-                    // Stroke the path to give it thickness, then fill it to ensure it's solid.
                     maskTempCtx.stroke();
-                    maskTempCtx.fill();
                 });
                 maskTempCtx.restore();
-
                 base64MaskData = maskTempCanvas.toDataURL('image/png').split(',')[1];
             }
 
-
             try {
                 const parts = [
-                  { text: userPrompt },
+                  { text: finalPrompt },
                   { inlineData: { mimeType: "image/png", data: base64ImageData } }
                 ];
 
-                if (useMask) {
+                if (useMask && base64MaskData) {
                     parts.push({ inlineData: { mimeType: "image/png", data: base64MaskData } });
                 }
 
@@ -2355,11 +2246,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     const imageUrl = `data:image/png;base64,${base64Data}`;
                     const img = new Image();
                     img.onload = () => {
-                        if (groundLayer) {
-                            groundLayer.backgroundImage = img;
+                        groundLayer.backgroundImage = img;
+                        
+                        if (isStylize) {
+                            layers.forEach(layer => {
+                                if (layer.name !== 'Ground') layer.data = {};
+                            });
+                            placedAssets = [];
+                            freestyleTerrainPaths = [];
+                            pencilPaths = [];
+                            saveState();
                         }
-                        maskPaths = []; // Clear mask after use
+
+                        maskPaths = [];
                         drawAll();
+                        updateMapKey();
                     };
                     img.src = imageUrl;
                 } else {
@@ -2369,7 +2270,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (error) {
                 console.error('Error editing map:', error);
                 showModal("Error editing map. Please check your API key and prompt.");
-                drawAll(); // Redraw to remove loading indicator
+                drawAll();
             }
         }
     }

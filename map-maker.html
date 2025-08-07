@@ -124,16 +124,15 @@
 
                             <h4 class="text-md font-semibold text-gray-200 mb-2 mt-4 border-b border-gray-600 pb-1">Edit & Enhance</h4>
                             <label for="aiEditPrompt">Edit Instruction</label>
-                            <textarea id="aiEditPrompt" placeholder="e.g., Add a river from north to south. Make the forest more dense. Remove any buildings." class="mb-2"></textarea>
+                            <textarea id="aiEditPrompt" placeholder="e.g., Add a river from north to south. Or, leave blank and click Apply to stylize your drawings." class="mb-2"></textarea>
+                            <p class="text-xs text-gray-400 -mt-2 mb-3">Use the Mask Tool to apply edits to a specific area.</p>
                             <div class="grid grid-cols-2 gap-2">
-                                <button id="aiEditBtn">Apply Edit</button>
-                                <button id="aiMaskEditBtn">Apply with Mask</button>
-                            </div>
-                             <div class="mt-2 grid grid-cols-2 gap-2">
+                                <button id="applyAiEditBtn">Apply AI Edit</button>
                                 <button id="toolMaskBtn">Activate Mask Tool</button>
-                                <button id="clearMaskBtn">Clear Mask</button>
                             </div>
-                            <button id="aiStylizeBtn" class="mt-4">Stylize User Additions</button>
+                            <div class="mt-2">
+                                <button id="clearMaskBtn" class="w-full">Clear Mask</button>
+                            </div>
                         </div>
                     </div>
 
