@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let pencilBrushMode = 'freestyle';
     let brushSize = 1;
     let selectedTerrain = 'grass';
-    let selectedObjectKey = 'Fantasy.Outside.tree';
+    let selectedObjectKey = 'fantasy.world.tree';
     let view = { zoom: 1, offsetX: 0, offsetY: 0 };
     let gridColor = '#111827';
     let isPanning = false;
@@ -130,17 +130,23 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const objectCategories = {
-        "Fantasy": {
-            "Outside": { tree: { symbol: '🌳', name: 'Tree' }, rock: { symbol: '🪨', name: 'Rock' }, stump: { symbol: '🪵', name: 'Stump' }, flower: { symbol: '🌸', name: 'Flower' }, mushroom: { symbol: '🍄', name: 'Mushroom' } },
-            "City": { house: { symbol: '🏠', name: 'House' }, shop: { symbol: '🏪', name: 'Shop' }, fountain: { symbol: '⛲', name: 'Fountain' }, statue: { symbol: '🗿', name: 'Statue' }, wall: { symbol: '🧱', name: 'Wall' } },
-            "Castle/Fort": { tower: { symbol: '🏰', name: 'Tower'}, wall_stone: { symbol: '🧱', name: 'Stone Wall' }, keep: { symbol: '🏛️', name: 'Keep' }, barracks: { symbol: '🏢', name: 'Barracks' } },
-            "Dungeon": { cave: {symbol: '🕳️', name: 'Cave'}, monster: {symbol: '👹', name: 'Monster'}, treasure: { symbol: '👑', name: 'Treasure' }, trap: { symbol: '🕸️', name: 'Trap' }, stairs: { symbol: '🪜', name: 'Stairs' }, door: { symbol: '🚪', name: 'Door' } },
-            "Farm & Bar": { farmhouse: { symbol: '🏡', name: 'Farmhouse'}, barn: { symbol: '🛖', name: 'Barn'}, well: { symbol: '🕳️', name: 'Well' }, crops: { symbol: '🌾', name: 'Crops' }, inn: { symbol: '🍻', name: 'Inn/Bar'} }
+        "fantasy": {
+            "world": { tree: { symbol: '🌳', name: 'Tree' }, rock: { symbol: '🪨', name: 'Rock' }, mountain: { symbol: '🏔️', name: 'Mountain' } },
+            "city": { house: { symbol: '🏠', name: 'House' }, shop: { symbol: '🏪', name: 'Shop' }, fountain: { symbol: '⛲', name: 'Fountain' } },
+            "location": { door: { symbol: '🚪', name: 'Door' }, stairs: { symbol: '🪜', name: 'Stairs' }, trap: { symbol: '🕸️', name: 'Trap' } },
+            "battle": { chest: { symbol: '👑', name: 'Treasure' }, monster: { symbol: '👹', name: 'Monster' }, pillar: { symbol: '🏛️', name: 'Pillar' } }
         },
-        "Sci-Fi": {
-            "Outside": { alien_tree: { symbol: '🌴', name: 'Alien Flora' }, crystal: { symbol: '💎', name: 'Crystal' }, crater: { symbol: '☄️', name: 'Crater' }, rover: { symbol: '🛰️', name: 'Rover' } },
-            "Base/City": { habitat: { symbol: '🛖', name: 'Habitat Dome' }, lab: { symbol: '🔬', name: 'Lab' }, power_plant: { symbol: '⚡', name: 'Power Plant' }, comm_tower: { symbol: '🗼', name: 'Comm Tower'}, landing_pad: { symbol: '🚀', name: 'Landing Pad'} },
-            "Interior": { console: { symbol: '💻', name: 'Console' }, stasis_pod: { symbol: '⚰️', name: 'Stasis Pod'}, robot: { symbol: '🤖', name: 'Robot' }, alien: { symbol: '👽', name: 'Alien' }, airlock: { symbol: '🚪', name: 'Airlock'} }
+        "scifi": {
+            "world": { alien_tree: { symbol: '🌴', name: 'Alien Flora' }, crystal: { symbol: '💎', name: 'Crystal' }, crater: { symbol: '☄️', name: 'Crater' } },
+            "city": { habitat: { symbol: '🛖', name: 'Habitat Dome' }, lab: { symbol: '🔬', name: 'Lab' }, power_plant: { symbol: '⚡', name: 'Power Plant' } },
+            "location": { console: { symbol: '💻', name: 'Console' }, stasis_pod: { symbol: '⚰️', name: 'Stasis Pod'}, airlock: { symbol: '🚪', name: 'Airlock'} },
+            "battle": { robot: { symbol: '🤖', name: 'Robot' }, alien: { symbol: '👽', name: 'Alien' }, turret: { symbol: '🔫', name: 'Turret' } }
+        },
+        "modern": {
+            "world": { cityscape: { symbol: '🏙️', name: 'Cityscape' }, highway: { symbol: '🛣️', name: 'Highway' }, airport: { symbol: '✈️', name: 'Airport' } },
+            "city": { building: { symbol: '🏢', name: 'Building' }, house: { symbol: '🏠', name: 'House' }, park: { symbol: '🌳', name: 'Park' } },
+            "location": { desk: { symbol: '💻', name: 'Desk' }, elevator: { symbol: '🛗', name: 'Elevator' }, seccam: { symbol: '📹', name: 'Security Camera' } },
+            "battle": { car: { symbol: '🚗', name: 'Car' }, dumpster: { symbol: '🗑️', name: 'Dumpster' }, barricade: { symbol: '🚧', name: 'Barricade' } }
         }
     };
 
