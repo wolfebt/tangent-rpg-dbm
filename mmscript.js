@@ -1726,8 +1726,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let apiUrl;
         let payload;
-        const modelForTextToImage = "imagen-3.0-generate-002"; // Best for pure generation
-        const modelForImageEdit = "gemini-2.5-flash-preview-05-20"; // Best for understanding + editing
+        const modelForTextToImage = "imagen-3.0-generate-002"; 
+        const modelForImageEdit = "gemini-2.0-flash-preview-image-generation"; // *** CORRECTED MODEL ***
 
         if (!imageBase64) {
             // --- Text-to-Image Generation (Step 1: Landform) ---
@@ -1747,7 +1747,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
             if (maskBase64) {
-                // Add the mask for inpainting tasks
                 parts.push({
                     inlineData: {
                         mimeType: "image/png",
@@ -1780,7 +1779,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Imagen response structure
                 base64Data = result.predictions?.[0]?.bytesBase64Encoded;
             } else {
-                // Gemini response structure
+                // Gemini Image Gen response structure
                 base64Data = result.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
             }
 
@@ -1795,7 +1794,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error("AI Generation Error:", error);
             showModal(`An error occurred during AI generation: ${error.message}`);
-            // Ensure loading modal is always removed, even on error
             const loadingModal = document.querySelector('.modal-backdrop');
             if (loadingModal && loadingModal.textContent.includes("AI is generating")) {
                 loadingModal.remove();
