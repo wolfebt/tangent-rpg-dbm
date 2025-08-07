@@ -1,4 +1,4 @@
-// Version 4.2 - UI Refactor and Prompt Regeneration
+// Version 4.3 - Mask Tool Upgrade & AI Edit Fix
 document.addEventListener('DOMContentLoaded', () => {
     // --- UI Elements ---
     const canvas = document.getElementById('mapCanvas');
@@ -293,6 +293,11 @@ document.addEventListener('DOMContentLoaded', () => {
             // Draw the mask
             drawMaskPaths(maskCtx);
 
+            // Draw mask preview on drawing canvas
+            if (isMasking && currentMaskPath) {
+                drawMaskPreview(drawingCtx);
+            }
+
             // Draw the grid on the drawing canvas so it's on top
             if (gridVisibleCheckbox.checked) {
                 drawGrid(drawingCtx);
@@ -539,27 +544,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function drawMaskPaths(targetCtx) {
         targetCtx.save();
-        targetCtx.globalAlpha = 0.5;
-        targetCtx.fillStyle = '#3b82f6'; // blue-500
+        targetCtx.fillStyle = 'rgba(59, 130, 246, 0.5)'; // blue-500 with opacity
         
-        const allPaths = [...maskPaths];
-        if(isMasking && currentMaskPath) {
-            allPaths.push(currentMaskPath);
-        }
-
-        allPaths.forEach(path => {
-             if (path.points.length < 2) return;
+        maskPaths.forEach(path => {
+             if (path.points.length < 3) return;
              targetCtx.beginPath();
-             targetCtx.strokeStyle = '#3b82f6';
-             targetCtx.lineWidth = path.width;
-             targetCtx.lineCap = 'round';
-             targetCtx.lineJoin = 'round';
              targetCtx.moveTo(path.points[0].x, path.points[0].y);
              for(let i=1; i < path.points.length; i++) {
                  targetCtx.lineTo(path.points[i].x, path.points[i].y);
              }
-             targetCtx.stroke();
+             targetCtx.closePath();
+             targetCtx.fill();
         });
+        targetCtx.restore();
+    }
+
+    function drawMaskPreview(targetCtx) {
+        if (!currentMaskPath || currentMaskPath.points.length < 1) return;
+        targetCtx.save();
+        targetCtx.strokeStyle = 'rgba(96, 165, 250, 0.8)';
+        targetCtx.lineWidth = 2;
+        targetCtx.beginPath();
+        targetCtx.moveTo(currentMaskPath.points[0].x, currentMaskPath.points[0].y);
+        for(let i=1; i < currentMaskPath.points.length; i++) {
+            targetCtx.lineTo(currentMaskPath.points[i].x, currentMaskPath.points[i].y);
+        }
+        targetCtx.stroke();
         targetCtx.restore();
     }
 
@@ -2073,7 +2083,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     currentPencilPath = { type: 'freestyle', color: pencilColor, width: pencilWidth, points: [pixelToGrid(mouseX, mouseY, true)] };
                 } else if (currentTool === 'mask') {
                     isMasking = true;
-                    currentMaskPath = { width: brushSize * 15, points: [{x: mouseX, y: mouseY}] };
+                    currentMaskPath = { points: [{x: mouseX, y: mouseY}] };
                 }
             }
         });
@@ -2131,8 +2141,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else if (brushMode === 'ellipse') {
                         const rx = Math.abs(endPoint.x - startPoint.x) / 2;
                         const ry = Math.abs(endPoint.y - startPoint.y) / 2;
-                        const cx = startPoint.x + (endPoint.x - start.x) / 2;
-                        const cy = startPoint.y + (endPoint.y - start.y) / 2;
+                        const cx = startPoint.x + (endPoint.x - startPoint.x) / 2;
+                        const cy = startPoint.y + (endPoint.y - startPoint.y) / 2;
                         previewCtx.ellipse(cx, cy, rx, ry, 0, 0, 2 * Math.PI);
                     }
                     previewCtx.stroke();
@@ -2267,7 +2277,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         toolTerrainBtn.addEventListener('click', () => { currentTool = 'terrain'; nextClickAction = null; updateActiveSwatches(); });
         toolPencilBtn.addEventListener('click', () => { currentTool = 'pencil'; nextClickAction = null; updateActiveSwatches(); });
-        toolMaskBtn.addEventListener('click', () => { currentTool = 'mask'; nextClickAction = null; updateActiveSwatches(); });
+        
+        toolMaskBtn.addEventListener('click', () => {
+            if (currentTool === 'mask') {
+                currentTool = 'terrain';
+            } else {
+                currentTool = 'mask';
+            }
+            nextClickAction = null;
+            updateActiveSwatches();
+        });
+
         clearMaskBtn.addEventListener('click', () => {
             maskPaths = [];
             drawAll();
