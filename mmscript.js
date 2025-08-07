@@ -1,4 +1,4 @@
-// Version 2.1 - AI Bug Fixes
+// Version 2.2 - AI Masking and Swatch Generation Fixes
 document.addEventListener('DOMContentLoaded', () => {
     // --- UI Elements ---
     const canvas = document.getElementById('mapCanvas');
@@ -2181,16 +2181,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Apply the same transformation used for the main image export
                 maskTempCtx.translate(-minPxX, -minPxY);
 
-                maskTempCtx.strokeStyle = 'white';
+                maskTempCtx.fillStyle = 'white';
                 
                 // The mask paths are in screen coordinates, so we need to convert them to world coordinates
                 maskPaths.forEach(path => {
                     if (path.points.length < 2) return;
                     maskTempCtx.beginPath();
-                    // The line width on the mask should also be scaled from screen to world
-                    maskTempCtx.lineWidth = path.width / view.zoom;
-                    maskTempCtx.lineCap = 'round';
-                    maskTempCtx.lineJoin = 'round';
                     
                     const firstPoint = path.points[0];
                     const worldX = (firstPoint.x - view.offsetX) / view.zoom;
@@ -2203,7 +2199,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         const wY = (point.y - view.offsetY) / view.zoom;
                         maskTempCtx.lineTo(wX, wY);
                     }
-                    maskTempCtx.stroke();
+                     // Close the path to make it a fillable shape
+                    maskTempCtx.closePath();
+                    maskTempCtx.fill();
                 });
                 maskTempCtx.restore();
 
@@ -2269,18 +2267,42 @@ document.addEventListener('DOMContentLoaded', () => {
                 showModal("Please enter your API key in the settings (gear icon).");
                 return;
             }
-            
+            const groundLayer = layers.find(l => l.name === 'Ground');
+            if (!groundLayer || !groundLayer.backgroundImage) {
+                showModal("Please generate a base map first to establish an art style.");
+                return;
+            }
+
             const grassSwatchEl = document.querySelector('.item-container[data-terrain="grass"] .texture-swatch');
             grassSwatchEl.textContent = '...'; // Loading indicator
 
-            try {
-                const artStyle = artStyleSelect.value;
-                const styleGuidance = aiOverview.value || aiPrimaryFeature.value || 'fantasy';
-                const prompt = `A seamless, tileable texture of lush green grass, top-down view. Art style: ${artStyle}, ${styleGuidance}.`;
-                
-                const payload = { instances: [{ prompt: prompt }], parameters: { "sampleCount": 1} };
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            const { mapPixelWidth, mapPixelHeight, minPxX, minPxY } = getMapPixelBounds();
+            tempCanvas.width = mapPixelWidth;
+            tempCanvas.height = mapPixelHeight;
+            drawFrame(tempCtx, { width: mapPixelWidth, height: mapPixelHeight, minPxX, minPxY });
+            const base64ImageData = tempCanvas.toDataURL('image/png').split(',')[1];
 
+            try {
+                const prompt = "A seamless, tileable texture of lush green grass, top-down view, matching the art style of the provided image.";
+                 const payload = {
+                  contents: [{
+                    parts: [
+                      { text: prompt },
+                      {
+                        inlineData: {
+                          mimeType: "image/png",
+                          data: base64ImageData
+                        }
+                      }
+                    ]
+                  }],
+                  generationConfig: {
+                    responseModalities: ['IMAGE']
+                  },
+                };
+                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${apiKey}`;
                 const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -2290,7 +2312,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 
                 const result = await response.json();
-                const base64Data = result?.predictions?.[0]?.bytesBase64Encoded;
+                const base64Data = result?.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
 
                 if (base64Data) {
                     const imageUrl = `data:image/png;base64,${base64Data}`;
