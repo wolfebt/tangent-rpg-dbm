@@ -56,6 +56,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const apiKeyInput = document.getElementById('apiKeyInput');
     const saveApiKeyBtn = document.getElementById('saveApiKey');
     const cancelApiKeyBtn = document.getElementById('cancelApiKey');
+    const generateMapBtn = document.getElementById('generateMapBtn');
+    const aiPrompt = document.getElementById('aiPrompt');
+    const artStyleSelect = document.getElementById('artStyle');
     // Map Key UI
     const mapKeyBtn = document.getElementById('mapKeyBtn');
     const mapKeyWindow = document.getElementById('mapKeyWindow');
@@ -72,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- State ---
     let gridType = 'hex'; // 'hex' or 'square'
     let mapGrid = {}; 
-    let mapName = 'Untitled Map';
+    let mapName = '';
     let layers = [];
     let activeLayerIndex = 0;
     let currentTool = 'terrain';
@@ -106,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectedPlacedAssetIndex = null;
     let isDragging = false;
     let dragOffsetX, dragOffsetY;
-    let apiKey = 'AIzaSyC2hF_f2tJGsQG6bp-zHnGmNLYf-1QbRxk';
+    let apiKey = ''; // CRITICAL: API Key is no longer hardcoded.
     // Map Key State
     let isDraggingKey = false;
     let keyDragOffset = { x: 0, y: 0 };
@@ -152,6 +155,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Function Definitions ---
 
+    function generateRandomId(length) {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let result = '';
+        for (let i = 0; i < length; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+    }
+
     function togglePanel(isCollapsing) {
         panelWrapper.classList.toggle('closed', isCollapsing);
         collapsedBar.classList.toggle('hidden', !isCollapsing);
@@ -178,7 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
         mapGrid = generateBaseMapGrid(width, height);
         
         layers = [
-            { name: 'Ground', visible: true, data: {} }, 
+            { name: 'Ground', visible: true, data: {}, backgroundImage: null }, 
             { name: 'Objects', visible: true, data: {} }
         ];
         pencilPaths = [];
@@ -187,6 +199,8 @@ document.addEventListener('DOMContentLoaded', () => {
         undoStack = [];
         redoStack = [];
         activeLayerIndex = 0; // Default to ground layer
+        mapName = generateRandomId(16);
+        mapNameInput.value = mapName;
         renderLayers();
         updateUndoRedoButtons();
         updateMapKey();
@@ -291,6 +305,12 @@ document.addEventListener('DOMContentLoaded', () => {
         } else { 
             targetCtx.translate(view.offsetX, view.offsetY);
             targetCtx.scale(view.zoom, view.zoom);
+        }
+
+        const groundLayer = layers.find(l => l.name === 'Ground');
+        if (groundLayer && groundLayer.backgroundImage) {
+            const { mapPixelWidth, mapPixelHeight } = getMapPixelBounds();
+            targetCtx.drawImage(groundLayer.backgroundImage, 0, 0, mapPixelWidth, mapPixelHeight);
         }
 
         const topTerrains = getTopTerrains();
@@ -1866,8 +1886,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         saveApiKeyBtn.addEventListener('click', () => {
             apiKey = apiKeyInput.value;
-            // In a real app, you'd save this to localStorage or a secure store
-            console.log("API Key saved (for this session):", apiKey);
+            localStorage.setItem('mapMakerApiKey', apiKey);
+            console.log("API Key saved.");
             apiKeyModal.classList.add('hidden');
         });
 
@@ -1912,10 +1932,75 @@ document.addEventListener('DOMContentLoaded', () => {
             generateBaseMap();
             drawAll();
         });
+        
+        generateMapBtn.addEventListener('click', async () => {
+            const userPrompt = aiPrompt.value;
+            const artStyle = artStyleSelect.value;
+            if (!userPrompt) {
+                showModal("Please enter a prompt for the map.");
+                return;
+            }
+            if (!apiKey) {
+                showModal("Please enter your API key in the settings (gear icon).");
+                return;
+            }
+
+            const fullPrompt = `top-down, 2d, ttrpg battle map, ${userPrompt}, ${artStyle} style`;
+
+            // Show loading indicator
+            ctx.save();
+            ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "white";
+            ctx.textAlign = "center";
+            ctx.font = "24px 'Trebuchet MS'";
+            ctx.fillText("Generating map...", canvas.width / 2, canvas.height / 2);
+            ctx.restore();
+
+            try {
+                const payload = { instances: [{ prompt: fullPrompt }], parameters: { "sampleCount": 1} };
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                if (result.predictions && result.predictions.length > 0 && result.predictions[0].bytesBase64Encoded) {
+                    const imageUrl = `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
+                    const img = new Image();
+                    img.onload = () => {
+                        // Clear everything
+                        generateBaseMap();
+                        // Draw the new image as the base
+                        const groundLayer = layers.find(l => l.name === 'Ground');
+                        if (groundLayer) {
+                            groundLayer.backgroundImage = img;
+                        }
+                        drawAll();
+                    };
+                    img.src = imageUrl;
+                } else {
+                    throw new Error("No image data in API response.");
+                }
+
+            } catch (error) {
+                console.error('Error generating map:', error);
+                showModal("Error generating map. Please check your API key and prompt.");
+                drawAll(); // Redraw to remove loading indicator
+            }
+        });
+
 
     }
 
     async function initialize() {
+        apiKey = localStorage.getItem('mapMakerApiKey') || '';
         togglePanel(false); // Start with panel open
         
         addEventListeners();
