@@ -1,4 +1,4 @@
-// Version 4.1 - Corrected AI Image Editing Payload
+// Version 4.2 - UI Refactor and Prompt Regeneration
 document.addEventListener('DOMContentLoaded', () => {
     // --- UI Elements ---
     const canvas = document.getElementById('mapCanvas');
@@ -62,7 +62,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancelApiKeyBtn = document.getElementById('cancelApiKey');
     const resizer = document.getElementById('resizer');
     
-    // AI Step UI
+    // AI Step UI (now in bottom panel)
+    const aiBottomPanel = document.getElementById('aiBottomPanel');
+    const aiBottomPanelHeader = document.getElementById('aiBottomPanelHeader');
     const aiStep1 = document.getElementById('aiStep1');
     const aiStep2 = document.getElementById('aiStep2');
     const aiStep3 = document.getElementById('aiStep3');
@@ -75,6 +77,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const artStyleSelect = document.getElementById('artStyle');
     const aiEditPrompt = document.getElementById('aiEditPrompt');
     const applyAiEditBtn = document.getElementById('applyAiEditBtn');
+    const lastPromptInput = document.getElementById('lastPromptInput');
+    const regenerateBtn = document.getElementById('regenerateBtn');
     
     // Map Key UI
     const mapKeyBtn = document.getElementById('mapKeyBtn');
@@ -129,12 +133,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectedPlacedAssetIndex = null;
     let isDragging = false;
     let dragOffsetX, dragOffsetY;
-    let apiKey = ''; // CRITICAL: API Key is no longer hardcoded.
+    let apiKey = '';
     // Map Key State
     let isDraggingKey = false;
     let keyDragOffset = { x: 0, y: 0 };
     // AI State
     let heightmapImage = null;
+    let lastAIPrompt = '';
+    let lastAIFunction = null;
 
     // --- Data Definitions ---
     const terrains = {
@@ -1756,7 +1762,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             payload = {
                 contents: [{ role: "user", parts: parts }],
-                // *** FIX: Explicitly request an IMAGE response modality ***
                 generationConfig: {
                     responseModalities: ['TEXT', 'IMAGE']
                 },
@@ -1849,9 +1854,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Event Handler Implementations ---
 
-    async function handleLandformGeneration() {
+    async function handleLandformGeneration(promptOverride = null) {
         saveState();
-        const prompt = aiLandformPrompt.value;
+        const prompt = promptOverride || aiLandformPrompt.value;
         const style = artStyleSelect.value;
         if (!prompt) {
             showModal("Please describe the landform you want to generate.");
@@ -1859,6 +1864,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const fullPrompt = `A ${style} map of ${prompt}. Grayscale heightmap.`;
+        lastAIPrompt = fullPrompt;
+        lastAIFunction = () => handleLandformGeneration(lastPromptInput.value);
+        lastPromptInput.value = fullPrompt;
+
         const generatedImageBase64 = await callGenerativeAI(fullPrompt);
 
         if (generatedImageBase64) {
@@ -1867,18 +1876,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 const groundLayer = layers.find(l => l.name === 'Ground');
                 if (groundLayer) {
                     groundLayer.backgroundImage = img;
-                    heightmapImage = img; // Save for the next step
+                    heightmapImage = img;
                     drawAll();
-                    updateAiStep(2); // Move to the next step
+                    updateAiStep(2);
                 }
             };
             img.src = `data:image/png;base64,${generatedImageBase64}`;
         }
     }
 
-    async function handleWaterGeneration() {
+    async function handleWaterGeneration(promptOverride = null) {
         saveState();
-        const prompt = aiWaterPrompt.value;
+        const prompt = promptOverride || aiWaterPrompt.value;
         if (!prompt || !heightmapImage) {
             showModal("Please generate a landform first and describe the water features.");
             return;
@@ -1890,6 +1899,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const fullPrompt = `Using the provided heightmap, add water features as described: ${prompt}. The water should realistically fill the low-lying areas. Return only the water on a transparent background.`;
+        lastAIPrompt = fullPrompt;
+        lastAIFunction = () => handleWaterGeneration(lastPromptInput.value);
+        lastPromptInput.value = fullPrompt;
+        
         const waterImageBase64 = await callGenerativeAI(fullPrompt, landformBase64);
 
         if (waterImageBase64) {
@@ -1897,7 +1910,6 @@ document.addEventListener('DOMContentLoaded', () => {
             img.onload = () => {
                 let waterLayer = layers.find(l => l.name === 'Water Features');
                 if (!waterLayer) {
-                    // We call the non-state-saving version because saveState was already called.
                     const newName = 'Water Features';
                     layers.push({ name: newName, visible: true, data: {}, backgroundImage: null });
                     activeLayerIndex = layers.length - 1;
@@ -1912,9 +1924,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function handleBiomeGeneration() {
+    async function handleBiomeGeneration(promptOverride = null) {
         saveState();
-        const prompt = aiBiomePrompt.value;
+        const prompt = promptOverride || aiBiomePrompt.value;
         const style = artStyleSelect.value;
         if (!prompt) {
             showModal("Please describe the biomes to apply.");
@@ -1927,6 +1939,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const fullPrompt = `Based on the provided map with its landforms and water, apply biomes as described: ${prompt}. Use the specified art style: ${style}.`;
+        lastAIPrompt = fullPrompt;
+        lastAIFunction = () => handleBiomeGeneration(lastPromptInput.value);
+        lastPromptInput.value = fullPrompt;
+
         const biomeImageBase64 = await callGenerativeAI(fullPrompt, currentMapBase64);
 
         if (biomeImageBase64) {
@@ -1945,9 +1961,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function handleAiEdit() {
+    async function handleAiEdit(promptOverride = null) {
         saveState();
-        const prompt = aiEditPrompt.value;
+        const prompt = promptOverride || aiEditPrompt.value;
         if (!prompt) {
             showModal("Please provide an edit instruction.");
             return;
@@ -1966,6 +1982,9 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             fullPrompt = `Perform this edit: "${prompt}" in the style of the base image. Apply it to the entire image.`;
         }
+        lastAIPrompt = fullPrompt;
+        lastAIFunction = () => handleAiEdit(lastPromptInput.value);
+        lastPromptInput.value = fullPrompt;
         
         const editedImageBase64 = await callGenerativeAI(fullPrompt, currentMapBase64, maskBase64);
 
@@ -2112,8 +2131,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else if (brushMode === 'ellipse') {
                         const rx = Math.abs(endPoint.x - startPoint.x) / 2;
                         const ry = Math.abs(endPoint.y - startPoint.y) / 2;
-                        const cx = startPoint.x + (endPoint.x - startPoint.x) / 2;
-                        const cy = startPoint.y + (endPoint.y - startPoint.y) / 2;
+                        const cx = startPoint.x + (endPoint.x - start.x) / 2;
+                        const cy = startPoint.y + (endPoint.y - start.y) / 2;
                         previewCtx.ellipse(cx, cy, rx, ry, 0, 0, 2 * Math.PI);
                     }
                     previewCtx.stroke();
@@ -2384,10 +2403,28 @@ document.addEventListener('DOMContentLoaded', () => {
             drawAll();
         });
         
-        generateLandformBtn.addEventListener('click', handleLandformGeneration);
-        addWaterBtn.addEventListener('click', handleWaterGeneration);
-        applyBiomeBtn.addEventListener('click', handleBiomeGeneration);
-        applyAiEditBtn.addEventListener('click', handleAiEdit);
+        // AI Listeners
+        aiBottomPanelHeader.addEventListener('click', () => {
+            aiBottomPanel.classList.toggle('closed');
+        });
+        
+        generateLandformBtn.addEventListener('click', () => handleLandformGeneration());
+        addWaterBtn.addEventListener('click', () => handleWaterGeneration());
+        applyBiomeBtn.addEventListener('click', () => handleBiomeGeneration());
+        applyAiEditBtn.addEventListener('click', () => handleAiEdit());
+        regenerateBtn.addEventListener('click', () => {
+            if (typeof lastAIFunction === 'function') {
+                lastAIFunction();
+            } else {
+                showModal("No previous AI action to regenerate.");
+            }
+        });
+        lastPromptInput.addEventListener('focus', () => {
+            lastPromptInput.readOnly = false;
+        });
+        lastPromptInput.addEventListener('blur', () => {
+            lastPromptInput.readOnly = true;
+        });
     }
 
     async function initialize() {

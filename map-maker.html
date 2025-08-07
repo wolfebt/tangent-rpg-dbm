@@ -65,63 +65,6 @@
                 
                 <!-- Scrollable Controls Area -->
                 <div class="flex-grow overflow-y-auto pr-2">
-                    <div id="aiAssistantPanel" class="control-panel mb-4">
-                        <div id="aiAssistantHeader" class="collapsible-header">
-                            <h3>AI Assist</h3>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                        </div>
-                        <div id="aiAssistantContent" class="collapsible-content">
-                            <!-- Step 1: Landform -->
-                            <div id="aiStep1" class="ai-step active-step">
-                                <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Step 1: Generate Landform</h4>
-                                <label for="aiLandformPrompt">Describe the land's structure (e.g., mountains, valleys, plains)</label>
-                                <textarea id="aiLandformPrompt" placeholder="e.g., A rugged mountain range with a deep central canyon and rolling foothills to the east." class="mb-2"></textarea>
-                                <label for="artStyle">Art Style</label>
-                                <select id="artStyle" class="mb-2">
-                                    <option value="photorealistic">Photorealistic</option>
-                                    <option value="painting">Digital Painting</option>
-                                    <option value="watercolor">Watercolor</option>
-                                    <option value="vintage">Vintage Cartography</option>
-                                    <option value="handdrawn">Hand Drawn</option>
-                                </select>
-                                <button id="generateLandformBtn">Generate Landform</button>
-                            </div>
-
-                            <!-- Step 2: Water -->
-                            <div id="aiStep2" class="ai-step">
-                                <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Step 2: Add Water</h4>
-                                <label for="aiWaterPrompt">Describe the water features (e.g., rivers, lakes, coast)</label>
-                                <textarea id="aiWaterPrompt" placeholder="e.g., A single, mighty river flowing from the highest peak down into the canyon, feeding a large lake in the lowlands." class="mb-2"></textarea>
-                                <button id="addWaterBtn">Add Water</button>
-                            </div>
-
-                            <!-- Step 3: Biome -->
-                            <div id="aiStep3" class="ai-step">
-                                <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Step 3: Apply Biome</h4>
-                                <label for="aiBiomePrompt">Describe the terrain and vegetation</label>
-                                <textarea id="aiBiomePrompt" placeholder="e.g., A lush, temperate forest with rocky peaks and snow at the highest elevations. The foothills are grassy plains." class="mb-2"></textarea>
-                                <button id="applyBiomeBtn">Apply Biome</button>
-                            </div>
-                            
-                            <hr class="my-4 border-gray-600">
-
-                            <!-- Manual Edit -->
-                            <div id="aiEditSection">
-                                <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Manual Edit & Stylize</h4>
-                                <label for="aiEditPrompt">Edit Instruction</label>
-                                <textarea id="aiEditPrompt" placeholder="e.g., Make the forest more dense. Or, leave blank and click Apply to stylize your drawings." class="mb-2"></textarea>
-                                <p class="text-xs text-gray-400 -mt-2 mb-3">Use the Mask Tool to apply edits to a specific area.</p>
-                                <div class="grid grid-cols-2 gap-2">
-                                    <button id="applyAiEditBtn">Apply AI Edit</button>
-                                    <button id="toolMaskBtn">Activate Mask Tool</button>
-                                </div>
-                                <div class="mt-2">
-                                    <button id="clearMaskBtn" class="w-full">Clear Mask</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                      <div class="control-panel mb-4">
                         <div class="collapsible-header collapsed">
                             <h3>Tools</h3>
@@ -345,6 +288,71 @@
             <canvas id="mapCanvas"></canvas>
             <canvas id="maskCanvas"></canvas>
             <canvas id="drawingCanvas"></canvas>
+            
+            <!-- AI Bottom Panel -->
+            <div id="aiBottomPanel" class="closed">
+                <div id="aiBottomPanelHeader">
+                    <span>AI Assistant & Prompt Editor</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                </div>
+                <div id="aiBottomPanelContent">
+                    <div id="aiAssistantPanel" class="control-panel">
+                        <!-- Step 1: Landform -->
+                        <div id="aiStep1" class="ai-step active-step">
+                            <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Step 1: Generate Landform</h4>
+                            <label for="aiLandformPrompt">Describe the land's structure (e.g., mountains, valleys, plains)</label>
+                            <textarea id="aiLandformPrompt" placeholder="e.g., A rugged mountain range with a deep central canyon and rolling foothills to the east." class="mb-2"></textarea>
+                            <label for="artStyle">Art Style</label>
+                            <select id="artStyle" class="mb-2">
+                                <option value="photorealistic">Photorealistic</option>
+                                <option value="painting">Digital Painting</option>
+                                <option value="watercolor">Watercolor</option>
+                                <option value="vintage">Vintage Cartography</option>
+                                <option value="handdrawn">Hand Drawn</option>
+                            </select>
+                            <button id="generateLandformBtn">Generate Landform</button>
+                        </div>
+
+                        <!-- Step 2: Water -->
+                        <div id="aiStep2" class="ai-step">
+                            <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Step 2: Add Water</h4>
+                            <label for="aiWaterPrompt">Describe the water features (e.g., rivers, lakes, coast)</label>
+                            <textarea id="aiWaterPrompt" placeholder="e.g., A single, mighty river flowing from the highest peak down into the canyon, feeding a large lake in the lowlands." class="mb-2"></textarea>
+                            <button id="addWaterBtn">Add Water</button>
+                        </div>
+
+                        <!-- Step 3: Biome -->
+                        <div id="aiStep3" class="ai-step">
+                            <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Step 3: Apply Biome</h4>
+                            <label for="aiBiomePrompt">Describe the terrain and vegetation</label>
+                            <textarea id="aiBiomePrompt" placeholder="e.g., A lush, temperate forest with rocky peaks and snow at the highest elevations. The foothills are grassy plains." class="mb-2"></textarea>
+                            <button id="applyBiomeBtn">Apply Biome</button>
+                        </div>
+                        
+                        <hr class="my-4 border-gray-600">
+
+                        <!-- Manual Edit -->
+                        <div id="aiEditSection">
+                            <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Manual Edit & Stylize</h4>
+                            <label for="aiEditPrompt">Edit Instruction</label>
+                            <textarea id="aiEditPrompt" placeholder="e.g., Make the forest more dense. Or, leave blank and click Apply to stylize your drawings." class="mb-2"></textarea>
+                            <p class="text-xs text-gray-400 -mt-2 mb-3">Use the Mask Tool to apply edits to a specific area.</p>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button id="applyAiEditBtn">Apply AI Edit</button>
+                                <button id="toolMaskBtn">Activate Mask Tool</button>
+                            </div>
+                            <div class="mt-2">
+                                <button id="clearMaskBtn" class="w-full">Clear Mask</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="promptEditorPanel" class="control-panel">
+                        <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Last Used AI Prompt</h4>
+                        <textarea id="lastPromptInput" class="w-full h-24 p-2 rounded border border-gray-600 bg-gray-900 text-gray-300 text-sm" readonly></textarea>
+                        <button id="regenerateBtn" class="mt-2 w-full">Edit & Regenerate</button>
+                    </div>
+                </div>
+            </div>
         </div>
         <!-- Collapsed Panel Handle -->
         <div id="collapsedBar" class="collapsed-bar hidden">MAP CONTROLS</div>
