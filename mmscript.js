@@ -1,4 +1,4 @@
-// Version 1.2 - Forcing a visible change for Git tracking.
+// Version 1.3 - UI/UX Update: Accordion Menu
 document.addEventListener('DOMContentLoaded', () => {
     // --- UI Elements ---
     const canvas = document.getElementById('mapCanvas');
@@ -57,8 +57,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveApiKeyBtn = document.getElementById('saveApiKey');
     const cancelApiKeyBtn = document.getElementById('cancelApiKey');
     const generateMapBtn = document.getElementById('generateMapBtn');
-    const aiPrompt = document.getElementById('aiPrompt');
     const artStyleSelect = document.getElementById('artStyle');
+    // AI Prompt Fields
+    const aiPrimaryFeature = document.getElementById('aiPrimaryFeature');
+    const aiOverview = document.getElementById('aiOverview');
+    const aiPrimaryBiome = document.getElementById('aiPrimaryBiome');
+    const aiSecondaryFeatures = document.getElementById('aiSecondaryFeatures');
+    const aiTimeOfDay = document.getElementById('aiTimeOfDay');
+    const aiWeather = document.getElementById('aiWeather');
+    const aiMood = document.getElementById('aiMood');
+
     // Map Key UI
     const mapKeyBtn = document.getElementById('mapKeyBtn');
     const mapKeyWindow = document.getElementById('mapKeyWindow');
@@ -1943,18 +1951,25 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         generateMapBtn.addEventListener('click', async () => {
-            const userPrompt = aiPrompt.value;
             const artStyle = artStyleSelect.value;
-            if (!userPrompt) {
-                showModal("Please enter a prompt for the map.");
-                return;
-            }
+            const promptParts = [
+                `top-down, 2d, ttrpg ${currentScale} map`,
+                aiPrimaryFeature.value,
+                aiOverview.value,
+                `Primary biome: ${aiPrimaryBiome.value}`,
+                aiSecondaryFeatures.value,
+                `Time of day: ${aiTimeOfDay.value}`,
+                `Atmosphere: ${aiWeather.value}`,
+                `Mood: ${aiMood.value}`,
+                `${artStyle} style`,
+                "no figures, no characters, no people"
+            ];
+            const fullPrompt = promptParts.filter(p => p).join(', ');
+
             if (!apiKey) {
                 showModal("Please enter your API key in the settings (gear icon).");
                 return;
             }
-
-            const fullPrompt = `top-down, 2d, ttrpg ${currentScale} map, ${userPrompt}, ${artStyle} style, no figures, no characters, no people`;
 
             // Show loading indicator
             ctx.save();

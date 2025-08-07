@@ -71,8 +71,40 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </div>
                         <div id="aiAssistantContent" class="collapsible-content hidden">
-                            <label for="aiPrompt">Prompt</label>
-                            <textarea id="aiPrompt" placeholder="e.g., a spooky forest with a winding path" class="mb-2"></textarea>
+                            <label for="aiPrimaryFeature">Primary Feature/Location</label>
+                            <input type="text" id="aiPrimaryFeature" placeholder="e.g., The Sunken City of A'zura" class="mb-2">
+                            
+                            <label for="aiOverview">Overview/Description</label>
+                            <textarea id="aiOverview" placeholder="e.g., An ancient, flooded city ruin" class="mb-2"></textarea>
+
+                            <label for="aiPrimaryBiome">Primary Biome</label>
+                            <select id="aiPrimaryBiome" class="mb-2">
+                                <option value="Forest">Forest</option>
+                                <option value="Desert">Desert</option>
+                                <option value="Swamp">Swamp</option>
+                                <option value="Tundra">Tundra</option>
+                                <option value="Volcanic">Volcanic</option>
+                                <option value="Urban">Urban</option>
+                                <option value="Space Station">Space Station</option>
+                            </select>
+
+                            <label for="aiSecondaryFeatures">Secondary Features</label>
+                            <input type="text" id="aiSecondaryFeatures" placeholder="e.g., Winding river, cracked earth" class="mb-2">
+
+                            <label for="aiTimeOfDay">Time of Day</label>
+                            <select id="aiTimeOfDay" class="mb-2">
+                                <option value="Midday">Midday</option>
+                                <option value="Sunset">Sunset</option>
+                                <option value="Night">Night</option>
+                                <option value="Twilight">Twilight</option>
+                            </select>
+
+                            <label for="aiWeather">Weather/Atmosphere</label>
+                            <input type="text" id="aiWeather" placeholder="e.g., Misty and foggy" class="mb-2">
+
+                            <label for="aiMood">Mood</label>
+                            <input type="text" id="aiMood" placeholder="e.g., Ominous, serene, chaotic" class="mb-2">
+
                             <label for="artStyle">Art Style</label>
                             <select id="artStyle" class="mb-2">
                                 <option value="photo">Photo</option>
@@ -80,9 +112,6 @@
                                 <option value="drawn">Drawn</option>
                             </select>
                             <button id="generateMapBtn" class="mb-2">Generate Map</button>
-                            <label for="enhancePrompt">Enhance Map</label>
-                            <input type="text" id="enhancePrompt" placeholder="e.g., add a mountain range in the north" class="mb-2">
-                            <button id="enhanceMapBtn">Enhance</button>
                         </div>
                     </div>
 
