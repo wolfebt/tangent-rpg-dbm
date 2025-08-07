@@ -43,7 +43,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const pencilWidthValue = document.getElementById('pencilWidthValue');
     const graphicsBtn = document.getElementById('graphicsBtn');
     const graphicsContent = document.getElementById('graphicsContent');
-    const graphicsChevron = document.getElementById('graphicsChevron');
     const panelWrapper = document.getElementById('panelWrapper');
     const collapseBtn = document.getElementById('collapseBtn');
     const collapsedBar = document.getElementById('collapsedBar');
@@ -1826,7 +1825,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         graphicsBtn.addEventListener('click', () => {
             graphicsContent.classList.toggle('hidden');
-            graphicsChevron.classList.toggle('rotate-180');
         });
         fileMenuBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -1838,18 +1836,28 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if(!graphicsBtn.contains(e.target) && !graphicsContent.contains(e.target)) {
                 graphicsContent.classList.add('hidden');
-                graphicsChevron.classList.remove('rotate-180');
             }
         });
         savePngBtn.addEventListener('click', () => promptForMapNameAndSave(saveAsPNGLogic));
         saveJsonBtn.addEventListener('click', () => promptForMapNameAndSave(saveAsJSONLogic));
         loadJsonBtn.addEventListener('click', () => loadJsonInput.click());
         loadJsonInput.addEventListener('change', loadFromJSON);
-        accordionHeaders.forEach((header) => {
-            header.addEventListener('click', () => {
-                const content = header.nextElementSibling;
-                content.classList.toggle('hidden');
-                header.classList.toggle('collapsed');
+        accordionHeaders.forEach(clickedHeader => {
+            clickedHeader.addEventListener('click', () => {
+                const clickedContent = clickedHeader.nextElementSibling;
+                const isCurrentlyCollapsed = clickedHeader.classList.contains('collapsed');
+
+                // First, collapse all headers
+                accordionHeaders.forEach(header => {
+                    header.classList.add('collapsed');
+                    header.nextElementSibling.classList.add('hidden');
+                });
+
+                // If the clicked one was collapsed, open it
+                if (isCurrentlyCollapsed) {
+                    clickedHeader.classList.remove('collapsed');
+                    clickedContent.classList.remove('hidden');
+                }
             });
         });
         collapseBtn.addEventListener('click', () => togglePanel(true));
@@ -1945,7 +1953,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const fullPrompt = `top-down, 2d, ttrpg battle map, ${userPrompt}, ${artStyle} style`;
+            const fullPrompt = `top-down, 2d, ttrpg ${currentScale} map, ${userPrompt}, ${artStyle} style, no figures, no characters, no people`;
 
             // Show loading indicator
             ctx.save();

@@ -66,64 +66,91 @@
                 <!-- Scrollable Controls Area -->
                 <div class="flex-grow overflow-y-auto pr-2">
                      <div class="control-panel mb-4">
-                        <h3 class="!border-b-0 !pb-2">Tools</h3>
-                        <div class="grid grid-cols-2 gap-2">
-                            <button id="toolTerrainBtn" class="active">Terrain</button>
-                            <button id="toolPencilBtn">Pencil</button>
+                        <div class="collapsible-header">
+                            <h3>Tools</h3>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </div>
+                        <div class="collapsible-content">
+                            <div class="grid grid-cols-2 gap-2">
+                                <button id="toolTerrainBtn" class="active">Terrain</button>
+                                <button id="toolPencilBtn">Pencil</button>
+                            </div>
                         </div>
                     </div>
 
                     <div id="terrainOptionsPanel" class="control-panel mb-4">
-                        <label for="terrainBrushMode">Terrain Brush</label>
-                        <select id="terrainBrushMode">
-                            <option value="hex">Hex</option>
-                            <option value="spray">Spray</option>
-                            <option value="line">Line</option>
-                            <option value="rectangle">Rectangle</option>
-                            <option value="ellipse">Ellipse</option>
-                        </select>
-                        <label for="brushSize">Brush/Object Size: <span id="brushSizeValue">1</span></label>
-                        <input type="range" id="brushSize" min="1" max="10" value="1" class="mb-3">
+                         <div class="collapsible-header">
+                            <h3>Brush Options</h3>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </div>
+                        <div class="collapsible-content">
+                            <label for="terrainBrushMode">Terrain Brush</label>
+                            <select id="terrainBrushMode">
+                                <option value="hex">Hex</option>
+                                <option value="spray">Spray</option>
+                                <option value="line">Line</option>
+                                <option value="rectangle">Rectangle</option>
+                                <option value="ellipse">Ellipse</option>
+                            </select>
+                            <label for="brushSize">Brush/Object Size: <span id="brushSizeValue">1</span></label>
+                            <input type="range" id="brushSize" min="1" max="10" value="1" class="mb-3">
+                        </div>
                     </div>
 
                     <div id="pencilOptionsPanel" class="control-panel mb-4 hidden">
-                        <label for="pencilBrushMode">Pencil Mode</label>
-                        <select id="pencilBrushMode">
-                            <option value="freestyle">Freestyle</option>
-                            <option value="line">Line</option>
-                            <option value="rectangle">Rectangle</option>
-                            <option value="ellipse">Ellipse</option>
-                        </select>
-                        <div class="grid grid-cols-2 gap-4 mt-4">
-                            <div>
-                                <label for="pencilColorPicker">Color</label>
-                                <input type="color" id="pencilColorPicker" value="#FFFFFF" class="!mb-0">
-                            </div>
-                             <div>
-                                <label for="pencilWidth">Width: <span id="pencilWidthValue">5</span></label>
-                                <input type="range" id="pencilWidth" min="1" max="50" value="5" class="!mb-0">
+                        <div class="collapsible-header">
+                            <h3>Pencil Options</h3>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </div>
+                        <div class="collapsible-content">
+                            <label for="pencilBrushMode">Pencil Mode</label>
+                            <select id="pencilBrushMode">
+                                <option value="freestyle">Freestyle</option>
+                                <option value="line">Line</option>
+                                <option value="rectangle">Rectangle</option>
+                                <option value="ellipse">Ellipse</option>
+                            </select>
+                            <div class="grid grid-cols-2 gap-4 mt-4">
+                                <div>
+                                    <label for="pencilColorPicker">Color</label>
+                                    <input type="color" id="pencilColorPicker" value="#FFFFFF" class="!mb-0">
+                                </div>
+                                 <div>
+                                    <label for="pencilWidth">Width: <span id="pencilWidthValue">5</span></label>
+                                    <input type="range" id="pencilWidth" min="1" max="50" value="5" class="!mb-0">
+                                </div>
                             </div>
                         </div>
                     </div>
                     
                     <!-- Genre Selection -->
                     <div class="control-panel mb-4">
-                        <h3 class="!border-b-0 !pb-2">Genre</h3>
-                        <div id="genreSelector" class="grid grid-cols-3 gap-2">
-                            <button data-genre="fantasy" class="control-btn bg-gray-700 p-2 rounded-md text-sm font-medium hover:bg-gray-600 active">Fantasy</button>
-                            <button data-genre="modern" class="control-btn bg-gray-700 p-2 rounded-md text-sm font-medium hover:bg-gray-600">Modern</button>
-                            <button data-genre="scifi" class="control-btn bg-gray-700 p-2 rounded-md text-sm font-medium hover:bg-gray-600">Sci-Fi</button>
+                        <div class="collapsible-header">
+                            <h3>Genre</h3>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </div>
+                        <div class="collapsible-content">
+                            <div id="genreSelector" class="grid grid-cols-3 gap-2">
+                                <button data-genre="fantasy" class="control-btn bg-gray-700 p-2 rounded-md text-sm font-medium hover:bg-gray-600 active">Fantasy</button>
+                                <button data-genre="modern" class="control-btn bg-gray-700 p-2 rounded-md text-sm font-medium hover:bg-gray-600">Modern</button>
+                                <button data-genre="scifi" class="control-btn bg-gray-700 p-2 rounded-md text-sm font-medium hover:bg-gray-600">Sci-Fi</button>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Map Scale Selection -->
                     <div class="control-panel mb-4">
-                        <h3 class="!border-b-0 !pb-2">Map Scale</h3>
-                        <div id="scaleSelector" class="grid grid-cols-2 gap-2">
-                            <button data-scale="world" class="control-btn bg-gray-700 p-2 rounded-md text-sm font-medium hover:bg-gray-600 active">World</button>
-                            <button data-scale="city" class="control-btn bg-gray-700 p-2 rounded-md text-sm font-medium hover:bg-gray-600">City</button>
-                            <button data-scale="location" class="control-btn bg-gray-700 p-2 rounded-md text-sm font-medium hover:bg-gray-600">Location</button>
-                            <button data-scale="battle" class="control-btn bg-gray-700 p-2 rounded-md text-sm font-medium hover:bg-gray-600">Battle</button>
+                        <div class="collapsible-header">
+                            <h3>Map Scale</h3>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </div>
+                        <div class="collapsible-content">
+                            <div id="scaleSelector" class="grid grid-cols-2 gap-2">
+                                <button data-scale="world" class="control-btn bg-gray-700 p-2 rounded-md text-sm font-medium hover:bg-gray-600 active">World</button>
+                                <button data-scale="city" class="control-btn bg-gray-700 p-2 rounded-md text-sm font-medium hover:bg-gray-600">City</button>
+                                <button data-scale="location" class="control-btn bg-gray-700 p-2 rounded-md text-sm font-medium hover:bg-gray-600">Location</button>
+                                <button data-scale="battle" class="control-btn bg-gray-700 p-2 rounded-md text-sm font-medium hover:bg-gray-600">Battle</button>
+                            </div>
                         </div>
                     </div>
 
@@ -150,31 +177,31 @@
                     </div>
                                     
                     <div class="control-panel mb-4">
-                         <div id="terrainHeader" class="collapsible-header collapsed">
+                         <div id="terrainHeader" class="collapsible-header">
                             <h3>Terrain Type</h3>
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </div>
-                        <div id="terrainContent" class="collapsible-content hidden">
+                        <div id="terrainContent" class="collapsible-content">
                             <div id="terrainSelector" class="flex flex-col gap-2"></div>
                         </div>
                     </div>
 
                     <div class="control-panel mb-4">
-                        <div id="objectHeader" class="collapsible-header collapsed">
+                        <div id="objectHeader" class="collapsible-header">
                             <h3>Objects</h3>
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </div>
-                         <div id="objectContent" class="collapsible-content hidden">
+                         <div id="objectContent" class="collapsible-content">
                             <div id="objectSelector" class="flex flex-col gap-2"></div>
                          </div>
                     </div>
 
                     <div id="textToolPanel" class="control-panel mb-4">
-                        <div id="textHeader" class="collapsible-header collapsed">
+                        <div id="textHeader" class="collapsible-header">
                             <h3>Text</h3>
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </div>
-                         <div id="textContent" class="collapsible-content hidden">
+                         <div id="textContent" class="collapsible-content">
                             <label for="textInput">Text</label>
                             <input type="text" id="textInput" value="Label">
                             <div class="grid grid-cols-2 gap-4">
@@ -211,12 +238,12 @@
                         </div>
                     </div>
 
-                    <div id="graphicsDropdown" class="mt-4">
-                         <button id="graphicsBtn" class="w-full !mb-0 flex justify-between items-center bg-gray-800 p-3 rounded-md">
-                             <span>Graphics Options</span>
-                             <svg id="graphicsChevron" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform"><polyline points="18 15 12 9 6 15"></polyline></svg>
-                         </button>
-                         <div id="graphicsContent" class="p-4 bg-gray-800 border border-gray-700 rounded-md mt-2 hidden">
+                    <div id="graphicsDropdown" class="mt-4 control-panel">
+                         <div id="graphicsBtn" class="collapsible-header !border-b-0 !pb-0">
+                             <h3>Graphics Options</h3>
+                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                         </div>
+                         <div id="graphicsContent" class="collapsible-content">
                              <!-- Layers -->
                              <div class="control-panel mb-4">
                                  <h3 class="!border-b-0 !pb-2 text-base font-semibold">Layers</h3>
