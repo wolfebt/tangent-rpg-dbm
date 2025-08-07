@@ -1,4 +1,4 @@
-// Version 2.2 - AI Masking and Swatch Generation Fixes
+// Version 2.5 - Added Hand Drawn Style
 document.addEventListener('DOMContentLoaded', () => {
     // --- UI Elements ---
     const canvas = document.getElementById('mapCanvas');
@@ -76,6 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const aiEditBtn = document.getElementById('aiEditBtn');
     const aiMaskEditBtn = document.getElementById('aiMaskEditBtn');
     const generateSwatchesBtn = document.getElementById('generateSwatchesBtn');
+    const aiStylizeBtn = document.getElementById('aiStylizeBtn');
 
     // Map Key UI
     const mapKeyBtn = document.getElementById('mapKeyBtn');
@@ -2044,7 +2045,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         generateMapBtn.addEventListener('click', async () => {
-            const artStyle = artStyleSelect.value;
+            const artStyleValue = artStyleSelect.value;
+            const artStylePrompts = {
+                'photorealistic': 'photorealistic, high detail, sharp focus, landscape photography',
+                'painting': 'digital painting, painterly, visible brush strokes, concept art, oil on canvas',
+                'watercolor': 'watercolor illustration, hand-drawn, inked lines, soft wash',
+                'vintage': 'vintage cartography, aged paper, sepia tones, hand-drawn compass rose style',
+                'handdrawn': 'hand drawn sketch, rough sketch style, simple representations, thick pen lines, field journal art'
+            };
+            const selectedStylePrompt = artStylePrompts[artStyleValue];
             
             const promptCore = [
                 aiPrimaryFeature.value,
@@ -2065,7 +2074,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const baseNegativePrompts = "text, words, labels, signs, figures, characters, people, animals, creatures, buildings, structures, man-made objects, ruins, furniture, vehicles, roads, paths";
             const combinedNegativePrompt = `${baseNegativePrompts}, ${userNegativePrompt}`.trim();
 
-            const fullPrompt = `Purely natural landscape, terrain only, top-down, 2d, ttrpg ${currentScale} map, ${promptCore}, ${otherDetailsPrompt}, ${artStyle} style, negative prompt: ${combinedNegativePrompt}`;
+            const fullPrompt = `Purely natural landscape, terrain only, top-down, 2d, ttrpg ${currentScale} map, ${promptCore}, ${otherDetailsPrompt}, (${selectedStylePrompt}:1.4), negative prompt: ${combinedNegativePrompt}`;
 
             if (!apiKey) {
                 showModal("Please enter your API key in the settings (gear icon).");
@@ -2123,7 +2132,97 @@ document.addEventListener('DOMContentLoaded', () => {
 
         aiEditBtn.addEventListener('click', () => performAiEdit(false));
         aiMaskEditBtn.addEventListener('click', () => performAiEdit(true));
+        aiStylizeBtn.addEventListener('click', performAiStylize);
 
+
+        async function performAiStylize() {
+            if (!apiKey) {
+                showModal("Please enter your API key in the settings (gear icon).");
+                return;
+            }
+            const groundLayer = layers.find(l => l.name === 'Ground');
+            if (!groundLayer || !groundLayer.backgroundImage) {
+                showModal("Please generate a base map first before stylizing.");
+                return;
+            }
+
+            // Show loading indicator
+            ctx.save();
+            ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "white";
+            ctx.textAlign = "center";
+            ctx.font = "24px 'Trebuchet MS'";
+            ctx.fillText("Stylizing additions...", canvas.width / 2, canvas.height / 2);
+            ctx.restore();
+
+            // Create a temporary canvas with the complete current map state
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            const { mapPixelWidth, mapPixelHeight, minPxX, minPxY } = getMapPixelBounds();
+            tempCanvas.width = mapPixelWidth;
+            tempCanvas.height = mapPixelHeight;
+            drawFrame(tempCtx, { width: mapPixelWidth, height: mapPixelHeight, minPxX, minPxY });
+            const base64ImageData = tempCanvas.toDataURL('image/png').split(',')[1];
+
+            try {
+                const prompt = "Redraw this entire image in a single, cohesive, and consistent art style. Make sure all elements, including any crudely drawn shapes or icons, are integrated seamlessly into the overall artistic vision of the background landscape. The result should be a beautiful, unified ttrpg map.";
+                const payload = {
+                  contents: [{
+                    parts: [
+                      { text: prompt },
+                      { inlineData: { mimeType: "image/png", data: base64ImageData } }
+                    ]
+                  }],
+                  generationConfig: {
+                    responseModalities: ['IMAGE']
+                  },
+                };
+
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${apiKey}`;
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                
+                const result = await response.json();
+                const base64Data = result?.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+
+                if (base64Data) {
+                    const imageUrl = `data:image/png;base64,${base64Data}`;
+                    const img = new Image();
+                    img.onload = () => {
+                        // Set new background
+                        groundLayer.backgroundImage = img;
+                        
+                        // Clear user-added elements as they are now baked in
+                        layers.forEach(layer => {
+                            if (layer.name !== 'Ground') {
+                                layer.data = {};
+                            }
+                        });
+                        placedAssets = [];
+                        freestyleTerrainPaths = [];
+                        pencilPaths = [];
+
+                        saveState(); // Save this new "clean" state
+                        drawAll();
+                        updateMapKey();
+                    };
+                    img.src = imageUrl;
+                } else {
+                    throw new Error("No image data in API response for stylizing.");
+                }
+
+            } catch (error) {
+                console.error('Error stylizing map:', error);
+                showModal("Error stylizing map. Please check your API key.");
+                drawAll();
+            }
+        }
 
         async function performAiEdit(useMask) {
             const userPrompt = aiEditPrompt.value;
@@ -2181,12 +2280,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Apply the same transformation used for the main image export
                 maskTempCtx.translate(-minPxX, -minPxY);
 
+                maskTempCtx.strokeStyle = 'white';
                 maskTempCtx.fillStyle = 'white';
                 
                 // The mask paths are in screen coordinates, so we need to convert them to world coordinates
                 maskPaths.forEach(path => {
                     if (path.points.length < 2) return;
                     maskTempCtx.beginPath();
+                    // The line width on the mask should also be scaled from screen to world
+                    maskTempCtx.lineWidth = path.width / view.zoom;
+                    maskTempCtx.lineCap = 'round';
+                    maskTempCtx.lineJoin = 'round';
                     
                     const firstPoint = path.points[0];
                     const worldX = (firstPoint.x - view.offsetX) / view.zoom;
@@ -2199,8 +2303,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         const wY = (point.y - view.offsetY) / view.zoom;
                         maskTempCtx.lineTo(wX, wY);
                     }
-                     // Close the path to make it a fillable shape
-                    maskTempCtx.closePath();
+                    // Stroke the path to give it thickness, then fill it to ensure it's solid.
+                    maskTempCtx.stroke();
                     maskTempCtx.fill();
                 });
                 maskTempCtx.restore();
