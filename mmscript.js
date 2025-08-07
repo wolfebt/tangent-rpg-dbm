@@ -1,4 +1,4 @@
-// Version 4.3 - Mask Tool Upgrade & AI Edit Fix
+// Version 4.4 - Dynamic AI Controls
 document.addEventListener('DOMContentLoaded', () => {
     // --- UI Elements ---
     const canvas = document.getElementById('mapCanvas');
@@ -80,18 +80,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const lastPromptInput = document.getElementById('lastPromptInput');
     const regenerateBtn = document.getElementById('regenerateBtn');
 
-    // NEW Advanced AI Controls
+    // Advanced AI Controls
+    const advGenreSelect = document.getElementById('advGenre');
+    const advEnvironmentSelect = document.getElementById('advEnvironment');
     const territoryStyleSelect = document.getElementById('territoryStyle');
     const routeNetworkSelect = document.getElementById('routeNetwork');
     const poiDensitySlider = document.getElementById('poiDensity');
     const poiDensityValue = document.getElementById('poiDensityValue');
-    const districtStyleCheckboxes = document.getElementById('districtStyleCheckboxes');
-    const infrastructureDensitySlider = document.getElementById('infrastructureDensity');
-    const infrastructureDensityValue = document.getElementById('infrastructureDensityValue');
-    const furnishingsDensitySlider = document.getElementById('furnishingsDensity');
-    const furnishingsDensityValue = document.getElementById('furnishingsDensityValue');
-    const tacticalCoverSlider = document.getElementById('tacticalCover');
-    const tacticalCoverValue = document.getElementById('tacticalCoverValue');
+    const starshipRoomsCheckboxes = document.getElementById('starshipRoomsCheckboxes');
     const hazardDensitySlider = document.getElementById('hazardDensity');
     const hazardDensityValue = document.getElementById('hazardDensityValue');
     const verticalitySelect = document.getElementById('verticality');
@@ -1883,28 +1879,27 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     function getAdvancedAISettings() {
         const settings = [];
+        const genre = advGenreSelect.value;
+        const environment = advEnvironmentSelect.value;
 
-        // Macro
-        if (territoryStyleSelect.value) settings.push(territoryStyleSelect.value);
-        if (routeNetworkSelect.value) settings.push(routeNetworkSelect.value);
-        const poiMap = ['with only a few points of interest', 'dotted with some towns and landmarks', 'dotted with numerous towns, ruins, and other landmarks'];
-        settings.push(poiMap[poiDensitySlider.value]);
-
-        // Meso
-        const districts = [];
-        districtStyleCheckboxes.querySelectorAll('input:checked').forEach(cb => districts.push(cb.value));
-        if (districts.length > 0) settings.push(`a city map featuring ${districts.join(', ')}`);
-        const infraMap = ['a small town with simple dirt roads', 'a fortified city with stone walls and bridges', 'a metropolis with wide avenues and canals'];
-        settings.push(infraMap[infrastructureDensitySlider.value]);
+        // This is a simplified example. A full implementation would have more complex logic
+        // to handle all combinations of genre and environment.
+        if (genre === 'fantasy' && environment === 'rural') {
+            if (territoryStyleSelect.value) settings.push(territoryStyleSelect.value);
+            if (routeNetworkSelect.value) settings.push(routeNetworkSelect.value);
+            const poiMap = ['with only a few points of interest', 'dotted with some towns and landmarks', 'dotted with numerous towns, ruins, and other landmarks'];
+            settings.push(poiMap[poiDensitySlider.value]);
+        } else if (genre === 'scifi' && environment === 'interior') {
+            const rooms = [];
+            starshipRoomsCheckboxes.querySelectorAll('input:checked').forEach(cb => rooms.push(cb.value));
+            if (rooms.length > 0) settings.push(`a starship interior with ${rooms.join(', ')}`);
+            
+            const hazardMap = ['a safe, clean area', 'containing a few minor hazards like exposed conduits', 'filled with dangerous plasma leaks and structural damage'];
+            settings.push(hazardMap[hazardDensitySlider.value]);
+            if (verticalitySelect.value) settings.push(verticalitySelect.value);
+        }
         
-        // Micro
-        const furnishMap = ['the rooms are bare and empty', 'the rooms are moderately furnished', 'the rooms are cluttered with furniture, crates, and debris'];
-        settings.push(furnishMap[furnishingsDensitySlider.value]);
-        const coverMap = ['an open area with little cover', 'a mix of open space and some tactical cover', 'a dense environment with many pillars and obstacles providing ample cover'];
-        settings.push(coverMap[tacticalCoverSlider.value]);
-        const hazardMap = ['a safe, clean area', 'containing a few minor hazards', 'filled with dangerous pits, rubble, and environmental hazards'];
-        settings.push(hazardMap[hazardDensitySlider.value]);
-        if (verticalitySelect.value) settings.push(verticalitySelect.value);
+        // Add more combinations for modern, urban, etc. here
 
         return settings.filter(s => s).join(', ');
     }
@@ -2484,7 +2479,7 @@ document.addEventListener('DOMContentLoaded', () => {
         applyAiEditBtn.addEventListener('click', () => handleAiEdit());
         regenerateBtn.addEventListener('click', () => {
             if (typeof lastAIFunction === 'function') {
-                lastAIFunction();
+                lastAIFunction(lastPromptInput.value);
             } else {
                 showModal("No previous AI action to regenerate.");
             }
@@ -2506,11 +2501,30 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         Object.keys(sliderLabelMap).forEach(id => {
             const slider = document.getElementById(id);
-            const { el, map } = sliderLabelMap[id];
-            slider.addEventListener('input', () => {
-                el.textContent = map[slider.value];
-            });
+            if(slider) {
+                const { el, map } = sliderLabelMap[id];
+                slider.addEventListener('input', () => {
+                    el.textContent = map[slider.value];
+                });
+            }
         });
+
+        // Listener for dynamic AI controls
+        function updateAdvControlsVisibility() {
+            document.querySelectorAll('.adv-control-group').forEach(group => {
+                group.classList.add('hidden');
+            });
+            const genre = advGenreSelect.value;
+            const environment = advEnvironmentSelect.value;
+            const groupId = `adv-${genre}-${environment}`;
+            const groupToShow = document.getElementById(groupId);
+            if (groupToShow) {
+                groupToShow.classList.remove('hidden');
+            }
+        }
+        advGenreSelect.addEventListener('change', updateAdvControlsVisibility);
+        advEnvironmentSelect.addEventListener('change', updateAdvControlsVisibility);
+        updateAdvControlsVisibility(); // Initial call
     }
 
     async function initialize() {

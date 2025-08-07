@@ -350,58 +350,67 @@
                     <div id="advancedControlsPanel" class="control-panel">
                         <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Advanced Generation Controls</h4>
                         
-                        <!-- Macro-Scale -->
-                        <div class="mb-4">
-                            <h5 class="text-sm font-bold text-gray-400 mb-2">Macro-Scale (World/Region)</h5>
-                            <label for="territoryStyle">Territory Style</label>
-                            <select id="territoryStyle">
-                                <option value="">None</option>
-                                <option value="with clearly defined national borders">Hard Borders</option>
-                                <option value="with dashed and disputed border lines">Dashed/Disputed Borders</option>
-                                <option value="showing the territories as subtle colored overlays">Colored Overlays</option>
-                            </select>
-                            <label for="routeNetwork">Route Network</label>
-                            <select id="routeNetwork">
-                                <option value="">None</option>
-                                <option value="featuring a sparse network of ancient roads">Sparse Roads</option>
-                                <option value="criss-crossed by well-maintained roads and navigable rivers">Developed Roads & Rivers</option>
-                                <option value="showing major shipping lanes across the seas">Major Shipping Lanes</option>
-                            </select>
-                            <label for="poiDensity">Landmark Density: <span id="poiDensityValue">Medium</span></label>
-                            <input type="range" id="poiDensity" min="0" max="2" value="1" class="!mb-0">
-                        </div>
-
-                        <!-- Meso-Scale -->
-                        <div class="mb-4">
-                            <h5 class="text-sm font-bold text-gray-400 mb-2">Meso-Scale (City/Settlement)</h5>
-                            <label>District Styles (Select multiple)</label>
-                            <div id="districtStyleCheckboxes" class="grid grid-cols-2 gap-2 text-sm mb-2">
-                                <div><input type="checkbox" id="chk-merchant" value="a crowded merchant quarter"> <label for="chk-merchant">Merchant</label></div>
-                                <div><input type="checkbox" id="chk-noble" value="a wealthy noble district with grand estates"> <label for="chk-noble">Noble</label></div>
-                                <div><input type="checkbox" id="chk-slums" value="sprawling slums"> <label for="chk-slums">Slums</label></div>
-                                <div><input type="checkbox" id="chk-docks" value="a busy docks area"> <label for="chk-docks">Docks</label></div>
-                                <div><input type="checkbox" id="chk-temple" value="a serene temple district"> <label for="chk-temple">Temple</label></div>
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label for="advGenre">Genre</label>
+                                <select id="advGenre">
+                                    <option value="fantasy">Fantasy</option>
+                                    <option value="modern">Modern</option>
+                                    <option value="scifi">Sci-Fi</option>
+                                </select>
                             </div>
-                            <label for="infrastructureDensity">Infrastructure Density: <span id="infrastructureDensityValue">Town</span></label>
-                            <input type="range" id="infrastructureDensity" min="0" max="2" value="1" class="!mb-0">
+                             <div>
+                                <label for="advEnvironment">Environment</label>
+                                <select id="advEnvironment">
+                                    <option value="rural">Rural/Wilderness</option>
+                                    <option value="urban">Urban/City</option>
+                                    <option value="interior">Interior/Dungeon</option>
+                                    <option value="other">Other (User Defined)</option>
+                                </select>
+                            </div>
                         </div>
 
-                        <!-- Micro-Scale -->
-                        <div>
-                            <h5 class="text-sm font-bold text-gray-400 mb-2">Micro-Scale (Dungeon/Battlemap)</h5>
-                            <label for="furnishingsDensity">Furnishings: <span id="furnishingsDensityValue">Moderate</span></label>
-                            <input type="range" id="furnishingsDensity" min="0" max="2" value="1" class="mb-2">
-                            <label for="tacticalCover">Tactical Cover: <span id="tacticalCoverValue">Medium</span></label>
-                            <input type="range" id="tacticalCover" min="0" max="2" value="1" class="mb-2">
+                        <!-- Dynamic Control Sections -->
+                        <div id="adv-fantasy-rural" class="adv-control-group">
+                             <h5 class="text-sm font-bold text-gray-400 mb-2">Fantasy Rural Details</h5>
+                             <label for="territoryStyle">Territory Style</label>
+                             <select id="territoryStyle">
+                                 <option value="">None</option>
+                                 <option value="with clearly defined kingdom borders">Hard Borders</option>
+                                 <option value="with dashed, disputed borderlands">Dashed/Disputed Borders</option>
+                                 <option value="showing the territories as subtle colored overlays">Colored Overlays</option>
+                             </select>
+                             <label for="routeNetwork">Route Network</label>
+                             <select id="routeNetwork">
+                                 <option value="">None</option>
+                                 <option value="featuring a sparse network of ancient roads">Sparse Roads</option>
+                                 <option value="criss-crossed by well-maintained roads and navigable rivers">Developed Roads & Rivers</option>
+                             </select>
+                             <label for="poiDensity">Landmark Density: <span id="poiDensityValue">Medium</span></label>
+                             <input type="range" id="poiDensity" min="0" max="2" value="1" class="!mb-0">
+                        </div>
+                        
+                        <div id="adv-scifi-interior" class="adv-control-group hidden">
+                            <h5 class="text-sm font-bold text-gray-400 mb-2">Sci-Fi Interior Details</h5>
+                            <label for="starshipRooms">Key Rooms (select multiple)</label>
+                            <div id="starshipRoomsCheckboxes" class="grid grid-cols-2 gap-2 text-sm mb-2">
+                                <div><input type="checkbox" id="chk-bridge" value="a command bridge"> <label for="chk-bridge">Bridge</label></div>
+                                <div><input type="checkbox" id="chk-medbay" value="a medbay"> <label for="chk-medbay">Medbay</label></div>
+                                <div><input type="checkbox" id="chk-engine" value="an engine room"> <label for="chk-engine">Engineering</label></div>
+                                <div><input type="checkbox" id="chk-cargo" value="a cargo bay"> <label for="chk-cargo">Cargo Bay</label></div>
+                            </div>
                             <label for="hazardDensity">Hazards: <span id="hazardDensityValue">Low</span></label>
                             <input type="range" id="hazardDensity" min="0" max="2" value="1" class="mb-2">
                              <label for="verticality">Elevation</label>
                             <select id="verticality">
                                 <option value="the area is mostly flat">Flat</option>
-                                <option value="with some ledges and stairs">Some Ledges/Stairs</option>
-                                <option value="featuring multiple floors and balconies, creating significant verticality">Multiple Floors</option>
+                                <option value="with some service ladders and catwalks">Ladders/Catwalks</option>
+                                <option value="featuring multiple decks and elevators">Multiple Decks</option>
                             </select>
                         </div>
+                        
+                        <!-- Add other dynamic groups here, e.g., adv-modern-urban -->
+
                     </div>
                     <div id="promptEditorPanel" class="control-panel">
                         <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Last Used AI Prompt</h4>

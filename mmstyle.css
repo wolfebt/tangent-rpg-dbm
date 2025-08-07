@@ -442,6 +442,9 @@ body {
     cursor: not-allowed;
     background-color: #374151;
 }
+.adv-control-group.hidden {
+    display: none;
+}
 
 .hidden {
     display: none !important;
