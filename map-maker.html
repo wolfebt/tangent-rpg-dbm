@@ -365,7 +365,6 @@
                                     <option value="rural">Rural/Wilderness</option>
                                     <option value="urban">Urban/City</option>
                                     <option value="interior">Interior/Dungeon</option>
-                                    <option value="other">Other (User Defined)</option>
                                 </select>
                             </div>
                         </div>
@@ -373,43 +372,126 @@
                         <!-- Dynamic Control Sections -->
                         <div id="adv-fantasy-rural" class="adv-control-group">
                              <h5 class="text-sm font-bold text-gray-400 mb-2">Fantasy Rural Details</h5>
-                             <label for="territoryStyle">Territory Style</label>
-                             <select id="territoryStyle">
+                             <label for="fr-territoryStyle">Territory Style</label>
+                             <select id="fr-territoryStyle">
                                  <option value="">None</option>
                                  <option value="with clearly defined kingdom borders">Hard Borders</option>
                                  <option value="with dashed, disputed borderlands">Dashed/Disputed Borders</option>
                                  <option value="showing the territories as subtle colored overlays">Colored Overlays</option>
                              </select>
-                             <label for="routeNetwork">Route Network</label>
-                             <select id="routeNetwork">
+                             <label for="fr-routeNetwork">Route Network</label>
+                             <select id="fr-routeNetwork">
                                  <option value="">None</option>
                                  <option value="featuring a sparse network of ancient roads">Sparse Roads</option>
                                  <option value="criss-crossed by well-maintained roads and navigable rivers">Developed Roads & Rivers</option>
                              </select>
-                             <label for="poiDensity">Landmark Density: <span id="poiDensityValue">Medium</span></label>
-                             <input type="range" id="poiDensity" min="0" max="2" value="1" class="!mb-0">
+                             <label for="fr-poiDensity">Landmark Density: <span id="fr-poiDensityValue">Medium</span></label>
+                             <input type="range" id="fr-poiDensity" min="0" max="2" value="1" class="!mb-0">
+                        </div>
+                        
+                        <div id="adv-fantasy-urban" class="adv-control-group hidden">
+                            <h5 class="text-sm font-bold text-gray-400 mb-2">Fantasy Urban Details</h5>
+                            <label>District Styles</label>
+                            <div id="fu-districtStyle" class="grid grid-cols-2 gap-2 text-sm mb-2">
+                                <div><input type="checkbox" value="a crowded merchant quarter"> Merchant</div>
+                                <div><input type="checkbox" value="a wealthy noble district"> Noble</div>
+                                <div><input type="checkbox" value="sprawling slums"> Slums</div>
+                                <div><input type="checkbox" value="a busy docks area"> Docks</div>
+                                <div><input type="checkbox" value="a serene temple district"> Temple</div>
+                                <div><input type="checkbox" value="a fortified castle district"> Castle</div>
+                            </div>
+                        </div>
+
+                        <div id="adv-fantasy-interior" class="adv-control-group hidden">
+                            <h5 class="text-sm font-bold text-gray-400 mb-2">Fantasy Interior Details</h5>
+                            <label for="fi-furnishings">Furnishings: <span id="fi-furnishingsValue">Moderate</span></label>
+                            <input type="range" id="fi-furnishings" min="0" max="2" value="1" class="mb-2">
+                            <label for="fi-cover">Tactical Cover: <span id="fi-coverValue">Medium</span></label>
+                            <input type="range" id="fi-cover" min="0" max="2" value="1" class="mb-2">
+                            <label for="fi-hazards">Hazards: <span id="fi-hazardsValue">Low</span></label>
+                            <input type="range" id="fi-hazards" min="0" max="2" value="1" class="mb-2">
+                             <label for="fi-verticality">Elevation</label>
+                            <select id="fi-verticality">
+                                <option value="the area is mostly flat">Flat</option>
+                                <option value="with some ledges and stairs">Ledges/Stairs</option>
+                                <option value="featuring multiple floors and balconies">Multiple Floors</option>
+                            </select>
+                        </div>
+
+                        <div id="adv-modern-rural" class="adv-control-group hidden">
+                             <h5 class="text-sm font-bold text-gray-400 mb-2">Modern Rural Details</h5>
+                             <label for="mr-routeNetwork">Route Network</label>
+                             <select id="mr-routeNetwork">
+                                 <option value="">None</option>
+                                 <option value="with dirt county roads">County Roads</option>
+                                 <option value="with paved highways">Highways</option>
+                                 <option value="with railway lines">Railway</option>
+                             </select>
+                             <label for="mr-poiDensity">Building Density: <span id="mr-poiDensityValue">Medium</span></label>
+                             <input type="range" id="mr-poiDensity" min="0" max="2" value="1" class="!mb-0">
+                        </div>
+
+                        <div id="adv-modern-urban" class="adv-control-group hidden">
+                            <h5 class="text-sm font-bold text-gray-400 mb-2">Modern Urban Details</h5>
+                            <label>District Styles</label>
+                            <div id="mu-districtStyle" class="grid grid-cols-2 gap-2 text-sm mb-2">
+                                <div><input type="checkbox" value="a downtown area with skyscrapers"> Downtown</div>
+                                <div><input type="checkbox" value="a suburban area with houses"> Suburban</div>
+                                <div><input type="checkbox" value="an industrial zone with warehouses"> Industrial</div>
+                                <div><input type="checkbox" value="a commercial strip with storefronts"> Commercial</div>
+                            </div>
+                        </div>
+
+                        <div id="adv-modern-interior" class="adv-control-group hidden">
+                            <h5 class="text-sm font-bold text-gray-400 mb-2">Modern Interior Details</h5>
+                            <label for="mi-furnishings">Furnishings: <span id="mi-furnishingsValue">Moderate</span></label>
+                            <input type="range" id="mi-furnishings" min="0" max="2" value="1" class="mb-2">
+                            <label for="mi-cover">Tactical Cover: <span id="mi-coverValue">Medium</span></label>
+                            <input type="range" id="mi-cover" min="0" max="2" value="1" class="mb-2">
+                        </div>
+
+                        <div id="adv-scifi-rural" class="adv-control-group hidden">
+                             <h5 class="text-sm font-bold text-gray-400 mb-2">Sci-Fi Rural Details</h5>
+                             <label for="sr-flora">Alien Flora</label>
+                             <select id="sr-flora">
+                                 <option value="">None</option>
+                                 <option value="with bioluminescent mushrooms">Bioluminescent Flora</option>
+                                 <option value="with crystalline trees">Crystalline Trees</option>
+                                 <option value="with bizarre, non-terrestrial plants">General Alien Plants</option>
+                             </select>
+                             <label for="sr-poiDensity">Structure Density: <span id="sr-poiDensityValue">Medium</span></label>
+                             <input type="range" id="sr-poiDensity" min="0" max="2" value="1" class="!mb-0">
+                        </div>
+
+                        <div id="adv-scifi-urban" class="adv-control-group hidden">
+                            <h5 class="text-sm font-bold text-gray-400 mb-2">Sci-Fi Urban Details</h5>
+                            <label>Cityscape Features</label>
+                            <div id="su-districtStyle" class="grid grid-cols-2 gap-2 text-sm mb-2">
+                                <div><input type="checkbox" value="a cyberpunk city with neon signs"> Cyberpunk</div>
+                                <div><input type="checkbox" value="a clean, utopian city with sleek towers"> Utopian</div>
+                                <div><input type="checkbox" value="a sprawling, domed habitat"> Domed City</div>
+                                <div><input type="checkbox" value="a massive arcology"> Arcology</div>
+                            </div>
                         </div>
                         
                         <div id="adv-scifi-interior" class="adv-control-group hidden">
                             <h5 class="text-sm font-bold text-gray-400 mb-2">Sci-Fi Interior Details</h5>
-                            <label for="starshipRooms">Key Rooms (select multiple)</label>
-                            <div id="starshipRoomsCheckboxes" class="grid grid-cols-2 gap-2 text-sm mb-2">
-                                <div><input type="checkbox" id="chk-bridge" value="a command bridge"> <label for="chk-bridge">Bridge</label></div>
-                                <div><input type="checkbox" id="chk-medbay" value="a medbay"> <label for="chk-medbay">Medbay</label></div>
-                                <div><input type="checkbox" id="chk-engine" value="an engine room"> <label for="chk-engine">Engineering</label></div>
-                                <div><input type="checkbox" id="chk-cargo" value="a cargo bay"> <label for="chk-cargo">Cargo Bay</label></div>
+                            <label>Key Rooms</label>
+                            <div id="si-rooms" class="grid grid-cols-2 gap-2 text-sm mb-2">
+                                <div><input type="checkbox" value="a command bridge"> Bridge</div>
+                                <div><input type="checkbox" value="a medbay"> Medbay</div>
+                                <div><input type="checkbox" value="an engine room"> Engineering</div>
+                                <div><input type="checkbox" value="a cargo bay"> Cargo Bay</div>
+                                <div><input type="checkbox" value="crew quarters"> Quarters</div>
+                                <div><input type="checkbox" value="a science lab"> Science Lab</div>
                             </div>
-                            <label for="hazardDensity">Hazards: <span id="hazardDensityValue">Low</span></label>
-                            <input type="range" id="hazardDensity" min="0" max="2" value="1" class="mb-2">
-                             <label for="verticality">Elevation</label>
-                            <select id="verticality">
+                             <label for="si-verticality">Elevation</label>
+                            <select id="si-verticality">
                                 <option value="the area is mostly flat">Flat</option>
                                 <option value="with some service ladders and catwalks">Ladders/Catwalks</option>
                                 <option value="featuring multiple decks and elevators">Multiple Decks</option>
                             </select>
                         </div>
-                        
-                        <!-- Add other dynamic groups here, e.g., adv-modern-urban -->
 
                     </div>
                     <div id="promptEditorPanel" class="control-panel">

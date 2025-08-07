@@ -1,4 +1,4 @@
-// Version 4.4 - Dynamic AI Controls
+// Version 4.5 - Full Dynamic AI Controls
 document.addEventListener('DOMContentLoaded', () => {
     // --- UI Elements ---
     const canvas = document.getElementById('mapCanvas');
@@ -83,15 +83,43 @@ document.addEventListener('DOMContentLoaded', () => {
     // Advanced AI Controls
     const advGenreSelect = document.getElementById('advGenre');
     const advEnvironmentSelect = document.getElementById('advEnvironment');
-    const territoryStyleSelect = document.getElementById('territoryStyle');
-    const routeNetworkSelect = document.getElementById('routeNetwork');
-    const poiDensitySlider = document.getElementById('poiDensity');
-    const poiDensityValue = document.getElementById('poiDensityValue');
-    const starshipRoomsCheckboxes = document.getElementById('starshipRoomsCheckboxes');
-    const hazardDensitySlider = document.getElementById('hazardDensity');
-    const hazardDensityValue = document.getElementById('hazardDensityValue');
-    const verticalitySelect = document.getElementById('verticality');
     
+    // Fantasy Rural
+    const frTerritoryStyle = document.getElementById('fr-territoryStyle');
+    const frRouteNetwork = document.getElementById('fr-routeNetwork');
+    const frPoiDensity = document.getElementById('fr-poiDensity');
+    const frPoiDensityValue = document.getElementById('fr-poiDensityValue');
+    // Fantasy Urban
+    const fuDistrictStyle = document.getElementById('fu-districtStyle');
+    // Fantasy Interior
+    const fiFurnishings = document.getElementById('fi-furnishings');
+    const fiFurnishingsValue = document.getElementById('fi-furnishingsValue');
+    const fiCover = document.getElementById('fi-cover');
+    const fiCoverValue = document.getElementById('fi-coverValue');
+    const fiHazards = document.getElementById('fi-hazards');
+    const fiHazardsValue = document.getElementById('fi-hazardsValue');
+    const fiVerticality = document.getElementById('fi-verticality');
+    // Modern Rural
+    const mrRouteNetwork = document.getElementById('mr-routeNetwork');
+    const mrPoiDensity = document.getElementById('mr-poiDensity');
+    const mrPoiDensityValue = document.getElementById('mr-poiDensityValue');
+    // Modern Urban
+    const muDistrictStyle = document.getElementById('mu-districtStyle');
+    // Modern Interior
+    const miFurnishings = document.getElementById('mi-furnishings');
+    const miFurnishingsValue = document.getElementById('mi-furnishingsValue');
+    const miCover = document.getElementById('mi-cover');
+    const miCoverValue = document.getElementById('mi-coverValue');
+    // Sci-Fi Rural
+    const srFlora = document.getElementById('sr-flora');
+    const srPoiDensity = document.getElementById('sr-poiDensity');
+    const srPoiDensityValue = document.getElementById('sr-poiDensityValue');
+    // Sci-Fi Urban
+    const suDistrictStyle = document.getElementById('su-districtStyle');
+    // Sci-Fi Interior
+    const siRooms = document.getElementById('si-rooms');
+    const siVerticality = document.getElementById('si-verticality');
+
     // Map Key UI
     const mapKeyBtn = document.getElementById('mapKeyBtn');
     const mapKeyWindow = document.getElementById('mapKeyWindow');
@@ -1881,25 +1909,60 @@ document.addEventListener('DOMContentLoaded', () => {
         const settings = [];
         const genre = advGenreSelect.value;
         const environment = advEnvironmentSelect.value;
+        const activeGroup = document.querySelector(`.adv-control-group:not(.hidden)`);
 
-        // This is a simplified example. A full implementation would have more complex logic
-        // to handle all combinations of genre and environment.
-        if (genre === 'fantasy' && environment === 'rural') {
-            if (territoryStyleSelect.value) settings.push(territoryStyleSelect.value);
-            if (routeNetworkSelect.value) settings.push(routeNetworkSelect.value);
+        if (!activeGroup) return '';
+
+        // Shared controls
+        const territory = activeGroup.querySelector('[id$="-territoryStyle"]');
+        if (territory && territory.value) settings.push(territory.value);
+
+        const routes = activeGroup.querySelector('[id$="-routeNetwork"]');
+        if (routes && routes.value) settings.push(routes.value);
+        
+        const poi = activeGroup.querySelector('[id$="-poiDensity"]');
+        if (poi) {
             const poiMap = ['with only a few points of interest', 'dotted with some towns and landmarks', 'dotted with numerous towns, ruins, and other landmarks'];
-            settings.push(poiMap[poiDensitySlider.value]);
-        } else if (genre === 'scifi' && environment === 'interior') {
-            const rooms = [];
-            starshipRoomsCheckboxes.querySelectorAll('input:checked').forEach(cb => rooms.push(cb.value));
-            if (rooms.length > 0) settings.push(`a starship interior with ${rooms.join(', ')}`);
-            
-            const hazardMap = ['a safe, clean area', 'containing a few minor hazards like exposed conduits', 'filled with dangerous plasma leaks and structural damage'];
-            settings.push(hazardMap[hazardDensitySlider.value]);
-            if (verticalitySelect.value) settings.push(verticalitySelect.value);
+            settings.push(poiMap[poi.value]);
+        }
+
+        const districtsContainer = activeGroup.querySelector('[id$="-districtStyle"]');
+        if (districtsContainer) {
+            const districts = [];
+            districtsContainer.querySelectorAll('input:checked').forEach(cb => districts.push(cb.value));
+            if (districts.length > 0) settings.push(`a city map featuring ${districts.join(', ')}`);
+        }
+
+        const furnishings = activeGroup.querySelector('[id$="-furnishings"]');
+        if (furnishings) {
+            const furnishMap = ['the rooms are bare and empty', 'the rooms are moderately furnished', 'the rooms are cluttered with furniture, crates, and debris'];
+            settings.push(furnishMap[furnishings.value]);
+        }
+
+        const cover = activeGroup.querySelector('[id$="-cover"]');
+        if (cover) {
+            const coverMap = ['an open area with little cover', 'a mix of open space and some tactical cover', 'a dense environment with many pillars and obstacles providing ample cover'];
+            settings.push(coverMap[cover.value]);
+        }
+
+        const hazards = activeGroup.querySelector('[id$="-hazards"]');
+        if (hazards) {
+            const hazardMap = ['a safe, clean area', 'containing a few minor hazards', 'filled with dangerous pits, rubble, and environmental hazards'];
+            settings.push(hazardMap[hazards.value]);
         }
         
-        // Add more combinations for modern, urban, etc. here
+        const verticality = activeGroup.querySelector('[id$="-verticality"]');
+        if (verticality && verticality.value) settings.push(verticality.value);
+
+        const flora = activeGroup.querySelector('[id$="-flora"]');
+        if (flora && flora.value) settings.push(flora.value);
+
+        const roomsContainer = activeGroup.querySelector('[id$="-rooms"]');
+        if (roomsContainer) {
+            const rooms = [];
+            roomsContainer.querySelectorAll('input:checked').forEach(cb => rooms.push(cb.value));
+            if (rooms.length > 0) settings.push(`an interior map with ${rooms.join(', ')}`);
+        }
 
         return settings.filter(s => s).join(', ');
     }
@@ -2492,17 +2555,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         // Listeners for advanced AI control labels
-        const sliderLabelMap = {
-            poiDensity: { el: poiDensityValue, map: ['Low', 'Medium', 'High'] },
-            infrastructureDensity: { el: infrastructureDensityValue, map: ['Rural', 'Town', 'Metropolis'] },
-            furnishingsDensity: { el: furnishingsDensityValue, map: ['Empty', 'Moderate', 'Cluttered'] },
-            tacticalCover: { el: tacticalCoverValue, map: ['Open', 'Medium', 'Dense'] },
-            hazardDensity: { el: hazardDensityValue, map: ['Low', 'Medium', 'High'] },
+        const sliderLabelMaps = {
+            'fr-poiDensity': { el: frPoiDensityValue, map: ['Low', 'Medium', 'High'] },
+            'mr-poiDensity': { el: mrPoiDensityValue, map: ['Low', 'Medium', 'High'] },
+            'sr-poiDensity': { el: srPoiDensityValue, map: ['Low', 'Medium', 'High'] },
+            'fi-furnishings': { el: fiFurnishingsValue, map: ['Empty', 'Moderate', 'Cluttered'] },
+            'mi-furnishings': { el: miFurnishingsValue, map: ['Empty', 'Moderate', 'Cluttered'] },
+            'fi-cover': { el: fiCoverValue, map: ['Open', 'Medium', 'Dense'] },
+            'mi-cover': { el: miCoverValue, map: ['Open', 'Medium', 'Dense'] },
+            'fi-hazards': { el: fiHazardsValue, map: ['Low', 'Medium', 'High'] },
         };
-        Object.keys(sliderLabelMap).forEach(id => {
+        Object.keys(sliderLabelMaps).forEach(id => {
             const slider = document.getElementById(id);
             if(slider) {
-                const { el, map } = sliderLabelMap[id];
+                const { el, map } = sliderLabelMaps[id];
                 slider.addEventListener('input', () => {
                     el.textContent = map[slider.value];
                 });
