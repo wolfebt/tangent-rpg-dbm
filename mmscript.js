@@ -1,4 +1,4 @@
-// Version 3.2 - Fixed AI Edit Response Modalities
+// Version 3.3 - Refactored AI Generation into a Multi-Step Process
 document.addEventListener('DOMContentLoaded', () => {
     // --- UI Elements ---
     const canvas = document.getElementById('mapCanvas');
@@ -60,20 +60,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const apiKeyInput = document.getElementById('apiKeyInput');
     const saveApiKeyBtn = document.getElementById('saveApiKey');
     const cancelApiKeyBtn = document.getElementById('cancelApiKey');
-    const generateMapBtn = document.getElementById('generateMapBtn');
-    const artStyleSelect = document.getElementById('artStyle');
     const resizer = document.getElementById('resizer');
-    // AI Prompt Fields
-    const aiPrimaryFeature = document.getElementById('aiPrimaryFeature');
-    const aiOverview = document.getElementById('aiOverview');
-    const aiPrimaryBiome = document.getElementById('aiPrimaryBiome');
-    const aiSecondaryFeatures = document.getElementById('aiSecondaryFeatures');
-    const aiTimeOfDay = document.getElementById('aiTimeOfDay');
-    const aiWeather = document.getElementById('aiWeather');
-    const aiMood = document.getElementById('aiMood');
-    const aiOtherDetails = document.getElementById('aiOtherDetails');
-    const aiNegativePrompt = document.getElementById('aiNegativePrompt');
+    
+    // AI Step UI
+    const aiStep1 = document.getElementById('aiStep1');
+    const aiStep2 = document.getElementById('aiStep2');
+    const aiStep3 = document.getElementById('aiStep3');
+    const generateLandformBtn = document.getElementById('generateLandformBtn');
+    const addWaterBtn = document.getElementById('addWaterBtn');
+    const applyBiomeBtn = document.getElementById('applyBiomeBtn');
+    const aiLandformPrompt = document.getElementById('aiLandformPrompt');
+    const aiWaterPrompt = document.getElementById('aiWaterPrompt');
+    const aiBiomePrompt = document.getElementById('aiBiomePrompt');
+    const artStyleSelect = document.getElementById('artStyle');
     const aiEditPrompt = document.getElementById('aiEditPrompt');
+    const applyAiEditBtn = document.getElementById('applyAiEditBtn');
     
     // Map Key UI
     const mapKeyBtn = document.getElementById('mapKeyBtn');
@@ -132,6 +133,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Map Key State
     let isDraggingKey = false;
     let keyDragOffset = { x: 0, y: 0 };
+    // AI State
+    let heightmapImage = null;
+    let watermaskImage = null;
 
     // --- Data Definitions ---
     const terrains = {
@@ -226,6 +230,10 @@ document.addEventListener('DOMContentLoaded', () => {
         renderLayers();
         updateUndoRedoButtons();
         updateMapKey();
+        // Reset AI state
+        heightmapImage = null;
+        watermaskImage = null;
+        updateAiStep(1);
     }
 
     function generateBaseMapGrid(width, height) {
@@ -2041,262 +2049,11 @@ document.addEventListener('DOMContentLoaded', () => {
             drawAll();
         });
         
-        generateMapBtn.addEventListener('click', async () => {
-            const artStyleValue = artStyleSelect.value;
-            const artStylePrompts = {
-                'photorealistic': 'photorealistic, high detail, sharp focus, landscape photography',
-                'painting': 'digital painting, painterly, visible brush strokes, concept art, oil on canvas',
-                'watercolor': 'watercolor illustration, hand-drawn, inked lines, soft wash',
-                'vintage': 'vintage cartography, aged paper, sepia tones, hand-drawn compass rose style',
-                'handdrawn': 'hand drawn sketch, rough sketch style, simple representations, thick pen lines, field journal art'
-            };
-            const selectedStylePrompt = artStylePrompts[artStyleValue];
-            
-            const promptCore = [
-                aiPrimaryFeature.value,
-                aiOverview.value,
-                `Primary biome: ${aiPrimaryBiome.value}`,
-                aiSecondaryFeatures.value,
-                `Time of day: ${aiTimeOfDay.value}`,
-                `Atmosphere: ${aiWeather.value}`,
-                `Mood: ${aiMood.value}`
-            ].filter(p => p).join(', ');
+        generateLandformBtn.addEventListener('click', handleLandformGeneration);
+        addWaterBtn.addEventListener('click', handleWaterGeneration);
+        applyBiomeBtn.addEventListener('click', handleBiomeGeneration);
 
-            let otherDetailsPrompt = '';
-            if (aiOtherDetails.value) {
-                otherDetailsPrompt = `(highly detailed with: ${aiOtherDetails.value}:1.5)`;
-            }
-
-            const userNegativePrompt = aiNegativePrompt.value;
-            const baseNegativePrompts = "buildings, structures, ruins, roads, paths, signs, text, people, figures, civilization";
-            const combinedNegativePrompt = `${baseNegativePrompts}, ${userNegativePrompt}`.trim();
-
-            const fullPrompt = `Top-down, 2d, ttrpg ${currentScale} map of an empty, uninhabited, purely natural landscape with ${promptCore}. The style is (${selectedStylePrompt}:1.4). IMPORTANT: The image must contain ONLY natural terrain like rocks, water, and plants. Strictly NO ${combinedNegativePrompt}. ${otherDetailsPrompt}`;
-
-            if (!apiKey) {
-                showModal("Please enter your API key in the settings (gear icon).");
-                return;
-            }
-
-            // Show loading indicator
-            ctx.save();
-            ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "white";
-            ctx.textAlign = "center";
-            ctx.font = "24px 'Trebuchet MS'";
-            ctx.fillText("Generating map...", canvas.width / 2, canvas.height / 2);
-            ctx.restore();
-
-            try {
-                const payload = { instances: [{ prompt: fullPrompt }], parameters: { "sampleCount": 1} };
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!response.ok) {
-                    const errorBody = await response.json();
-                    throw new Error(`HTTP error! status: ${response.status} - ${errorBody.error.message}`);
-                }
-
-                const result = await response.json();
-                if (result.predictions && result.predictions.length > 0 && result.predictions[0].bytesBase64Encoded) {
-                    const imageUrl = `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
-                    const img = new Image();
-                    img.onload = () => {
-                        // Clear everything
-                        generateBaseMap();
-                        // Draw the new image as the base
-                        const groundLayer = layers.find(l => l.name === 'Ground');
-                        if (groundLayer) {
-                            groundLayer.backgroundImage = img;
-                        }
-                        drawAll();
-                    };
-                    img.src = imageUrl;
-                } else {
-                    throw new Error("No image data in API response.");
-                }
-
-            } catch (error) {
-                console.error('Error generating map:', error);
-                showModal(`Error generating map: ${error.message}`);
-                drawAll(); // Redraw to remove loading indicator
-            }
-        });
-
-        const applyAiEditBtn = document.getElementById('applyAiEditBtn');
-        if (applyAiEditBtn) {
-            applyAiEditBtn.addEventListener('click', handleAiEdit);
-        } else {
-            console.error("AI Edit Button not found on page load.");
-        }
-
-
-        async function handleAiEdit() {
-            const userPrompt = aiEditPrompt.value.trim();
-            const useMask = maskPaths.length > 0;
-            const hasUserAdditions = pencilPaths.length > 0 || freestyleTerrainPaths.length > 0 || placedAssets.length > 0;
-            const isStylize = !userPrompt && hasUserAdditions;
-
-            if (!userPrompt && !isStylize) {
-                showModal("Please enter an edit instruction, or add manual drawings to stylize.");
-                return;
-            }
-            if (!apiKey) {
-                showModal("Please enter your API key in the settings (gear icon).");
-                return;
-            }
-            const groundLayer = layers.find(l => l.name === 'Ground');
-            if (!groundLayer || !groundLayer.backgroundImage) {
-                showModal("Please generate a base map first before editing.");
-                return;
-            }
-
-            const { mapPixelWidth, mapPixelHeight } = getMapPixelBounds();
-
-            // Safety Check for image dimensions and aspect ratio
-            const aspectRatio = mapPixelWidth / mapPixelHeight;
-            if (aspectRatio > 2 || aspectRatio < 0.5) {
-                showModal("AI Edit failed: The map's aspect ratio is too extreme. Please make it closer to a square.");
-                drawAll();
-                return;
-            }
-            if (mapPixelWidth < 64 || mapPixelHeight < 64 || mapPixelWidth > 4096 || mapPixelHeight > 4096) {
-                showModal(`AI Edit failed: The map's dimensions (${mapPixelWidth}x${mapPixelHeight}) are outside the allowed range (64x64 to 4096x4096).`);
-                drawAll();
-                return;
-            }
-
-
-            // Show loading indicator
-            ctx.save();
-            ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "white";
-            ctx.textAlign = "center";
-            ctx.font = "24px 'Trebuchet MS'";
-            ctx.fillText("Applying AI Edit...", canvas.width / 2, canvas.height / 2);
-            ctx.restore();
-            
-            // Create a temporary canvas to get the current map image data
-            const tempCanvas = document.createElement('canvas');
-            const tempCtx = tempCanvas.getContext('2d');
-            const { minPxX, minPxY } = getMapPixelBounds();
-            tempCanvas.width = mapPixelWidth;
-            tempCanvas.height = mapPixelHeight;
-            drawFrame(tempCtx, { width: mapPixelWidth, height: mapPixelHeight, minPxX, minPxY });
-            tempCtx.save();
-            tempCtx.translate(-minPxX, -minPxY);
-            drawFreestyleTerrainPathsForExport(tempCtx);
-            drawPencilPathsForExport(tempCtx);
-            tempCtx.restore();
-            const base64ImageData = tempCanvas.toDataURL('image/png').split(',')[1];
-
-            let finalPrompt;
-            if (isStylize) {
-                finalPrompt = "Redraw this entire image in a single, cohesive, and consistent art style. Make sure all elements, including any crudely drawn shapes or icons, are integrated seamlessly into the overall artistic vision of the background landscape. The result should be a beautiful, unified ttrpg map.";
-            } else {
-                finalPrompt = userPrompt;
-            }
-            
-            let base64MaskData;
-            if (useMask) {
-                const maskTempCanvas = document.createElement('canvas');
-                const maskTempCtx = maskTempCanvas.getContext('2d');
-                maskTempCanvas.width = mapPixelWidth;
-                maskTempCanvas.height = mapPixelHeight;
-                maskTempCtx.fillStyle = 'black';
-                maskTempCtx.fillRect(0, 0, maskTempCanvas.width, maskTempCanvas.height);
-                maskTempCtx.save();
-                maskTempCtx.translate(-minPxX, -minPxY);
-                maskTempCtx.strokeStyle = 'white';
-                maskTempCtx.fillStyle = 'white';
-                
-                maskPaths.forEach(path => {
-                    if (path.points.length < 2) return;
-                    maskTempCtx.beginPath();
-                    maskTempCtx.lineWidth = path.width / view.zoom;
-                    maskTempCtx.lineCap = 'round';
-                    maskTempCtx.lineJoin = 'round';
-                    const firstPoint = path.points[0];
-                    maskTempCtx.moveTo((firstPoint.x - view.offsetX) / view.zoom, (firstPoint.y - view.offsetY) / view.zoom);
-                    for (let i = 1; i < path.points.length; i++) {
-                        const point = path.points[i];
-                        maskTempCtx.lineTo((point.x - view.offsetX) / view.zoom, (point.y - view.offsetY) / view.zoom);
-                    }
-                    maskTempCtx.stroke();
-                });
-                maskTempCtx.restore();
-                base64MaskData = maskTempCanvas.toDataURL('image/png').split(',')[1];
-            }
-
-            try {
-                const parts = [
-                  { text: finalPrompt },
-                  { inlineData: { mimeType: "image/png", data: base64ImageData } }
-                ];
-
-                if (useMask && base64MaskData) {
-                    parts.push({ inlineData: { mimeType: "image/png", data: base64MaskData } });
-                }
-
-                const payload = {
-                  contents: [{ parts: parts }],
-                  generationConfig: {
-                    responseModalities: ['IMAGE', 'TEXT']
-                  },
-                };
-
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${apiKey}`;
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!response.ok) {
-                    const errorBody = await response.json();
-                    throw new Error(`HTTP error! status: ${response.status} - ${errorBody.error.message}`);
-                }
-
-                const result = await response.json();
-                const base64Data = result?.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
-
-                if (base64Data) {
-                    const imageUrl = `data:image/png;base64,${base64Data}`;
-                    const img = new Image();
-                    img.onload = () => {
-                        groundLayer.backgroundImage = img;
-                        
-                        if (isStylize) {
-                            layers.forEach(layer => {
-                                if (layer.name !== 'Ground') layer.data = {};
-                            });
-                            placedAssets = [];
-                            freestyleTerrainPaths = [];
-                            pencilPaths = [];
-                            saveState();
-                        }
-
-                        maskPaths = [];
-                        drawAll();
-                        updateMapKey();
-                    };
-                    img.src = imageUrl;
-                } else {
-                     throw new Error("No image data in API response for editing.");
-                }
-
-            } catch (error) {
-                console.error('Error editing map:', error);
-                showModal(`Error editing map: ${error.message}`);
-                drawAll();
-            }
-        }
+        applyAiEditBtn.addEventListener('click', handleAiEdit);
     }
 
     async function initialize() {
