@@ -1,3 +1,4 @@
+// Version 1.2 - Forcing a visible change for Git tracking.
 document.addEventListener('DOMContentLoaded', () => {
     // --- UI Elements ---
     const canvas = document.getElementById('mapCanvas');
