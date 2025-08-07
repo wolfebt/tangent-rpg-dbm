@@ -1,4 +1,4 @@
-// Version 3.3 - Refactored AI Generation into a Multi-Step Process
+// Version 3.5 - Implemented Multi-Step AI Generation & Fixed Resizer
 document.addEventListener('DOMContentLoaded', () => {
     // --- UI Elements ---
     const canvas = document.getElementById('mapCanvas');
@@ -135,7 +135,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let keyDragOffset = { x: 0, y: 0 };
     // AI State
     let heightmapImage = null;
-    let watermaskImage = null;
 
     // --- Data Definitions ---
     const terrains = {
@@ -232,7 +231,6 @@ document.addEventListener('DOMContentLoaded', () => {
         updateMapKey();
         // Reset AI state
         heightmapImage = null;
-        watermaskImage = null;
         updateAiStep(1);
     }
 
