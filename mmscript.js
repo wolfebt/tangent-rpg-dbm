@@ -83,6 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Advanced AI Controls
     const advGenreSelect = document.getElementById('advGenre');
     const advEnvironmentSelect = document.getElementById('advEnvironment');
+    const imageEnhanceBtn = document.getElementById('imageEnhanceBtn');
     
     const frTerritoryStyle = document.getElementById('fr-territoryStyle');
     const frRouteNetwork = document.getElementById('fr-routeNetwork');
@@ -1908,9 +1909,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const settings = [];
         const genre = advGenreSelect.value;
         const environment = advEnvironmentSelect.value;
-        const activeGroup = document.querySelector(`.adv-control-group:not(.hidden)`);
-
-        if (!activeGroup) return '';
 
         const getCheckboxValues = (container) => {
             const values = [];
@@ -2116,6 +2114,48 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             };
             img.src = `data:image/png;base64,${editedImageBase64}`;
+        }
+    }
+    
+    async function handleImageEnhance() {
+        saveState();
+        const style = artStyleSelect.value;
+        const advancedSettings = getAdvancedAISettings();
+        if (!advancedSettings) {
+            showModal("Please select some advanced settings to guide the generation.");
+            return;
+        }
+
+        const currentMapBase64 = getCanvasAsBase64();
+        let fullPrompt;
+        
+        if (currentMapBase64) {
+            // Enhance existing image
+            fullPrompt = `Enhance and redraw this map in a ${style} style, incorporating these features: ${advancedSettings}.`;
+            lastAIFunction = () => handleImageEnhance();
+        } else {
+            // Generate new image from scratch
+            fullPrompt = `A ${style} map of ${advancedSettings}.`;
+            lastAIFunction = () => handleImageEnhance();
+        }
+        
+        lastAIPrompt = fullPrompt;
+        lastPromptInput.value = fullPrompt;
+
+        const generatedImageBase64 = await callGenerativeAI(fullPrompt, currentMapBase64);
+
+        if (generatedImageBase64) {
+            const img = new Image();
+            img.onload = () => {
+                const groundLayer = layers.find(l => l.name === 'Ground');
+                if (groundLayer) {
+                    groundLayer.backgroundImage = img;
+                    heightmapImage = img;
+                    drawAll();
+                    updateAiStep(2);
+                }
+            };
+            img.src = `data:image/png;base64,${generatedImageBase64}`;
         }
     }
 
@@ -2539,6 +2579,7 @@ document.addEventListener('DOMContentLoaded', () => {
         addWaterBtn.addEventListener('click', () => handleWaterGeneration());
         applyBiomeBtn.addEventListener('click', () => handleBiomeGeneration());
         applyAiEditBtn.addEventListener('click', () => handleAiEdit());
+        imageEnhanceBtn.addEventListener('click', handleImageEnhance);
         regenerateBtn.addEventListener('click', () => {
             if (typeof lastAIFunction === 'function') {
                 lastAIFunction(lastPromptInput.value);
