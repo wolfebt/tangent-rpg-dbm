@@ -1,4 +1,4 @@
-// Version 4.5 - Full Dynamic AI Controls
+// Version 4.5 - Full Dynamic AI Controls & Bug Fix
 document.addEventListener('DOMContentLoaded', () => {
     // --- UI Elements ---
     const canvas = document.getElementById('mapCanvas');
@@ -84,14 +84,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const advGenreSelect = document.getElementById('advGenre');
     const advEnvironmentSelect = document.getElementById('advEnvironment');
     
-    // Fantasy Rural
     const frTerritoryStyle = document.getElementById('fr-territoryStyle');
     const frRouteNetwork = document.getElementById('fr-routeNetwork');
     const frPoiDensity = document.getElementById('fr-poiDensity');
     const frPoiDensityValue = document.getElementById('fr-poiDensityValue');
-    // Fantasy Urban
+    
     const fuDistrictStyle = document.getElementById('fu-districtStyle');
-    // Fantasy Interior
+    
     const fiFurnishings = document.getElementById('fi-furnishings');
     const fiFurnishingsValue = document.getElementById('fi-furnishingsValue');
     const fiCover = document.getElementById('fi-cover');
@@ -99,27 +98,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const fiHazards = document.getElementById('fi-hazards');
     const fiHazardsValue = document.getElementById('fi-hazardsValue');
     const fiVerticality = document.getElementById('fi-verticality');
-    // Modern Rural
+    
     const mrRouteNetwork = document.getElementById('mr-routeNetwork');
     const mrPoiDensity = document.getElementById('mr-poiDensity');
     const mrPoiDensityValue = document.getElementById('mr-poiDensityValue');
-    // Modern Urban
+    
     const muDistrictStyle = document.getElementById('mu-districtStyle');
-    // Modern Interior
+    
     const miFurnishings = document.getElementById('mi-furnishings');
     const miFurnishingsValue = document.getElementById('mi-furnishingsValue');
     const miCover = document.getElementById('mi-cover');
     const miCoverValue = document.getElementById('mi-coverValue');
-    // Sci-Fi Rural
+    
     const srFlora = document.getElementById('sr-flora');
     const srPoiDensity = document.getElementById('sr-poiDensity');
     const srPoiDensityValue = document.getElementById('sr-poiDensityValue');
-    // Sci-Fi Urban
+    
     const suDistrictStyle = document.getElementById('su-districtStyle');
-    // Sci-Fi Interior
+    
     const siRooms = document.getElementById('si-rooms');
     const siVerticality = document.getElementById('si-verticality');
-
+    
     // Map Key UI
     const mapKeyBtn = document.getElementById('mapKeyBtn');
     const mapKeyWindow = document.getElementById('mapKeyWindow');
@@ -1913,55 +1912,55 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!activeGroup) return '';
 
-        // Shared controls
-        const territory = activeGroup.querySelector('[id$="-territoryStyle"]');
-        if (territory && territory.value) settings.push(territory.value);
+        const getCheckboxValues = (container) => {
+            const values = [];
+            if (container) {
+                container.querySelectorAll('input:checked').forEach(cb => values.push(cb.value));
+            }
+            return values;
+        };
 
-        const routes = activeGroup.querySelector('[id$="-routeNetwork"]');
-        if (routes && routes.value) settings.push(routes.value);
-        
-        const poi = activeGroup.querySelector('[id$="-poiDensity"]');
-        if (poi) {
-            const poiMap = ['with only a few points of interest', 'dotted with some towns and landmarks', 'dotted with numerous towns, ruins, and other landmarks'];
-            settings.push(poiMap[poi.value]);
-        }
+        const getSliderValue = (slider, map) => {
+            return slider ? map[slider.value] : '';
+        };
 
-        const districtsContainer = activeGroup.querySelector('[id$="-districtStyle"]');
-        if (districtsContainer) {
-            const districts = [];
-            districtsContainer.querySelectorAll('input:checked').forEach(cb => districts.push(cb.value));
-            if (districts.length > 0) settings.push(`a city map featuring ${districts.join(', ')}`);
-        }
-
-        const furnishings = activeGroup.querySelector('[id$="-furnishings"]');
-        if (furnishings) {
-            const furnishMap = ['the rooms are bare and empty', 'the rooms are moderately furnished', 'the rooms are cluttered with furniture, crates, and debris'];
-            settings.push(furnishMap[furnishings.value]);
-        }
-
-        const cover = activeGroup.querySelector('[id$="-cover"]');
-        if (cover) {
-            const coverMap = ['an open area with little cover', 'a mix of open space and some tactical cover', 'a dense environment with many pillars and obstacles providing ample cover'];
-            settings.push(coverMap[cover.value]);
-        }
-
-        const hazards = activeGroup.querySelector('[id$="-hazards"]');
-        if (hazards) {
-            const hazardMap = ['a safe, clean area', 'containing a few minor hazards', 'filled with dangerous pits, rubble, and environmental hazards'];
-            settings.push(hazardMap[hazards.value]);
-        }
-        
-        const verticality = activeGroup.querySelector('[id$="-verticality"]');
-        if (verticality && verticality.value) settings.push(verticality.value);
-
-        const flora = activeGroup.querySelector('[id$="-flora"]');
-        if (flora && flora.value) settings.push(flora.value);
-
-        const roomsContainer = activeGroup.querySelector('[id$="-rooms"]');
-        if (roomsContainer) {
-            const rooms = [];
-            roomsContainer.querySelectorAll('input:checked').forEach(cb => rooms.push(cb.value));
-            if (rooms.length > 0) settings.push(`an interior map with ${rooms.join(', ')}`);
+        if (genre === 'fantasy') {
+            if (environment === 'rural') {
+                if (frTerritoryStyle.value) settings.push(frTerritoryStyle.value);
+                if (frRouteNetwork.value) settings.push(frRouteNetwork.value);
+                settings.push(getSliderValue(frPoiDensity, ['with only a few points of interest', 'dotted with some towns and landmarks', 'dotted with numerous towns, ruins, and other landmarks']));
+            } else if (environment === 'urban') {
+                const districts = getCheckboxValues(fuDistrictStyle);
+                if (districts.length > 0) settings.push(`a city map featuring ${districts.join(', ')}`);
+            } else if (environment === 'interior') {
+                settings.push(getSliderValue(fiFurnishings, ['the rooms are bare and empty', 'the rooms are moderately furnished', 'the rooms are cluttered with furniture, crates, and debris']));
+                settings.push(getSliderValue(fiCover, ['an open area with little cover', 'a mix of open space and some tactical cover', 'a dense environment with many pillars and obstacles providing ample cover']));
+                settings.push(getSliderValue(fiHazards, ['a safe, clean area', 'containing a few minor hazards', 'filled with dangerous pits, rubble, and environmental hazards']));
+                if (fiVerticality.value) settings.push(fiVerticality.value);
+            }
+        } else if (genre === 'modern') {
+             if (environment === 'rural') {
+                if (mrRouteNetwork.value) settings.push(mrRouteNetwork.value);
+                settings.push(getSliderValue(mrPoiDensity, ['a desolate area with few buildings', 'a rural area with scattered buildings', 'a developed area with many buildings']));
+            } else if (environment === 'urban') {
+                const districts = getCheckboxValues(muDistrictStyle);
+                if (districts.length > 0) settings.push(`a city map with ${districts.join(', ')}`);
+            } else if (environment === 'interior') {
+                settings.push(getSliderValue(miFurnishings, ['the rooms are empty', 'the rooms are furnished for their purpose', 'the rooms are cluttered with objects']));
+                settings.push(getSliderValue(miCover, ['an open area with little cover', 'a mix of open space and some tactical cover', 'a dense environment with many objects providing ample cover']));
+            }
+        } else if (genre === 'scifi') {
+            if (environment === 'rural') {
+                if (srFlora.value) settings.push(srFlora.value);
+                settings.push(getSliderValue(srPoiDensity, ['a desolate alien landscape', 'an alien landscape with some strange structures', 'a landscape dotted with many alien structures']));
+            } else if (environment === 'urban') {
+                const districts = getCheckboxValues(suDistrictStyle);
+                if (districts.length > 0) settings.push(`a city map featuring ${districts.join(', ')}`);
+            } else if (environment === 'interior') {
+                const rooms = getCheckboxValues(siRooms);
+                if (rooms.length > 0) settings.push(`an interior map with ${rooms.join(', ')}`);
+                if (siVerticality.value) settings.push(siVerticality.value);
+            }
         }
 
         return settings.filter(s => s).join(', ');
