@@ -284,6 +284,12 @@ body {
     font-size: 24px;
     color: #f9fafb;
 }
+/* NEW: Styles for image assets in swatches */
+.object-swatch img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
 .item-label, .layer-label {
     margin-left: 0.75rem; font-size: 14px; text-align: left; flex-grow: 1;
 }
@@ -395,6 +401,12 @@ body {
     align-items: center;
     justify-content: center;
     font-size: 16px; /* Reduced size */
+}
+/* NEW: Styles for image assets in map key */
+.key-swatch img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
 }
 
 /* --- NEW AI BOTTOM PANEL --- */
