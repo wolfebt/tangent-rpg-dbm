@@ -112,6 +112,12 @@ body {
 #mapCanvas.wall-drawing {
     cursor: crosshair;
 }
+#mapCanvas.token-placement {
+    cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10' /><circle cx='12' cy='12' r='4' /></svg>") 12 12, auto;
+}
+#mapCanvas.interact {
+    cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M15 15l-4 4l-4-4'/><path d='M15 9l-4-4l-4 4'/></svg>") 12 12, auto;
+}
 #mapCanvas.fogging {
     cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='rgba(255,255,255,0.5)' stroke='white' stroke-width='1'><circle cx='12' cy='12' r='10'/></svg>") 12 12, auto;
 }
@@ -252,26 +258,6 @@ body {
      background-color: #374151 !important; /* gray-700 */
 }
 /* --- END ACTIVE STATE --- */
-
-/* AI Assistant Step Styling */
-.ai-step {
-    display: none; /* Hidden by default */
-    padding: 0.5rem;
-    border: 1px solid #374151;
-    border-radius: 0.5rem;
-    margin-bottom: 1rem;
-}
-.ai-step.active-step {
-    display: block; /* Show the active step */
-    border-color: #3b82f6;
-}
-.ai-step h4 {
-    color: #9ca3af;
-}
-.ai-step.active-step h4 {
-    color: #f9fafb;
-}
-
 
 /* File Menu Styles */
 .file-dropdown {
@@ -465,20 +451,22 @@ body {
     max-height: 80vh;
     overflow-y: auto;
 }
-#promptEditorPanel textarea {
-    resize: none;
-}
-#promptEditorPanel textarea:read-only {
-    cursor: not-allowed;
-    background-color: #374151;
-}
-.adv-control-group.hidden {
-    display: none;
-}
 
 .hidden {
     display: none !important;
 }
 .modal-backdrop {
     transition: opacity 0.3s ease;
+}
+
+#dungeonKeyContent h5 {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #f9fafb;
+    border-bottom: 1px solid #4b5563;
+    padding-bottom: 0.25rem;
+    margin-top: 0.5rem;
+}
+#dungeonKeyContent p {
+    line-height: 1.6;
 }

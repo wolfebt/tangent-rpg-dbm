@@ -1,4 +1,4 @@
-// Version 4.14 - Performance & Scalability Optimization
+// Version 4.22 - AI Dungeon Key Generator
 document.addEventListener('DOMContentLoaded', () => {
     // --- UI Elements ---
     const canvas = document.getElementById('mapCanvas');
@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const fileMenuBtn = document.getElementById('fileMenuBtn');
     const fileDropdownMenu = document.getElementById('fileDropdownMenu');
     const savePngBtn = document.getElementById('savePngBtn');
+    const savePlayerPngBtn = document.getElementById('savePlayerPngBtn');
     const saveJsonBtn = document.getElementById('saveJsonBtn');
     const loadJsonBtn = document.getElementById('loadJsonBtn');
     const loadJsonInput = document.getElementById('loadJsonInput');
@@ -41,14 +42,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const toolPencilBtn = document.getElementById('toolPencilBtn');
     const toolSelectBtn = document.getElementById('toolSelectBtn');
     const toolWallBtn = document.getElementById('toolWallBtn');
+    const toolTokenBtn = document.getElementById('toolTokenBtn');
+    const toolInteractBtn = document.getElementById('toolInteractBtn');
     const terrainOptionsPanel = document.getElementById('terrainOptionsPanel');
     const pencilOptionsPanel = document.getElementById('pencilOptionsPanel');
+    const tokenOptionsPanel = document.getElementById('tokenOptionsPanel');
     const terrainBrushModeSelect = document.getElementById('terrainBrushMode');
     const pencilBrushModeSelect = document.getElementById('pencilBrushMode');
     const pencilColorPicker = document.getElementById('pencilColorPicker');
     const pencilWidthSlider = document.getElementById('pencilWidth');
     const pencilWidthValue = document.getElementById('pencilWidthValue');
     const pencilGmOnlyCheckbox = document.getElementById('pencilGmOnlyCheckbox');
+    const tokenLightRadiusSlider = document.getElementById('tokenLightRadius');
+    const tokenLightRadiusValue = document.getElementById('tokenLightRadiusValue');
+    const tokenColorPicker = document.getElementById('tokenColor');
+    const deleteTokenBtn = document.getElementById('deleteTokenBtn');
     const graphicsBtn = document.getElementById('graphicsBtn');
     const graphicsContent = document.getElementById('graphicsContent');
     const panelWrapper = document.getElementById('panelWrapper');
@@ -86,6 +94,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const dressAreaBtn = document.getElementById('dressAreaBtn');
     const aiDataEditPrompt = document.getElementById('aiDataEditPrompt');
     const applyAiDataEditBtn = document.getElementById('applyAiDataEditBtn');
+    const aiHexcrawlPrompt = document.getElementById('aiHexcrawlPrompt');
+    const hexcrawlHexCount = document.getElementById('hexcrawlHexCount');
+    const generateHexcrawlBtn = document.getElementById('generateHexcrawlBtn');
+    const aiPointcrawlPrompt = document.getElementById('aiPointcrawlPrompt');
+    const generatePointcrawlBtn = document.getElementById('generatePointcrawlBtn');
+    const generateKeyBtn = document.getElementById('generateKeyBtn');
     
     // Map Key UI
     const mapKeyBtn = document.getElementById('mapKeyBtn');
@@ -95,12 +109,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const mapKeyCloseBtn = document.getElementById('mapKeyCloseBtn');
     const gridTypeSelect = document.getElementById('gridTypeSelect');
 
+    // Dungeon Key Modal UI
+    const dungeonKeyModal = document.getElementById('dungeonKeyModal');
+    const keyModalCloseBtn = document.getElementById('keyModalCloseBtn');
+    const dungeonKeyContent = document.getElementById('dungeonKeyContent');
+
     
     // --- Configuration ---
     const baseHexSize = 30; 
     const baseSquareSize = 40;
     
     // --- State ---
+    let terrains = {}; // Will be loaded from JSON
+    let assetManifest = {}; // Will be loaded from JSON
     let gridType = 'hex';
     let mapGrid = {}; 
     let mapName = '';
@@ -151,47 +172,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let fogDataUrl = null;
     let isFogging = false;
     let fogBrushSize = 5;
+    let tokens = [];
+    let selectedTokenIndex = -1;
+    let isDraggingToken = false;
+    let isDrawingPolygon = false;
+    let currentPolygonPoints = [];
 
     // --- Data Definitions ---
-    const terrains = {
-        water: { color: '#4c92c8', name: 'Water', pattern: 'pattern-water' },
-        sand: { color: '#f0d9a0', name: 'Sand', pattern: 'pattern-sand' },
-        grass: { color: '#86c440', name: 'Grass', pattern: 'pattern-grass' },
-        plains: { color: '#a6d15a', name: 'Plains', pattern: 'pattern-plains' },
-        forest: { color: '#4a8232', name: 'Forest', pattern: 'pattern-forest' },
-        hills: { color: '#a08b6b', name: 'Hills', pattern: 'pattern-hills' },
-        mountain: { color: '#6f6f6f', name: 'Mountain', pattern: 'pattern-mountain' },
-        snow: { color: '#ffffff', name: 'Snow', pattern: 'pattern-snow' },
-        dirt: { color: '#a07040', name: 'Dirt', pattern: 'pattern-dirt' },
-        road: { color: '#b0a89f', name: 'Road', pattern: 'pattern-road' },
-        lava: { color: '#e25822', name: 'Lava', pattern: 'pattern-lava' },
-        crags: { color: '#5a5a5a', name: 'Crags', pattern: 'pattern-crags' },
-        swamp: { color: '#4d6642', name: 'Swamp', pattern: 'pattern-swamp' },
-        tundra: { color: '#cdd3d6', name: 'Tundra', pattern: 'pattern-tundra' },
-    };
-
-    const assetManifest = {
-        'fantasy_world_tree': { name: 'Tree', src: 'https://placehold.co/64x64/4a8232/FFF?text=🌳', tags: ['fantasy', 'world', 'vegetation'] },
-        'fantasy_world_mountain': { name: 'Mountain', src: 'https://placehold.co/64x64/6f6f6f/FFF?text=🏔', tags: ['fantasy', 'world', 'terrain'] },
-        'fantasy_city_house': { name: 'House', src: 'https://placehold.co/64x64/a08b6b/FFF?text=🏠', tags: ['fantasy', 'city', 'building'] },
-        'fantasy_battle_chest': { name: 'Treasure Chest', src: 'https://placehold.co/64x64/854d0e/FFF?text=👑', tags: ['fantasy', 'battle', 'location', 'object'] },
-        'fantasy_location_door': { name: 'Door', src: 'https://placehold.co/64x64/854d0e/FFF?text=🚪', tags: ['fantasy', 'location', 'battle', 'object'] },
-        'fantasy_location_bed': { name: 'Bed', src: 'https://placehold.co/64x64/854d0e/FFF?text=🛏️', tags: ['fantasy', 'location', 'battle', 'object', 'furniture'] },
-        'fantasy_location_table': { name: 'Table', src: 'https://placehold.co/64x64/854d0e/FFF?text=🪑', tags: ['fantasy', 'location', 'battle', 'object', 'furniture'] },
-        'fantasy_location_weapon_rack': { name: 'Weapon Rack', src: 'https://placehold.co/64x64/4b5563/FFF?text=⚔️', tags: ['fantasy', 'location', 'battle', 'object'] },
-        'scifi_world_crystal': { name: 'Crystal Formation', src: 'https://placehold.co/64x64/7e22ce/FFF?text=💎', tags: ['scifi', 'world', 'terrain'] },
-        'scifi_city_habitat': { name: 'Habitat Dome', src: 'https://placehold.co/64x64/0e7490/FFF?text=🛖', tags: ['scifi', 'city', 'building'] },
-        'scifi_location_console': { name: 'Computer Console', src: 'https://placehold.co/64x64/1d4ed8/FFF?text=💻', tags: ['scifi', 'location', 'object'] },
-        'scifi_battle_robot': { name: 'Sentry Bot', src: 'https://placehold.co/64x64/4b5563/FFF?text=🤖', tags: ['scifi', 'battle', 'creature'] },
-        'modern_city_bldg': { name: 'Skyscraper', src: 'https://placehold.co/64x64/4b5563/FFF?text=🏢', tags: ['modern', 'city', 'building'] },
-        'modern_location_desk': { name: 'Office Desk', src: 'https://placehold.co/64x64/854d0e/FFF?text=🪑', tags: ['modern', 'location', 'object'] },
-        'modern_battle_car': { name: 'Car', src: 'https://placehold.co/64x64/be123c/FFF?text=🚗', tags: ['modern', 'battle', 'city', 'object'] },
-    };
-
+    // Data is now loaded dynamically in the initialize() function
 
     // --- Function Definitions ---
 
-    // NEW: Throttle function for performance optimization
     function throttle(func, limit) {
         let inThrottle;
         return function() {
@@ -271,6 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
         freestyleTerrainPaths = [];
         placedAssets = [];
         wallLines = [];
+        tokens = [];
         undoStack = [];
         redoStack = [];
         activeLayerIndex = 0;
@@ -325,7 +317,6 @@ document.addEventListener('DOMContentLoaded', () => {
             wallCtx.clearRect(0,0, wallCanvas.width, wallCanvas.height);
             drawingCtx.clearRect(0,0, drawingCanvas.width, drawingCanvas.height);
             
-            // NEW: Calculate visible bounds for culling
             const viewBounds = {
                 minX: -view.offsetX / view.zoom,
                 minY: -view.offsetY / view.zoom,
@@ -335,9 +326,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             drawFrame(ctx, null, {}, viewBounds);
             drawWalls(wallCtx, viewBounds);
+            drawTokens(drawingCtx);
             
-            drawFreestyleTerrainPaths(ctx); // These are harder to cull, leave for now
-            drawPencilPaths(ctx); // These are harder to cull, leave for now
+            drawFreestyleTerrainPaths(ctx);
+            drawPencilPaths(ctx);
             
             if (isSelecting && selectionStartPoint && selectionEndPoint) {
                 drawSelectionRectangle(drawingCtx);
@@ -362,6 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     drawingCtx.restore();
                 }
             }
+             updateFogOfWar();
         });
     }
 
@@ -374,7 +367,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const coords = key.split(',').map(Number);
             const { x, y } = (gridType === 'hex') ? hexToPixel(coords[0], coords[1]) : squareToPixel(coords[0], coords[1]);
             
-            // OPTIMIZATION: Viewport Culling for grid
             const size = gridType === 'hex' ? baseHexSize : baseSquareSize;
             if (x + size < viewBounds.minX || x - size > viewBounds.maxX || y + size < viewBounds.minY || y - size > viewBounds.maxY) {
                 continue;
@@ -417,7 +409,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const coords = key.split(',').map(Number);
                 const {x, y} = (gridType === 'hex') ? hexToPixel(coords[0], coords[1]) : squareToPixel(coords[0], coords[1]);
 
-                // OPTIMIZATION: Viewport Culling for terrain/text
                 if (viewBounds) {
                     const size = gridType === 'hex' ? baseHexSize : baseSquareSize;
                     if (x + size < viewBounds.minX || x - size > viewBounds.maxX || y + size < viewBounds.minY || y - size > viewBounds.maxY) {
@@ -442,7 +433,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if ((!isGmViewActive || isPlayerFacing) && asset.gmOnly) return;
             const {x, y} = (gridType === 'hex') ? hexToPixel(asset.q, asset.r) : squareToPixel(asset.q, asset.r);
 
-            // OPTIMIZATION: Viewport Culling for assets
             if (viewBounds) {
                 const size = (gridType === 'hex' ? baseHexSize : baseSquareSize) * 1.5 * asset.size;
                  if (x + size < viewBounds.minX || x - size > viewBounds.maxX || y + size < viewBounds.minY || y - size > viewBounds.maxY) {
@@ -644,15 +634,15 @@ document.addEventListener('DOMContentLoaded', () => {
         targetCtx.save();
         targetCtx.translate(view.offsetX, view.offsetY);
         targetCtx.scale(view.zoom, view.zoom);
-        targetCtx.strokeStyle = 'rgba(255, 255, 0, 0.8)';
-        targetCtx.lineWidth = 5 / view.zoom;
         targetCtx.lineCap = 'round';
 
         wallLines.forEach(wall => {
-            // OPTIMIZATION: Simple culling for walls
             const inView = (wall.start.x < viewBounds.maxX && wall.end.x > viewBounds.minX) ||
                            (wall.end.x < viewBounds.maxX && wall.start.x > viewBounds.minX);
             if (!inView) return;
+            
+            targetCtx.strokeStyle = wall.blocksVision ? 'rgba(255, 255, 0, 0.8)' : 'rgba(255, 255, 0, 0.2)';
+            targetCtx.lineWidth = wall.blocksVision ? 5 / view.zoom : 2 / view.zoom;
 
             targetCtx.beginPath();
             targetCtx.moveTo(wall.start.x, wall.start.y);
@@ -822,6 +812,7 @@ document.addEventListener('DOMContentLoaded', () => {
             freestyleTerrainPaths: JSON.parse(JSON.stringify(freestyleTerrainPaths)),
             placedAssets: JSON.parse(JSON.stringify(placedAssets)),
             wallLines: JSON.parse(JSON.stringify(wallLines)),
+            tokens: JSON.parse(JSON.stringify(tokens)),
             fogDataUrl: fogCanvas.toDataURL()
         });
         redoStack = [];
@@ -846,6 +837,7 @@ document.addEventListener('DOMContentLoaded', () => {
             freestyleTerrainPaths: JSON.parse(JSON.stringify(freestyleTerrainPaths)),
             placedAssets: JSON.parse(JSON.stringify(placedAssets)),
             wallLines: JSON.parse(JSON.stringify(wallLines)),
+            tokens: JSON.parse(JSON.stringify(tokens)),
             fogDataUrl: fogCanvas.toDataURL()
         };
         redoStack.push(currentState);
@@ -864,6 +856,7 @@ document.addEventListener('DOMContentLoaded', () => {
         freestyleTerrainPaths = previousState.freestyleTerrainPaths;
         placedAssets = previousState.placedAssets;
         wallLines = previousState.wallLines;
+        tokens = previousState.tokens;
         
         const img = new Image();
         img.onload = () => {
@@ -896,6 +889,7 @@ document.addEventListener('DOMContentLoaded', () => {
             freestyleTerrainPaths: JSON.parse(JSON.stringify(freestyleTerrainPaths)),
             placedAssets: JSON.parse(JSON.stringify(placedAssets)),
             wallLines: JSON.parse(JSON.stringify(wallLines)),
+            tokens: JSON.parse(JSON.stringify(tokens)),
             fogDataUrl: fogCanvas.toDataURL()
         };
         undoStack.push(currentState);
@@ -914,6 +908,7 @@ document.addEventListener('DOMContentLoaded', () => {
         freestyleTerrainPaths = nextState.freestyleTerrainPaths;
         placedAssets = nextState.placedAssets;
         wallLines = nextState.wallLines;
+        tokens = nextState.tokens;
         
         const img = new Image();
         img.onload = () => {
@@ -1015,6 +1010,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     return getHexesForRectangle(startHex, centerHex);
                 case 'ellipse':
                     return getHexesForEllipse(startHex, centerHex);
+                // Polygon is handled by its own logic, not this function
             }
         } else if (toolToUse === 'placeObject' || toolToUse === 'placeText') {
              return [centerHex];
@@ -1213,25 +1209,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const bounds = { width: mapPixelWidth, height: mapPixelHeight, minPxX, minPxY };
         
-        drawFrame(offscreenCtx, bounds, { isPlayerFacing: true });
+        // Draw with GM view ON for this export
+        const originalGmViewState = isGmViewActive;
+        isGmViewActive = true;
+        drawFrame(offscreenCtx, bounds, {});
+        isGmViewActive = originalGmViewState;
         
         offscreenCtx.save();
         offscreenCtx.translate(-minPxX, -minPxY);
-        drawFreestyleTerrainPathsForExport(offscreenCtx, { isPlayerFacing: true });
-        drawPencilPathsForExport(offscreenCtx, { isPlayerFacing: true });
+        drawFreestyleTerrainPathsForExport(offscreenCtx, {});
+        drawPencilPathsForExport(offscreenCtx, {});
         offscreenCtx.restore();
-
-        if (!mapKeyWindow.classList.contains('hidden')) {
-            const keyRect = mapKeyWindow.getBoundingClientRect();
-            const canvasRect = canvas.getBoundingClientRect();
-            const keyCanvasX = keyRect.left - canvasRect.left;
-            const keyCanvasY = keyRect.top - canvasRect.top;
-            const keyWorldX = (keyCanvasX - view.offsetX) / view.zoom;
-            const keyWorldY = (keyCanvasY - view.offsetY) / view.zoom;
-            const keyDrawX = keyWorldX - minPxX;
-            const keyDrawY = keyWorldY - minPxY;
-            drawKeyOnContext(offscreenCtx, keyDrawX, keyDrawY);
-        }
 
         const tagText = "TTRPG HEX MAP MAKER by Wolfe.BT@TangentLLC";
         offscreenCtx.font = "200 14px 'Trebuchet MS'";
@@ -1241,7 +1229,55 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const dataUrl = offscreenCanvas.toDataURL('image/png');
         const link = document.createElement('a');
-        link.download = `${getSafeFilename(mapName)}.png`;
+        link.download = `${getSafeFilename(mapName)}_GM.png`;
+        link.href = dataUrl;
+        link.click();
+    }
+
+    // NEW: Player-facing export function
+    function saveAsPlayerPNGLogic() {
+        const { mapPixelWidth, mapPixelHeight, minPxX, minPxY } = getMapPixelBounds();
+        
+        if (mapPixelWidth <= 0 || mapPixelHeight <= 0) {
+            showModal("Cannot save an empty map.");
+            return;
+        }
+
+        const offscreenCanvas = document.createElement('canvas');
+        offscreenCanvas.width = mapPixelWidth;
+        offscreenCanvas.height = mapPixelHeight;
+        const offscreenCtx = offscreenCanvas.getContext('2d');
+
+        // 1. Fill background
+        offscreenCtx.fillStyle = '#374151'; // bg-gray-700
+        offscreenCtx.fillRect(0, 0, mapPixelWidth, mapPixelHeight);
+
+        const bounds = { width: mapPixelWidth, height: mapPixelHeight, minPxX, minPxY };
+        
+        // 2. Draw all player-visible elements
+        drawFrame(offscreenCtx, bounds, { isPlayerFacing: true });
+        
+        offscreenCtx.save();
+        offscreenCtx.translate(-minPxX, -minPxY);
+        drawFreestyleTerrainPathsForExport(offscreenCtx, { isPlayerFacing: true });
+        drawPencilPathsForExport(offscreenCtx, { isPlayerFacing: true });
+        offscreenCtx.restore();
+
+        // 3. Composite the fog of war on top
+        // This is a simplified approach that scales the current fog view over the entire map.
+        // A more advanced implementation would require a world-space fog canvas.
+        offscreenCtx.drawImage(fogCanvas, 0, 0, mapPixelWidth, mapPixelHeight);
+
+        // 4. Add watermark and download
+        const tagText = "TTRPG HEX MAP MAKER by Wolfe.BT@TangentLLC";
+        offscreenCtx.font = "200 14px 'Trebuchet MS'";
+        offscreenCtx.fillStyle = "rgba(0, 0, 0, 0.8)";
+        offscreenCtx.textAlign = "left";
+        offscreenCtx.fillText(tagText, 10, mapPixelHeight - 10);
+
+        const dataUrl = offscreenCanvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = `${getSafeFilename(mapName)}_Player.png`;
         link.href = dataUrl;
         link.click();
     }
@@ -1265,6 +1301,7 @@ document.addEventListener('DOMContentLoaded', () => {
             freestyleTerrainPaths: freestyleTerrainPaths,
             placedAssets: placedAssets,
             wallLines: wallLines,
+            tokens: tokens,
             fogDataUrl: fogCanvas.toDataURL()
         };
         const jsonString = JSON.stringify(mapData, null, 2);
@@ -1288,7 +1325,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function drawFreestyleTerrainPathsForExport(targetCtx, options = {}) {
         const isPlayerFacing = options.isPlayerFacing || false;
         freestyleTerrainPaths.forEach(path => {
-            if (isPlayerFacing && path.gmOnly) return;
+            // For now, freestyle terrain is always visible. Add gmOnly flag later if needed.
             if (path.points.length < 1) return;
             const terrain = terrains[path.terrain];
             if (!terrain || !terrain.canvasPattern) return;
@@ -1371,6 +1408,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     freestyleTerrainPaths = loadedData.freestyleTerrainPaths || [];
                     placedAssets = loadedData.placedAssets || [];
                     wallLines = loadedData.wallLines || [];
+                    tokens = loadedData.tokens || [];
                     mapName = loadedData.name || 'Untitled Loaded Map';
                     
                     layers = loadedData.layers.map(layerData => {
@@ -1531,10 +1569,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         terrainOptionsPanel.classList.add('hidden');
         pencilOptionsPanel.classList.add('hidden');
-        canvas.classList.remove('pencil');
-        canvas.classList.remove('selecting');
-        canvas.classList.remove('wall-drawing');
-        canvas.classList.remove('fogging');
+        tokenOptionsPanel.classList.add('hidden');
+        canvas.classList.remove('pencil', 'selecting', 'wall-drawing', 'fogging', 'token-placement', 'interact');
 
         document.querySelector(`#genreSelector .control-btn[data-genre="${currentGenre}"]`)?.classList.add('active');
         document.querySelector(`#scaleSelector .control-btn[data-scale="${currentScale}"]`)?.classList.add('active');
@@ -1561,6 +1597,13 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (currentTool === 'wall') {
             toolWallBtn.classList.add('active');
             canvas.classList.add('wall-drawing');
+        } else if (currentTool === 'token') {
+            toolTokenBtn.classList.add('active');
+            tokenOptionsPanel.classList.remove('hidden');
+            canvas.classList.add('token-placement');
+        } else if (currentTool === 'interact') {
+            toolInteractBtn.classList.add('active');
+            canvas.classList.add('interact');
         } else if (currentTool === 'fogReveal' || currentTool === 'fogHide') {
             if(currentTool === 'fogReveal') toolFogRevealBtn.classList.add('active');
             if(currentTool === 'fogHide') toolFogHideBtn.classList.add('active');
@@ -1878,6 +1921,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- AI and Helper Functions ---
+
+    // NEW: Builds a detailed, context-aware prompt for the AI
+    function buildContextualPrompt(userPrompt, actionType, additionalContext = {}) {
+        let preamble = `You are an expert TTRPG map designer and game master. Your task is to interpret a user's request and provide a structured JSON response. `;
+        preamble += `The current map genre is '${currentGenre}' and the scale is '${currentScale}'. `;
+
+        // Add context based on action type
+        switch (actionType) {
+            case 'layout':
+                preamble += `You are generating a new map layout. The grid type is '${gridType}'. `;
+                break;
+            case 'dressing':
+                preamble += `You are dressing an existing area with objects. The user has selected a specific region on the map. You must only place objects within the provided coordinates. `;
+                preamble += `Available assets for this genre/scale are: ${JSON.stringify(additionalContext.availableAssets)}. `;
+                preamble += `The selected coordinates are: ${JSON.stringify(additionalContext.selectedHexes)}. `;
+                break;
+            case 'dataEdit':
+                 preamble += `You are editing the terrain data of a selected area. You must only affect the provided coordinates. `;
+                 preamble += `Available terrain types are: ${JSON.stringify(Object.keys(terrains))}. `;
+                 preamble += `The selected coordinates are: ${JSON.stringify(additionalContext.selectedHexes)}. `;
+                break;
+            case 'hexcrawl':
+                preamble += `You are generating content for a hexcrawl-style regional map. The user has requested details for ${additionalContext.hexCount} hexes. Generate a list of points of interest, brief descriptions, and suggest an appropriate terrain type for each. The map grid is ${mapWidthInput.value}x${mapHeightInput.value}. Choose random, valid coordinates within these bounds.`;
+                break;
+            case 'pointcrawl':
+                preamble += `You are generating content for a pointcrawl-style map (like a city or region). Create a series of named locations (nodes) and the connections (edges) between them. Provide a brief description for each node and suggest logical coordinates on a ${mapWidthInput.value}x${mapHeightInput.value} grid.`;
+                break;
+            case 'keyGeneration':
+                preamble += `You are an adventure writer creating a descriptive key for a dungeon map. Based on the provided room data (which includes room numbers, terrain types, and a list of objects in each room), write an evocative, sensory-rich description for each room. The descriptions should be suitable for a GM to read aloud.`;
+                preamble += `Here is the map data: ${JSON.stringify(additionalContext.roomData)}`;
+                break;
+        }
+
+        return `${preamble} The user's specific request is: "${userPrompt}". Please generate the appropriate JSON response.`;
+    }
     
     async function callGenerativeAIForJSON(prompt, schema) {
         if (!apiKey) {
@@ -1933,8 +2011,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Event Handler Implementations ---
 
     async function handleLayoutGeneration() {
-        const prompt = aiLayoutPrompt.value;
-        if (!prompt) {
+        const userPrompt = aiLayoutPrompt.value;
+        if (!userPrompt) {
             showModal("Please describe the layout you want to generate.");
             return;
         }
@@ -1985,8 +2063,7 @@ document.addEventListener('DOMContentLoaded', () => {
             required: ["rooms", "doors"]
         };
         
-        const fullPrompt = `You are a TTRPG dungeon designer. Generate a JSON object for a map layout based on the following request: "${prompt}". The grid is a ${gridType} grid. The origin (0,0) is at the center. Create a logical layout. Return ONLY the JSON object.`;
-        
+        const fullPrompt = buildContextualPrompt(userPrompt, 'layout');
         const layoutData = await callGenerativeAIForJSON(fullPrompt, schema);
 
         if (layoutData) {
@@ -2025,8 +2102,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function handleAiDressing() {
-        const prompt = aiDressingPrompt.value;
-        if (!prompt) {
+        const userPrompt = aiDressingPrompt.value;
+        if (!userPrompt) {
             showModal("Please describe how to dress the selected area.");
             return;
         }
@@ -2065,8 +2142,8 @@ document.addEventListener('DOMContentLoaded', () => {
             required: ["placements"]
         };
 
-        const fullPrompt = `You are a TTRPG interior designer. Given a selected area defined by these coordinates: ${JSON.stringify(selectedHexes)}, and the following user request: "${prompt}", place appropriate assets from the provided list. Do not place assets outside the selected coordinates. Available assets: ${JSON.stringify(availableAssets)}. Return ONLY the JSON object.`;
-
+        const additionalContext = { availableAssets, selectedHexes };
+        const fullPrompt = buildContextualPrompt(userPrompt, 'dressing', additionalContext);
         const dressingData = await callGenerativeAIForJSON(fullPrompt, schema);
 
         if (dressingData) {
@@ -2095,8 +2172,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function handleAiDataEdit() {
-        const prompt = aiDataEditPrompt.value;
-        if (!prompt) {
+        const userPrompt = aiDataEditPrompt.value;
+        if (!userPrompt) {
             showModal("Please provide an edit instruction.");
             return;
         }
@@ -2105,8 +2182,6 @@ document.addEventListener('DOMContentLoaded', () => {
             showModal("Please use the 'Select' tool to define an area for the edit.");
             return;
         }
-
-        const availableTerrains = Object.keys(terrains);
 
         const schema = {
             type: "OBJECT",
@@ -2137,8 +2212,8 @@ document.addEventListener('DOMContentLoaded', () => {
             required: ["tool", "parameters"]
         };
 
-        const fullPrompt = `You are a TTRPG map editing tool. Your job is to translate a user's natural language request into a JSON command. The user has selected the following coordinates on the map: ${JSON.stringify(selectedHexes)}. The user's request is: "${prompt}". The available terrain types are: ${JSON.stringify(availableTerrains)}. Choose the most appropriate terrain type and apply it to all the selected coordinates. Return ONLY the JSON command object.`;
-
+        const additionalContext = { selectedHexes };
+        const fullPrompt = buildContextualPrompt(userPrompt, 'dataEdit', additionalContext);
         const command = await callGenerativeAIForJSON(fullPrompt, schema);
 
         if (command) {
@@ -2170,6 +2245,168 @@ document.addEventListener('DOMContentLoaded', () => {
             default:
                 console.warn(`Unknown AI command tool: ${command.tool}`);
         }
+
+        drawAll();
+        updateMapKey();
+    }
+
+    async function handleHexcrawlGeneration() {
+        const userPrompt = aiHexcrawlPrompt.value;
+        if (!userPrompt) {
+            showModal("Please describe the region for the hexcrawl.");
+            return;
+        }
+        const hexCount = parseInt(hexcrawlHexCount.value);
+
+        const schema = {
+            type: "OBJECT",
+            properties: {
+                hexes: {
+                    type: "ARRAY",
+                    items: {
+                        type: "OBJECT",
+                        properties: {
+                            coordinates: {
+                                type: "OBJECT",
+                                properties: { q: { type: "NUMBER" }, r: { type: "NUMBER" } },
+                                required: ["q", "r"]
+                            },
+                            poi: { type: "STRING", description: "A short, evocative name for the point of interest." },
+                            description: { type: "STRING", description: "A one-sentence description of the location." },
+                            terrain: { type: "STRING", description: "The suggested terrain type from the available list." }
+                        },
+                        required: ["coordinates", "poi", "description", "terrain"]
+                    }
+                }
+            },
+            required: ["hexes"]
+        };
+
+        const fullPrompt = buildContextualPrompt(userPrompt, 'hexcrawl', { hexCount });
+        const hexcrawlData = await callGenerativeAIForJSON(fullPrompt, schema);
+
+        if (hexcrawlData) {
+            ingestGeneratedHexcrawl(hexcrawlData);
+        }
+    }
+
+    function ingestGeneratedHexcrawl(data) {
+        saveState();
+        const groundLayer = layers.find(l => l.name === 'Ground');
+        const objectsLayer = layers.find(l => l.name === 'Objects');
+        if (!groundLayer || !objectsLayer) return;
+
+        data.hexes.forEach(hex => {
+            const key = `${hex.coordinates.q},${hex.coordinates.r}`;
+            if (mapGrid[key]) {
+                // Set terrain
+                if (terrains[hex.terrain]) {
+                    groundLayer.data[key] = { terrain: hex.terrain };
+                }
+                // Add POI label
+                objectsLayer.data[key] = {
+                    ...objectsLayer.data[key],
+                    text: hex.poi,
+                    textSize: 16,
+                    textColor: '#FFFFFF',
+                    gmOnly: true // Hexcrawl details are GM-only by default
+                };
+            }
+        });
+
+        drawAll();
+        updateMapKey();
+    }
+
+    async function handlePointcrawlGeneration() {
+        const userPrompt = aiPointcrawlPrompt.value;
+        if (!userPrompt) {
+            showModal("Please describe the area for the pointcrawl.");
+            return;
+        }
+
+        const schema = {
+            type: "OBJECT",
+            properties: {
+                nodes: {
+                    type: "ARRAY",
+                    items: {
+                        type: "OBJECT",
+                        properties: {
+                            id: { type: "STRING" },
+                            name: { type: "STRING" },
+                            description: { type: "STRING" },
+                            coordinates: {
+                                type: "OBJECT",
+                                properties: { q: { type: "NUMBER" }, r: { type: "NUMBER" } },
+                                required: ["q", "r"]
+                            }
+                        },
+                        required: ["id", "name", "description", "coordinates"]
+                    }
+                },
+                edges: {
+                    type: "ARRAY",
+                    items: {
+                        type: "OBJECT",
+                        properties: {
+                            from: { type: "STRING" },
+                            to: { type: "STRING" }
+                        },
+                        required: ["from", "to"]
+                    }
+                }
+            },
+            required: ["nodes", "edges"]
+        };
+
+        const fullPrompt = buildContextualPrompt(userPrompt, 'pointcrawl');
+        const pointcrawlData = await callGenerativeAIForJSON(fullPrompt, schema);
+
+        if (pointcrawlData) {
+            ingestGeneratedPointcrawl(pointcrawlData);
+        }
+    }
+
+    function ingestGeneratedPointcrawl(data) {
+        saveState();
+        const objectsLayer = layers.find(l => l.name === 'Objects');
+        if (!objectsLayer) return;
+
+        const nodePositions = {};
+
+        // Place nodes (POIs)
+        data.nodes.forEach(node => {
+            const key = `${node.coordinates.q},${node.coordinates.r}`;
+            if (mapGrid[key]) {
+                objectsLayer.data[key] = {
+                    ...objectsLayer.data[key],
+                    text: `[${node.id}] ${node.name}`,
+                    textSize: 20,
+                    textColor: '#fde047', // yellow-300
+                    gmOnly: false
+                };
+                const pixelPos = gridType === 'hex' ? hexToPixel(node.coordinates.q, node.coordinates.r) : squareToPixel(node.coordinates.q, node.coordinates.r);
+                nodePositions[node.id] = pixelPos;
+            }
+        });
+
+        // Draw edges (connections)
+        data.edges.forEach(edge => {
+            const startNode = nodePositions[edge.from];
+            const endNode = nodePositions[edge.to];
+
+            if (startNode && endNode) {
+                pencilPaths.push({
+                    type: 'line',
+                    start: startNode,
+                    end: endNode,
+                    color: 'rgba(255, 255, 255, 0.5)',
+                    width: 3,
+                    gmOnly: false
+                });
+            }
+        });
 
         drawAll();
         updateMapKey();
@@ -2263,6 +2500,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 asset.q = worldMousePos.q - dragOffsetX;
                 asset.r = worldMousePos.r - dragOffsetY;
                 drawAll();
+            } else if (isDraggingToken && selectedTokenIndex !== -1) {
+                const token = tokens[selectedTokenIndex];
+                const {x, y} = pixelToGrid(mouseX, mouseY, true);
+                token.x = x;
+                token.y = y;
+                drawAll();
             }
 
             if (isDrawingShape) {
@@ -2327,6 +2570,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
             const worldMousePos = pixelToGrid(mouseX, mouseY);
+            const worldClick = pixelToGrid(mouseX, mouseY, true);
 
             if (e.button === 2) { // Right-click for panning
                 isPanning = true;
@@ -2336,6 +2580,38 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (e.button === 0) { // Left-click for tools
+                 if (currentTool === 'interact') {
+                    handleInteraction(worldClick);
+                    return;
+                }
+                if (currentTool === 'token') {
+                     // Check if clicking an existing token
+                    for (let i = tokens.length - 1; i >= 0; i--) {
+                        const token = tokens[i];
+                        const dist = Math.hypot(worldClick.x - token.x, worldClick.y - token.y);
+                        const tokenRadius = (gridType === 'hex' ? baseHexSize : baseSquareSize) * 0.4;
+                        if (dist < tokenRadius) {
+                            selectedTokenIndex = i;
+                            isDraggingToken = true;
+                            updateTokenPanel();
+                            return;
+                        }
+                    }
+                    // If not clicking a token, place a new one
+                    saveState();
+                    const newToken = {
+                        x: worldClick.x,
+                        y: worldClick.y,
+                        lightRadius: parseInt(tokenLightRadiusSlider.value),
+                        color: tokenColorPicker.value
+                    };
+                    tokens.push(newToken);
+                    selectedTokenIndex = tokens.length - 1;
+                    updateTokenPanel();
+                    drawAll();
+                    return;
+                }
+
                 if (currentTool === 'select') {
                     isSelecting = true;
                     selectionStartPoint = { x: mouseX, y: mouseY };
@@ -2367,7 +2643,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         const {x, y} = (gridType === 'hex') ? hexToPixel(asset.q, asset.r) : squareToPixel(asset.q, asset.r);
                         const size = (gridType === 'hex' ? baseHexSize : baseSquareSize) * 1.2 * asset.size;
-                        const worldClick = pixelToGrid(mouseX, mouseY, true);
                         if (worldClick.x > x - size/2 && worldClick.x < x + size/2 &&
                             worldClick.y > y - size/2 && worldClick.y < y + size/2) {
                             selectedPlacedAssetIndex = i;
@@ -2431,7 +2706,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 if (isDrawingWall) {
                     const endPoint = pixelToGrid(e.clientX - canvas.getBoundingClientRect().left, e.clientY - canvas.getBoundingClientRect().top, true);
-                    wallLines.push({ start: shapeStartPoint, end: endPoint });
+                    wallLines.push({ start: shapeStartPoint, end: endPoint, id: generateRandomId(8), blocksVision: true });
                     isDrawingWall = false;
                     shapeStartPoint = null;
                     previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
@@ -2446,6 +2721,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 isDragging = false;
+                isDraggingToken = false;
                 const brushMode = currentTool === 'terrain' ? terrainBrushMode : pencilBrushMode;
                 const isShapeMode = ['line', 'rectangle', 'ellipse'].includes(brushMode);
 
@@ -2508,6 +2784,7 @@ document.addEventListener('DOMContentLoaded', () => {
             isSelecting = false;
             isDrawingWall = false;
             isFogging = false;
+            isDraggingToken = false;
             canvas.classList.remove('panning');
         });
 
@@ -2548,6 +2825,8 @@ document.addEventListener('DOMContentLoaded', () => {
         toolPencilBtn.addEventListener('click', () => { currentTool = 'pencil'; nextClickAction = null; updateActiveSwatches(); });
         toolSelectBtn.addEventListener('click', () => { currentTool = 'select'; nextClickAction = null; updateActiveSwatches(); });
         toolWallBtn.addEventListener('click', () => { currentTool = 'wall'; nextClickAction = null; updateActiveSwatches(); });
+        toolTokenBtn.addEventListener('click', () => { currentTool = 'token'; nextClickAction = null; updateActiveSwatches(); });
+        toolInteractBtn.addEventListener('click', () => { currentTool = 'interact'; nextClickAction = null; updateActiveSwatches(); });
         toolFogRevealBtn.addEventListener('click', () => { currentTool = 'fogReveal'; updateActiveSwatches(); });
         toolFogHideBtn.addEventListener('click', () => { currentTool = 'fogHide'; updateActiveSwatches(); });
         resetFogBtn.addEventListener('click', () => {
@@ -2565,6 +2844,30 @@ document.addEventListener('DOMContentLoaded', () => {
             pencilWidth = parseInt(e.target.value);
             pencilWidthValue.textContent = pencilWidth;
         });
+        tokenLightRadiusSlider.addEventListener('input', e => {
+            const radius = parseInt(e.target.value);
+            tokenLightRadiusValue.textContent = radius;
+            if (selectedTokenIndex !== -1) {
+                tokens[selectedTokenIndex].lightRadius = radius;
+                drawAll();
+            }
+        });
+        tokenColorPicker.addEventListener('input', e => {
+            if (selectedTokenIndex !== -1) {
+                tokens[selectedTokenIndex].color = e.target.value;
+                drawAll();
+            }
+        });
+        deleteTokenBtn.addEventListener('click', () => {
+            if (selectedTokenIndex !== -1) {
+                saveState();
+                tokens.splice(selectedTokenIndex, 1);
+                selectedTokenIndex = -1;
+                updateTokenPanel();
+                drawAll();
+            }
+        });
+
         resetViewBtn.addEventListener('click', centerView);
         addLayerBtn.addEventListener('click', () => addNewLayer());
         deleteLayerBtn.addEventListener('click', deleteActiveLayer);
@@ -2591,6 +2894,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         savePngBtn.addEventListener('click', () => promptForMapNameAndSave(saveAsPNGLogic));
+        savePlayerPngBtn.addEventListener('click', () => promptForMapNameAndSave(saveAsPlayerPNGLogic));
         saveJsonBtn.addEventListener('click', () => promptForMapNameAndSave(saveAsJSONLogic));
         loadJsonBtn.addEventListener('click', () => loadJsonInput.click());
         loadJsonInput.addEventListener('change', loadFromJSON);
@@ -2704,6 +3008,17 @@ document.addEventListener('DOMContentLoaded', () => {
         generateLayoutBtn.addEventListener('click', handleLayoutGeneration);
         dressAreaBtn.addEventListener('click', handleAiDressing);
         applyAiDataEditBtn.addEventListener('click', handleAiDataEdit);
+        generateHexcrawlBtn.addEventListener('click', handleHexcrawlGeneration);
+        generatePointcrawlBtn.addEventListener('click', handlePointcrawlGeneration);
+        generateKeyBtn.addEventListener('click', handleKeyGeneration);
+
+        // Dungeon Key Modal Listeners
+        keyModalCloseBtn.addEventListener('click', () => dungeonKeyModal.classList.add('hidden'));
+        dungeonKeyModal.addEventListener('click', (e) => {
+            if (e.target === dungeonKeyModal) {
+                dungeonKeyModal.classList.add('hidden');
+            }
+        });
     }
 
     async function initialize() {
@@ -2749,6 +3064,27 @@ document.addEventListener('DOMContentLoaded', () => {
         gridVisibleCheckbox.checked = true;
         updateUndoRedoButtons();
         
+        // Load external data first
+        try {
+            // NOTE: In a real server environment, you would place these in a /data/ directory.
+            // For this self-contained example, we'll assume they are in the same directory.
+            const [terrainsResponse, assetsResponse] = await Promise.all([
+                fetch('./terrains.json'),
+                fetch('./assets.json')
+            ]);
+            if (!terrainsResponse.ok || !assetsResponse.ok) {
+                throw new Error(`HTTP error! status: ${terrainsResponse.status}, ${assetsResponse.status}`);
+            }
+            terrains = await terrainsResponse.json();
+            assetManifest = await assetsResponse.json();
+            console.log("Game data loaded successfully.");
+        } catch (error) {
+            console.error("Could not load game data:", error);
+            showModal("Fatal Error: Could not load essential game data. The application cannot start.");
+            return; // Stop initialization if data fails to load
+        }
+
+        // Now that data is loaded, proceed with the rest of the initialization
         requestAnimationFrame(async () => {
             resizeCanvas();
             await Promise.all([initializePatterns(ctx), loadAssets()]);

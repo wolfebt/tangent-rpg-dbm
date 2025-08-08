@@ -1,0 +1,17 @@
+{
+    "fantasy_world_tree": { "name": "Tree", "src": "https://placehold.co/64x64/4a8232/FFF?text=🌳", "tags": ["fantasy", "world", "vegetation"] },
+    "fantasy_world_mountain": { "name": "Mountain", "src": "https://placehold.co/64x64/6f6f6f/FFF?text=🏔", "tags": ["fantasy", "world", "terrain"] },
+    "fantasy_city_house": { "name": "House", "src": "https://placehold.co/64x64/a08b6b/FFF?text=🏠", "tags": ["fantasy", "city", "building"] },
+    "fantasy_battle_chest": { "name": "Treasure Chest", "src": "https://placehold.co/64x64/854d0e/FFF?text=👑", "tags": ["fantasy", "battle", "location", "object"] },
+    "fantasy_location_door": { "name": "Door", "src": "https://placehold.co/64x64/854d0e/FFF?text=🚪", "tags": ["fantasy", "location", "battle", "object"] },
+    "fantasy_location_bed": { "name": "Bed", "src": "https://placehold.co/64x64/854d0e/FFF?text=🛏️", "tags": ["fantasy", "location", "battle", "object", "furniture"] },
+    "fantasy_location_table": { "name": "Table", "src": "https://placehold.co/64x64/854d0e/FFF?text=🪑", "tags": ["fantasy", "location", "battle", "object", "furniture"] },
+    "fantasy_location_weapon_rack": { "name": "Weapon Rack", "src": "https://placehold.co/64x64/4b5563/FFF?text=⚔️", "tags": ["fantasy", "location", "battle", "object"] },
+    "scifi_world_crystal": { "name": "Crystal Formation", "src": "https://placehold.co/64x64/7e22ce/FFF?text=💎", "tags": ["scifi", "world", "terrain"] },
+    "scifi_city_habitat": { "name": "Habitat Dome", "src": "https://placehold.co/64x64/0e7490/FFF?text=🛖", "tags": ["scifi", "city", "building"] },
+    "scifi_location_console": { "name": "Computer Console", "src": "https://placehold.co/64x64/1d4ed8/FFF?text=💻", "tags": ["scifi", "location", "object"] },
+    "scifi_battle_robot": { "name": "Sentry Bot", "src": "https://placehold.co/64x64/4b5563/FFF?text=🤖", "tags": ["scifi", "battle", "creature"] },
+    "modern_city_bldg": { "name": "Skyscraper", "src": "https://placehold.co/64x64/4b5563/FFF?text=🏢", "tags": ["modern", "city", "building"] },
+    "modern_location_desk": { "name": "Office Desk", "src": "https://placehold.co/64x64/854d0e/FFF?text=🪑", "tags": ["modern", "location", "object"] },
+    "modern_battle_car": { "name": "Car", "src": "https://placehold.co/64x64/be123c/FFF?text=🚗", "tags": ["modern", "battle", "city", "object"] }
+}

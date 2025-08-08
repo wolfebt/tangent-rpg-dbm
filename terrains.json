@@ -1,0 +1,16 @@
+{
+    "water": { "color": "#4c92c8", "name": "Water", "pattern": "pattern-water" },
+    "sand": { "color": "#f0d9a0", "name": "Sand", "pattern": "pattern-sand" },
+    "grass": { "color": "#86c440", "name": "Grass", "pattern": "pattern-grass" },
+    "plains": { "color": "#a6d15a", "name": "Plains", "pattern": "pattern-plains" },
+    "forest": { "color": "#4a8232", "name": "Forest", "pattern": "pattern-forest" },
+    "hills": { "color": "#a08b6b", "name": "Hills", "pattern": "pattern-hills" },
+    "mountain": { "color": "#6f6f6f", "name": "Mountain", "pattern": "pattern-mountain" },
+    "snow": { "color": "#ffffff", "name": "Snow", "pattern": "pattern-snow" },
+    "dirt": { "color": "#a07040", "name": "Dirt", "pattern": "pattern-dirt" },
+    "road": { "color": "#b0a89f", "name": "Road", "pattern": "pattern-road" },
+    "lava": { "color": "#e25822", "name": "Lava", "pattern": "pattern-lava" },
+    "crags": { "color": "#5a5a5a", "name": "Crags", "pattern": "pattern-crags" },
+    "swamp": { "color": "#4d6642", "name": "Swamp", "pattern": "pattern-swamp" },
+    "tundra": { "color": "#cdd3d6", "name": "Tundra", "pattern": "pattern-tundra" }
+}

@@ -61,7 +61,8 @@
                         </button>
                     </div>
                     <div id="fileDropdownMenu" class="file-dropdown hidden mt-2 right-0 top-full">
-                        <button id="savePngBtn" class="file-dropdown-item">Save as PNG</button>
+                        <button id="savePngBtn" class="file-dropdown-item">Save as GM PNG</button>
+                        <button id="savePlayerPngBtn" class="file-dropdown-item">Save as Player PNG</button>
                         <button id="saveJsonBtn" class="file-dropdown-item">Save Map (.json)</button>
                         <button id="loadJsonBtn" class="file-dropdown-item">Load Map (.json)</button>
                     </div>
@@ -76,11 +77,13 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </div>
                         <div class="collapsible-content hidden">
-                            <div class="grid grid-cols-3 gap-2">
+                            <div class="grid grid-cols-4 gap-2">
                                 <button id="toolTerrainBtn" class="active">Terrain</button>
                                 <button id="toolPencilBtn">Pencil</button>
                                 <button id="toolSelectBtn">Select</button>
                                 <button id="toolWallBtn">Wall</button>
+                                <button id="toolTokenBtn">Token</button>
+                                <button id="toolInteractBtn">Interact</button>
                             </div>
                         </div>
                     </div>
@@ -98,6 +101,7 @@
                                 <option value="line">Line</option>
                                 <option value="rectangle">Rectangle</option>
                                 <option value="ellipse">Ellipse</option>
+                                <option value="polygon">Polygon</option>
                             </select>
                             <label for="brushSize">Brush/Object Size: <span id="brushSizeValue">1</span></label>
                             <input type="range" id="brushSize" min="1" max="10" value="1" class="mb-3">
@@ -132,6 +136,26 @@
                                 <input type="checkbox" id="pencilGmOnlyCheckbox" class="h-4 w-4 rounded !mb-0">
                                 <label for="pencilGmOnlyCheckbox" class="ml-2 !mb-0 text-sm">Draw as GM-Only (Secret)</label>
                             </div>
+                        </div>
+                    </div>
+
+                    <div id="tokenOptionsPanel" class="control-panel mb-4 hidden">
+                        <div class="collapsible-header collapsed">
+                            <h3>Token Options</h3>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </div>
+                        <div class="collapsible-content hidden">
+                            <label for="tokenLightRadius">Light Radius (in hexes): <span id="tokenLightRadiusValue">5</span></label>
+                            <input type="range" id="tokenLightRadius" min="0" max="30" value="5" class="mb-2">
+                             <div class="grid grid-cols-2 gap-4 items-center">
+                                 <div>
+                                     <label for="tokenColor" class="text-sm">Color</label>
+                                     <input type="color" id="tokenColor" value="#facc15" class="!p-1 !h-9 !mb-0">
+                                 </div>
+                                 <div class="flex items-center justify-end pt-5">
+                                     <button id="deleteTokenBtn" class="w-full">Delete Token</button>
+                                 </div>
+                             </div>
                         </div>
                     </div>
 
@@ -362,6 +386,33 @@
                         <textarea id="aiDataEditPrompt" placeholder="e.g., Draw a road through the selected area. Fill the selection with forest." class="mb-2"></textarea>
                         <button id="applyAiDataEditBtn">Apply AI Edit</button>
                     </div>
+
+                    <!-- NEW: AI Macro Generation Panel -->
+                    <div id="aiMacroGenerationPanel" class="control-panel">
+                        <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">AI Macro Generation</h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <h5 class="text-sm font-semibold mb-2">Hexcrawl Generator</h5>
+                                <label for="aiHexcrawlPrompt">Describe the region</label>
+                                <textarea id="aiHexcrawlPrompt" placeholder="e.g., A haunted forest region with a lost temple and a goblin camp." class="mb-2"></textarea>
+                                <label for="hexcrawlHexCount">Number of Hexes to Detail</label>
+                                <input type="number" id="hexcrawlHexCount" value="10" min="1" max="50" class="mb-2">
+                                <button id="generateHexcrawlBtn">Generate Hexcrawl</button>
+                            </div>
+                            <div>
+                                <h5 class="text-sm font-semibold mb-2">Pointcrawl Generator</h5>
+                                <label for="aiPointcrawlPrompt">Describe the area or city</label>
+                                <textarea id="aiPointcrawlPrompt" placeholder="e.g., The port district of a bustling trade city with a tavern, a warehouse, and a smuggler's den." class="mb-2"></textarea>
+                                <button id="generatePointcrawlBtn">Generate Pointcrawl</button>
+                            </div>
+                        </div>
+                    </div>
+                     <!-- NEW: AI Adventure Writing Panel -->
+                    <div id="aiAdventureWritingPanel" class="control-panel" style="grid-column: 1 / -1;">
+                        <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">AI Adventure Writing</h4>
+                        <p class="text-xs text-gray-400 mb-2">Automatically generate descriptive text for the numbered rooms on your map.</p>
+                        <button id="generateKeyBtn">Generate Dungeon Key</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -402,6 +453,20 @@
             </div>
         </div>
     </div>
+    
+    <!-- Generated Key Modal -->
+    <div id="dungeonKeyModal" class="modal-backdrop hidden">
+        <div class="bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl text-white flex flex-col" style="max-height: 90vh;">
+            <div class="flex justify-between items-center p-4 border-b border-gray-700">
+                <h3 class="text-xl font-bold">Generated Dungeon Key</h3>
+                <button id="keyModalCloseBtn" class="p-2 rounded-full hover:bg-gray-700">&times;</button>
+            </div>
+            <div id="dungeonKeyContent" class="p-6 overflow-y-auto text-sm text-gray-300 space-y-4">
+                <!-- Key content will be injected here -->
+            </div>
+        </div>
+    </div>
+
 
     <script type="module" src="mmscript.js"></script>
 </body>
