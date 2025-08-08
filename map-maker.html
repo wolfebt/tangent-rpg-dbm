@@ -46,6 +46,11 @@
                         <button id="mapKeyBtn" class="ml-1 p-1 rounded-md hover:bg-gray-700" title="Toggle Map Key">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4a6.5 6.5 0 1 0-4-4Z"/><circle cx="16.5" cy="7.5" r=".5"/></svg>
                         </button>
+                        <!-- GM View Toggle Button -->
+                        <button id="gmViewToggleBtn" class="ml-1 p-1 rounded-md hover:bg-gray-700" title="Toggle GM View">
+                            <svg id="gmViewIconOn" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            <svg id="gmViewIconOff" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                        </button>
                     </div>
                     <div class="flex items-center">
                         <button id="fileMenuBtn" class="p-2 rounded-md hover:bg-gray-700">
@@ -71,9 +76,11 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </div>
                         <div class="collapsible-content hidden">
-                            <div class="grid grid-cols-2 gap-2">
+                            <div class="grid grid-cols-3 gap-2">
                                 <button id="toolTerrainBtn" class="active">Terrain</button>
                                 <button id="toolPencilBtn">Pencil</button>
+                                <button id="toolSelectBtn">Select</button>
+                                <button id="toolWallBtn">Wall</button>
                             </div>
                         </div>
                     </div>
@@ -120,6 +127,28 @@
                                     <input type="range" id="pencilWidth" min="1" max="50" value="5" class="!mb-0">
                                 </div>
                             </div>
+                            <!-- GM Only Checkbox for Pencil -->
+                            <div class="flex items-center mt-4">
+                                <input type="checkbox" id="pencilGmOnlyCheckbox" class="h-4 w-4 rounded !mb-0">
+                                <label for="pencilGmOnlyCheckbox" class="ml-2 !mb-0 text-sm">Draw as GM-Only (Secret)</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- NEW: Fog of War Panel -->
+                    <div id="fogPanel" class="control-panel mb-4">
+                        <div class="collapsible-header collapsed">
+                            <h3>Fog of War</h3>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </div>
+                        <div class="collapsible-content hidden">
+                            <div class="grid grid-cols-2 gap-2">
+                                <button id="toolFogRevealBtn">Reveal</button>
+                                <button id="toolFogHideBtn">Hide</button>
+                            </div>
+                            <label for="fogBrushSize" class="mt-4">Brush Size: <span id="fogBrushSizeValue">5</span></label>
+                            <input type="range" id="fogBrushSize" min="1" max="20" value="5" class="mb-2">
+                            <button id="resetFogBtn" class="w-full">Reset Fog (Cover All)</button>
                         </div>
                     </div>
                     
@@ -192,13 +221,18 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </div>
                          <div id="objectContent" class="collapsible-content hidden">
+                            <!-- GM Only Checkbox for Objects -->
+                            <div class="flex items-center mb-2">
+                                <input type="checkbox" id="objectGmOnlyCheckbox" class="h-4 w-4 rounded !mb-0">
+                                <label for="objectGmOnlyCheckbox" class="ml-2 !mb-0 text-sm">Place as GM-Only (Secret)</label>
+                            </div>
                             <div id="objectSelector" class="flex flex-col gap-2"></div>
                          </div>
                     </div>
 
                     <div id="textToolPanel" class="control-panel mb-4">
                         <div id="textHeader" class="collapsible-header collapsed">
-                            <h3>Text</h3>
+                            <h3>Text & GM Notes</h3>
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </div>
                          <div id="textContent" class="collapsible-content hidden">
@@ -213,6 +247,11 @@
                                      <label for="fontColorInput">Color</label>
                                      <input type="color" id="fontColorInput" value="#FFFFFF">
                                 </div>
+                            </div>
+                            <!-- GM Only Checkbox for Text -->
+                            <div class="flex items-center mt-2">
+                                <input type="checkbox" id="textGmOnlyCheckbox" class="h-4 w-4 rounded !mb-0">
+                                <label for="textGmOnlyCheckbox" class="ml-2 !mb-0 text-sm">Place as GM-Only (Secret)</label>
                             </div>
                          </div>
                     </div>
@@ -286,8 +325,10 @@
         <!-- Canvas Area -->
         <div id="canvas-container">
             <canvas id="mapCanvas"></canvas>
+            <canvas id="wallCanvas"></canvas>
             <canvas id="maskCanvas"></canvas>
             <canvas id="drawingCanvas"></canvas>
+            <canvas id="fogCanvas"></canvas>
             
             <!-- AI Bottom Panel -->
             <div id="aiBottomPanel" class="closed">
@@ -296,208 +337,30 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
                 </div>
                 <div id="aiBottomPanelContent">
-                    <div id="aiAssistantPanel" class="control-panel">
-                        <!-- Step 1: Landform -->
-                        <div id="aiStep1" class="ai-step active-step">
-                            <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Step 1: Generate Landform</h4>
-                            <label for="aiLandformPrompt">Describe the land's structure (e.g., mountains, valleys, plains)</label>
-                            <textarea id="aiLandformPrompt" placeholder="e.g., A rugged mountain range with a deep central canyon and rolling foothills to the east." class="mb-2"></textarea>
-                            <label for="artStyle">Art Style</label>
-                            <select id="artStyle" class="mb-2">
-                                <option value="photorealistic">Photorealistic</option>
-                                <option value="painting">Digital Painting</option>
-                                <option value="watercolor">Watercolor</option>
-                                <option value="vintage">Vintage Cartography</option>
-                                <option value="handdrawn">Hand Drawn</option>
-                            </select>
-                            <button id="generateLandformBtn">Generate Landform</button>
-                        </div>
-
-                        <!-- Step 2: Water -->
-                        <div id="aiStep2" class="ai-step">
-                            <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Step 2: Add Water</h4>
-                            <label for="aiWaterPrompt">Describe the water features (e.g., rivers, lakes, coast)</label>
-                            <textarea id="aiWaterPrompt" placeholder="e.g., A single, mighty river flowing from the highest peak down into the canyon, feeding a large lake in the lowlands." class="mb-2"></textarea>
-                            <button id="addWaterBtn">Add Water</button>
-                        </div>
-
-                        <!-- Step 3: Biome -->
-                        <div id="aiStep3" class="ai-step">
-                            <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Step 3: Apply Biome</h4>
-                            <label for="aiBiomePrompt">Describe the terrain and vegetation</label>
-                            <textarea id="aiBiomePrompt" placeholder="e.g., A lush, temperate forest with rocky peaks and snow at the highest elevations. The foothills are grassy plains." class="mb-2"></textarea>
-                            <button id="applyBiomeBtn">Apply Biome</button>
-                        </div>
-                        
-                        <hr class="my-4 border-gray-600">
-
-                        <!-- Manual Edit -->
-                        <div id="aiEditSection">
-                            <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Manual Edit & Stylize</h4>
-                            <label for="aiEditPrompt">Edit Instruction</label>
-                            <textarea id="aiEditPrompt" placeholder="e.g., Make the forest more dense. Or, leave blank and click Apply to stylize your drawings." class="mb-2"></textarea>
-                            <p class="text-xs text-gray-400 -mt-2 mb-3">Use the Mask Tool to apply edits to a specific area.</p>
-                            <div class="grid grid-cols-2 gap-2">
-                                <button id="applyAiEditBtn">Apply AI Edit</button>
-                                <button id="toolMaskBtn">Activate Mask Tool</button>
-                            </div>
-                            <div class="mt-2">
-                                <button id="clearMaskBtn" class="w-full">Clear Mask</button>
-                            </div>
-                        </div>
+                    <!-- AI Layout Generation Panel -->
+                    <div id="aiLayoutGenerationPanel" class="control-panel">
+                        <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">AI Layout Generation</h4>
+                        <label for="aiLayoutPrompt">Describe the layout to generate (e.g., a dungeon, a building)</label>
+                        <textarea id="aiLayoutPrompt" placeholder="e.g., A small, five-room goblin hideout in a cave with a treasure room." class="mb-2"></textarea>
+                        <button id="generateLayoutBtn">Generate Layout</button>
                     </div>
-                    <!-- NEW: Advanced AI Controls -->
-                    <div id="advancedControlsPanel" class="control-panel">
-                        <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Advanced Generation Controls</h4>
-                        
-                        <div class="grid grid-cols-2 gap-4 mb-4">
-                            <div>
-                                <label for="advGenre">Genre</label>
-                                <select id="advGenre">
-                                    <option value="fantasy">Fantasy</option>
-                                    <option value="modern">Modern</option>
-                                    <option value="scifi">Sci-Fi</option>
-                                </select>
-                            </div>
-                             <div>
-                                <label for="advEnvironment">Environment</label>
-                                <select id="advEnvironment">
-                                    <option value="rural">Rural/Wilderness</option>
-                                    <option value="urban">Urban/City</option>
-                                    <option value="interior">Interior/Dungeon</option>
-                                </select>
-                            </div>
-                        </div>
 
-                        <!-- Dynamic Control Sections -->
-                        <div id="adv-fantasy-rural" class="adv-control-group">
-                             <h5 class="text-sm font-bold text-gray-400 mb-2">Fantasy Rural Details</h5>
-                             <label for="fr-territoryStyle">Territory Style</label>
-                             <select id="fr-territoryStyle">
-                                 <option value="">None</option>
-                                 <option value="with clearly defined kingdom borders">Hard Borders</option>
-                                 <option value="with dashed, disputed borderlands">Dashed/Disputed Borders</option>
-                                 <option value="showing the territories as subtle colored overlays">Colored Overlays</option>
-                             </select>
-                             <label for="fr-routeNetwork">Route Network</label>
-                             <select id="fr-routeNetwork">
-                                 <option value="">None</option>
-                                 <option value="featuring a sparse network of ancient roads">Sparse Roads</option>
-                                 <option value="criss-crossed by well-maintained roads and navigable rivers">Developed Roads & Rivers</option>
-                             </select>
-                             <label for="fr-poiDensity">Landmark Density: <span id="fr-poiDensityValue">Medium</span></label>
-                             <input type="range" id="fr-poiDensity" min="0" max="2" value="1" class="!mb-0">
-                        </div>
-                        
-                        <div id="adv-fantasy-urban" class="adv-control-group hidden">
-                            <h5 class="text-sm font-bold text-gray-400 mb-2">Fantasy Urban Details</h5>
-                            <label>District Styles</label>
-                            <div id="fu-districtStyle" class="grid grid-cols-2 gap-2 text-sm mb-2">
-                                <div><input type="checkbox" value="a crowded merchant quarter"> Merchant</div>
-                                <div><input type="checkbox" value="a wealthy noble district"> Noble</div>
-                                <div><input type="checkbox" value="sprawling slums"> Slums</div>
-                                <div><input type="checkbox" value="a busy docks area"> Docks</div>
-                                <div><input type="checkbox" value="a serene temple district"> Temple</div>
-                                <div><input type="checkbox" value="a fortified castle district"> Castle</div>
-                            </div>
-                        </div>
-
-                        <div id="adv-fantasy-interior" class="adv-control-group hidden">
-                            <h5 class="text-sm font-bold text-gray-400 mb-2">Fantasy Interior Details</h5>
-                            <label for="fi-furnishings">Furnishings: <span id="fi-furnishingsValue">Moderate</span></label>
-                            <input type="range" id="fi-furnishings" min="0" max="2" value="1" class="mb-2">
-                            <label for="fi-cover">Tactical Cover: <span id="fi-coverValue">Medium</span></label>
-                            <input type="range" id="fi-cover" min="0" max="2" value="1" class="mb-2">
-                            <label for="fi-hazards">Hazards: <span id="fi-hazardsValue">Low</span></label>
-                            <input type="range" id="fi-hazards" min="0" max="2" value="1" class="mb-2">
-                             <label for="fi-verticality">Elevation</label>
-                            <select id="fi-verticality">
-                                <option value="the area is mostly flat">Flat</option>
-                                <option value="with some ledges and stairs">Ledges/Stairs</option>
-                                <option value="featuring multiple floors and balconies">Multiple Floors</option>
-                            </select>
-                        </div>
-
-                        <div id="adv-modern-rural" class="adv-control-group hidden">
-                             <h5 class="text-sm font-bold text-gray-400 mb-2">Modern Rural Details</h5>
-                             <label for="mr-routeNetwork">Route Network</label>
-                             <select id="mr-routeNetwork">
-                                 <option value="">None</option>
-                                 <option value="with dirt county roads">County Roads</option>
-                                 <option value="with paved highways">Highways</option>
-                                 <option value="with railway lines">Railway</option>
-                             </select>
-                             <label for="mr-poiDensity">Building Density: <span id="mr-poiDensityValue">Medium</span></label>
-                             <input type="range" id="mr-poiDensity" min="0" max="2" value="1" class="!mb-0">
-                        </div>
-
-                        <div id="adv-modern-urban" class="adv-control-group hidden">
-                            <h5 class="text-sm font-bold text-gray-400 mb-2">Modern Urban Details</h5>
-                            <label>District Styles</label>
-                            <div id="mu-districtStyle" class="grid grid-cols-2 gap-2 text-sm mb-2">
-                                <div><input type="checkbox" value="a downtown area with skyscrapers"> Downtown</div>
-                                <div><input type="checkbox" value="a suburban area with houses"> Suburban</div>
-                                <div><input type="checkbox" value="an industrial zone with warehouses"> Industrial</div>
-                                <div><input type="checkbox" value="a commercial strip with storefronts"> Commercial</div>
-                            </div>
-                        </div>
-
-                        <div id="adv-modern-interior" class="adv-control-group hidden">
-                            <h5 class="text-sm font-bold text-gray-400 mb-2">Modern Interior Details</h5>
-                            <label for="mi-furnishings">Furnishings: <span id="mi-furnishingsValue">Moderate</span></label>
-                            <input type="range" id="mi-furnishings" min="0" max="2" value="1" class="mb-2">
-                            <label for="mi-cover">Tactical Cover: <span id="mi-coverValue">Medium</span></label>
-                            <input type="range" id="mi-cover" min="0" max="2" value="1" class="mb-2">
-                        </div>
-
-                        <div id="adv-scifi-rural" class="adv-control-group hidden">
-                             <h5 class="text-sm font-bold text-gray-400 mb-2">Sci-Fi Rural Details</h5>
-                             <label for="sr-flora">Alien Flora</label>
-                             <select id="sr-flora">
-                                 <option value="">None</option>
-                                 <option value="with bioluminescent mushrooms">Bioluminescent Flora</option>
-                                 <option value="with crystalline trees">Crystalline Trees</option>
-                                 <option value="with bizarre, non-terrestrial plants">General Alien Plants</option>
-                             </select>
-                             <label for="sr-poiDensity">Structure Density: <span id="sr-poiDensityValue">Medium</span></label>
-                             <input type="range" id="sr-poiDensity" min="0" max="2" value="1" class="!mb-0">
-                        </div>
-
-                        <div id="adv-scifi-urban" class="adv-control-group hidden">
-                            <h5 class="text-sm font-bold text-gray-400 mb-2">Sci-Fi Urban Details</h5>
-                            <label>Cityscape Features</label>
-                            <div id="su-districtStyle" class="grid grid-cols-2 gap-2 text-sm mb-2">
-                                <div><input type="checkbox" value="a cyberpunk city with neon signs"> Cyberpunk</div>
-                                <div><input type="checkbox" value="a clean, utopian city with sleek towers"> Utopian</div>
-                                <div><input type="checkbox" value="a sprawling, domed habitat"> Domed City</div>
-                                <div><input type="checkbox" value="a massive arcology"> Arcology</div>
-                            </div>
-                        </div>
-                        
-                        <div id="adv-scifi-interior" class="adv-control-group hidden">
-                            <h5 class="text-sm font-bold text-gray-400 mb-2">Sci-Fi Interior Details</h5>
-                            <label>Key Rooms</label>
-                            <div id="si-rooms" class="grid grid-cols-2 gap-2 text-sm mb-2">
-                                <div><input type="checkbox" value="a command bridge"> Bridge</div>
-                                <div><input type="checkbox" value="a medbay"> Medbay</div>
-                                <div><input type="checkbox" value="an engine room"> Engineering</div>
-                                <div><input type="checkbox" value="a cargo bay"> Cargo Bay</div>
-                                <div><input type="checkbox" value="crew quarters"> Quarters</div>
-                                <div><input type="checkbox" value="a science lab"> Science Lab</div>
-                            </div>
-                             <label for="si-verticality">Elevation</label>
-                            <select id="si-verticality">
-                                <option value="the area is mostly flat">Flat</option>
-                                <option value="with some service ladders and catwalks">Ladders/Catwalks</option>
-                                <option value="featuring multiple decks and elevators">Multiple Decks</option>
-                            </select>
-                        </div>
-                        <button id="imageEnhanceBtn" class="mt-4 w-full">Generate / Enhance Image</button>
+                    <!-- AI Environmental Dressing Panel -->
+                    <div id="aiDressingPanel" class="control-panel">
+                        <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">AI Environmental Dressing</h4>
+                        <p class="text-xs text-gray-400 mb-2">Use the 'Select' tool to choose an area on the map first.</p>
+                        <label for="aiDressingPrompt">Describe the area to be decorated</label>
+                        <textarea id="aiDressingPrompt" placeholder="e.g., A messy barracks with beds and a weapon rack. A wizard's laboratory." class="mb-2"></textarea>
+                        <button id="dressAreaBtn">Dress Selected Area</button>
                     </div>
-                    <div id="promptEditorPanel" class="control-panel">
-                        <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Last Used AI Prompt</h4>
-                        <textarea id="lastPromptInput" class="w-full h-24 p-2 rounded border border-gray-600 bg-gray-900 text-gray-300 text-sm" readonly></textarea>
-                        <button id="regenerateBtn" class="mt-2 w-full">Edit & Regenerate</button>
+                    
+                    <!-- REFINED: AI Data-Driven Edit Panel -->
+                    <div id="aiDataEditPanel" class="control-panel">
+                        <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">AI Data-Driven Edit</h4>
+                        <p class="text-xs text-gray-400 mb-2">Use the 'Select' tool to choose an area, then describe the change.</p>
+                        <label for="aiDataEditPrompt">Edit Instruction</label>
+                        <textarea id="aiDataEditPrompt" placeholder="e.g., Draw a road through the selected area. Fill the selection with forest." class="mb-2"></textarea>
+                        <button id="applyAiDataEditBtn">Apply AI Edit</button>
                     </div>
                 </div>
             </div>
