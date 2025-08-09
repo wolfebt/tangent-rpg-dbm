@@ -1,4 +1,6 @@
-// Version 4.22 - AI Dungeon Key Generator
+// Version 4.23 - Map Tools & Core Logic (Refactored)
+import * as state from './state.js';
+
 document.addEventListener('DOMContentLoaded', () => {
     // --- UI Elements ---
     const canvas = document.getElementById('mapCanvas');
@@ -85,22 +87,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const fogBrushSizeValue = document.getElementById('fogBrushSizeValue');
     const resetFogBtn = document.getElementById('resetFogBtn');
     
-    // AI Step UI
-    const aiBottomPanel = document.getElementById('aiBottomPanel');
-    const aiBottomPanelHeader = document.getElementById('aiBottomPanelHeader');
-    const aiLayoutPrompt = document.getElementById('aiLayoutPrompt');
-    const generateLayoutBtn = document.getElementById('generateLayoutBtn');
-    const aiDressingPrompt = document.getElementById('aiDressingPrompt');
-    const dressAreaBtn = document.getElementById('dressAreaBtn');
-    const aiDataEditPrompt = document.getElementById('aiDataEditPrompt');
-    const applyAiDataEditBtn = document.getElementById('applyAiDataEditBtn');
-    const aiHexcrawlPrompt = document.getElementById('aiHexcrawlPrompt');
-    const hexcrawlHexCount = document.getElementById('hexcrawlHexCount');
-    const generateHexcrawlBtn = document.getElementById('generateHexcrawlBtn');
-    const aiPointcrawlPrompt = document.getElementById('aiPointcrawlPrompt');
-    const generatePointcrawlBtn = document.getElementById('generatePointcrawlBtn');
-    const generateKeyBtn = document.getElementById('generateKeyBtn');
-    
     // Map Key UI
     const mapKeyBtn = document.getElementById('mapKeyBtn');
     const mapKeyWindow = document.getElementById('mapKeyWindow');
@@ -108,34 +94,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const mapKeyContent = document.getElementById('mapKeyContent');
     const mapKeyCloseBtn = document.getElementById('mapKeyCloseBtn');
     const gridTypeSelect = document.getElementById('gridTypeSelect');
-
-    // Dungeon Key Modal UI
-    const dungeonKeyModal = document.getElementById('dungeonKeyModal');
-    const keyModalCloseBtn = document.getElementById('keyModalCloseBtn');
-    const dungeonKeyContent = document.getElementById('dungeonKeyContent');
-
     
     // --- Configuration ---
     const baseHexSize = 30; 
     const baseSquareSize = 40;
     
-    // --- State ---
-    let terrains = {}; // Will be loaded from JSON
-    let assetManifest = {}; // Will be loaded from JSON
-    let gridType = 'hex';
-    let mapGrid = {}; 
-    let mapName = '';
-    let layers = [];
-    let activeLayerIndex = 0;
-    let currentTool = 'terrain';
-    let nextClickAction = null;
-    let terrainBrushMode = 'hex';
-    let pencilBrushMode = 'freestyle';
-    let brushSize = 1;
-    let selectedTerrain = 'grass';
-    let selectedObjectKey = 'fantasy_world_tree';
-    let view = { zoom: 1, offsetX: 0, offsetY: 0 };
-    let gridColor = '#111827';
+    // --- Local State (Not shared) ---
     let isPanning = false;
     let panStart = { x: 0, y: 0 };
     let isDrawingShape = false;
@@ -147,18 +111,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let pencilWidth = 5;
     let isPenciling = false;
     let currentPencilPath = null;
-    let pencilPaths = [];
     let freestyleTerrainPaths = [];
     let currentFreestyleTerrainPath = null;
     let undoStack = [];
     let redoStack = [];
-    let currentGenre = 'fantasy';
-    let currentScale = 'world';
-    let placedAssets = [];
     let selectedPlacedAssetIndex = null;
     let isDragging = false;
     let dragOffsetX, dragOffsetY;
-    let apiKey = '';
     let isDraggingKey = false;
     let keyDragOffset = { x: 0, y: 0 };
     let assetCache = {};
@@ -178,9 +137,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let isDrawingPolygon = false;
     let currentPolygonPoints = [];
 
-    // --- Data Definitions ---
-    // Data is now loaded dynamically in the initialize() function
-
     // --- Function Definitions ---
 
     function throttle(func, limit) {
@@ -197,9 +153,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function loadAssets() {
-        const promises = Object.keys(assetManifest).map(id => {
+        const promises = Object.keys(state.assetManifest).map(id => {
             return new Promise((resolve) => {
-                const asset = assetManifest[id];
+                const asset = state.assetManifest[id];
                 const img = new Image();
                 img.src = asset.src;
                 img.onload = () => {
@@ -252,22 +208,25 @@ document.addEventListener('DOMContentLoaded', () => {
     function generateBaseMap() {
         const width = mapWidthInput.value;
         const height = mapHeightInput.value;
-        mapGrid = generateBaseMapGrid(width, height);
         
-        layers = [
-            { name: 'Ground', visible: true, data: {}, backgroundImage: null }, 
-            { name: 'Objects', visible: true, data: {} }
-        ];
-        pencilPaths = [];
+        state.setState({
+            mapGrid: generateBaseMapGrid(width, height),
+            layers: [
+                { name: 'Ground', visible: true, data: {}, backgroundImage: null }, 
+                { name: 'Objects', visible: true, data: {} }
+            ],
+            pencilPaths: [],
+            placedAssets: [],
+            mapName: generateRandomId(16),
+            activeLayerIndex: 0
+        });
+        
         freestyleTerrainPaths = [];
-        placedAssets = [];
         wallLines = [];
         tokens = [];
         undoStack = [];
         redoStack = [];
-        activeLayerIndex = 0;
-        mapName = generateRandomId(16);
-        mapNameInput.value = mapName;
+        mapNameInput.value = state.mapName;
         renderLayers();
         updateUndoRedoButtons();
         updateMapKey();
@@ -279,7 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const w = parseInt(width);
         const h = parseInt(height);
 
-        if (gridType === 'hex') {
+        if (state.gridType === 'hex') {
             for (let row = 0; row < h; row++) {
                 const r_offset = Math.floor(row / 2);
                 for (let col = -r_offset; col < w - r_offset; col++) {
@@ -297,17 +256,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function centerView() {
-        if (Object.keys(mapGrid).length === 0 || canvas.width === 0) return;
+        if (Object.keys(state.mapGrid).length === 0 || canvas.width === 0) return;
 
         const {mapPixelWidth, mapPixelHeight, mapCenterX, mapCenterY} = getMapPixelBounds();
 
         if(mapPixelWidth === 0 || mapPixelHeight === 0) return;
 
-        view.zoom = Math.min(canvas.width / mapPixelWidth, canvas.height / mapPixelHeight) * 0.9;
-        view.zoom = Math.max(0.1, Math.min(5, view.zoom));
+        let newZoom = Math.min(canvas.width / mapPixelWidth, canvas.height / mapPixelHeight) * 0.9;
+        newZoom = Math.max(0.1, Math.min(5, newZoom));
 
-        view.offsetX = (canvas.width / 2) - (mapCenterX * view.zoom);
-        view.offsetY = (canvas.height / 2) - (mapCenterY * view.zoom);
+        state.setState({
+            view: {
+                zoom: newZoom,
+                offsetX: (canvas.width / 2) - (mapCenterX * newZoom),
+                offsetY: (canvas.height / 2) - (mapCenterY * newZoom)
+            }
+        });
         drawAll();
     }
 
@@ -318,10 +282,10 @@ document.addEventListener('DOMContentLoaded', () => {
             drawingCtx.clearRect(0,0, drawingCanvas.width, drawingCanvas.height);
             
             const viewBounds = {
-                minX: -view.offsetX / view.zoom,
-                minY: -view.offsetY / view.zoom,
-                maxX: (canvas.width - view.offsetX) / view.zoom,
-                maxY: (canvas.height - view.offsetY) / view.zoom,
+                minX: -state.view.offsetX / state.view.zoom,
+                minY: -state.view.offsetY / state.view.zoom,
+                maxX: (canvas.width - state.view.offsetX) / state.view.zoom,
+                maxY: (canvas.height - state.view.offsetY) / state.view.zoom,
             };
 
             drawFrame(ctx, null, {}, viewBounds);
@@ -340,17 +304,23 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             if (selectedPlacedAssetIndex !== null) {
-                const asset = placedAssets[selectedPlacedAssetIndex];
+                const asset = state.placedAssets[selectedPlacedAssetIndex];
                 if(asset) {
                     if (!isGmViewActive && asset.gmOnly) return;
+                    const {x, y} = (state.gridType === 'hex') ? hexToPixel(asset.q, asset.r) : squareToPixel(asset.q, asset.r);
+                    const size = (state.gridType === 'hex' ? baseHexSize : baseSquareSize) * 1.2 * (asset.size || 1) * (asset.scale || 1);
+                    
                     drawingCtx.save();
-                    drawingCtx.translate(view.offsetX, view.offsetY);
-                    drawingCtx.scale(view.zoom, view.zoom);
+                    drawingCtx.translate(state.view.offsetX, state.view.offsetY);
+                    drawingCtx.scale(state.view.zoom, state.view.zoom);
+                    
+                    drawingCtx.translate(x, y);
+                    drawingCtx.rotate(asset.rotation || 0);
+                    
                     drawingCtx.strokeStyle = '#3b82f6';
-                    drawingCtx.lineWidth = 2 / view.zoom;
-                    const {x, y} = (gridType === 'hex') ? hexToPixel(asset.q, asset.r) : squareToPixel(asset.q, asset.r);
-                    const size = (gridType === 'hex' ? baseHexSize : baseSquareSize) * 1.2 * asset.size;
-                    drawingCtx.strokeRect(x - size / 2, y - size / 2, size, size);
+                    drawingCtx.lineWidth = 2 / state.view.zoom;
+                    drawingCtx.strokeRect(-size / 2, -size / 2, size, size);
+                    
                     drawingCtx.restore();
                 }
             }
@@ -360,22 +330,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function drawGrid(targetCtx, viewBounds) {
          targetCtx.save();
-         targetCtx.translate(view.offsetX, view.offsetY);
-         targetCtx.scale(view.zoom, view.zoom);
+         targetCtx.translate(state.view.offsetX, state.view.offsetY);
+         targetCtx.scale(state.view.zoom, state.view.zoom);
 
-         for (const key in mapGrid) {
+         for (const key in state.mapGrid) {
             const coords = key.split(',').map(Number);
-            const { x, y } = (gridType === 'hex') ? hexToPixel(coords[0], coords[1]) : squareToPixel(coords[0], coords[1]);
+            const { x, y } = (state.gridType === 'hex') ? hexToPixel(coords[0], coords[1]) : squareToPixel(coords[0], coords[1]);
             
-            const size = gridType === 'hex' ? baseHexSize : baseSquareSize;
+            const size = state.gridType === 'hex' ? baseHexSize : baseSquareSize;
             if (x + size < viewBounds.minX || x - size > viewBounds.maxX || y + size < viewBounds.minY || y - size > viewBounds.maxY) {
                 continue;
             }
 
-            if (gridType === 'hex') {
-                drawHexOutline(targetCtx, x, y, gridColor);
+            if (state.gridType === 'hex') {
+                drawHexOutline(targetCtx, x, y, state.gridColor);
             } else {
-                drawSquareOutline(targetCtx, x, y, gridColor);
+                drawSquareOutline(targetCtx, x, y, state.gridColor);
             }
         }
         targetCtx.restore();
@@ -390,11 +360,11 @@ document.addEventListener('DOMContentLoaded', () => {
             targetCtx.clearRect(0, 0, bounds.width, bounds.height);
             targetCtx.translate(-bounds.minPxX, -bounds.minPxY);
         } else { 
-            targetCtx.translate(view.offsetX, view.offsetY);
-            targetCtx.scale(view.zoom, view.zoom);
+            targetCtx.translate(state.view.offsetX, state.view.offsetY);
+            targetCtx.scale(state.view.zoom, state.view.zoom);
         }
 
-        layers.forEach(layer => {
+        state.layers.forEach(layer => {
             if (!layer.visible) return;
 
             if (layer.backgroundImage && layer.backgroundImage.complete) {
@@ -407,20 +377,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 if ((!isGmViewActive || isPlayerFacing) && hexData.gmOnly) continue;
 
                 const coords = key.split(',').map(Number);
-                const {x, y} = (gridType === 'hex') ? hexToPixel(coords[0], coords[1]) : squareToPixel(coords[0], coords[1]);
+                const {x, y} = (state.gridType === 'hex') ? hexToPixel(coords[0], coords[1]) : squareToPixel(coords[0], coords[1]);
 
                 if (viewBounds) {
-                    const size = gridType === 'hex' ? baseHexSize : baseSquareSize;
+                    const size = state.gridType === 'hex' ? baseHexSize : baseSquareSize;
                     if (x + size < viewBounds.minX || x - size > viewBounds.maxX || y + size < viewBounds.minY || y - size > viewBounds.maxY) {
                         continue;
                     }
                 }
 
                 if (hexData.terrain) {
-                    if (gridType === 'hex') {
-                        drawHex(targetCtx, x, y, terrains[hexData.terrain]);
+                    if (state.gridType === 'hex') {
+                        drawHex(targetCtx, x, y, state.terrains[hexData.terrain]);
                     } else {
-                        drawSquare(targetCtx, x, y, terrains[hexData.terrain]);
+                        drawSquare(targetCtx, x, y, state.terrains[hexData.terrain]);
                     }
                 }
                 if (hexData.text) {
@@ -429,18 +399,18 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
-        placedAssets.forEach(asset => {
+        state.placedAssets.forEach(asset => {
             if ((!isGmViewActive || isPlayerFacing) && asset.gmOnly) return;
-            const {x, y} = (gridType === 'hex') ? hexToPixel(asset.q, asset.r) : squareToPixel(asset.q, asset.r);
+            const {x, y} = (state.gridType === 'hex') ? hexToPixel(asset.q, asset.r) : squareToPixel(asset.q, asset.r);
 
             if (viewBounds) {
-                const size = (gridType === 'hex' ? baseHexSize : baseSquareSize) * 1.5 * asset.size;
+                const size = (state.gridType === 'hex' ? baseHexSize : baseSquareSize) * 1.5 * (asset.size || 1) * (asset.scale || 1);
                  if (x + size < viewBounds.minX || x - size > viewBounds.maxX || y + size < viewBounds.minY || y - size > viewBounds.maxY) {
                     return;
                 }
             }
 
-            drawObject(targetCtx, x, y, asset.assetId, asset.size, asset.gmOnly);
+            drawObject(targetCtx, x, y, asset.assetId, asset.size, asset.gmOnly, asset.rotation, asset.scale);
         });
         
         targetCtx.restore();
@@ -487,41 +457,43 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         targetCtx.closePath();
         targetCtx.strokeStyle = strokeStyle;
-        targetCtx.lineWidth = 1.5 / view.zoom; 
+        targetCtx.lineWidth = 1.5 / state.view.zoom; 
         targetCtx.stroke();
     }
 
     function drawSquareOutline(targetCtx, x, y, strokeStyle) {
         targetCtx.strokeStyle = strokeStyle;
-        targetCtx.lineWidth = 1.5 / view.zoom;
+        targetCtx.lineWidth = 1.5 / state.view.zoom;
         targetCtx.strokeRect(x - baseSquareSize / 2, y - baseSquareSize / 2, baseSquareSize, baseSquareSize);
     }
 
-     function drawObject(targetCtx, x, y, assetId, size = 1, isGmOnly = false) {
+     function drawObject(targetCtx, x, y, assetId, size = 1, isGmOnly = false, rotation = 0, scale = 1) {
         const assetImage = assetCache[assetId];
         targetCtx.save();
+        
+        targetCtx.translate(x, y);
+        targetCtx.rotate(rotation);
         
         if (isGmViewActive && isGmOnly) {
             targetCtx.globalAlpha = 0.6;
         }
 
+        const objectSize = (state.gridType === 'hex' ? baseHexSize : baseSquareSize) * 1.5 * size * scale;
+
         if (assetImage && assetImage.complete) {
-            const objectSize = (gridType === 'hex' ? baseHexSize : baseSquareSize) * 1.5 * size;
-            targetCtx.drawImage(assetImage, x - objectSize / 2, y - objectSize / 2, objectSize, objectSize);
+            targetCtx.drawImage(assetImage, -objectSize / 2, -objectSize / 2, objectSize, objectSize);
         } else {
-            const objectSize = (gridType === 'hex' ? baseHexSize : baseSquareSize) * 1.2 * size;
             targetCtx.font = `${objectSize}px Arial`;
             targetCtx.textAlign = 'center';
             targetCtx.textBaseline = 'middle';
-            targetCtx.fillText('?', x, y);
+            targetCtx.fillText('?', 0, 0);
         }
 
         if (isGmViewActive && isGmOnly) {
             targetCtx.globalAlpha = 1.0;
-            const objectSize = (gridType === 'hex' ? baseHexSize : baseSquareSize) * 1.5 * size;
             targetCtx.strokeStyle = 'rgba(239, 68, 68, 0.8)'; // red-500
-            targetCtx.lineWidth = 3 / view.zoom;
-            targetCtx.strokeRect(x - objectSize/2, y - objectSize/2, objectSize, objectSize);
+            targetCtx.lineWidth = 3 / state.view.zoom;
+            targetCtx.strokeRect(-objectSize/2, -objectSize/2, objectSize, objectSize);
         }
         targetCtx.restore();
     }
@@ -542,8 +514,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function drawFreestyleTerrainPaths(targetCtx) {
         targetCtx.save();
-        targetCtx.translate(view.offsetX, view.offsetY);
-        targetCtx.scale(view.zoom, view.zoom);
+        targetCtx.translate(state.view.offsetX, state.view.offsetY);
+        targetCtx.scale(state.view.zoom, state.view.zoom);
         
         const allPaths = [...freestyleTerrainPaths];
         if(isPainting && currentFreestyleTerrainPath) {
@@ -552,7 +524,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         allPaths.forEach(path => {
             if (path.points.length < 1) return;
-            const terrain = terrains[path.terrain];
+            const terrain = state.terrains[path.terrain];
             if (!terrain || !terrain.canvasPattern) return;
 
             targetCtx.strokeStyle = terrain.canvasPattern;
@@ -579,10 +551,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function drawPencilPaths(targetCtx) {
         targetCtx.save();
-        targetCtx.translate(view.offsetX, view.offsetY);
-        targetCtx.scale(view.zoom, view.zoom);
+        targetCtx.translate(state.view.offsetX, state.view.offsetY);
+        targetCtx.scale(state.view.zoom, state.view.zoom);
         
-        const allPaths = [...pencilPaths];
+        const allPaths = [...state.pencilPaths];
         if(isPenciling && currentPencilPath) {
             allPaths.push(currentPencilPath);
         }
@@ -632,8 +604,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function drawWalls(targetCtx, viewBounds) {
         targetCtx.save();
-        targetCtx.translate(view.offsetX, view.offsetY);
-        targetCtx.scale(view.zoom, view.zoom);
+        targetCtx.translate(state.view.offsetX, state.view.offsetY);
+        targetCtx.scale(state.view.zoom, state.view.zoom);
         targetCtx.lineCap = 'round';
 
         wallLines.forEach(wall => {
@@ -642,7 +614,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!inView) return;
             
             targetCtx.strokeStyle = wall.blocksVision ? 'rgba(255, 255, 0, 0.8)' : 'rgba(255, 255, 0, 0.2)';
-            targetCtx.lineWidth = wall.blocksVision ? 5 / view.zoom : 2 / view.zoom;
+            targetCtx.lineWidth = wall.blocksVision ? 5 / state.view.zoom : 2 / state.view.zoom;
 
             targetCtx.beginPath();
             targetCtx.moveTo(wall.start.x, wall.start.y);
@@ -675,14 +647,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function getMapPixelBounds() {
         let minPxX = Infinity, maxPxX = -Infinity, minPxY = Infinity, maxPxY = -Infinity;
         
-        if (Object.keys(mapGrid).length === 0) {
+        if (Object.keys(state.mapGrid).length === 0) {
             return { minPxX: 0, maxPxX: 0, minPxY: 0, maxPxY: 0, mapPixelWidth: 0, mapPixelHeight: 0, mapCenterX: 0, mapCenterY: 0};
         }
 
-        if (gridType === 'hex') {
+        if (state.gridType === 'hex') {
             const hexVisualWidth = baseHexSize * Math.sqrt(3);
             const hexVisualHeight = baseHexSize * 2;
-            for (const key in mapGrid) {
+            for (const key in state.mapGrid) {
                 const [q, r] = key.split(',').map(Number);
                 const { x, y } = hexToPixel(q, r);
                 minPxX = Math.min(minPxX, x - hexVisualWidth / 2);
@@ -691,7 +663,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 maxPxY = Math.max(maxPxY, y + hexVisualHeight / 2);
             }
         } else { // square
-            for (const key in mapGrid) {
+            for (const key in state.mapGrid) {
                 const [q, r] = key.split(',').map(Number);
                 const { x, y } = squareToPixel(q, r);
                 minPxX = Math.min(minPxX, x - baseSquareSize / 2);
@@ -715,8 +687,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function pixelToHex(x, y) {
-        const worldX = (x - view.offsetX) / view.zoom;
-        const worldY = (y - view.offsetY) / view.zoom;
+        const worldX = (x - state.view.offsetX) / state.view.zoom;
+        const worldY = (y - state.view.offsetY) / state.view.zoom;
 
         const q_frac = (Math.sqrt(3) / 3 * worldX - 1 / 3 * worldY) / baseHexSize;
         const r_frac = (2 / 3 * worldY) / baseHexSize;
@@ -731,20 +703,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function pixelToSquare(px, py) {
-        const worldX = (px - view.offsetX) / view.zoom;
-        const worldY = (py - view.offsetY) / view.zoom;
+        const worldX = (px - state.view.offsetX) / state.view.zoom;
+        const worldY = (py - state.view.offsetY) / state.view.zoom;
         return {
             x: Math.floor(worldX / baseSquareSize),
             y: Math.floor(worldY / baseSquareSize)
         };
     }
 
-    function pixelToGrid(px, py, isFreeform = false) {
-        const worldX = (px - view.offsetX) / view.zoom;
-        const worldY = (py - view.offsetY) / view.zoom;
+    window.pixelToGrid = function(px, py, isFreeform = false) {
+        const worldX = (px - state.view.offsetX) / state.view.zoom;
+        const worldY = (py - state.view.offsetY) / state.view.zoom;
         if(isFreeform) return { x: worldX, y: worldY };
 
-        if (gridType === 'hex') {
+        if (state.gridType === 'hex') {
             const q_frac = (Math.sqrt(3) / 3 * worldX - 1 / 3 * worldY) / baseHexSize;
             const r_frac = (2 / 3 * worldY) / baseHexSize;
             return axialRound(q_frac, r_frac);
@@ -783,8 +755,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function getTopTerrains() {
         const topTerrains = {};
-        for (let i = 0; i < layers.length; i++) {
-            const layer = layers[i];
+        for (let i = 0; i < state.layers.length; i++) {
+            const layer = state.layers[i];
             if (!layer.visible || layer.type === 'grid') continue;
             for (const key in layer.data) {
                 if (layer.data[key].terrain) {
@@ -795,8 +767,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return topTerrains;
     }
 
-    function saveState() {
-        const serializableLayers = layers.map(layer => {
+    window.saveState = function() {
+        const serializableLayers = state.layers.map(layer => {
             const newLayer = { ...layer };
             if (newLayer.backgroundImage && newLayer.backgroundImage.src) {
                 newLayer.backgroundImage = { src: newLayer.backgroundImage.src };
@@ -808,9 +780,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         undoStack.push({
             layers: JSON.parse(JSON.stringify(serializableLayers)),
-            pencilPaths: JSON.parse(JSON.stringify(pencilPaths)),
+            pencilPaths: JSON.parse(JSON.stringify(state.pencilPaths)),
             freestyleTerrainPaths: JSON.parse(JSON.stringify(freestyleTerrainPaths)),
-            placedAssets: JSON.parse(JSON.stringify(placedAssets)),
+            placedAssets: JSON.parse(JSON.stringify(state.placedAssets)),
             wallLines: JSON.parse(JSON.stringify(wallLines)),
             tokens: JSON.parse(JSON.stringify(tokens)),
             fogDataUrl: fogCanvas.toDataURL()
@@ -822,7 +794,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function undo() {
         if (undoStack.length === 0) return;
         
-        const serializableLayers = layers.map(layer => {
+        const serializableLayers = state.layers.map(layer => {
             const newLayer = { ...layer };
             if (newLayer.backgroundImage && newLayer.backgroundImage.src) {
                 newLayer.backgroundImage = { src: newLayer.backgroundImage.src };
@@ -833,9 +805,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         const currentState = {
             layers: JSON.parse(JSON.stringify(serializableLayers)),
-            pencilPaths: JSON.parse(JSON.stringify(pencilPaths)),
+            pencilPaths: JSON.parse(JSON.stringify(state.pencilPaths)),
             freestyleTerrainPaths: JSON.parse(JSON.stringify(freestyleTerrainPaths)),
-            placedAssets: JSON.parse(JSON.stringify(placedAssets)),
+            placedAssets: JSON.parse(JSON.stringify(state.placedAssets)),
             wallLines: JSON.parse(JSON.stringify(wallLines)),
             tokens: JSON.parse(JSON.stringify(tokens)),
             fogDataUrl: fogCanvas.toDataURL()
@@ -843,18 +815,22 @@ document.addEventListener('DOMContentLoaded', () => {
         redoStack.push(currentState);
         
         const previousState = undoStack.pop();
-        layers = previousState.layers.map(layerData => {
-            if (layerData.backgroundImage && layerData.backgroundImage.src) {
-                const img = new Image();
-                img.src = layerData.backgroundImage.src;
-                layerData.backgroundImage = img;
-                img.onload = () => drawAll();
-            }
-            return layerData;
+        
+        state.setState({
+            layers: previousState.layers.map(layerData => {
+                if (layerData.backgroundImage && layerData.backgroundImage.src) {
+                    const img = new Image();
+                    img.src = layerData.backgroundImage.src;
+                    layerData.backgroundImage = img;
+                    img.onload = () => drawAll();
+                }
+                return layerData;
+            }),
+            pencilPaths: previousState.pencilPaths,
+            placedAssets: previousState.placedAssets
         });
-        pencilPaths = previousState.pencilPaths;
+
         freestyleTerrainPaths = previousState.freestyleTerrainPaths;
-        placedAssets = previousState.placedAssets;
         wallLines = previousState.wallLines;
         tokens = previousState.tokens;
         
@@ -874,7 +850,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function redo() {
         if (redoStack.length === 0) return;
         
-        const serializableLayers = layers.map(layer => {
+        const serializableLayers = state.layers.map(layer => {
             const newLayer = { ...layer };
             if (newLayer.backgroundImage && newLayer.backgroundImage.src) {
                 newLayer.backgroundImage = { src: newLayer.backgroundImage.src };
@@ -885,9 +861,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         const currentState = {
             layers: JSON.parse(JSON.stringify(serializableLayers)),
-            pencilPaths: JSON.parse(JSON.stringify(pencilPaths)),
+            pencilPaths: JSON.parse(JSON.stringify(state.pencilPaths)),
             freestyleTerrainPaths: JSON.parse(JSON.stringify(freestyleTerrainPaths)),
-            placedAssets: JSON.parse(JSON.stringify(placedAssets)),
+            placedAssets: JSON.parse(JSON.stringify(state.placedAssets)),
             wallLines: JSON.parse(JSON.stringify(wallLines)),
             tokens: JSON.parse(JSON.stringify(tokens)),
             fogDataUrl: fogCanvas.toDataURL()
@@ -895,18 +871,21 @@ document.addEventListener('DOMContentLoaded', () => {
         undoStack.push(currentState);
 
         const nextState = redoStack.pop();
-        layers = nextState.layers.map(layerData => {
-            if (layerData.backgroundImage && layerData.backgroundImage.src) {
-                const img = new Image();
-                img.src = layerData.backgroundImage.src;
-                layerData.backgroundImage = img;
-                img.onload = () => drawAll();
-            }
-            return layerData;
+        state.setState({
+            layers: nextState.layers.map(layerData => {
+                if (layerData.backgroundImage && layerData.backgroundImage.src) {
+                    const img = new Image();
+                    img.src = layerData.backgroundImage.src;
+                    layerData.backgroundImage = img;
+                    img.onload = () => drawAll();
+                }
+                return layerData;
+            }),
+            pencilPaths: nextState.pencilPaths,
+            placedAssets: nextState.placedAssets
         });
-        pencilPaths = nextState.pencilPaths;
+        
         freestyleTerrainPaths = nextState.freestyleTerrainPaths;
-        placedAssets = nextState.placedAssets;
         wallLines = nextState.wallLines;
         tokens = nextState.tokens;
         
@@ -928,37 +907,38 @@ document.addEventListener('DOMContentLoaded', () => {
         redoBtn.disabled = redoStack.length === 0;
     }
 
-    function applyTool(e, endHex, toolOverride = null) {
-        if (!layers.length) return;
-        const toolToUse = toolOverride || currentTool;
+    function applyTool(e, endHex) {
+        if (!state.layers.length) return;
 
-        const activeLayer = layers[activeLayerIndex];
+        const activeLayer = state.layers[state.activeLayerIndex];
         if (activeLayer.type === 'grid') {
-            showModal("Cannot draw on the Grid layer. Please select another layer.");
+            state.showModal("Cannot draw on the Grid layer. Please select another layer.");
             return;
         }
-        const affectedHexes = getHexesForTool(e, endHex, toolToUse);
+        const affectedHexes = getHexesForTool(e, endHex);
 
         affectedHexes.forEach(hex => {
             const key = `${hex.q},${hex.r}`;
-            if (mapGrid[key]) {
+            if (state.mapGrid[key]) {
                 if (!activeLayer.data[key]) activeLayer.data[key] = {};
                 
-                if (toolToUse === 'terrain') {
-                   activeLayer.data[key] = { ...activeLayer.data[key], terrain: selectedTerrain };
-                } else if (toolToUse === 'placeObject') {
-                    const assetData = assetManifest[selectedObjectKey];
+                if (state.currentTool === 'terrain') {
+                   activeLayer.data[key] = { ...activeLayer.data[key], terrain: state.selectedTerrain };
+                } else if (state.currentTool === 'placeObject') {
+                    const assetData = state.assetManifest[state.selectedObjectKey];
                     if(assetData) {
                         const newAsset = { 
-                            assetId: selectedObjectKey, 
+                            assetId: state.selectedObjectKey, 
                             q: hex.q, 
                             r: hex.r, 
-                            size: brushSize,
-                            gmOnly: objectGmOnlyCheckbox.checked
+                            size: state.brushSize,
+                            gmOnly: objectGmOnlyCheckbox.checked,
+                            rotation: 0,
+                            scale: 1
                         };
-                        placedAssets.push(newAsset);
+                        state.placedAssets.push(newAsset);
                     }
-                } else if (toolToUse === 'placeText') {
+                } else if (state.currentTool === 'placeText') {
                     activeLayer.data[key] = {
                         ...activeLayer.data[key],
                         text: textInput.value,
@@ -966,11 +946,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         textColor: fontColorInput.value,
                         gmOnly: textGmOnlyCheckbox.checked
                     };
-                } else if (toolToUse === 'eraser') {
+                } else if (state.currentTool === 'eraser') {
                    if(activeLayer.data[key]) {
                        delete activeLayer.data[key];
                    }
-                   placedAssets = placedAssets.filter(asset => !(asset.q === hex.q && asset.r === hex.r));
+                   state.setState({ placedAssets: state.placedAssets.filter(asset => !(asset.q === hex.q && asset.r === hex.r)) });
                 }
             }
         });
@@ -978,21 +958,20 @@ document.addEventListener('DOMContentLoaded', () => {
         updateMapKey();
     }
     
-    function getHexesForTool(e, endHex, toolOverride = null) {
-        const toolToUse = toolOverride || currentTool;
+    function getHexesForTool(e, endHex) {
         const rect = canvas.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
         const centerHex = endHex || pixelToGrid(mouseX, mouseY);
         const startHex = shapeStartPoint ? shapeStartPoint : centerHex;
 
-        if (toolToUse === 'terrain') {
-            switch(terrainBrushMode) {
+        if (state.currentTool === 'terrain') {
+            switch(state.terrainBrushMode) {
                 case 'spray':
                 {
                     const results = [];
                     const allHexesInBrush = getHexesInBrush(centerHex);
-                    const density = Math.min(1, 0.1 + (brushSize / 10)); 
+                    const density = Math.min(1, 0.1 + (state.brushSize / 10)); 
                     const numToPick = Math.max(1, Math.floor(allHexesInBrush.length * density));
                     
                     for (let i = 0; i < numToPick; i++) {
@@ -1010,11 +989,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     return getHexesForRectangle(startHex, centerHex);
                 case 'ellipse':
                     return getHexesForEllipse(startHex, centerHex);
-                // Polygon is handled by its own logic, not this function
             }
-        } else if (toolToUse === 'placeObject' || toolToUse === 'placeText') {
+        } else if (state.currentTool === 'placeObject' || state.currentTool === 'placeText') {
              return [centerHex];
-        } else if (toolToUse === 'eraser') {
+        } else if (state.currentTool === 'eraser') {
              return getHexesInBrush(centerHex);
         }
         return [];
@@ -1022,10 +1000,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function getHexesInBrush(centerHex) {
         const results = [];
-        const range = brushSize - 1;
+        const range = state.brushSize - 1;
         for (let q = -range; q <= range; q++) {
             for (let r = Math.max(-range, -q - range); r <= Math.min(range, -q + range); r++) {
-                if (gridType === 'hex') {
+                if (state.gridType === 'hex') {
                      results.push({ q: centerHex.q + q, r: centerHex.r + r });
                 } else {
                      results.push({ q: centerHex.q + q, r: centerHex.r + r });
@@ -1098,10 +1076,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderLayers() {
         layerList.innerHTML = '';
-        layers.forEach((layer, index) => {
+        state.layers.forEach((layer, index) => {
             const item = document.createElement('div');
             item.className = 'layer-item';
-            item.classList.toggle('active', index === activeLayerIndex);
+            item.classList.toggle('active', index === state.activeLayerIndex);
             item.dataset.index = index;
             
             const label = document.createElement('div');
@@ -1128,7 +1106,10 @@ document.addEventListener('DOMContentLoaded', () => {
             downBtn.title = "Move Down";
             downBtn.onclick = (e) => { e.stopPropagation(); moveLayer(index, 1); };
             
-            item.onclick = () => { activeLayerIndex = index; renderLayers(); };
+            item.onclick = () => { 
+                state.setState({ activeLayerIndex: index });
+                renderLayers(); 
+            };
             
             controls.appendChild(visBtn);
             controls.appendChild(upBtn);
@@ -1141,26 +1122,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function addNewLayer(name = 'New Layer') {
         saveState();
-        const newName = name === 'New Layer' ? `${name} ${layers.length + 1}` : name;
-        layers.push({ name: newName, visible: true, data: {}, backgroundImage: null });
-        activeLayerIndex = layers.length - 1;
+        const newName = name === 'New Layer' ? `${name} ${state.layers.length + 1}` : name;
+        state.layers.push({ name: newName, visible: true, data: {}, backgroundImage: null });
+        state.setState({ 
+            layers: state.layers,
+            activeLayerIndex: state.layers.length - 1
+        });
         renderLayers();
     }
 
     function deleteActiveLayer() {
-        const layer = layers[activeLayerIndex];
+        const layer = state.layers[state.activeLayerIndex];
         if (layer.name === 'Ground' || layer.name === 'Objects') {
-            showModal("The Ground and Objects layers cannot be deleted.");
+            state.showModal("The Ground and Objects layers cannot be deleted.");
             return;
         }
-        if (layers.length <= 2) {
-            showModal("You must keep at least the Ground and Objects layers.");
+        if (state.layers.length <= 2) {
+            state.showModal("You must keep at least the Ground and Objects layers.");
             return;
         }
         saveState();
-        layers.splice(activeLayerIndex, 1);
-        if (activeLayerIndex >= layers.length) {
-            activeLayerIndex = layers.length - 1;
+        state.layers.splice(state.activeLayerIndex, 1);
+        if (state.activeLayerIndex >= state.layers.length) {
+            state.setState({ activeLayerIndex: state.layers.length - 1 });
         }
         renderLayers();
         drawAll();
@@ -1168,20 +1152,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function moveLayer(index, direction) {
-        if ((index === 0 && direction === -1) || (index === layers.length - 1 && direction === 1)) {
+        if ((index === 0 && direction === -1) || (index === state.layers.length - 1 && direction === 1)) {
             return;
         }
         saveState();
         const newIndex = index + direction;
-        [layers[index], layers[newIndex]] = [layers[newIndex], layers[index]];
-        activeLayerIndex = newIndex;
+        [state.layers[index], state.layers[newIndex]] = [state.layers[newIndex], state.layers[index]];
+        state.setState({ activeLayerIndex: newIndex });
         renderLayers();
         drawAll();
     }
 
     function toggleLayerVisibility(index) {
         saveState();
-        layers[index].visible = !layers[index].visible;
+        state.layers[index].visible = !state.layers[index].visible;
         renderLayers();
         drawAll();
         updateMapKey();
@@ -1195,7 +1179,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const { mapPixelWidth, mapPixelHeight, minPxX, minPxY } = getMapPixelBounds();
         
         if (mapPixelWidth <= 0 || mapPixelHeight <= 0) {
-            showModal("Cannot save an empty map.");
+            state.showModal("Cannot save an empty map.");
             return;
         }
 
@@ -1229,7 +1213,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const dataUrl = offscreenCanvas.toDataURL('image/png');
         const link = document.createElement('a');
-        link.download = `${getSafeFilename(mapName)}_GM.png`;
+        link.download = `${getSafeFilename(state.mapName)}_GM.png`;
         link.href = dataUrl;
         link.click();
     }
@@ -1239,7 +1223,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const { mapPixelWidth, mapPixelHeight, minPxX, minPxY } = getMapPixelBounds();
         
         if (mapPixelWidth <= 0 || mapPixelHeight <= 0) {
-            showModal("Cannot save an empty map.");
+            state.showModal("Cannot save an empty map.");
             return;
         }
 
@@ -1277,13 +1261,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const dataUrl = offscreenCanvas.toDataURL('image/png');
         const link = document.createElement('a');
-        link.download = `${getSafeFilename(mapName)}_Player.png`;
+        link.download = `${getSafeFilename(state.mapName)}_Player.png`;
         link.href = dataUrl;
         link.click();
     }
 
     function saveAsJSONLogic() {
-        const serializableLayers = layers.map(layer => {
+        const serializableLayers = state.layers.map(layer => {
             const newLayer = { ...layer };
             if (newLayer.backgroundImage && newLayer.backgroundImage.src) {
                 newLayer.backgroundImage = { src: newLayer.backgroundImage.src };
@@ -1294,12 +1278,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         const mapData = {
-            name: mapName,
-            grid: mapGrid,
+            name: state.mapName,
+            grid: state.mapGrid,
             layers: serializableLayers,
-            pencilPaths: pencilPaths,
+            pencilPaths: state.pencilPaths,
             freestyleTerrainPaths: freestyleTerrainPaths,
-            placedAssets: placedAssets,
+            placedAssets: state.placedAssets,
             wallLines: wallLines,
             tokens: tokens,
             fogDataUrl: fogCanvas.toDataURL()
@@ -1308,14 +1292,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const blob = new Blob([jsonString], {type: "application/json"});
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
-        link.download = `${getSafeFilename(mapName)}.json`;
+        link.download = `${getSafeFilename(state.mapName)}.json`;
         link.href = url;
         link.click();
         URL.revokeObjectURL(url);
     }
 
     function promptForMapNameAndSave(saveFunction) {
-        if (mapName.trim() === '' || mapName.toLowerCase().includes('untitled')) {
+        if (state.mapName.trim() === '' || state.mapName.toLowerCase().includes('untitled')) {
             showNamePromptModal(saveFunction);
         } else {
             saveFunction();
@@ -1327,7 +1311,7 @@ document.addEventListener('DOMContentLoaded', () => {
         freestyleTerrainPaths.forEach(path => {
             // For now, freestyle terrain is always visible. Add gmOnly flag later if needed.
             if (path.points.length < 1) return;
-            const terrain = terrains[path.terrain];
+            const terrain = state.terrains[path.terrain];
             if (!terrain || !terrain.canvasPattern) return;
 
             targetCtx.strokeStyle = terrain.canvasPattern;
@@ -1353,7 +1337,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function drawPencilPathsForExport(targetCtx, options = {}) {
         const isPlayerFacing = options.isPlayerFacing || false;
-        pencilPaths.forEach(path => {
+        state.pencilPaths.forEach(path => {
             if (isPlayerFacing && path.gmOnly) return;
              if (path.type === 'freestyle') {
                 if (path.points.length < 2) return;
@@ -1403,23 +1387,26 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const loadedData = JSON.parse(event.target.result);
                 if (loadedData && loadedData.grid && Array.isArray(loadedData.layers)) {
-                    mapGrid = loadedData.grid;
-                    pencilPaths = loadedData.pencilPaths || [];
+                    state.setState({
+                        mapGrid: loadedData.grid,
+                        pencilPaths: loadedData.pencilPaths || [],
+                        placedAssets: loadedData.placedAssets || [],
+                        mapName: loadedData.name || 'Untitled Loaded Map',
+                        layers: loadedData.layers.map(layerData => {
+                            if (layerData.backgroundImage && layerData.backgroundImage.src) {
+                                const img = new Image();
+                                img.src = layerData.backgroundImage.src;
+                                layerData.backgroundImage = img;
+                                img.onload = () => drawAll();
+                            }
+                            return layerData;
+                        }),
+                        activeLayerIndex: 0
+                    });
+
                     freestyleTerrainPaths = loadedData.freestyleTerrainPaths || [];
-                    placedAssets = loadedData.placedAssets || [];
                     wallLines = loadedData.wallLines || [];
                     tokens = loadedData.tokens || [];
-                    mapName = loadedData.name || 'Untitled Loaded Map';
-                    
-                    layers = loadedData.layers.map(layerData => {
-                        if (layerData.backgroundImage && layerData.backgroundImage.src) {
-                            const img = new Image();
-                            img.src = layerData.backgroundImage.src;
-                            layerData.backgroundImage = img;
-                            img.onload = () => drawAll();
-                        }
-                        return layerData;
-                    });
 
                     if (loadedData.fogDataUrl) {
                         const img = new Image();
@@ -1432,8 +1419,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         resetFog();
                     }
 
-                    mapNameInput.value = mapName;
-                    activeLayerIndex = 0;
+                    mapNameInput.value = state.mapName;
                     undoStack = [];
                     redoStack = [];
                     updateUndoRedoButtons();
@@ -1444,7 +1430,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw new Error("Invalid map file format.");
                 }
             } catch (err) {
-                showModal("Error: Could not load map. File may be corrupt or in the wrong format.");
+                state.showModal("Error: Could not load map. File may be corrupt or in the wrong format.");
                 console.error(err);
             }
         };
@@ -1453,7 +1439,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function initializePatterns(targetCtx) {
-        const promises = Object.values(terrains).map(terrain => {
+        const promises = Object.values(state.terrains).map(terrain => {
             return new Promise((resolve, reject) => {
                 const patternEl = document.getElementById(terrain.pattern);
                 if (!patternEl) {
@@ -1508,24 +1494,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function populateSelectors() {
         terrainSelector.innerHTML = '';
-        Object.keys(terrains).forEach(key => {
+        Object.keys(state.terrains).forEach(key => {
             const itemContainer = document.createElement('div');
             itemContainer.className = 'item-container';
             itemContainer.dataset.terrain = key;
             itemContainer.addEventListener('click', () => { 
-                currentTool = 'terrain'; 
-                selectedTerrain = key; 
-                nextClickAction = null;
+                state.setState({
+                    currentTool: 'terrain',
+                    selectedTerrain: key
+                });
                 updateActiveSwatches(); 
             });
             
             const swatch = document.createElement('div');
             swatch.className = 'texture-swatch';
-            swatch.style.backgroundImage = `url(${getPatternDataUri(terrains[key].pattern)})`;
+            swatch.style.backgroundImage = `url(${getPatternDataUri(state.terrains[key].pattern)})`;
             
             const label = document.createElement('div');
             label.className = 'item-label';
-            label.textContent = terrains[key].name;
+            label.textContent = state.terrains[key].name;
 
             itemContainer.appendChild(swatch);
             itemContainer.appendChild(label);
@@ -1533,15 +1520,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         objectSelector.innerHTML = '';
-        Object.keys(assetManifest).forEach(assetId => {
-            const asset = assetManifest[assetId];
-            if (asset.tags.includes(currentGenre) && asset.tags.includes(currentScale)) {
+        Object.keys(state.assetManifest).forEach(assetId => {
+            const asset = state.assetManifest[assetId];
+            if (asset.tags.includes(state.currentGenre) && asset.tags.includes(state.currentScale)) {
                 const itemContainer = document.createElement('div');
                 itemContainer.className = 'item-container';
                 itemContainer.dataset.objectKey = assetId;
                 itemContainer.addEventListener('click', () => { 
-                    nextClickAction = 'placeObject'; 
-                    selectedObjectKey = assetId;
+                    state.setState({
+                        currentTool: 'placeObject',
+                        selectedObjectKey: assetId
+                    });
                     updateActiveSwatches(); 
                 });
                 
@@ -1572,43 +1561,43 @@ document.addEventListener('DOMContentLoaded', () => {
         tokenOptionsPanel.classList.add('hidden');
         canvas.classList.remove('pencil', 'selecting', 'wall-drawing', 'fogging', 'token-placement', 'interact');
 
-        document.querySelector(`#genreSelector .control-btn[data-genre="${currentGenre}"]`)?.classList.add('active');
-        document.querySelector(`#scaleSelector .control-btn[data-scale="${currentScale}"]`)?.classList.add('active');
+        document.querySelector(`#genreSelector .control-btn[data-genre="${state.currentGenre}"]`)?.classList.add('active');
+        document.querySelector(`#scaleSelector .control-btn[data-scale="${state.currentScale}"]`)?.classList.add('active');
 
-        if (nextClickAction === 'placeObject') {
-            document.querySelector(`.item-container[data-object-key="${selectedObjectKey}"]`)?.classList.add('active');
+        if (state.currentTool === 'terrain') {
             toolTerrainBtn.classList.add('active');
             terrainOptionsPanel.classList.remove('hidden');
-        } else if (nextClickAction === 'placeText') {
+            document.querySelector(`.item-container[data-terrain="${state.selectedTerrain}"]`)?.classList.add('active');
+        } else if (state.currentTool === 'placeObject') {
+            toolTerrainBtn.classList.add('active');
+            document.querySelector(`.item-container[data-object-key="${state.selectedObjectKey}"]`)?.classList.add('active');
+            terrainOptionsPanel.classList.remove('hidden');
+        } else if (state.currentTool === 'placeText') {
+            toolTerrainBtn.classList.add('active');
             textHeader.classList.add('active');
-            toolTerrainBtn.classList.add('active');
             terrainOptionsPanel.classList.remove('hidden');
-        } else if (currentTool === 'terrain') {
-            toolTerrainBtn.classList.add('active');
-            terrainOptionsPanel.classList.remove('hidden');
-            document.querySelector(`.item-container[data-terrain="${selectedTerrain}"]`)?.classList.add('active');
-        } else if (currentTool === 'pencil') {
+        } else if (state.currentTool === 'pencil') {
             toolPencilBtn.classList.add('active');
             pencilOptionsPanel.classList.remove('hidden');
             canvas.classList.add('pencil');
-        } else if (currentTool === 'select') {
+        } else if (state.currentTool === 'select') {
             toolSelectBtn.classList.add('active');
             canvas.classList.add('selecting');
-        } else if (currentTool === 'wall') {
+        } else if (state.currentTool === 'wall') {
             toolWallBtn.classList.add('active');
             canvas.classList.add('wall-drawing');
-        } else if (currentTool === 'token') {
+        } else if (state.currentTool === 'token') {
             toolTokenBtn.classList.add('active');
             tokenOptionsPanel.classList.remove('hidden');
             canvas.classList.add('token-placement');
-        } else if (currentTool === 'interact') {
+        } else if (state.currentTool === 'interact') {
             toolInteractBtn.classList.add('active');
             canvas.classList.add('interact');
-        } else if (currentTool === 'fogReveal' || currentTool === 'fogHide') {
-            if(currentTool === 'fogReveal') toolFogRevealBtn.classList.add('active');
-            if(currentTool === 'fogHide') toolFogHideBtn.classList.add('active');
+        } else if (state.currentTool === 'fogReveal' || state.currentTool === 'fogHide') {
+            if(state.currentTool === 'fogReveal') toolFogRevealBtn.classList.add('active');
+            if(state.currentTool === 'fogHide') toolFogHideBtn.classList.add('active');
             canvas.classList.add('fogging');
-        } else if (currentTool === 'eraser') {
+        } else if (state.currentTool === 'eraser') {
             eraserBtn.classList.add('active');
             terrainOptionsPanel.classList.remove('hidden');
         }
@@ -1664,36 +1653,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>
         `;
-        showContentModal("User's Guide", guideHTML);
+        state.showContentModal("User's Guide", guideHTML);
     }
 
-    function showContentModal(title, content) {
-        const existingModal = document.querySelector('.modal-backdrop');
-        if(existingModal) existingModal.remove();
-
-        const modalBackdrop = document.createElement('div');
-        modalBackdrop.className = 'modal-backdrop fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4';
-        
-        modalBackdrop.innerHTML = `
-            <div class="bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl text-white flex flex-col" style="max-height: 90vh;">
-                <div class="flex justify-between items-center p-4 border-b border-gray-700">
-                    <h3 class="text-xl font-bold">${title}</h3>
-                    <button id="modalClose" class="p-2 rounded-full hover:bg-gray-700">&times;</button>
-                </div>
-                <div class="p-6 overflow-y-auto">
-                    ${content}
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modalBackdrop);
-        modalBackdrop.querySelector('#modalClose').onclick = () => document.body.removeChild(modalBackdrop);
-        modalBackdrop.onclick = (e) => {
-            if (e.target === modalBackdrop) {
-                 document.body.removeChild(modalBackdrop);
-            }
-        }
-    }
-    
     function showNamePromptModal(callback) {
         const existingModal = document.querySelector('.modal-backdrop');
         if(existingModal) existingModal.remove();
@@ -1722,7 +1684,7 @@ document.addEventListener('DOMContentLoaded', () => {
         saveButton.onclick = () => {
             const newName = nameInput.value.trim();
             if (newName) {
-                mapName = newName;
+                state.setState({ mapName: newName });
                 mapNameInput.value = newName;
                 callback();
                 document.body.removeChild(modalBackdrop);
@@ -1738,38 +1700,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function showModal(message, onConfirm) {
-        const existingModal = document.querySelector('.modal-backdrop');
-        if(existingModal) existingModal.remove();
-
-        const modalBackdrop = document.createElement('div');
-        modalBackdrop.className = 'modal-backdrop fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50';
-        modalBackdrop.innerHTML = `
-            <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm text-white">
-                <p class="mb-6 text-center">${message}</p>
-                <div class="flex justify-end gap-4">
-                    ${onConfirm ? `<button id="modalConfirm" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 transition">Confirm</button>` : ''}
-                    <button id="modalCancel" class="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 transition">${onConfirm ? 'Cancel' : 'OK'}</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modalBackdrop);
-        modalBackdrop.querySelector('#modalCancel').onclick = () => document.body.removeChild(modalBackdrop);
-        if (onConfirm) {
-            modalBackdrop.querySelector('#modalConfirm').onclick = () => {
-                onConfirm();
-                document.body.removeChild(modalBackdrop);
-            };
-        }
-    }
-
-    function updateMapKey() {
+    window.updateMapKey = function() {
         if (mapKeyWindow.classList.contains('hidden')) return;
 
         const usedTerrains = new Set();
         const usedObjects = new Set();
 
-        layers.forEach(layer => {
+        state.layers.forEach(layer => {
             if (!layer.visible) return;
             for (const key in layer.data) {
                 const hexData = layer.data[key];
@@ -1779,7 +1716,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
-        placedAssets.forEach(asset => {
+        state.placedAssets.forEach(asset => {
             if (!asset.gmOnly) {
                 usedObjects.add(asset.assetId);
             }
@@ -1791,7 +1728,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (usedTerrains.size > 0) {
             contentHTML += '<h5 class="key-section-title">Terrain</h5>';
             Array.from(usedTerrains).sort().forEach(terrainKey => {
-                const terrain = terrains[terrainKey];
+                const terrain = state.terrains[terrainKey];
                 if (terrain) {
                     contentHTML += `
                         <div class="key-item">
@@ -1806,7 +1743,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (usedObjects.size > 0) {
             contentHTML += '<h5 class="key-section-title">Objects</h5>';
             Array.from(usedObjects).sort().forEach(assetId => {
-                const asset = assetManifest[assetId];
+                const asset = state.assetManifest[assetId];
                  if (asset) {
                      const assetImage = assetCache[assetId];
                      contentHTML += `
@@ -1831,14 +1768,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function drawKeyOnContext(targetCtx, x, y) {
         const usedTerrains = new Set();
         const usedObjects = new Set();
-         layers.forEach(layer => {
+         state.layers.forEach(layer => {
             if (!layer.visible) return;
             for (const key in layer.data) {
                 if (layer.data[key].terrain && !layer.data[key].gmOnly) usedTerrains.add(layer.data[key].terrain);
             }
         });
         
-        placedAssets.forEach(asset => {
+        state.placedAssets.forEach(asset => {
             if (!asset.gmOnly) usedObjects.add(asset.assetId);
         });
 
@@ -1894,7 +1831,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 targetCtx.textBaseline = 'middle';
 
                 if (type === 'Terrain') {
-                    const terrain = terrains[itemKey];
+                    const terrain = state.terrains[itemKey];
                     if (terrain && terrain.canvasPattern) {
                         targetCtx.fillStyle = terrain.canvasPattern;
                         targetCtx.fillRect(itemX, itemY + (itemHeight - swatchSize) / 2, swatchSize, swatchSize);
@@ -1904,7 +1841,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         targetCtx.fillText(terrain.name, itemX + swatchSize + 5, itemY + itemHeight / 2);
                     }
                 } else { // Objects
-                    const asset = assetManifest[itemKey];
+                    const asset = state.assetManifest[itemKey];
                     const assetImage = assetCache[itemKey];
                     if(asset && assetImage && assetImage.complete) {
                         targetCtx.drawImage(assetImage, itemX, itemY + (itemHeight - swatchSize) / 2, swatchSize, swatchSize);
@@ -1920,500 +1857,7 @@ document.addEventListener('DOMContentLoaded', () => {
         drawSection(objectItems, 'Objects');
     }
 
-    // --- AI and Helper Functions ---
-
-    // NEW: Builds a detailed, context-aware prompt for the AI
-    function buildContextualPrompt(userPrompt, actionType, additionalContext = {}) {
-        let preamble = `You are an expert TTRPG map designer and game master. Your task is to interpret a user's request and provide a structured JSON response. `;
-        preamble += `The current map genre is '${currentGenre}' and the scale is '${currentScale}'. `;
-
-        // Add context based on action type
-        switch (actionType) {
-            case 'layout':
-                preamble += `You are generating a new map layout. The grid type is '${gridType}'. `;
-                break;
-            case 'dressing':
-                preamble += `You are dressing an existing area with objects. The user has selected a specific region on the map. You must only place objects within the provided coordinates. `;
-                preamble += `Available assets for this genre/scale are: ${JSON.stringify(additionalContext.availableAssets)}. `;
-                preamble += `The selected coordinates are: ${JSON.stringify(additionalContext.selectedHexes)}. `;
-                break;
-            case 'dataEdit':
-                 preamble += `You are editing the terrain data of a selected area. You must only affect the provided coordinates. `;
-                 preamble += `Available terrain types are: ${JSON.stringify(Object.keys(terrains))}. `;
-                 preamble += `The selected coordinates are: ${JSON.stringify(additionalContext.selectedHexes)}. `;
-                break;
-            case 'hexcrawl':
-                preamble += `You are generating content for a hexcrawl-style regional map. The user has requested details for ${additionalContext.hexCount} hexes. Generate a list of points of interest, brief descriptions, and suggest an appropriate terrain type for each. The map grid is ${mapWidthInput.value}x${mapHeightInput.value}. Choose random, valid coordinates within these bounds.`;
-                break;
-            case 'pointcrawl':
-                preamble += `You are generating content for a pointcrawl-style map (like a city or region). Create a series of named locations (nodes) and the connections (edges) between them. Provide a brief description for each node and suggest logical coordinates on a ${mapWidthInput.value}x${mapHeightInput.value} grid.`;
-                break;
-            case 'keyGeneration':
-                preamble += `You are an adventure writer creating a descriptive key for a dungeon map. Based on the provided room data (which includes room numbers, terrain types, and a list of objects in each room), write an evocative, sensory-rich description for each room. The descriptions should be suitable for a GM to read aloud.`;
-                preamble += `Here is the map data: ${JSON.stringify(additionalContext.roomData)}`;
-                break;
-        }
-
-        return `${preamble} The user's specific request is: "${userPrompt}". Please generate the appropriate JSON response.`;
-    }
-    
-    async function callGenerativeAIForJSON(prompt, schema) {
-        if (!apiKey) {
-            showModal("Please set your API key in the settings first.");
-            return null;
-        }
-        showModal("AI is generating... Please wait.", null);
-        
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-        const payload = {
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
-            generationConfig: {
-                responseMimeType: "application/json",
-                responseSchema: schema,
-            },
-        };
-
-        try {
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) {
-                const error = await response.json();
-                console.error("AI API Error:", error);
-                throw new Error(`API request failed with status ${response.status}: ${error.error?.message || 'Unknown error'}`);
-            }
-
-            const result = await response.json();
-            const jsonString = result.candidates?.[0]?.content?.parts?.[0]?.text;
-
-            if (!jsonString) {
-                console.error("Unexpected API response structure:", result);
-                throw new Error("Could not find JSON data in the API response.");
-            }
-            
-            document.querySelector('.modal-backdrop')?.remove();
-            return JSON.parse(jsonString);
-
-        } catch (error) {
-            console.error("AI JSON Generation Error:", error);
-            showModal(`An error occurred during AI generation: ${error.message}`);
-            const loadingModal = document.querySelector('.modal-backdrop');
-            if (loadingModal && loadingModal.textContent.includes("AI is generating")) {
-                loadingModal.remove();
-            }
-            return null;
-        }
-    }
-    
-    // --- Event Handler Implementations ---
-
-    async function handleLayoutGeneration() {
-        const userPrompt = aiLayoutPrompt.value;
-        if (!userPrompt) {
-            showModal("Please describe the layout you want to generate.");
-            return;
-        }
-
-        const schema = {
-            type: "OBJECT",
-            properties: {
-                rooms: {
-                    type: "ARRAY",
-                    items: {
-                        type: "OBJECT",
-                        properties: {
-                            id: { type: "NUMBER" },
-                            description: { type: "STRING" },
-                            coordinates: {
-                                type: "ARRAY",
-                                items: {
-                                    type: "OBJECT",
-                                    properties: {
-                                        q: { type: "NUMBER" },
-                                        r: { type: "NUMBER" }
-                                    },
-                                    required: ["q", "r"]
-                                }
-                            }
-                        },
-                        required: ["id", "description", "coordinates"]
-                    }
-                },
-                doors: {
-                    type: "ARRAY",
-                    items: {
-                        type: "OBJECT",
-                        properties: {
-                            coordinates: {
-                                type: "OBJECT",
-                                properties: {
-                                    q: { type: "NUMBER" },
-                                    r: { type: "NUMBER" }
-                                },
-                                required: ["q", "r"]
-                            }
-                        },
-                        required: ["coordinates"]
-                    }
-                }
-            },
-            required: ["rooms", "doors"]
-        };
-        
-        const fullPrompt = buildContextualPrompt(userPrompt, 'layout');
-        const layoutData = await callGenerativeAIForJSON(fullPrompt, schema);
-
-        if (layoutData) {
-            ingestGeneratedLayout(layoutData);
-        }
-    }
-
-    function ingestGeneratedLayout(data) {
-        saveState();
-        generateBaseMap();
-
-        const groundLayer = layers.find(l => l.name === 'Ground');
-        if (!groundLayer) return;
-
-        data.rooms.forEach(room => {
-            room.coordinates.forEach(coord => {
-                const key = `${coord.q},${coord.r}`;
-                groundLayer.data[key] = { terrain: 'dirt' };
-            });
-        });
-
-        data.doors.forEach(door => {
-            const newAsset = {
-                assetId: 'fantasy_location_door',
-                q: door.coordinates.q,
-                r: door.coordinates.r,
-                size: 1,
-                gmOnly: false
-            };
-            placedAssets.push(newAsset);
-        });
-
-        centerView();
-        updateMapKey();
-        drawAll();
-    }
-
-    async function handleAiDressing() {
-        const userPrompt = aiDressingPrompt.value;
-        if (!userPrompt) {
-            showModal("Please describe how to dress the selected area.");
-            return;
-        }
-        const selectedHexes = getHexesInSelection();
-        if (selectedHexes.length === 0) {
-            showModal("Please use the 'Select' tool to choose an area first.");
-            return;
-        }
-
-        const availableAssets = Object.keys(assetManifest)
-            .filter(id => assetManifest[id].tags.includes(currentGenre) && assetManifest[id].tags.includes(currentScale))
-            .map(id => ({ id, name: assetManifest[id].name, tags: assetManifest[id].tags }));
-
-        const schema = {
-            type: "OBJECT",
-            properties: {
-                placements: {
-                    type: "ARRAY",
-                    items: {
-                        type: "OBJECT",
-                        properties: {
-                            assetId: { type: "STRING" },
-                            coordinates: {
-                                type: "OBJECT",
-                                properties: {
-                                    q: { type: "NUMBER" },
-                                    r: { type: "NUMBER" }
-                                },
-                                required: ["q", "r"]
-                            }
-                        },
-                        required: ["assetId", "coordinates"]
-                    }
-                }
-            },
-            required: ["placements"]
-        };
-
-        const additionalContext = { availableAssets, selectedHexes };
-        const fullPrompt = buildContextualPrompt(userPrompt, 'dressing', additionalContext);
-        const dressingData = await callGenerativeAIForJSON(fullPrompt, schema);
-
-        if (dressingData) {
-            ingestGeneratedDressing(dressingData);
-        }
-    }
-
-    function ingestGeneratedDressing(data) {
-        saveState();
-        if (data.placements && Array.isArray(data.placements)) {
-            data.placements.forEach(placement => {
-                if (assetManifest[placement.assetId]) {
-                    const newAsset = {
-                        assetId: placement.assetId,
-                        q: placement.coordinates.q,
-                        r: placement.coordinates.r,
-                        size: 1,
-                        gmOnly: false
-                    };
-                    placedAssets.push(newAsset);
-                }
-            });
-        }
-        drawAll();
-        updateMapKey();
-    }
-
-    async function handleAiDataEdit() {
-        const userPrompt = aiDataEditPrompt.value;
-        if (!userPrompt) {
-            showModal("Please provide an edit instruction.");
-            return;
-        }
-        const selectedHexes = getHexesInSelection();
-        if (selectedHexes.length === 0) {
-            showModal("Please use the 'Select' tool to define an area for the edit.");
-            return;
-        }
-
-        const schema = {
-            type: "OBJECT",
-            properties: {
-                tool: {
-                    type: "STRING",
-                    enum: ["paintTerrain"]
-                },
-                parameters: {
-                    type: "OBJECT",
-                    properties: {
-                        terrainType: { type: "STRING" },
-                        coordinates: {
-                            type: "ARRAY",
-                            items: {
-                                type: "OBJECT",
-                                properties: {
-                                    q: { type: "NUMBER" },
-                                    r: { type: "NUMBER" }
-                                },
-                                required: ["q", "r"]
-                            }
-                        }
-                    },
-                    required: ["terrainType", "coordinates"]
-                }
-            },
-            required: ["tool", "parameters"]
-        };
-
-        const additionalContext = { selectedHexes };
-        const fullPrompt = buildContextualPrompt(userPrompt, 'dataEdit', additionalContext);
-        const command = await callGenerativeAIForJSON(fullPrompt, schema);
-
-        if (command) {
-            ingestAiCommand(command);
-        }
-    }
-
-    function ingestAiCommand(command) {
-        saveState();
-        if (!command || !command.tool) {
-            console.error("Invalid command from AI:", command);
-            return;
-        }
-
-        switch (command.tool) {
-            case 'paintTerrain':
-                const groundLayer = layers.find(l => l.name === 'Ground');
-                if (groundLayer && command.parameters && command.parameters.coordinates && command.parameters.terrainType) {
-                    if (terrains[command.parameters.terrainType]) {
-                        command.parameters.coordinates.forEach(coord => {
-                            const key = `${coord.q},${coord.r}`;
-                            groundLayer.data[key] = { terrain: command.parameters.terrainType };
-                        });
-                    } else {
-                        console.warn(`AI requested invalid terrain type: ${command.parameters.terrainType}`);
-                    }
-                }
-                break;
-            default:
-                console.warn(`Unknown AI command tool: ${command.tool}`);
-        }
-
-        drawAll();
-        updateMapKey();
-    }
-
-    async function handleHexcrawlGeneration() {
-        const userPrompt = aiHexcrawlPrompt.value;
-        if (!userPrompt) {
-            showModal("Please describe the region for the hexcrawl.");
-            return;
-        }
-        const hexCount = parseInt(hexcrawlHexCount.value);
-
-        const schema = {
-            type: "OBJECT",
-            properties: {
-                hexes: {
-                    type: "ARRAY",
-                    items: {
-                        type: "OBJECT",
-                        properties: {
-                            coordinates: {
-                                type: "OBJECT",
-                                properties: { q: { type: "NUMBER" }, r: { type: "NUMBER" } },
-                                required: ["q", "r"]
-                            },
-                            poi: { type: "STRING", description: "A short, evocative name for the point of interest." },
-                            description: { type: "STRING", description: "A one-sentence description of the location." },
-                            terrain: { type: "STRING", description: "The suggested terrain type from the available list." }
-                        },
-                        required: ["coordinates", "poi", "description", "terrain"]
-                    }
-                }
-            },
-            required: ["hexes"]
-        };
-
-        const fullPrompt = buildContextualPrompt(userPrompt, 'hexcrawl', { hexCount });
-        const hexcrawlData = await callGenerativeAIForJSON(fullPrompt, schema);
-
-        if (hexcrawlData) {
-            ingestGeneratedHexcrawl(hexcrawlData);
-        }
-    }
-
-    function ingestGeneratedHexcrawl(data) {
-        saveState();
-        const groundLayer = layers.find(l => l.name === 'Ground');
-        const objectsLayer = layers.find(l => l.name === 'Objects');
-        if (!groundLayer || !objectsLayer) return;
-
-        data.hexes.forEach(hex => {
-            const key = `${hex.coordinates.q},${hex.coordinates.r}`;
-            if (mapGrid[key]) {
-                // Set terrain
-                if (terrains[hex.terrain]) {
-                    groundLayer.data[key] = { terrain: hex.terrain };
-                }
-                // Add POI label
-                objectsLayer.data[key] = {
-                    ...objectsLayer.data[key],
-                    text: hex.poi,
-                    textSize: 16,
-                    textColor: '#FFFFFF',
-                    gmOnly: true // Hexcrawl details are GM-only by default
-                };
-            }
-        });
-
-        drawAll();
-        updateMapKey();
-    }
-
-    async function handlePointcrawlGeneration() {
-        const userPrompt = aiPointcrawlPrompt.value;
-        if (!userPrompt) {
-            showModal("Please describe the area for the pointcrawl.");
-            return;
-        }
-
-        const schema = {
-            type: "OBJECT",
-            properties: {
-                nodes: {
-                    type: "ARRAY",
-                    items: {
-                        type: "OBJECT",
-                        properties: {
-                            id: { type: "STRING" },
-                            name: { type: "STRING" },
-                            description: { type: "STRING" },
-                            coordinates: {
-                                type: "OBJECT",
-                                properties: { q: { type: "NUMBER" }, r: { type: "NUMBER" } },
-                                required: ["q", "r"]
-                            }
-                        },
-                        required: ["id", "name", "description", "coordinates"]
-                    }
-                },
-                edges: {
-                    type: "ARRAY",
-                    items: {
-                        type: "OBJECT",
-                        properties: {
-                            from: { type: "STRING" },
-                            to: { type: "STRING" }
-                        },
-                        required: ["from", "to"]
-                    }
-                }
-            },
-            required: ["nodes", "edges"]
-        };
-
-        const fullPrompt = buildContextualPrompt(userPrompt, 'pointcrawl');
-        const pointcrawlData = await callGenerativeAIForJSON(fullPrompt, schema);
-
-        if (pointcrawlData) {
-            ingestGeneratedPointcrawl(pointcrawlData);
-        }
-    }
-
-    function ingestGeneratedPointcrawl(data) {
-        saveState();
-        const objectsLayer = layers.find(l => l.name === 'Objects');
-        if (!objectsLayer) return;
-
-        const nodePositions = {};
-
-        // Place nodes (POIs)
-        data.nodes.forEach(node => {
-            const key = `${node.coordinates.q},${node.coordinates.r}`;
-            if (mapGrid[key]) {
-                objectsLayer.data[key] = {
-                    ...objectsLayer.data[key],
-                    text: `[${node.id}] ${node.name}`,
-                    textSize: 20,
-                    textColor: '#fde047', // yellow-300
-                    gmOnly: false
-                };
-                const pixelPos = gridType === 'hex' ? hexToPixel(node.coordinates.q, node.coordinates.r) : squareToPixel(node.coordinates.q, node.coordinates.r);
-                nodePositions[node.id] = pixelPos;
-            }
-        });
-
-        // Draw edges (connections)
-        data.edges.forEach(edge => {
-            const startNode = nodePositions[edge.from];
-            const endNode = nodePositions[edge.to];
-
-            if (startNode && endNode) {
-                pencilPaths.push({
-                    type: 'line',
-                    start: startNode,
-                    end: endNode,
-                    color: 'rgba(255, 255, 255, 0.5)',
-                    width: 3,
-                    gmOnly: false
-                });
-            }
-        });
-
-        drawAll();
-        updateMapKey();
-    }
-
-
-    function getHexesInSelection() {
+    window.getHexesInSelection = function() {
         if (!selectionStartPoint || !selectionEndPoint) return [];
 
         const startCoords = pixelToGrid(selectionStartPoint.x, selectionStartPoint.y);
@@ -2428,7 +1872,7 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let q = q_min; q <= q_max; q++) {
             for (let r = r_min; r <= r_max; r++) {
                 const key = `${q},${r}`;
-                if (mapGrid[key]) {
+                if (state.mapGrid[key]) {
                     results.push({ q, r });
                 }
             }
@@ -2436,12 +1880,22 @@ document.addEventListener('DOMContentLoaded', () => {
         return results;
     }
 
-    function resetFog() {
-        fogCtx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-        fogCtx.fillRect(0, 0, fogCanvas.width, fogCanvas.height);
-        fogDataUrl = fogCanvas.toDataURL();
+    function handleInteraction(mouseX, mouseY) {
+        if (!isGmViewActive) return;
+    
+        const clickedHex = pixelToGrid(mouseX, mouseY);
+        const key = `${clickedHex.q},${clickedHex.r}`;
+    
+        const objectsLayer = state.layers.find(l => l.name === 'Objects');
+        if (objectsLayer && objectsLayer.data[key] && objectsLayer.data[key].text) {
+            const note = state.gmNotes[key];
+            if (note) {
+                const title = objectsLayer.data[key].text;
+                const content = `<p class="text-gray-300 whitespace-pre-wrap">${note}</p>`;
+                state.showContentModal(title, content);
+            }
+        }
     }
-
 
     function addEventListeners() {
         window.addEventListener('resize', resizeCanvas);
@@ -2453,8 +1907,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const mouseY = e.clientY - rect.top;
             
             if (isPanning) {
-                view.offsetX += e.clientX - panStart.x;
-                view.offsetY += e.clientY - panStart.y;
+                state.view.offsetX += e.clientX - panStart.x;
+                state.view.offsetY += e.clientY - panStart.y;
                 panStart = { x: e.clientX, y: e.clientY };
                 drawAll();
                 return;
@@ -2470,13 +1924,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
                 const endPoint = pixelToGrid(mouseX, mouseY, true);
                 previewCtx.save();
-                previewCtx.translate(view.offsetX, view.offsetY);
-                previewCtx.scale(view.zoom, view.zoom);
+                previewCtx.translate(state.view.offsetX, state.view.offsetY);
+                previewCtx.scale(state.view.zoom, state.view.zoom);
                 previewCtx.beginPath();
                 previewCtx.moveTo(shapeStartPoint.x, shapeStartPoint.y);
                 previewCtx.lineTo(endPoint.x, endPoint.y);
                 previewCtx.strokeStyle = 'rgba(255, 255, 0, 0.5)';
-                previewCtx.lineWidth = 5 / view.zoom;
+                previewCtx.lineWidth = 5 / state.view.zoom;
                 previewCtx.stroke();
                 previewCtx.restore();
                 drawAll();
@@ -2488,7 +1942,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const fogBrushRadius = fogBrushSize * 5;
                 fogCtx.beginPath();
                 fogCtx.arc(mouseX, mouseY, fogBrushRadius, 0, 2 * Math.PI);
-                fogCtx.globalCompositeOperation = currentTool === 'fogReveal' ? 'destination-out' : 'source-over';
+                fogCtx.globalCompositeOperation = state.currentTool === 'fogReveal' ? 'destination-out' : 'source-over';
                 fogCtx.fill();
                 return;
             }
@@ -2496,7 +1950,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const worldMousePos = pixelToGrid(mouseX, mouseY);
 
             if(isDragging && selectedPlacedAssetIndex !== null) {
-                const asset = placedAssets[selectedPlacedAssetIndex];
+                const asset = state.placedAssets[selectedPlacedAssetIndex];
                 asset.q = worldMousePos.q - dragOffsetX;
                 asset.r = worldMousePos.r - dragOffsetY;
                 drawAll();
@@ -2510,28 +1964,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (isDrawingShape) {
                 previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
-                const endPoint = pixelToGrid(mouseX, mouseY, currentTool === 'pencil');
+                const endPoint = pixelToGrid(mouseX, mouseY, state.currentTool === 'pencil');
                 const startPoint = shapeStartPoint;
                 
                 previewCtx.save();
-                previewCtx.translate(view.offsetX, view.offsetY);
-                previewCtx.scale(view.zoom, view.zoom);
+                previewCtx.translate(state.view.offsetX, state.view.offsetY);
+                previewCtx.scale(state.view.zoom, state.view.zoom);
                 
-                if (currentTool === 'terrain') {
+                if (state.currentTool === 'terrain') {
                     const shapeHexes = getHexesForTool(e, endPoint);
                     shapeHexes.forEach(hex => {
-                        const {x, y} = (gridType === 'hex') ? hexToPixel(hex.q, hex.r) : squareToPixel(hex.q, hex.r);
-                        if (gridType === 'hex') {
+                        const {x, y} = (state.gridType === 'hex') ? hexToPixel(hex.q, hex.r) : squareToPixel(hex.q, hex.r);
+                        if (state.gridType === 'hex') {
                             drawHex(previewCtx, x, y, 'rgba(100, 150, 255, 0.5)');
                         } else {
                             drawSquare(previewCtx, x, y, 'rgba(100, 150, 255, 0.5)');
                         }
                     });
-                } else if (currentTool === 'pencil') {
+                } else if (state.currentTool === 'pencil') {
                     previewCtx.beginPath();
                     previewCtx.strokeStyle = pencilColor;
                     previewCtx.lineWidth = pencilWidth;
-                    const brushMode = pencilBrushMode;
+                    const brushMode = state.pencilBrushMode;
                     if (brushMode === 'line') {
                         previewCtx.moveTo(startPoint.x, startPoint.y);
                         previewCtx.lineTo(endPoint.x, endPoint.y);
@@ -2551,7 +2005,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 drawAll();
                 drawingCtx.drawImage(previewCanvas, 0, 0);
             } else if (isPainting) {
-                if (currentTool === 'terrain' && terrainBrushMode === 'spray' && currentFreestyleTerrainPath) {
+                if (state.currentTool === 'terrain' && state.terrainBrushMode === 'spray' && currentFreestyleTerrainPath) {
                     currentFreestyleTerrainPath.points.push(pixelToGrid(mouseX, mouseY, true));
                     drawAll();
                 } else {
@@ -2569,9 +2023,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const rect = canvas.getBoundingClientRect();
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
-            const worldMousePos = pixelToGrid(mouseX, mouseY);
-            const worldClick = pixelToGrid(mouseX, mouseY, true);
-
+            
             if (e.button === 2) { // Right-click for panning
                 isPanning = true;
                 panStart = { x: e.clientX, y: e.clientY };
@@ -2580,16 +2032,16 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (e.button === 0) { // Left-click for tools
-                 if (currentTool === 'interact') {
-                    handleInteraction(worldClick);
+                if (state.currentTool === 'interact') {
+                    handleInteraction(mouseX, mouseY);
                     return;
                 }
-                if (currentTool === 'token') {
-                     // Check if clicking an existing token
+                if (state.currentTool === 'token') {
+                    const worldClick = pixelToGrid(mouseX, mouseY, true);
                     for (let i = tokens.length - 1; i >= 0; i--) {
                         const token = tokens[i];
                         const dist = Math.hypot(worldClick.x - token.x, worldClick.y - token.y);
-                        const tokenRadius = (gridType === 'hex' ? baseHexSize : baseSquareSize) * 0.4;
+                        const tokenRadius = (state.gridType === 'hex' ? baseHexSize : baseSquareSize) * 0.4;
                         if (dist < tokenRadius) {
                             selectedTokenIndex = i;
                             isDraggingToken = true;
@@ -2597,7 +2049,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             return;
                         }
                     }
-                    // If not clicking a token, place a new one
                     saveState();
                     const newToken = {
                         x: worldClick.x,
@@ -2612,37 +2063,45 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                if (currentTool === 'select') {
+                if (state.currentTool === 'select') {
                     isSelecting = true;
                     selectionStartPoint = { x: mouseX, y: mouseY };
                     selectionEndPoint = { x: mouseX, y: mouseY };
                     return;
                 }
                 
-                if (currentTool === 'wall') {
+                if (state.currentTool === 'wall') {
                     isDrawingWall = true;
                     shapeStartPoint = pixelToGrid(mouseX, mouseY, true);
                     return;
                 }
 
-                if (currentTool === 'fogReveal' || currentTool === 'fogHide') {
+                if (state.currentTool === 'fogReveal' || state.currentTool === 'fogHide') {
                     isFogging = true;
                     const fogBrushRadius = fogBrushSize * 5;
                     fogCtx.beginPath();
                     fogCtx.arc(mouseX, mouseY, fogBrushRadius, 0, 2 * Math.PI);
-                    fogCtx.globalCompositeOperation = currentTool === 'fogReveal' ? 'destination-out' : 'source-over';
+                    fogCtx.globalCompositeOperation = state.currentTool === 'fogReveal' ? 'destination-out' : 'source-over';
                     fogCtx.fill();
                     return;
                 }
 
+                if (state.currentTool === 'placeObject' || state.currentTool === 'placeText') {
+                    saveState();
+                    applyTool(e);
+                    return;
+                }
+
                 let assetClicked = false;
-                if (currentTool !== 'mask') {
-                    for (let i = placedAssets.length - 1; i >= 0; i--) {
-                        const asset = placedAssets[i];
+                if (state.currentTool !== 'mask') {
+                    const worldClick = pixelToGrid(mouseX, mouseY, true);
+                    const worldMousePos = pixelToGrid(mouseX, mouseY);
+                    for (let i = state.placedAssets.length - 1; i >= 0; i--) {
+                        const asset = state.placedAssets[i];
                         if (!isGmViewActive && asset.gmOnly) continue;
 
-                        const {x, y} = (gridType === 'hex') ? hexToPixel(asset.q, asset.r) : squareToPixel(asset.q, asset.r);
-                        const size = (gridType === 'hex' ? baseHexSize : baseSquareSize) * 1.2 * asset.size;
+                        const {x, y} = (state.gridType === 'hex') ? hexToPixel(asset.q, asset.r) : squareToPixel(asset.q, asset.r);
+                        const size = (state.gridType === 'hex' ? baseHexSize : baseSquareSize) * 1.2 * asset.size;
                         if (worldClick.x > x - size/2 && worldClick.x < x + size/2 &&
                             worldClick.y > y - size/2 && worldClick.y < y + size/2) {
                             selectedPlacedAssetIndex = i;
@@ -2657,32 +2116,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 if (!assetClicked) {
                     selectedPlacedAssetIndex = null;
-                    if (nextClickAction) {
-                        saveState();
-                        applyTool(e, null, nextClickAction);
-                        nextClickAction = null;
-                        updateActiveSwatches();
-                        return;
-                    }
                 }
 
-
-                const brushMode = currentTool === 'terrain' ? terrainBrushMode : pencilBrushMode;
+                const brushMode = state.currentTool === 'terrain' ? state.terrainBrushMode : state.pencilBrushMode;
                 const isShapeMode = ['line', 'rectangle', 'ellipse'].includes(brushMode);
 
                 if (isShapeMode) {
                     isDrawingShape = true;
-                    shapeStartPoint = pixelToGrid(mouseX, mouseY, currentTool === 'pencil');
+                    shapeStartPoint = pixelToGrid(mouseX, mouseY, state.currentTool === 'pencil');
                     saveState();
-                } else if (currentTool === 'terrain' && terrainBrushMode === 'spray') {
+                } else if (state.currentTool === 'terrain' && state.terrainBrushMode === 'spray') {
                     isPainting = true;
                     saveState();
-                    currentFreestyleTerrainPath = { terrain: selectedTerrain, width: brushSize * 10, points: [pixelToGrid(mouseX, mouseY, true)] };
-                } else if (currentTool === 'terrain' || currentTool === 'eraser') {
+                    currentFreestyleTerrainPath = { terrain: state.selectedTerrain, width: state.brushSize * 10, points: [pixelToGrid(mouseX, mouseY, true)] };
+                } else if (state.currentTool === 'terrain' || state.currentTool === 'eraser') {
                      isPainting = true;
                      saveState();
                      applyTool(e);
-                } else if (currentTool === 'pencil') {
+                } else if (state.currentTool === 'pencil') {
                     isPenciling = true;
                     saveState();
                     currentPencilPath = { 
@@ -2722,16 +2173,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 isDragging = false;
                 isDraggingToken = false;
-                const brushMode = currentTool === 'terrain' ? terrainBrushMode : pencilBrushMode;
+                const brushMode = state.currentTool === 'terrain' ? state.terrainBrushMode : state.pencilBrushMode;
                 const isShapeMode = ['line', 'rectangle', 'ellipse'].includes(brushMode);
 
                 if (isDrawingShape && isShapeMode) {
-                    const endPoint = pixelToGrid(e.clientX - canvas.getBoundingClientRect().left, e.clientY - canvas.getBoundingClientRect().top, currentTool === 'pencil');
-                    if (currentTool === 'terrain') {
+                    const endPoint = pixelToGrid(e.clientX - canvas.getBoundingClientRect().left, e.clientY - canvas.getBoundingClientRect().top, state.currentTool === 'pencil');
+                    if (state.currentTool === 'terrain') {
                         applyTool(e, endPoint);
-                    } else if (currentTool === 'pencil') {
-                        pencilPaths.push({
-                            type: pencilBrushMode,
+                    } else if (state.currentTool === 'pencil') {
+                        state.pencilPaths.push({
+                            type: state.pencilBrushMode,
                             start: shapeStartPoint,
                             end: endPoint,
                             color: pencilColor,
@@ -2742,7 +2193,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 
                 if (isPainting) {
-                    if (currentTool === 'terrain' && terrainBrushMode === 'spray' && currentFreestyleTerrainPath) {
+                    if (state.currentTool === 'terrain' && state.terrainBrushMode === 'spray' && currentFreestyleTerrainPath) {
                         freestyleTerrainPaths.push(currentFreestyleTerrainPath);
                         currentFreestyleTerrainPath = null;
                     }
@@ -2750,7 +2201,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 if (isPenciling) {
                     isPenciling = false;
-                    pencilPaths.push(currentPencilPath);
+                    state.pencilPaths.push(currentPencilPath);
                     currentPencilPath = null;
                 }
                 isDrawingShape = false;
@@ -2767,13 +2218,13 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.addEventListener('mouseleave', () => {
              if (isPenciling) {
                  if(currentPencilPath && currentPencilPath.points.length > 1) {
-                    pencilPaths.push(currentPencilPath);
+                    state.pencilPaths.push(currentPencilPath);
                  }
                  isPenciling = false;
                  currentPencilPath = null;
              }
              if (isPainting) {
-                if (currentTool === 'terrain' && terrainBrushMode === 'spray' && currentFreestyleTerrainPath) {
+                if (state.currentTool === 'terrain' && state.terrainBrushMode === 'spray' && currentFreestyleTerrainPath) {
                     freestyleTerrainPaths.push(currentFreestyleTerrainPath);
                     currentFreestyleTerrainPath = null;
                 }
@@ -2798,47 +2249,69 @@ document.addEventListener('DOMContentLoaded', () => {
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
             
-            const worldX = (mouseX - view.offsetX) / view.zoom;
-            const worldY = (mouseY - view.offsetY) / view.zoom;
+            const worldX = (mouseX - state.view.offsetX) / state.view.zoom;
+            const worldY = (mouseY - state.view.offsetY) / state.view.zoom;
 
-            const newZoom = Math.max(0.1, Math.min(5, view.zoom * zoom));
+            const newZoom = Math.max(0.1, Math.min(5, state.view.zoom * zoom));
             
-            view.offsetX = mouseX - worldX * newZoom;
-            view.offsetY = mouseY - worldY * newZoom;
-            view.zoom = newZoom;
+            state.view.offsetX = mouseX - worldX * newZoom;
+            state.view.offsetY = mouseY - worldY * newZoom;
+            state.view.zoom = newZoom;
 
             drawAll();
         });
 
-        mapNameInput.addEventListener('input', (e) => { mapName = e.target.value; });
+        window.addEventListener('keydown', e => {
+            if (selectedPlacedAssetIndex !== null) {
+                const asset = state.placedAssets[selectedPlacedAssetIndex];
+                if (e.key === 'r') {
+                    asset.rotation = (asset.rotation || 0) + (15 * Math.PI / 180); // Rotate 15 degrees
+                    drawAll();
+                } else if (e.key === 'R') { // Shift+R
+                    asset.rotation = (asset.rotation || 0) - (15 * Math.PI / 180); // Rotate -15 degrees
+                    drawAll();
+                } else if (e.key === '=' || e.key === '+') {
+                    asset.scale = (asset.scale || 1) * 1.1; // Increase scale by 10%
+                    drawAll();
+                } else if (e.key === '-') {
+                    asset.scale = (asset.scale || 1) * 0.9; // Decrease scale by 10%
+                    drawAll();
+                }
+            }
+        });
+
+        mapNameInput.addEventListener('input', (e) => { state.setState({ mapName: e.target.value }); });
         brushSizeSlider.addEventListener('input', e => {
-            brushSize = parseInt(e.target.value);
-            brushSizeValue.textContent = brushSize;
+            state.setState({ brushSize: parseInt(e.target.value) });
+            brushSizeValue.textContent = state.brushSize;
         });
         undoBtn.addEventListener('click', undo);
         redoBtn.addEventListener('click', redo);
-        gridColorPicker.addEventListener('input', e => { gridColor = e.target.value; drawAll(); });
+        gridColorPicker.addEventListener('input', e => { 
+            state.setState({ gridColor: e.target.value });
+            drawAll(); 
+        });
         gridVisibleCheckbox.addEventListener('change', e => { 
             drawAll();
         });
-        toolTerrainBtn.addEventListener('click', () => { currentTool = 'terrain'; nextClickAction = null; updateActiveSwatches(); });
-        toolPencilBtn.addEventListener('click', () => { currentTool = 'pencil'; nextClickAction = null; updateActiveSwatches(); });
-        toolSelectBtn.addEventListener('click', () => { currentTool = 'select'; nextClickAction = null; updateActiveSwatches(); });
-        toolWallBtn.addEventListener('click', () => { currentTool = 'wall'; nextClickAction = null; updateActiveSwatches(); });
-        toolTokenBtn.addEventListener('click', () => { currentTool = 'token'; nextClickAction = null; updateActiveSwatches(); });
-        toolInteractBtn.addEventListener('click', () => { currentTool = 'interact'; nextClickAction = null; updateActiveSwatches(); });
-        toolFogRevealBtn.addEventListener('click', () => { currentTool = 'fogReveal'; updateActiveSwatches(); });
-        toolFogHideBtn.addEventListener('click', () => { currentTool = 'fogHide'; updateActiveSwatches(); });
+        toolTerrainBtn.addEventListener('click', () => { state.setState({ currentTool: 'terrain' }); updateActiveSwatches(); });
+        toolPencilBtn.addEventListener('click', () => { state.setState({ currentTool: 'pencil' }); updateActiveSwatches(); });
+        toolSelectBtn.addEventListener('click', () => { state.setState({ currentTool: 'select' }); updateActiveSwatches(); });
+        toolWallBtn.addEventListener('click', () => { state.setState({ currentTool: 'wall' }); updateActiveSwatches(); });
+        toolTokenBtn.addEventListener('click', () => { state.setState({ currentTool: 'token' }); updateActiveSwatches(); });
+        toolInteractBtn.addEventListener('click', () => { state.setState({ currentTool: 'interact' }); updateActiveSwatches(); });
+        toolFogRevealBtn.addEventListener('click', () => { state.setState({ currentTool: 'fogReveal' }); updateActiveSwatches(); });
+        toolFogHideBtn.addEventListener('click', () => { state.setState({ currentTool: 'fogHide' }); updateActiveSwatches(); });
         resetFogBtn.addEventListener('click', () => {
-            showModal("This will cover the entire map in fog again. Are you sure?", resetFog);
+            state.showModal("This will cover the entire map in fog again. Are you sure?", resetFog);
         });
         fogBrushSizeSlider.addEventListener('input', e => {
             fogBrushSize = parseInt(e.target.value);
             fogBrushSizeValue.textContent = fogBrushSize;
         });
         
-        terrainBrushModeSelect.addEventListener('change', (e) => { terrainBrushMode = e.target.value; });
-        pencilBrushModeSelect.addEventListener('change', (e) => { pencilBrushMode = e.target.value; });
+        terrainBrushModeSelect.addEventListener('change', (e) => { state.setState({ terrainBrushMode: e.target.value }); });
+        pencilBrushModeSelect.addEventListener('change', (e) => { state.setState({ pencilBrushMode: e.target.value }); });
         pencilColorPicker.addEventListener('input', e => { pencilColor = e.target.value; });
         pencilWidthSlider.addEventListener('input', e => {
             pencilWidth = parseInt(e.target.value);
@@ -2871,9 +2344,9 @@ document.addEventListener('DOMContentLoaded', () => {
         resetViewBtn.addEventListener('click', centerView);
         addLayerBtn.addEventListener('click', () => addNewLayer());
         deleteLayerBtn.addEventListener('click', deleteActiveLayer);
-        textHeader.addEventListener('click', () => { nextClickAction = 'placeText'; updateActiveSwatches(); });
+        textHeader.addEventListener('click', () => { state.setState({ currentTool: 'placeText' }); updateActiveSwatches(); });
         generateBaseMapBtn.addEventListener('click', () => {
-            showModal("Generate a new blank map? This will delete all layers and current work.", () => {
+            state.showModal("Generate a new blank map? This will delete all layers and current work.", () => {
                 generateBaseMap();
                 drawAll();
             });
@@ -2917,24 +2390,24 @@ document.addEventListener('DOMContentLoaded', () => {
         collapseBtn.addEventListener('click', () => togglePanel(true));
         collapsedBar.addEventListener('click', () => togglePanel(false));
         userGuideBtn.addEventListener('click', showUserGuide);
-        eraserBtn.addEventListener('click', () => { currentTool = 'eraser'; updateActiveSwatches(); });
+        eraserBtn.addEventListener('click', () => { state.setState({ currentTool: 'eraser' }); updateActiveSwatches(); });
 
         genreSelector.addEventListener('click', (e) => {
             if (e.target.matches('.control-btn')) {
-                currentGenre = e.target.dataset.genre;
+                state.setState({ currentGenre: e.target.dataset.genre });
                 populateSelectors();
             }
         });
 
         scaleSelector.addEventListener('click', (e) => {
             if (e.target.matches('.control-btn')) {
-                currentScale = e.target.dataset.scale;
+                state.setState({ currentScale: e.target.dataset.scale });
                 populateSelectors();
             }
         });
         
         settingsBtn.addEventListener('click', () => {
-            apiKeyInput.value = apiKey;
+            apiKeyInput.value = state.apiKey;
             apiKeyModal.classList.remove('hidden');
         });
 
@@ -2943,8 +2416,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         saveApiKeyBtn.addEventListener('click', () => {
-            apiKey = apiKeyInput.value;
-            localStorage.setItem('mapMakerApiKey', apiKey);
+            state.setState({ apiKey: apiKeyInput.value });
+            localStorage.setItem('mapMakerApiKey', state.apiKey);
             console.log("API Key saved.");
             apiKeyModal.classList.add('hidden');
         });
@@ -2978,13 +2451,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         gridTypeSelect.addEventListener('change', (e) => {
-            gridType = e.target.value;
+            state.setState({ gridType: e.target.value });
             const hexBrushOption = terrainBrushModeSelect.querySelector('option[value="hex"]');
             if (hexBrushOption) {
-                hexBrushOption.disabled = gridType === 'square';
-                if (gridType === 'square' && terrainBrushMode === 'hex') {
+                hexBrushOption.disabled = state.gridType === 'square';
+                if (state.gridType === 'square' && state.terrainBrushMode === 'hex') {
                     terrainBrushModeSelect.value = 'spray';
-                    terrainBrushMode = 'spray';
+                    state.setState({ terrainBrushMode: 'spray' });
                 }
             }
             generateBaseMap();
@@ -2999,30 +2472,10 @@ document.addEventListener('DOMContentLoaded', () => {
             gmViewToggleBtn.classList.toggle('gm-active', isGmViewActive);
             drawAll();
         });
-
-        // AI Listeners
-        aiBottomPanelHeader.addEventListener('click', () => {
-            aiBottomPanel.classList.toggle('closed');
-        });
-        
-        generateLayoutBtn.addEventListener('click', handleLayoutGeneration);
-        dressAreaBtn.addEventListener('click', handleAiDressing);
-        applyAiDataEditBtn.addEventListener('click', handleAiDataEdit);
-        generateHexcrawlBtn.addEventListener('click', handleHexcrawlGeneration);
-        generatePointcrawlBtn.addEventListener('click', handlePointcrawlGeneration);
-        generateKeyBtn.addEventListener('click', handleKeyGeneration);
-
-        // Dungeon Key Modal Listeners
-        keyModalCloseBtn.addEventListener('click', () => dungeonKeyModal.classList.add('hidden'));
-        dungeonKeyModal.addEventListener('click', (e) => {
-            if (e.target === dungeonKeyModal) {
-                dungeonKeyModal.classList.add('hidden');
-            }
-        });
     }
 
     async function initialize() {
-        apiKey = localStorage.getItem('mapMakerApiKey') || '';
+        state.setState({ apiKey: localStorage.getItem('mapMakerApiKey') || '' });
         togglePanel(false);
         
         addEventListeners();
@@ -3060,14 +2513,12 @@ document.addEventListener('DOMContentLoaded', () => {
             document.addEventListener('mouseup', mouseUpHandler);
         });
         
-        gridColorPicker.value = gridColor;
+        gridColorPicker.value = state.gridColor;
         gridVisibleCheckbox.checked = true;
         updateUndoRedoButtons();
         
         // Load external data first
         try {
-            // NOTE: In a real server environment, you would place these in a /data/ directory.
-            // For this self-contained example, we'll assume they are in the same directory.
             const [terrainsResponse, assetsResponse] = await Promise.all([
                 fetch('./terrains.json'),
                 fetch('./assets.json')
@@ -3075,12 +2526,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!terrainsResponse.ok || !assetsResponse.ok) {
                 throw new Error(`HTTP error! status: ${terrainsResponse.status}, ${assetsResponse.status}`);
             }
-            terrains = await terrainsResponse.json();
-            assetManifest = await assetsResponse.json();
+            state.setState({
+                terrains: await terrainsResponse.json(),
+                assetManifest: await assetsResponse.json()
+            });
             console.log("Game data loaded successfully.");
         } catch (error) {
             console.error("Could not load game data:", error);
-            showModal("Fatal Error: Could not load essential game data. The application cannot start.");
+            state.showModal("Fatal Error: Could not load essential game data. The application cannot start.");
             return; // Stop initialization if data fails to load
         }
 
