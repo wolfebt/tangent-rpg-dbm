@@ -1,4 +1,4 @@
-// Version 4.26 - Dynamic Terrain Palette
+// Version 4.27 - Asset Editor Integration
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -94,6 +94,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const mapKeyContent = document.getElementById('mapKeyContent');
     const mapKeyCloseBtn = document.getElementById('mapKeyCloseBtn');
     const gridTypeSelect = document.getElementById('gridTypeSelect');
+
+    // Asset Editor UI
+    const assetEditorBtn = document.getElementById('assetEditorBtn');
+    const assetEditorOverlay = document.getElementById('asset-editor-overlay');
     
     // --- Configuration ---
     const baseHexSize = 30; 
@@ -1847,7 +1851,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 } else { // Objects
                     const asset = state.assetManifest[itemKey];
-                    const assetImage = assetCache[itemKey];
+                    const assetImage = assetCache[assetId];
                     if(asset && assetImage && assetImage.complete) {
                         targetCtx.drawImage(assetImage, itemX, itemY + (itemHeight - swatchSize) / 2, swatchSize, swatchSize);
                         targetCtx.fillStyle = '#d1d5db';
@@ -2605,6 +2609,11 @@ document.addEventListener('DOMContentLoaded', () => {
             gmViewIconOff.classList.toggle('hidden', isGmViewActive);
             gmViewToggleBtn.classList.toggle('gm-active', isGmViewActive);
             drawAll();
+        });
+        
+        // Asset Editor Listener
+        assetEditorBtn.addEventListener('click', () => {
+            assetEditorOverlay.classList.remove('hidden');
         });
     }
 
