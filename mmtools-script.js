@@ -1,4 +1,4 @@
-// Version 4.23 - Map Tools & Core Logic (Refactored)
+// Version 4.26 - Dynamic Terrain Palette
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -989,6 +989,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     return getHexesForRectangle(startHex, centerHex);
                 case 'ellipse':
                     return getHexesForEllipse(startHex, centerHex);
+                case 'polygon': // Polygon is handled separately on finalization
+                    return [];
             }
         } else if (state.currentTool === 'placeObject' || state.currentTool === 'placeText') {
              return [centerHex];
@@ -1495,28 +1497,31 @@ document.addEventListener('DOMContentLoaded', () => {
     function populateSelectors() {
         terrainSelector.innerHTML = '';
         Object.keys(state.terrains).forEach(key => {
-            const itemContainer = document.createElement('div');
-            itemContainer.className = 'item-container';
-            itemContainer.dataset.terrain = key;
-            itemContainer.addEventListener('click', () => { 
-                state.setState({
-                    currentTool: 'terrain',
-                    selectedTerrain: key
+            const terrain = state.terrains[key];
+            if (terrain.tags.includes(state.currentGenre) && terrain.tags.includes(state.currentScale)) {
+                const itemContainer = document.createElement('div');
+                itemContainer.className = 'item-container';
+                itemContainer.dataset.terrain = key;
+                itemContainer.addEventListener('click', () => {
+                    state.setState({
+                        currentTool: 'terrain',
+                        selectedTerrain: key
+                    });
+                    updateActiveSwatches();
                 });
-                updateActiveSwatches(); 
-            });
-            
-            const swatch = document.createElement('div');
-            swatch.className = 'texture-swatch';
-            swatch.style.backgroundImage = `url(${getPatternDataUri(state.terrains[key].pattern)})`;
-            
-            const label = document.createElement('div');
-            label.className = 'item-label';
-            label.textContent = state.terrains[key].name;
 
-            itemContainer.appendChild(swatch);
-            itemContainer.appendChild(label);
-            terrainSelector.appendChild(itemContainer);
+                const swatch = document.createElement('div');
+                swatch.className = 'texture-swatch';
+                swatch.style.backgroundImage = `url(${getPatternDataUri(terrain.pattern)})`;
+
+                const label = document.createElement('div');
+                label.className = 'item-label';
+                label.textContent = terrain.name;
+
+                itemContainer.appendChild(swatch);
+                itemContainer.appendChild(label);
+                terrainSelector.appendChild(itemContainer);
+            }
         });
 
         objectSelector.innerHTML = '';
@@ -1896,6 +1901,135 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
+
+    // --- VTT CORE LOOP (FIX 1) ---
+    function updateFogOfWar() {
+        // Step 1: Reset fog canvas
+        fogCtx.clearRect(0, 0, fogCanvas.width, fogCanvas.height);
+        fogCtx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+        fogCtx.fillRect(0, 0, fogCanvas.width, fogCanvas.height);
+
+        const lightSources = tokens.filter(t => t.lightRadius > 0);
+        if (lightSources.length === 0) {
+            return; // No light sources, so fog remains solid
+        }
+
+        // Step 2: Collect all unique wall vertices in world coordinates
+        const uniquePoints = new Set();
+        wallLines.forEach(wall => {
+            uniquePoints.add(`${wall.start.x},${wall.start.y}`);
+            uniquePoints.add(`${wall.end.x},${wall.end.y}`);
+        });
+        const points = Array.from(uniquePoints).map(p => {
+            const [x, y] = p.split(',').map(Number);
+            return { x, y };
+        });
+
+        // Step 3: For each light source, calculate its visibility polygon
+        fogCtx.save();
+        fogCtx.globalCompositeOperation = 'destination-out'; // This is the magic part that "cuts out" from the fog
+
+        lightSources.forEach(token => {
+            const lightPosition = { x: token.x, y: token.y };
+            
+            // Convert light radius from hexes to world pixels
+            const lightRadiusPixels = token.lightRadius * (state.gridType === 'hex' ? baseHexSize * 1.5 : baseSquareSize);
+
+            // Collect all rays to cast
+            const rays = [];
+            points.forEach(point => {
+                const angle = Math.atan2(point.y - lightPosition.y, point.x - lightPosition.x);
+                rays.push({ angle: angle - 0.0001, x: point.x, y: point.y }); // Ray slightly before the vertex
+                rays.push({ angle: angle, x: point.x, y: point.y });          // Ray at the vertex
+                rays.push({ angle: angle + 0.0001, x: point.x, y: point.y }); // Ray slightly after the vertex
+            });
+
+            // Find the intersection point for each ray
+            const intersects = [];
+            for (const ray of rays) {
+                let closestIntersect = null;
+                let closestDist = Infinity;
+
+                for (const wall of wallLines) {
+                    const intersect = getIntersection(lightPosition, ray, wall);
+                    if (intersect) {
+                        const dist = Math.hypot(intersect.x - lightPosition.x, intersect.y - lightPosition.y);
+                        if (dist < closestDist) {
+                            closestDist = dist;
+                            closestIntersect = intersect;
+                        }
+                    }
+                }
+                // If no wall intersection, the ray goes to the edge of the light radius
+                if (!closestIntersect || closestDist > lightRadiusPixels) {
+                    closestIntersect = {
+                        x: lightPosition.x + Math.cos(ray.angle) * lightRadiusPixels,
+                        y: lightPosition.y + Math.sin(ray.angle) * lightRadiusPixels
+                    };
+                }
+                closestIntersect.angle = ray.angle;
+                intersects.push(closestIntersect);
+            }
+
+            // Sort intersects by angle to form the polygon
+            intersects.sort((a, b) => a.angle - b.angle);
+
+            // Step 4: Draw the combined visibility polygon onto the fog canvas
+            // Transform world coordinates to screen coordinates for drawing
+            fogCtx.beginPath();
+            const firstPoint = worldToScreen(intersects[0].x, intersects[0].y);
+            fogCtx.moveTo(firstPoint.x, firstPoint.y);
+            for (let i = 1; i < intersects.length; i++) {
+                const point = worldToScreen(intersects[i].x, intersects[i].y);
+                fogCtx.lineTo(point.x, point.y);
+            }
+            fogCtx.closePath();
+            fogCtx.fillStyle = 'white'; // Color doesn't matter with destination-out
+            fogCtx.fill();
+        });
+
+        fogCtx.restore(); // Reset composite operation
+    }
+
+    // Helper function for raycasting: finds intersection of a ray and a line segment
+    function getIntersection(rayOrigin, ray, segment) {
+        const r_px = rayOrigin.x;
+        const r_py = rayOrigin.y;
+        const r_dx = Math.cos(ray.angle);
+        const r_dy = Math.sin(ray.angle);
+
+        const s_px = segment.start.x;
+        const s_py = segment.start.y;
+        const s_dx = segment.end.x - segment.start.x;
+        const s_dy = segment.end.y - segment.start.y;
+
+        const r_mag = Math.sqrt(r_dx * r_dx + r_dy * r_dy);
+        const s_mag = Math.sqrt(s_dx * s_dx + s_dy * s_dy);
+
+        if (r_dx / r_mag == s_dx / s_mag && r_dy / r_mag == s_dy / s_mag) {
+            return null; // Parallel lines
+        }
+
+        const T2 = (r_dx * (s_py - r_py) + r_dy * (r_px - s_px)) / (s_dx * r_dy - s_dy * r_dx);
+        const T1 = (s_px + s_dx * T2 - r_px) / r_dx;
+
+        if (T1 < 0) return null;
+        if (T2 < 0 || T2 > 1) return null;
+
+        return {
+            x: r_px + r_dx * T1,
+            y: r_py + r_dy * T1,
+        };
+    }
+
+    // Helper to convert world coordinates to screen coordinates for drawing on non-transformed canvases
+    function worldToScreen(worldX, worldY) {
+        return {
+            x: worldX * state.view.zoom + state.view.offsetX,
+            y: worldY * state.view.zoom + state.view.offsetY
+        };
+    }
+    // --- END VTT CORE LOOP ---
 
     function addEventListeners() {
         window.addEventListener('resize', resizeCanvas);
