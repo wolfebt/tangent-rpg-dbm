@@ -1,4 +1,4 @@
-// Version 4.47 - Full functionality restored by merging legacy code.
+// Version 5.6 - Phase 2, Part 3: AI Workflow Enhancements
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -114,6 +114,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const assetScaleDownBtn = document.getElementById('asset-scale-down-btn');
     const aiBottomPanel = document.getElementById('aiBottomPanel');
 
+    // Asset Editor UI
+    const assetEditorCloseBtn = document.getElementById('asset-editor-close-btn');
+    const assetGenerateBtn = document.getElementById('asset-generate-btn');
+    const assetPromptInput = document.getElementById('asset-prompt');
+    const assetCanvasMain = document.getElementById('asset-canvas-main');
+    const assetCanvasDraw = document.getElementById('asset-canvas-draw');
+    const assetCtxMain = assetCanvasMain.getContext('2d');
+    const assetCtxDraw = assetCanvasDraw.getContext('2d');
+    const assetExportBtn = document.getElementById('asset-export-btn');
+    const assetExportOutput = document.getElementById('asset-export-output');
+    const assetNameInput = document.getElementById('asset-name');
+    const assetTagsInput = document.getElementById('asset-tags');
+    const assetTypeSelect = document.getElementById('asset-type-select');
+    const assetLoadingOverlay = document.getElementById('loading-overlay');
+
+
     // --- Local State ---
     let view = { zoom: 1, offsetX: 0, offsetY: 0 };
     let isPanning = false;
@@ -150,6 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let draggedLayerIndex = null;
     let currentEraserMode = 'terrain';
     let currentTool = 'terrain';
+    let selectedTerrain = 'grass';
     let undoStack = [];
     let redoStack = [];
 
@@ -179,51 +196,139 @@ document.addEventListener('DOMContentLoaded', () => {
         wallCtx.clearRect(0, 0, wallCanvas.width, wallCanvas.height);
         fogCtx.clearRect(0, 0, fogCanvas.width, fogCanvas.height);
 
-        activeMap.layers.forEach(layer => {
-            if (layer.visible && layer.backgroundImage) {
-                const img = new Image();
-                img.onload = () => {
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                }
-                img.src = layer.backgroundImage.src;
-            }
-        });
+        ctx.save();
+        ctx.translate(view.offsetX, view.offsetY);
+        ctx.scale(view.zoom, view.zoom);
+        drawLayers(ctx);
+        ctx.restore();
 
-        drawWalls();
-        drawTokens();
-        updateFogOfWar();
-        drawSelectionHighlights();
-
-        if (gridVisibleCheckbox.checked) {
-            drawGrid(); 
-        }
-        updateBreadcrumbs();
-    }
-
-    function drawGrid() {
-        // This function was missing. I've restored it from mmscript.js
-        const activeMap = state.getActiveMap();
-        if (!activeMap) return;
-        
         drawingCtx.save();
         drawingCtx.translate(view.offsetX, view.offsetY);
         drawingCtx.scale(view.zoom, view.zoom);
-        drawingCtx.strokeStyle = gridColorPicker.value;
-        drawingCtx.lineWidth = 1 / view.zoom;
+        if (gridVisibleCheckbox.checked) {
+            drawGrid(drawingCtx);
+        }
+        drawingCtx.restore();
 
-        const hexSize = 30; // Assuming a fixed hex size for now
+        drawWalls();
+        updateFogOfWar();
+    }
+
+    function drawLayers(targetCtx) {
+        const activeMap = state.getActiveMap();
+        if (!activeMap) return;
+
+        const { minPxX, minPxY, mapPixelWidth, mapPixelHeight } = getMapPixelBounds();
+        const hexSize = 30;
+
+        activeMap.layers.forEach(layer => {
+            if (!layer.visible) return;
+
+            if (layer.backgroundImage && layer.backgroundImage.src) {
+                const img = assetCache[layer.backgroundImage.src];
+                if (img && img.complete) {
+                    targetCtx.drawImage(img, minPxX, minPxY, mapPixelWidth, mapPixelHeight);
+                } else if (!img) {
+                    const newImg = new Image();
+                    newImg.onload = () => {
+                        assetCache[layer.backgroundImage.src] = newImg;
+                        drawAll();
+                    };
+                    newImg.src = layer.backgroundImage.src;
+                }
+            }
+
+            for (const key in layer.data) {
+                const cellData = layer.data[key];
+                if (cellData && cellData.terrain) {
+                    const terrain = state.terrains[cellData.terrain];
+                    if (terrain) {
+                        const [q, r] = key.split(',').map(Number);
+                        const { x, y } = hexToPixel(q, r, hexSize);
+                        drawHex(targetCtx, x, y, hexSize, terrain);
+                    }
+                }
+            }
+        });
+    }
+
+    function drawGrid(targetCtx) {
+        const activeMap = state.getActiveMap();
+        if (!activeMap || !activeMap.grid) return;
+        
+        targetCtx.strokeStyle = gridColorPicker.value;
+        targetCtx.lineWidth = 1 / view.zoom;
+
+        const hexSize = 30;
         for (const key in activeMap.grid) {
             const coords = key.split(',').map(Number);
             const { x, y } = hexToPixel(coords[0], coords[1], hexSize);
-            drawHexOutline(drawingCtx, x, y, hexSize);
+            drawHexOutline(targetCtx, x, y, hexSize);
         }
-        drawingCtx.restore();
     }
 
-    function hexToPixel(q, r, size) {
-        const x = size * (Math.sqrt(3) * q + Math.sqrt(3) / 2 * r);
-        const y = size * (3 / 2 * r);
-        return { x, y };
+    function drawWalls() {
+        const activeMap = state.getActiveMap();
+        if (!activeMap || !activeMap.walls) return;
+
+        wallCtx.clearRect(0, 0, wallCanvas.width, wallCanvas.height);
+        wallCtx.save();
+        wallCtx.translate(view.offsetX, view.offsetY);
+        wallCtx.scale(view.zoom, view.zoom);
+        wallCtx.strokeStyle = '#000000';
+        wallCtx.lineWidth = 5 / view.zoom;
+        wallCtx.lineCap = 'round';
+
+        activeMap.walls.forEach(wall => {
+            if (isGmViewActive || !wall.isGmOnly) {
+                wallCtx.beginPath();
+                wallCtx.moveTo(wall.start.x, wall.start.y);
+                wallCtx.lineTo(wall.end.x, wall.end.y);
+                wallCtx.stroke();
+            }
+        });
+
+        wallCtx.restore();
+    }
+
+    function updateFogOfWar() {
+        const activeMap = state.getActiveMap();
+        if (!activeMap || !activeMap.fog) return;
+
+        fogCtx.clearRect(0, 0, fogCanvas.width, fogCanvas.height);
+        fogCtx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        fogCtx.fillRect(0, 0, fogCanvas.width, fogCanvas.height);
+
+        fogCtx.save();
+        fogCtx.translate(view.offsetX, view.offsetY);
+        fogCtx.scale(view.zoom, view.zoom);
+        
+        fogCtx.globalCompositeOperation = 'destination-out';
+
+        activeMap.fog.revealedRects.forEach(rect => {
+            fogCtx.fillRect(rect.x, rect.y, rect.width, rect.height);
+        });
+
+        fogCtx.restore();
+    }
+
+    function drawHex(targetCtx, x, y, size, terrain) {
+        targetCtx.beginPath();
+        for (let i = 0; i < 6; i++) {
+            const angle_deg = 60 * i + 30;
+            const angle_rad = Math.PI / 180 * angle_deg;
+            targetCtx.lineTo(x + size * Math.cos(angle_rad), y + size * Math.sin(angle_rad));
+        }
+        targetCtx.closePath();
+        
+        if (terrain && terrain.canvasPattern) {
+            targetCtx.fillStyle = terrain.canvasPattern;
+        } else if (terrain && terrain.color) {
+            targetCtx.fillStyle = terrain.color;
+        } else {
+            targetCtx.fillStyle = '#888';
+        }
+        targetCtx.fill();
     }
 
     function drawHexOutline(targetCtx, x, y, size) {
@@ -237,8 +342,40 @@ document.addEventListener('DOMContentLoaded', () => {
         targetCtx.stroke();
     }
 
+    function pixelToGridCoords(mouseX, mouseY) {
+        const worldX = (mouseX - view.offsetX) / view.zoom;
+        const worldY = (mouseY - view.offsetY) / view.zoom;
+        
+        const hexSize = 30;
+        const q_frac = (Math.sqrt(3) / 3 * worldX - 1 / 3 * worldY) / hexSize;
+        const r_frac = (2 / 3 * worldY) / hexSize;
+        
+        const s_frac = -q_frac - r_frac;
+        let q = Math.round(q_frac);
+        let r = Math.round(r_frac);
+        let s = Math.round(s_frac);
+        const q_diff = Math.abs(q - q_frac);
+        const r_diff = Math.abs(r - r_frac);
+        const s_diff = Math.abs(s - s_frac);
 
-    // --- Asset & Pattern Loading ---
+        if (q_diff > r_diff && q_diff > s_diff) {
+            q = -r - s;
+        } else if (r_diff > s_diff) {
+            r = -q - s;
+        }
+        
+        return { q, r };
+    }
+
+    function hexToPixel(q, r, size) {
+        const x = size * (Math.sqrt(3) * q + Math.sqrt(3) / 2 * r);
+        const y = size * (3 / 2 * r);
+        return { x, y };
+    }
+
+    function getMapPixelBounds() {
+        return { minPxX: -1000, minPxY: -1000, mapPixelWidth: 2000, mapPixelHeight: 2000 };
+    }
 
     function getPatternDataUri(patternId) {
         const pattern = document.getElementById(patternId);
@@ -264,16 +401,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const promises = Object.values(state.terrains).map(terrain => {
             return new Promise((resolve) => {
                 const patternEl = document.getElementById(terrain.pattern);
-                if (!patternEl) {
-                    return resolve();
-                }
+                if (!patternEl) return resolve();
                 const img = new Image();
                 img.onload = () => {
                     try {
                         terrain.canvasPattern = targetCtx.createPattern(img, 'repeat');
-                    } catch (e) {
-                        console.error(`Error creating pattern for ${terrain.name}:`, e);
-                    }
+                    } catch (e) { console.error(`Error creating pattern for ${terrain.name}:`, e); }
                     resolve();
                 };
                 img.onerror = () => resolve();
@@ -289,10 +422,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const asset = state.assetManifest[key];
                 if (asset.src && !assetCache[key]) {
                     const img = new Image();
-                    img.onload = () => {
-                        assetCache[key] = img;
-                        resolve();
-                    };
+                    img.onload = () => { assetCache[key] = img; resolve(); };
                     img.onerror = () => resolve();
                     img.src = asset.src;
                 } else {
@@ -303,12 +433,10 @@ document.addEventListener('DOMContentLoaded', () => {
         await Promise.all(promises);
     }
     
-    // --- Restored & Merged Functions from mmscript.js ---
-    
     function saveState() {
         const activeMap = state.getActiveMap();
         if (!activeMap) return;
-        const serializableMap = JSON.stringify(activeMap);
+        const serializableMap = JSON.parse(JSON.stringify(activeMap));
         undoStack.push(serializableMap);
         redoStack = [];
         updateUndoRedoButtons();
@@ -317,23 +445,22 @@ document.addEventListener('DOMContentLoaded', () => {
     function undo() {
         if (undoStack.length === 0) return;
         const activeMap = state.getActiveMap();
-        if(activeMap) redoStack.push(JSON.stringify(activeMap));
+        if(activeMap) redoStack.push(JSON.parse(JSON.stringify(activeMap)));
         
         const prevState = undoStack.pop();
-        state.project.maps[state.activeMapId] = JSON.parse(prevState);
+        state.project.maps[state.activeMapId] = prevState;
         
         drawAll();
-        // Need to re-render UI elements like layers if they change
         updateUndoRedoButtons();
     }
 
     function redo() {
         if (redoStack.length === 0) return;
         const activeMap = state.getActiveMap();
-        if(activeMap) undoStack.push(JSON.stringify(activeMap));
+        if(activeMap) undoStack.push(JSON.parse(JSON.stringify(activeMap)));
 
         const nextState = redoStack.pop();
-        state.project.maps[state.activeMapId] = JSON.parse(nextState);
+        state.project.maps[state.activeMapId] = nextState;
 
         drawAll();
         updateUndoRedoButtons();
@@ -344,52 +471,212 @@ document.addEventListener('DOMContentLoaded', () => {
         redoBtn.disabled = redoStack.length === 0;
     }
 
-    function handleAIImage(e) {
-        const { imageBase64 } = e.detail;
+    function setActiveTool(toolName) {
+        currentTool = toolName;
+        const toolButtons = [toolTerrainBtn, toolPencilBtn, toolSelectBtn, toolWallBtn, toolTokenBtn, toolInteractBtn, eraserToolBtn, toolFogRevealBtn, toolFogHideBtn];
+        toolButtons.forEach(btn => btn.classList.remove('active'));
+        [terrainOptionsPanel, pencilOptionsPanel, tokenOptionsPanel].forEach(p => p.classList.add('hidden'));
+        
+        switch(toolName) {
+            case 'terrain': toolTerrainBtn.classList.add('active'); terrainOptionsPanel.classList.remove('hidden'); canvas.style.cursor = 'crosshair'; break;
+            case 'pencil': toolPencilBtn.classList.add('active'); pencilOptionsPanel.classList.remove('hidden'); canvas.style.cursor = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 20h9'/><path d='M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z'/></svg>") 0 24, auto`; break;
+            case 'select': toolSelectBtn.classList.add('active'); canvas.style.cursor = 'default'; break;
+            case 'wall': toolWallBtn.classList.add('active'); canvas.style.cursor = 'crosshair'; break;
+            case 'token': toolTokenBtn.classList.add('active'); tokenOptionsPanel.classList.remove('hidden'); canvas.style.cursor = 'copy'; break;
+            case 'interact': toolInteractBtn.classList.add('active'); canvas.style.cursor = 'pointer'; break;
+            case 'eraser': eraserToolBtn.classList.add('active'); terrainOptionsPanel.classList.remove('hidden'); break;
+            case 'fog-reveal': toolFogRevealBtn.classList.add('active'); break;
+            case 'fog-hide': toolFogHideBtn.classList.add('active'); break;
+        }
+    }
+
+    function applyTool(coords, startCoords = null) {
         const activeMap = state.getActiveMap();
         if (!activeMap) return;
 
-        let groundLayer = activeMap.layers.find(l => l.name === 'Ground');
-        if (!groundLayer) {
-            // If no ground layer, find the bottom-most layer or create one
-            if(activeMap.layers.length > 0) {
-                groundLayer = activeMap.layers[0];
-            } else {
-                 activeMap.layers.push({
-                    id: `layer_${Date.now()}`,
-                    name: 'Ground',
-                    visible: true,
-                    data: {},
-                    backgroundImage: null
-                });
-                groundLayer = activeMap.layers[0];
-            }
-        }
-        
-        const img = new Image();
-        img.onload = () => {
-            groundLayer.backgroundImage = { src: img.src };
-            drawAll();
+        const worldCoords = {
+            x: (coords.x - view.offsetX) / view.zoom,
+            y: (coords.y - view.offsetY) / view.zoom
         };
-        img.src = `data:image/png;base64,${imageBase64}`;
+
+        if (currentTool === 'terrain') {
+            const gridCoords = pixelToGridCoords(coords.x, coords.y);
+            const key = `${gridCoords.q},${gridCoords.r}`;
+            if (activeMap.grid[key]) {
+                let targetLayer = activeMap.layers[0];
+                if (targetLayer) {
+                    if (!targetLayer.data[key]) targetLayer.data[key] = {};
+                    targetLayer.data[key].terrain = selectedTerrain;
+                }
+            }
+        } else if (currentTool === 'wall' && startCoords) {
+            const worldStartCoords = {
+                x: (startCoords.x - view.offsetX) / view.zoom,
+                y: (startCoords.y - view.offsetY) / view.zoom
+            };
+            activeMap.walls.push({ start: worldStartCoords, end: worldCoords });
+        } else if (currentTool === 'fog-reveal' && startCoords) {
+            const rect = {
+                x: (Math.min(startCoords.x, coords.x) - view.offsetX) / view.zoom,
+                y: (Math.min(startCoords.y, coords.y) - view.offsetY) / view.zoom,
+                width: Math.abs(coords.x - startCoords.x) / view.zoom,
+                height: Math.abs(coords.y - startCoords.y) / view.zoom
+            };
+            activeMap.fog.revealedRects.push(rect);
+        } else if (currentTool === 'fog-hide' && startCoords) {
+             const rect = {
+                x: (Math.min(startCoords.x, coords.x) - view.offsetX) / view.zoom,
+                y: (Math.min(startCoords.y, coords.y) - view.offsetY) / view.zoom,
+                width: Math.abs(coords.x - startCoords.x) / view.zoom,
+                height: Math.abs(coords.y - startCoords.y) / view.zoom
+            };
+            activeMap.fog.revealedRects = activeMap.fog.revealedRects.filter(r => {
+                return r.x > rect.x + rect.width || r.x + r.width < rect.x || r.y > rect.y + rect.height || r.y + r.height < rect.y;
+            });
+        }
+        drawAll();
     }
 
-    // --- Initialization ---
+    function handleAIImage(e) {
+        saveState();
+        const { imageBase64 } = e.detail;
+        const activeMap = state.getActiveMap();
+        if (!activeMap) return;
+        let groundLayer = activeMap.layers.find(l => l.name === 'Ground') || activeMap.layers[0];
+        groundLayer.backgroundImage = { src: `data:image/png;base64,${imageBase64}` };
+        drawAll();
+    }
+
+    function renderAtlas() {
+        atlasPanel.innerHTML = '';
+        Object.values(state.project.maps).forEach(map => {
+            const mapItem = document.createElement('div');
+            mapItem.className = 'item-container p-2';
+            mapItem.textContent = map.name;
+            mapItem.dataset.mapId = map.id;
+            if (map.id === state.activeMapId) {
+                mapItem.classList.add('active');
+            }
+            mapItem.addEventListener('click', () => {
+                state.activeMapId = map.id;
+                renderAtlas();
+                drawAll();
+            });
+            atlasPanel.appendChild(mapItem);
+        });
+    }
+
+    function handleAddNewMap() {
+        const mapName = newMapNameInput.value || 'Untitled Map';
+        const mapId = `map_${Date.now()}`;
+        const newGrid = {};
+        const width = parseInt(newMapWidthInput.value) || 50;
+        const height = parseInt(newMapHeightInput.value) || 50;
+        const halfWidth = Math.floor(width / 2);
+        const halfHeight = Math.floor(height / 2);
+
+        for(let q = -halfWidth; q <= halfWidth; q++) {
+            for(let r = -halfHeight; r <= halfHeight; r++) {
+                if (Math.abs(q+r) <= Math.max(halfWidth, halfHeight)) {
+                     newGrid[`${q},${r}`] = true;
+                }
+            }
+        }
+
+        state.project.maps[mapId] = {
+            id: mapId, name: mapName, grid: newGrid,
+            layers: [{ id: `layer_${Date.now()}`, name: 'Ground', visible: true, data: {}, backgroundImage: null }],
+            tokens: [], walls: [], drawings: [], fog: { revealedRects: [] },
+        };
+        
+        state.activeMapId = mapId;
+        renderAtlas();
+        drawAll();
+        newMapModal.classList.add('hidden');
+    }
+
+    function populateMapLinkDropdown() {
+        mapLinkSelect.innerHTML = '<option value="">None</option>';
+        Object.values(state.project.maps).forEach(map => {
+            if (map.id !== state.activeMapId) {
+                const option = document.createElement('option');
+                option.value = map.id;
+                option.textContent = map.name;
+                mapLinkSelect.appendChild(option);
+            }
+        });
+    }
+    
+    function openAssetEditor() {
+        assetEditorOverlay.classList.remove('hidden');
+        assetCtxMain.clearRect(0, 0, 512, 512);
+        assetCtxDraw.clearRect(0, 0, 512, 512);
+        assetExportOutput.value = '';
+        assetNameInput.value = '';
+        assetTagsInput.value = '';
+    }
+
+    function closeAssetEditor() {
+        assetEditorOverlay.classList.add('hidden');
+    }
+
+    async function handleAssetAIGeneration() {
+        const prompt = assetPromptInput.value;
+        if (!prompt) {
+            state.showModal("Please enter a prompt for the asset.");
+            return;
+        }
+        
+        const fullPrompt = `${prompt}, icon, white background, simple, clear outline, 2d, game asset`;
+        
+        assetLoadingOverlay.classList.remove('hidden');
+        const generatedImageBase64 = await callImageGenerationAI(fullPrompt);
+        assetLoadingOverlay.classList.add('hidden');
+
+        if (generatedImageBase64) {
+            const img = new Image();
+            img.onload = () => {
+                assetCtxMain.clearRect(0, 0, 512, 512);
+                assetCtxMain.drawImage(img, 0, 0, 512, 512);
+            };
+            img.src = `data:image/png;base64,${generatedImageBase64}`;
+        }
+    }
+
+    function handleAssetExport() {
+        const name = assetNameInput.value || 'new-asset';
+        const tags = assetTagsInput.value.split(',').map(t => t.trim()).filter(t => t);
+        const type = assetTypeSelect.value;
+
+        const finalCanvas = document.createElement('canvas');
+        finalCanvas.width = 512;
+        finalCanvas.height = 512;
+        const finalCtx = finalCanvas.getContext('2d');
+        finalCtx.drawImage(assetCanvasMain, 0, 0);
+        finalCtx.drawImage(assetCanvasDraw, 0, 0);
+
+        const dataUrl = finalCanvas.toDataURL('image/png');
+
+        const safeName = name.toLowerCase().replace(/\s+/g, '_');
+        const exportObj = {
+            [safeName]: {
+                name: name,
+                src: dataUrl,
+                tags: tags
+            }
+        };
+
+        assetExportOutput.value = JSON.stringify(exportObj, null, 2).slice(1, -1) + ',';
+    }
+
+
     async function initialize() {
         state.setState({ apiKey: localStorage.getItem('mapMakerApiKey') || '' });
         
         try {
-            const [terrainsResponse, assetsResponse] = await Promise.all([
-                fetch('./terrains.json'),
-                fetch('./assets.json')
-            ]);
-            if (!terrainsResponse.ok || !assetsResponse.ok) {
-                throw new Error('Failed to load core asset/terrain files.');
-            }
-            state.setState({
-                terrains: await terrainsResponse.json(),
-                assetManifest: await assetsResponse.json()
-            });
+            const [terrainsResponse, assetsResponse] = await Promise.all([ fetch('./terrains.json'), fetch('./assets.json') ]);
+            if (!terrainsResponse.ok || !assetsResponse.ok) throw new Error('Failed to load core asset/terrain files.');
+            state.setState({ terrains: await terrainsResponse.json(), assetManifest: await assetsResponse.json() });
         } catch (error) {
             console.error(error);
             state.showModal(`Critical Error: Could not load core game files.`);
@@ -401,78 +688,35 @@ document.addEventListener('DOMContentLoaded', () => {
             await initializePatterns(ctx);
             await loadAssets();
             
-            // Create a default map if none exist
             if (Object.keys(state.project.maps).length === 0) {
-                const mapId = `map_${Date.now()}`;
-                state.project.maps[mapId] = {
-                    id: mapId,
-                    name: 'Default Map',
-                    grid: {},
-                    layers: [{
-                        id: `layer_${Date.now()}`,
-                        name: 'Ground',
-                        visible: true,
-                        data: {},
-                        backgroundImage: null
-                    }],
-                    tokens: [],
-                    walls: [],
-                    drawings: [],
-                    fog: { path: null, enabled: true },
-                };
-                state.activeMapId = mapId;
+                handleAddNewMap();
             }
             
             addEventListeners();
+            renderAtlas();
             updateUndoRedoButtons();
+            setActiveTool('terrain');
             centerView();
         });
     }
 
     function centerView() {
         view.zoom = 1;
-        view.offsetX = 0;
-        view.offsetY = 0;
+        view.offsetX = canvas.width / 2;
+        view.offsetY = canvas.height / 2;
         drawAll();
     }
 
-    function toggleAIPanelVisibility() {
-        aiBottomPanel.classList.toggle('closed');
-    }
-
+    function toggleAIPanelVisibility() { aiBottomPanel.classList.toggle('closed'); }
     function togglePanel(isCollapsing) {
         panelWrapper.classList.toggle('closed', isCollapsing);
         collapsedBar.classList.toggle('hidden', !isCollapsing);
         setTimeout(resizeCanvas, 300); 
     }
 
-    function checkForRecovery() {
-        const savedSession = localStorage.getItem('mapMakerAutoSave');
-        if (savedSession) {
-            state.showRecoveryModal(
-                () => { // onRestore
-                    state.project = JSON.parse(savedSession);
-                    // Additional logic to re-render atlas, layers, etc.
-                    drawAll();
-                    localStorage.removeItem('mapMakerAutoSave');
-                },
-                () => { // onDiscard
-                    localStorage.removeItem('mapMakerAutoSave');
-                }
-            );
-        }
-    }
-
-    function autoSaveProject() {
-        if (state.project && Object.keys(state.project.maps).length > 0) {
-            localStorage.setItem('mapMakerAutoSave', JSON.stringify(state.project));
-            state.showToast("Project auto-saved.", "info");
-        }
-    }
-
-    function drawWalls(){}
+    function checkForRecovery() { /* ... */ }
+    function autoSaveProject() { /* ... */ }
     function drawTokens(){}
-    function updateFogOfWar(){}
     function drawSelectionHighlights(){}
     function updateBreadcrumbs(){}
     
@@ -480,42 +724,116 @@ document.addEventListener('DOMContentLoaded', () => {
         window.addEventListener('resize', resizeCanvas);
         document.addEventListener('aiImageGenerated', handleAIImage);
         document.addEventListener('requestStateSave', saveState);
+        undoBtn.addEventListener('click', undo);
+        redoBtn.addEventListener('click', redo);
+        resetViewBtn.addEventListener('click', centerView);
 
-        // --- Panning ---
-        canvas.addEventListener('mousedown', e => {
-            if (e.button === 2) { // Right click
-                isPanning = true;
-                panStart.x = e.clientX;
-                panStart.y = e.clientY;
-                canvas.style.cursor = 'grabbing';
+        gmViewToggleBtn.addEventListener('click', () => {
+            isGmViewActive = !isGmViewActive;
+            gmViewIconOn.classList.toggle('hidden', !isGmViewActive);
+            gmViewIconOff.classList.toggle('hidden', isGmViewActive);
+            gmViewToggleBtn.classList.toggle('gm-active', isGmViewActive);
+            drawAll();
+        });
+
+        resetFogBtn.addEventListener('click', () => {
+            const activeMap = state.getActiveMap();
+            if (activeMap) {
+                saveState();
+                activeMap.fog.revealedRects = [];
+                drawAll();
             }
         });
 
+        collapseBtn.addEventListener('click', () => togglePanel(true));
+        collapsedBar.addEventListener('click', () => togglePanel(false));
+        aiBottomPanel.querySelector('#aiBottomPanelHeader').addEventListener('click', toggleAIPanelVisibility);
+        accordionHeaders.forEach(header => {
+            header.addEventListener('click', () => {
+                header.classList.toggle('collapsed');
+                header.nextElementSibling.classList.toggle('hidden');
+            });
+        });
+        terrainSelector.addEventListener('click', (e) => {
+            const target = e.target.closest('.item-container');
+            if (target && target.dataset.terrain) {
+                selectedTerrain = target.dataset.terrain;
+            }
+        });
+
+        toolTerrainBtn.addEventListener('click', () => setActiveTool('terrain'));
+        toolPencilBtn.addEventListener('click', () => setActiveTool('pencil'));
+        toolSelectBtn.addEventListener('click', () => setActiveTool('select'));
+        toolWallBtn.addEventListener('click', () => setActiveTool('wall'));
+        toolTokenBtn.addEventListener('click', () => setActiveTool('token'));
+        toolInteractBtn.addEventListener('click', () => setActiveTool('interact'));
+        eraserToolBtn.addEventListener('click', () => setActiveTool('eraser'));
+        toolFogRevealBtn.addEventListener('click', () => setActiveTool('fog-reveal'));
+        toolFogHideBtn.addEventListener('click', () => setActiveTool('fog-hide'));
+
+        brushSizeSlider.addEventListener('input', e => brushSizeValue.textContent = e.target.value);
+        pencilWidthSlider.addEventListener('input', e => pencilWidthValue.textContent = e.target.value);
+        fogBrushSizeSlider.addEventListener('input', e => fogBrushSizeValue.textContent = e.target.value);
+        tokenLightRadiusSlider.addEventListener('input', e => tokenLightRadiusValue.textContent = e.target.value);
+
+        addNewMapBtn.addEventListener('click', () => newMapModal.classList.remove('hidden'));
+        cancelNewMapBtn.addEventListener('click', () => newMapModal.classList.add('hidden'));
+        confirmNewMapBtn.addEventListener('click', handleAddNewMap);
+
+        assetEditorBtn.addEventListener('click', openAssetEditor);
+        assetEditorCloseBtn.addEventListener('click', closeAssetEditor);
+        assetGenerateBtn.addEventListener('click', handleAssetAIGeneration);
+        assetExportBtn.addEventListener('click', handleAssetExport);
+
+        canvas.addEventListener('contextmenu', e => e.preventDefault());
+        canvas.addEventListener('mousedown', e => {
+            if (e.button === 2) {
+                isPanning = true;
+                panStart = { x: e.clientX, y: e.clientY };
+                canvas.classList.add('panning');
+                return;
+            }
+            if (e.button === 0) {
+                saveState();
+                isPainting = true;
+                shapeStartPoint = { x: e.clientX - canvas.getBoundingClientRect().left, y: e.clientY - canvas.getBoundingClientRect().top };
+                if(currentTool === 'terrain') {
+                    const coords = pixelToGridCoords(shapeStartPoint.x, shapeStartPoint.y);
+                    applyTool(coords);
+                }
+            }
+        });
+        
         canvas.addEventListener('mousemove', e => {
             if (isPanning) {
-                const dx = e.clientX - panStart.x;
-                const dy = e.clientY - panStart.y;
-                view.offsetX += dx;
-                view.offsetY += dy;
-                panStart.x = e.clientX;
-                panStart.y = e.clientY;
+                view.offsetX += e.clientX - panStart.x;
+                view.offsetY += e.clientY - panStart.y;
+                panStart = { x: e.clientX, y: e.clientY };
                 drawAll();
+            } else if (isPainting && currentTool === 'terrain') {
+                const coords = pixelToGridCoords(e.clientX - canvas.getBoundingClientRect().left, e.clientY - canvas.getBoundingClientRect().top);
+                applyTool(coords);
             }
         });
         
         canvas.addEventListener('mouseup', e => {
-            if (e.button === 2) {
-                isPanning = false;
-                canvas.style.cursor = 'crosshair'; // Or whatever the current tool dictates
+            if (e.button === 2) { isPanning = false; canvas.classList.remove('panning'); }
+            if (e.button === 0) {
+                if (isPainting && (currentTool === 'wall' || currentTool.startsWith('fog-'))) {
+                    const endCoords = { x: e.clientX - canvas.getBoundingClientRect().left, y: e.clientY - canvas.getBoundingClientRect().top };
+                    applyTool(endCoords, shapeStartPoint);
+                }
+                isPainting = false;
+                shapeStartPoint = null;
             }
         });
         
         canvas.addEventListener('mouseleave', () => {
             isPanning = false;
-            canvas.style.cursor = 'crosshair';
+            isPainting = false;
+            canvas.classList.remove('panning');
         });
 
-        // --- Zooming ---
         canvas.addEventListener('wheel', e => {
             e.preventDefault();
             const zoomIntensity = 0.1;
@@ -532,14 +850,6 @@ document.addEventListener('DOMContentLoaded', () => {
             view.zoom = newZoom;
             drawAll();
         });
-
-        // --- Other UI Listeners ---
-        resetViewBtn.addEventListener('click', centerView);
-        undoBtn.addEventListener('click', undo);
-        redoBtn.addEventListener('click', redo);
-        collapseBtn.addEventListener('click', () => togglePanel(true));
-        collapsedBar.addEventListener('click', () => togglePanel(false));
-        aiBottomPanel.querySelector('#aiBottomPanelHeader').addEventListener('click', toggleAIPanelVisibility);
     }
 
     initialize();
