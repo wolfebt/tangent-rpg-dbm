@@ -1,4 +1,4 @@
-// Version 5.1 - Added Undo Trigger for AI Actions
+// Version 6.0 - Phase 2.1: Intelligent Biome Application
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -12,6 +12,59 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Global variable to hold the landform image ---
     let landformImageBase64 = null;
+
+    // --- Helper Functions for Color Analysis ---
+
+    /**
+     * Converts a hex color string to an RGB object.
+     * @param {string} hex The hex color string (e.g., "#RRGGBB").
+     * @returns {{r: number, g: number, b: number}|null} An object with r, g, b properties or null.
+     */
+    function hexToRgb(hex) {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+        } : null;
+    }
+
+    /**
+     * Calculates the squared Euclidean distance between two RGB colors.
+     * It's faster than full color difference and good enough for this purpose.
+     * @param {{r: number, g: number, b: number}} rgb1 The first color.
+     * @param {{r: number, g: number, b: number}} rgb2 The second color.
+     * @returns {number} The squared distance between the colors.
+     */
+    function colorDistance(rgb1, rgb2) {
+        const rDiff = rgb1.r - rgb2.r;
+        const gDiff = rgb1.g - rgb2.g;
+        const bDiff = rgb1.b - rgb2.b;
+        return rDiff * rDiff + gDiff * gDiff + bDiff * bDiff;
+    }
+
+    /**
+     * Finds the terrain type that most closely matches a given RGB color.
+     * @param {{r: number, g: number, b: number}} targetRgb The color to match.
+     * @returns {string|null} The key of the closest matching terrain, or null.
+     */
+    function findClosestTerrain(targetRgb) {
+        let minDistance = Infinity;
+        let closestTerrain = null;
+
+        for (const key in state.terrains) {
+            const terrain = state.terrains[key];
+            const terrainRgb = hexToRgb(terrain.color);
+            if (terrainRgb) {
+                const distance = colorDistance(targetRgb, terrainRgb);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestTerrain = key;
+                }
+            }
+        }
+        return closestTerrain;
+    }
 
     // --- AI and Helper Functions ---
     
@@ -64,7 +117,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            // NEW (Phase 1, Part 3): Dispatch event to save state BEFORE the API call
             document.dispatchEvent(new CustomEvent('requestStateSave'));
 
             const response = await fetch(apiUrl, {
@@ -163,10 +215,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const finalImageBase64 = await callImageGenerationAI(fullPrompt, landformImageBase64);
 
             if (finalImageBase64) {
-                const event = new CustomEvent('aiImageGenerated', { detail: { imageBase64: finalImageBase64 } });
-                document.dispatchEvent(event);
-                state.showToast("Biomes applied! Your map is ready.", "info");
-                landformImageBase64 = null;
+                // This is the new intelligent application logic
+                await applyImageToMapTerrain(finalImageBase64);
+                state.showToast("Biomes applied! Your map has been painted.", "info");
+                landformImageBase64 = null; // Clear the landform after use
             }
         } catch (error) {
             console.error("Biome Application Error:", error);
@@ -175,6 +227,73 @@ document.addEventListener('DOMContentLoaded', () => {
             setAILoadingState(applyBiomesBtn, false);
         }
     }
+
+    /**
+     * Analyzes a generated image and applies its colors as terrain to the current map.
+     * @param {string} imageBase64 The base64 encoded image to analyze.
+     */
+    async function applyImageToMapTerrain(imageBase64) {
+        const activeMap = state.getActiveMap();
+        if (!activeMap) return;
+
+        const img = new Image();
+        const promise = new Promise((resolve, reject) => {
+            img.onload = () => resolve();
+            img.onerror = reject;
+            img.src = `data:image/png;base64,${imageBase64}`;
+        });
+
+        await promise;
+
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = img.width;
+        tempCanvas.height = img.height;
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.drawImage(img, 0, 0);
+        const imageData = tempCtx.getImageData(0, 0, img.width, img.height);
+
+        const targetLayer = activeMap.layers[0]; // Assuming ground layer
+        if (!targetLayer) return;
+
+        // Find the min/max coordinates of the grid to map image pixels correctly
+        let minQ = Infinity, maxQ = -Infinity, minR = Infinity, maxR = -Infinity;
+        Object.keys(activeMap.grid).forEach(key => {
+            const [q, r] = key.split(',').map(Number);
+            if (q < minQ) minQ = q;
+            if (q > maxQ) maxQ = q;
+            if (r < minR) minR = r;
+            if (r > maxR) maxR = r;
+        });
+
+        const qRange = maxQ - minQ;
+        const rRange = maxR - minR;
+
+        for (const key in activeMap.grid) {
+            const [q, r] = key.split(',').map(Number);
+            
+            // Normalize hex coordinates to a 0-1 range
+            const normX = (q - minQ) / qRange;
+            const normY = (r - minR) / rRange;
+
+            // Map normalized coordinates to pixel coordinates in the image
+            const pixelX = Math.floor(normX * img.width);
+            const pixelY = Math.floor(normY * img.height);
+            
+            // Get color from the image data
+            const i = (pixelY * imageData.width + pixelX) * 4;
+            const color = { r: imageData.data[i], g: imageData.data[i+1], b: imageData.data[i+2] };
+
+            const closestTerrain = findClosestTerrain(color);
+            if (closestTerrain) {
+                if (!targetLayer.data[key]) targetLayer.data[key] = {};
+                targetLayer.data[key].terrain = closestTerrain;
+            }
+        }
+        
+        // Dispatch an event to tell the main script to redraw everything
+        document.dispatchEvent(new CustomEvent('mapStateUpdated'));
+    }
+
 
     // --- Event Listeners ---
     if (generateLandformBtn) generateLandformBtn.addEventListener('click', handleGenerateLandform);

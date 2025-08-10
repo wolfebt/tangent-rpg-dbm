@@ -1,4 +1,4 @@
-// Version 5.6 - Phase 2, Part 3: AI Workflow Enhancements
+// Version 6.5 - Phase 3.3: Eraser Tool Implementation
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -141,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isPainting = false;
     let isPenciling = false;
     let currentPencilPath = null;
-    let selectedPlacedAssetIndex = null;
+    let selection = null;
     let isDragging = false;
     let dragOffsetX, dragOffsetY;
     let isDraggingKey = false;
@@ -167,6 +167,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentEraserMode = 'terrain';
     let currentTool = 'terrain';
     let selectedTerrain = 'grass';
+    let selectedObject = null;
+    let activeLayerId = null;
     let undoStack = [];
     let redoStack = [];
 
@@ -199,57 +201,142 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.save();
         ctx.translate(view.offsetX, view.offsetY);
         ctx.scale(view.zoom, view.zoom);
-        drawLayers(ctx);
+
+        activeMap.layers.forEach(layer => {
+            if (!layer.visible) return;
+            drawLayerBackground(layer, ctx);
+            drawLayerTerrain(layer, ctx);
+            drawPlacedObjects(layer, ctx);
+            drawTextLabels(layer, ctx);
+        });
+        
+        drawTokens(ctx);
+        drawSelectionHighlight(ctx);
+        
         ctx.restore();
 
         drawingCtx.save();
         drawingCtx.translate(view.offsetX, view.offsetY);
         drawingCtx.scale(view.zoom, view.zoom);
+        
         if (gridVisibleCheckbox.checked) {
             drawGrid(drawingCtx);
         }
+        drawPencilStrokes(drawingCtx);
+        
         drawingCtx.restore();
 
         drawWalls();
         updateFogOfWar();
     }
 
-    function drawLayers(targetCtx) {
-        const activeMap = state.getActiveMap();
-        if (!activeMap) return;
+    function drawLayerBackground(layer, targetCtx) {
+        if (layer.backgroundImage && layer.backgroundImage.src) {
+            const img = assetCache[layer.backgroundImage.src];
+            const { minPxX, minPxY, mapPixelWidth, mapPixelHeight } = getMapPixelBounds();
+            if (img && img.complete) {
+                targetCtx.drawImage(img, minPxX, minPxY, mapPixelWidth, mapPixelHeight);
+            } else if (!img) {
+                const newImg = new Image();
+                newImg.onload = () => {
+                    assetCache[layer.backgroundImage.src] = newImg;
+                    drawAll();
+                };
+                newImg.src = layer.backgroundImage.src;
+            }
+        }
+    }
 
-        const { minPxX, minPxY, mapPixelWidth, mapPixelHeight } = getMapPixelBounds();
+    function drawLayerTerrain(layer, targetCtx) {
         const hexSize = 30;
-
-        activeMap.layers.forEach(layer => {
-            if (!layer.visible) return;
-
-            if (layer.backgroundImage && layer.backgroundImage.src) {
-                const img = assetCache[layer.backgroundImage.src];
-                if (img && img.complete) {
-                    targetCtx.drawImage(img, minPxX, minPxY, mapPixelWidth, mapPixelHeight);
-                } else if (!img) {
-                    const newImg = new Image();
-                    newImg.onload = () => {
-                        assetCache[layer.backgroundImage.src] = newImg;
-                        drawAll();
-                    };
-                    newImg.src = layer.backgroundImage.src;
+        for (const key in layer.data) {
+            const cellData = layer.data[key];
+            if (cellData && cellData.terrain) {
+                const terrain = state.terrains[cellData.terrain];
+                if (terrain) {
+                    const [q, r] = key.split(',').map(Number);
+                    const { x, y } = hexToPixel(q, r, hexSize);
+                    drawHex(targetCtx, x, y, hexSize, terrain);
                 }
             }
+        }
+    }
 
-            for (const key in layer.data) {
-                const cellData = layer.data[key];
-                if (cellData && cellData.terrain) {
-                    const terrain = state.terrains[cellData.terrain];
-                    if (terrain) {
-                        const [q, r] = key.split(',').map(Number);
-                        const { x, y } = hexToPixel(q, r, hexSize);
-                        drawHex(targetCtx, x, y, hexSize, terrain);
-                    }
+    function drawPlacedObjects(layer, targetCtx) {
+        if (!layer.objects) return;
+
+        layer.objects.forEach(obj => {
+            if (isGmViewActive || !obj.isGmOnly) {
+                const assetImg = assetCache[obj.assetId];
+                if (assetImg) {
+                    const drawX = obj.x - (assetImg.width / 2) * obj.scale;
+                    const drawY = obj.y - (assetImg.height / 2) * obj.scale;
+                    const drawWidth = assetImg.width * obj.scale;
+                    const drawHeight = assetImg.height * obj.scale;
+                    
+                    targetCtx.save();
+                    targetCtx.translate(obj.x, obj.y);
+                    targetCtx.rotate(obj.rotation * Math.PI / 180);
+                    targetCtx.translate(-obj.x, -obj.y);
+                    targetCtx.drawImage(assetImg, drawX, drawY, drawWidth, drawHeight);
+                    targetCtx.restore();
                 }
             }
         });
+    }
+
+    function drawTextLabels(layer, targetCtx) {
+        // TODO: Implement text rendering logic.
+    }
+
+    function drawPencilStrokes(targetCtx) {
+        const activeMap = state.getActiveMap();
+        if (!activeMap || !activeMap.drawings) return;
+
+        activeMap.drawings.forEach(drawing => {
+            if (isGmViewActive || !drawing.isGmOnly) {
+                targetCtx.strokeStyle = drawing.color;
+                targetCtx.lineWidth = drawing.width / view.zoom;
+                targetCtx.lineCap = 'round';
+                targetCtx.lineJoin = 'round';
+                targetCtx.beginPath();
+                if (drawing.points.length > 0) {
+                    targetCtx.moveTo(drawing.points[0].x, drawing.points[0].y);
+                    for (let i = 1; i < drawing.points.length; i++) {
+                        targetCtx.lineTo(drawing.points[i].x, drawing.points[i].y);
+                    }
+                }
+                targetCtx.stroke();
+            }
+        });
+    }
+
+    function drawTokens(targetCtx) {
+        // TODO: Implement token rendering logic.
+    }
+
+    function drawSelectionHighlight(targetCtx) {
+        if (!selection) return;
+
+        const activeMap = state.getActiveMap();
+        const layer = activeMap.layers.find(l => l.id === selection.layerId);
+        if (!layer || !layer.objects[selection.objectIndex]) return;
+
+        const obj = layer.objects[selection.objectIndex];
+        const assetImg = assetCache[obj.assetId];
+        if (!assetImg) return;
+
+        const width = assetImg.width * obj.scale;
+        const height = assetImg.height * obj.scale;
+
+        targetCtx.save();
+        targetCtx.translate(obj.x, obj.y);
+        targetCtx.rotate(obj.rotation * Math.PI / 180);
+        targetCtx.strokeStyle = '#3b82f6'; // Tailwind blue-500
+        targetCtx.lineWidth = 4 / view.zoom;
+        targetCtx.setLineDash([10 / view.zoom, 5 / view.zoom]);
+        targetCtx.strokeRect(-width / 2, -height / 2, width, height);
+        targetCtx.restore();
     }
 
     function drawGrid(targetCtx) {
@@ -477,6 +564,15 @@ document.addEventListener('DOMContentLoaded', () => {
         toolButtons.forEach(btn => btn.classList.remove('active'));
         [terrainOptionsPanel, pencilOptionsPanel, tokenOptionsPanel].forEach(p => p.classList.add('hidden'));
         
+        if (toolName !== 'object') {
+            selectedObject = null;
+            document.querySelectorAll('#objectSelector .item-container.active').forEach(el => el.classList.remove('active'));
+        }
+        if (toolName !== 'select') {
+            selection = null;
+            selectedObjectPanel.classList.add('hidden');
+        }
+
         switch(toolName) {
             case 'terrain': toolTerrainBtn.classList.add('active'); terrainOptionsPanel.classList.remove('hidden'); canvas.style.cursor = 'crosshair'; break;
             case 'pencil': toolPencilBtn.classList.add('active'); pencilOptionsPanel.classList.remove('hidden'); canvas.style.cursor = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 20h9'/><path d='M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z'/></svg>") 0 24, auto`; break;
@@ -487,12 +583,16 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'eraser': eraserToolBtn.classList.add('active'); terrainOptionsPanel.classList.remove('hidden'); break;
             case 'fog-reveal': toolFogRevealBtn.classList.add('active'); break;
             case 'fog-hide': toolFogHideBtn.classList.add('active'); break;
+            case 'object': canvas.style.cursor = 'copy'; break;
         }
     }
 
     function applyTool(coords, startCoords = null) {
         const activeMap = state.getActiveMap();
-        if (!activeMap) return;
+        if (!activeMap || !activeLayerId) return;
+
+        let targetLayer = activeMap.layers.find(l => l.id === activeLayerId);
+        if (!targetLayer) return;
 
         const worldCoords = {
             x: (coords.x - view.offsetX) / view.zoom,
@@ -503,12 +603,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const gridCoords = pixelToGridCoords(coords.x, coords.y);
             const key = `${gridCoords.q},${gridCoords.r}`;
             if (activeMap.grid[key]) {
-                let targetLayer = activeMap.layers[0];
-                if (targetLayer) {
-                    if (!targetLayer.data[key]) targetLayer.data[key] = {};
-                    targetLayer.data[key].terrain = selectedTerrain;
-                }
+                if (!targetLayer.data) targetLayer.data = {};
+                if (!targetLayer.data[key]) targetLayer.data[key] = {};
+                targetLayer.data[key].terrain = selectedTerrain;
             }
+        } else if (currentTool === 'object' && selectedObject) {
+            if (!targetLayer.objects) targetLayer.objects = [];
+            const newObject = {
+                id: `obj_${Date.now()}`,
+                assetId: selectedObject,
+                x: worldCoords.x,
+                y: worldCoords.y,
+                rotation: 0,
+                scale: 1,
+                isGmOnly: objectGmOnlyCheckbox.checked
+            };
+            targetLayer.objects.push(newObject);
         } else if (currentTool === 'wall' && startCoords) {
             const worldStartCoords = {
                 x: (startCoords.x - view.offsetX) / view.zoom,
@@ -558,8 +668,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 mapItem.classList.add('active');
             }
             mapItem.addEventListener('click', () => {
-                state.activeMapId = map.id;
+                state.setActiveMapId(map.id);
+                const newActiveMap = state.getActiveMap();
+                if (newActiveMap && newActiveMap.layers.length > 0) {
+                    activeLayerId = newActiveMap.layers[0].id;
+                }
                 renderAtlas();
+                renderLayerList();
                 drawAll();
             });
             atlasPanel.appendChild(mapItem);
@@ -583,16 +698,53 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        const firstLayerId = `layer_${Date.now()}`;
         state.project.maps[mapId] = {
             id: mapId, name: mapName, grid: newGrid,
-            layers: [{ id: `layer_${Date.now()}`, name: 'Ground', visible: true, data: {}, backgroundImage: null }],
-            tokens: [], walls: [], drawings: [], fog: { revealedRects: [] },
+            layers: [{ 
+                id: firstLayerId, 
+                name: 'Ground', 
+                visible: true, 
+                data: {}, 
+                backgroundImage: null,
+                objects: [],
+            }],
+            tokens: [], 
+            walls: [], 
+            drawings: [],
+            fog: { revealedRects: [] },
         };
         
-        state.activeMapId = mapId;
+        state.setActiveMapId(mapId);
+        activeLayerId = firstLayerId;
         renderAtlas();
+        renderLayerList();
         drawAll();
         newMapModal.classList.add('hidden');
+    }
+
+    function populateObjectSelector() {
+        objectSelector.innerHTML = '';
+        for (const key in state.assetManifest) {
+            const asset = state.assetManifest[key];
+            const item = document.createElement('div');
+            item.className = 'item-container';
+            item.dataset.assetId = key;
+
+            const swatch = document.createElement('div');
+            swatch.className = 'object-swatch';
+            const img = new Image();
+            img.src = asset.src;
+            swatch.appendChild(img);
+
+            const label = document.createElement('span');
+            label.className = 'item-label';
+            label.textContent = asset.name;
+
+            item.appendChild(swatch);
+            item.appendChild(label);
+            objectSelector.appendChild(item);
+        }
     }
 
     function populateMapLinkDropdown() {
@@ -604,6 +756,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 option.textContent = map.name;
                 mapLinkSelect.appendChild(option);
             }
+        });
+    }
+
+    function renderLayerList() {
+        const activeMap = state.getActiveMap();
+        layerList.innerHTML = '';
+        if (!activeMap || !activeMap.layers) return;
+
+        activeMap.layers.forEach(layer => {
+            const item = document.createElement('div');
+            item.className = 'layer-item';
+            item.dataset.layerId = layer.id;
+            if (layer.id === activeLayerId) {
+                item.classList.add('active');
+            }
+
+            const label = document.createElement('span');
+            label.className = 'layer-label';
+            label.textContent = layer.name;
+            item.appendChild(label);
+
+            item.addEventListener('click', () => {
+                activeLayerId = layer.id;
+                renderLayerList();
+            });
+
+            layerList.appendChild(item);
         });
     }
     
@@ -690,10 +869,16 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (Object.keys(state.project.maps).length === 0) {
                 handleAddNewMap();
+            } else {
+                const firstMapId = Object.keys(state.project.maps)[0];
+                state.setActiveMapId(firstMapId);
+                activeLayerId = state.getActiveMap().layers[0].id;
             }
             
+            populateObjectSelector();
             addEventListeners();
             renderAtlas();
+            renderLayerList();
             updateUndoRedoButtons();
             setActiveTool('terrain');
             centerView();
@@ -716,17 +901,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function checkForRecovery() { /* ... */ }
     function autoSaveProject() { /* ... */ }
-    function drawTokens(){}
-    function drawSelectionHighlights(){}
-    function updateBreadcrumbs(){}
     
     function addEventListeners() {
         window.addEventListener('resize', resizeCanvas);
         document.addEventListener('aiImageGenerated', handleAIImage);
         document.addEventListener('requestStateSave', saveState);
+        document.addEventListener('mapStateUpdated', drawAll);
         undoBtn.addEventListener('click', undo);
         redoBtn.addEventListener('click', redo);
         resetViewBtn.addEventListener('click', centerView);
+
+        addLayerBtn.addEventListener('click', () => {
+            const activeMap = state.getActiveMap();
+            if (!activeMap) return;
+            saveState();
+            const newLayer = {
+                id: `layer_${Date.now()}`,
+                name: `Layer ${activeMap.layers.length + 1}`,
+                visible: true,
+                data: {},
+                objects: []
+            };
+            activeMap.layers.push(newLayer);
+            activeLayerId = newLayer.id;
+            renderLayerList();
+        });
+
+        deleteLayerBtn.addEventListener('click', () => {
+            const activeMap = state.getActiveMap();
+            if (!activeMap || !activeLayerId || activeMap.layers.length <= 1) {
+                state.showToast("Cannot delete the last layer.", "warning");
+                return;
+            }
+            state.showModal("Are you sure you want to delete this layer? This cannot be undone.", () => {
+                saveState();
+                activeMap.layers = activeMap.layers.filter(l => l.id !== activeLayerId);
+                activeLayerId = activeMap.layers[activeMap.layers.length - 1].id;
+                renderLayerList();
+                drawAll();
+            });
+        });
 
         gmViewToggleBtn.addEventListener('click', () => {
             isGmViewActive = !isGmViewActive;
@@ -758,6 +972,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const target = e.target.closest('.item-container');
             if (target && target.dataset.terrain) {
                 selectedTerrain = target.dataset.terrain;
+            }
+        });
+
+        objectSelector.addEventListener('click', (e) => {
+            const target = e.target.closest('.item-container');
+            if (target && target.dataset.assetId) {
+                document.querySelectorAll('#objectSelector .item-container.active').forEach(el => el.classList.remove('active'));
+                target.classList.add('active');
+                selectedObject = target.dataset.assetId;
+                setActiveTool('object');
             }
         });
 
@@ -795,11 +1019,22 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (e.button === 0) {
                 saveState();
-                isPainting = true;
-                shapeStartPoint = { x: e.clientX - canvas.getBoundingClientRect().left, y: e.clientY - canvas.getBoundingClientRect().top };
-                if(currentTool === 'terrain') {
-                    const coords = pixelToGridCoords(shapeStartPoint.x, shapeStartPoint.y);
-                    applyTool(coords);
+                const clickCoords = { x: e.clientX - canvas.getBoundingClientRect().left, y: e.clientY - canvas.getBoundingClientRect().top };
+                
+                if (currentTool === 'pencil') {
+                    isPenciling = true;
+                    currentPencilPath = {
+                        points: [{ x: (clickCoords.x - view.offsetX) / view.zoom, y: (clickCoords.y - view.offsetY) / view.zoom }],
+                        color: pencilColorPicker.value,
+                        width: parseInt(pencilWidthSlider.value),
+                        isGmOnly: pencilGmOnlyCheckbox.checked
+                    };
+                } else {
+                    isPainting = true;
+                    shapeStartPoint = clickCoords;
+                    if (currentTool === 'terrain' || (currentTool === 'object' && selectedObject)) {
+                        applyTool(clickCoords);
+                    }
                 }
             }
         });
@@ -810,15 +1045,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 view.offsetY += e.clientY - panStart.y;
                 panStart = { x: e.clientX, y: e.clientY };
                 drawAll();
+            } else if (isPenciling && currentPencilPath) {
+                const moveCoords = { x: e.clientX - canvas.getBoundingClientRect().left, y: e.clientY - canvas.getBoundingClientRect().top };
+                currentPencilPath.points.push({ x: (moveCoords.x - view.offsetX) / view.zoom, y: (moveCoords.y - view.offsetY) / view.zoom });
+                drawAll();
             } else if (isPainting && currentTool === 'terrain') {
-                const coords = pixelToGridCoords(e.clientX - canvas.getBoundingClientRect().left, e.clientY - canvas.getBoundingClientRect().top);
-                applyTool(coords);
+                const moveCoords = { x: e.clientX - canvas.getBoundingClientRect().left, y: e.clientY - canvas.getBoundingClientRect().top };
+                applyTool(moveCoords);
             }
         });
         
         canvas.addEventListener('mouseup', e => {
             if (e.button === 2) { isPanning = false; canvas.classList.remove('panning'); }
             if (e.button === 0) {
+                if (isPenciling) {
+                    const activeMap = state.getActiveMap();
+                    if (activeMap && currentPencilPath && currentPencilPath.points.length > 1) {
+                        if (!activeMap.drawings) activeMap.drawings = [];
+                        activeMap.drawings.push(currentPencilPath);
+                    }
+                    isPenciling = false;
+                    currentPencilPath = null;
+                    drawAll();
+                }
+
                 if (isPainting && (currentTool === 'wall' || currentTool.startsWith('fog-'))) {
                     const endCoords = { x: e.clientX - canvas.getBoundingClientRect().left, y: e.clientY - canvas.getBoundingClientRect().top };
                     applyTool(endCoords, shapeStartPoint);
@@ -831,6 +1081,8 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.addEventListener('mouseleave', () => {
             isPanning = false;
             isPainting = false;
+            isPenciling = false;
+            currentPencilPath = null;
             canvas.classList.remove('panning');
         });
 

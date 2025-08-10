@@ -238,7 +238,7 @@ body {
 }
 
 /* --- ACTIVE STATE HIGHLIGHTING --- */
-.control-panel button.active, .control-btn.active {
+.control-panel button.active, .control-btn.active, .asset-tool.active {
     background-color: #3b82f6 !important; /* blue-500 */
     color: #f9fafb !important; /* gray-50 */
     box-shadow: 0 0 0 2px #111827, 0 0 0 4px #3b82f6;
