@@ -201,9 +201,17 @@
                                 <button id="redoBtn" title="Redo" disabled>
                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.9-6.7"/><path d="M3 2v6h6"/></svg>
                                 </button>
-                                <button id="eraserBtn" title="Eraser">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2='12' y2='15'></line><line x1='12' y1='9' x2='18' y2='15'></line></svg>
-                                </button>
+                                <!-- MODIFIED: Eraser Button is now a dropdown container -->
+                                <div class="relative">
+                                    <button id="eraserToolBtn" title="Eraser">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>
+                                    </button>
+                                    <div id="eraserDropdownMenu" class="file-dropdown hidden -left-1/2 top-full mt-2 !w-48">
+                                        <button id="eraseTerrainBtn" class="file-dropdown-item">Erase Terrain</button>
+                                        <button id="eraseObjectsBtn" class="file-dropdown-item">Erase Objects</button>
+                                        <button id="eraseDrawingsBtn" class="file-dropdown-item">Erase Drawings</button>
+                                    </div>
+                                </div>
                                 <button id="resetViewBtn" title="Reset View & Zoom">Center</button>
                             </div>
                         </div>
@@ -232,6 +240,22 @@
                             </div>
                             <div id="objectSelector" class="flex flex-col gap-2"></div>
                          </div>
+                    </div>
+
+                    <!-- NEW: Selected Object Panel -->
+                    <div id="selectedObjectPanel" class="control-panel mb-4 hidden">
+                        <div class="collapsible-header">
+                           <h3>Selected Object</h3>
+                           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </div>
+                        <div class="collapsible-content">
+                           <label for="mapLinkSelect">Link to Map</label>
+                           <select id="mapLinkSelect"></select>
+                           <div class="grid grid-cols-2 gap-2 mt-2">
+                               <button id="setMapLinkBtn">Set Link</button>
+                               <button id="removeMapLinkBtn">Remove Link</button>
+                           </div>
+                        </div>
                     </div>
 
                     <div id="textToolPanel" class="control-panel mb-4">
@@ -314,6 +338,22 @@
             <canvas id="drawingCanvas"></canvas>
             <canvas id="fogCanvas"></canvas>
             
+            <!-- NEW: Asset Contextual Controls -->
+            <div id="asset-context-menu" class="asset-context-menu hidden">
+                <button id="asset-rotate-left-btn" title="Rotate Left (r)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.9-6.7"/><path d="M21 2v6h-6"/></svg>
+                </button>
+                <button id="asset-rotate-right-btn" title="Rotate Right (R)">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.9-6.7"/><path d="M3 2v6h6"/></svg>
+                </button>
+                <button id="asset-scale-up-btn" title="Scale Up (+)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                </button>
+                <button id="asset-scale-down-btn" title="Scale Down (-)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                </button>
+            </div>
+
             <!-- AI Bottom Panel -->
             <div id="aiBottomPanel" class="closed">
                 <div id="aiBottomPanelHeader">
@@ -326,7 +366,10 @@
                         <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">AI Layout Generation</h4>
                         <label for="aiLayoutPrompt">Describe the layout to generate (e.g., a dungeon, a building)</label>
                         <textarea id="aiLayoutPrompt" placeholder="e.g., A small, five-room goblin hideout in a cave with a treasure room." class="mb-2"></textarea>
-                        <button id="generateLayoutBtn">Generate Layout</button>
+                        <button id="generateLayoutBtn">
+                            <span class="btn-text">Generate Layout</span>
+                            <span class="spinner hidden"></span>
+                        </button>
                     </div>
 
                     <!-- AI Environmental Dressing Panel -->
@@ -335,7 +378,10 @@
                         <p class="text-xs text-gray-400 mb-2">Use the 'Select' tool to choose an area on the map first.</p>
                         <label for="aiDressingPrompt">Describe the area to be decorated</label>
                         <textarea id="aiDressingPrompt" placeholder="e.g., A messy barracks with beds and a weapon rack. A wizard's laboratory." class="mb-2"></textarea>
-                        <button id="dressAreaBtn">Dress Selected Area</button>
+                        <button id="dressAreaBtn">
+                            <span class="btn-text">Dress Selected Area</span>
+                            <span class="spinner hidden"></span>
+                        </button>
                     </div>
                     
                     <!-- REFINED: AI Data-Driven Edit Panel -->
@@ -344,7 +390,10 @@
                         <p class="text-xs text-gray-400 mb-2">Use the 'Select' tool to choose an area, then describe the change.</p>
                         <label for="aiDataEditPrompt">Edit Instruction</label>
                         <textarea id="aiDataEditPrompt" placeholder="e.g., Draw a road through the selected area. Fill the selection with forest." class="mb-2"></textarea>
-                        <button id="applyAiDataEditBtn">Apply AI Edit</button>
+                        <button id="applyAiDataEditBtn">
+                            <span class="btn-text">Apply AI Edit</span>
+                            <span class="spinner hidden"></span>
+                        </button>
                     </div>
 
                     <!-- NEW: AI Macro Generation Panel -->
@@ -357,13 +406,19 @@
                                 <textarea id="aiHexcrawlPrompt" placeholder="e.g., A haunted forest region with a lost temple and a goblin camp." class="mb-2"></textarea>
                                 <label for="hexcrawlHexCount">Number of Hexes to Detail</label>
                                 <input type="number" id="hexcrawlHexCount" value="10" min="1" max="50" class="mb-2">
-                                <button id="generateHexcrawlBtn">Generate Hexcrawl</button>
+                                <button id="generateHexcrawlBtn">
+                                    <span class="btn-text">Generate Hexcrawl</span>
+                                    <span class="spinner hidden"></span>
+                                </button>
                             </div>
                             <div>
                                 <h5 class="text-sm font-semibold mb-2">Pointcrawl Generator</h5>
                                 <label for="aiPointcrawlPrompt">Describe the area or city</label>
                                 <textarea id="aiPointcrawlPrompt" placeholder="e.g., The port district of a bustling trade city with a tavern, a warehouse, and a smuggler's den." class="mb-2"></textarea>
-                                <button id="generatePointcrawlBtn">Generate Pointcrawl</button>
+                                <button id="generatePointcrawlBtn">
+                                    <span class="btn-text">Generate Pointcrawl</span>
+                                    <span class="spinner hidden"></span>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -371,7 +426,10 @@
                     <div id="aiAdventureWritingPanel" class="control-panel" style="grid-column: 1 / -1;">
                         <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">AI Adventure Writing</h4>
                         <p class="text-xs text-gray-400 mb-2">Automatically generate descriptive text for the numbered rooms on your map.</p>
-                        <button id="generateKeyBtn">Generate Dungeon Key</button>
+                        <button id="generateKeyBtn">
+                            <span class="btn-text">Generate Dungeon Key</span>
+                            <span class="spinner hidden"></span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -409,6 +467,11 @@
                     <label for="newMapHeightInput">Height</label>
                     <input type="number" id="newMapHeightInput" value="50" min="1">
                 </div>
+            </div>
+             <!-- NEW: "Create as Child" Checkbox -->
+            <div class="flex items-center mt-4">
+                <input type="checkbox" id="newMapAsChildCheckbox" class="h-4 w-4 rounded !mb-0">
+                <label for="newMapAsChildCheckbox" class="ml-2 !mb-0 text-sm">Set as child of current map</label>
             </div>
             <div class="flex justify-end gap-4 mt-6">
                 <button id="cancelNewMapBtn" class="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 transition">Cancel</button>
@@ -508,6 +571,15 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- NEW: Toast Notification Container -->
+    <div id="toast-container"></div>
+
+    <!-- NEW: Atlas Context Menu -->
+    <div id="atlas-context-menu" class="context-menu hidden">
+        <button id="renameMapBtn">Rename</button>
+        <button id="deleteMapBtn">Delete</button>
     </div>
 
     <script type="module" src="state.js"></script>

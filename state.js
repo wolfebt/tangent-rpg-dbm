@@ -1,4 +1,4 @@
-// Version 4.28 - Hierarchical Map Project Structure
+// Version 4.30 - Added Auto-Save Recovery Modal
 // --- State Variables ---
 export let terrains = {};
 export let assetManifest = {};
@@ -53,6 +53,35 @@ export function showModal(message, onConfirm) {
     }
 }
 
+// NEW: Specific modal for session recovery
+export function showRecoveryModal(onRestore, onDiscard) {
+    const existingModal = document.querySelector('.modal-backdrop');
+    if(existingModal) existingModal.remove();
+
+    const modalBackdrop = document.createElement('div');
+    modalBackdrop.className = 'modal-backdrop fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50';
+    modalBackdrop.innerHTML = `
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md text-white">
+            <h3 class="text-lg font-bold mb-4">Unsaved Session Found</h3>
+            <p class="mb-6 text-sm text-gray-300">It looks like you have unsaved work from a previous session. Would you like to restore it?</p>
+            <div class="flex justify-end gap-4">
+                <button id="modalDiscard" class="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 transition">Discard</button>
+                <button id="modalRestore" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 transition">Restore Session</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modalBackdrop);
+    modalBackdrop.querySelector('#modalDiscard').onclick = () => {
+        onDiscard();
+        document.body.removeChild(modalBackdrop);
+    };
+    modalBackdrop.querySelector('#modalRestore').onclick = () => {
+        onRestore();
+        document.body.removeChild(modalBackdrop);
+    };
+}
+
+
 export function showContentModal(title, content) {
     const existingModal = document.querySelector('.modal-backdrop');
     if(existingModal) existingModal.remove();
@@ -78,4 +107,20 @@ export function showContentModal(title, content) {
              document.body.removeChild(modalBackdrop);
         }
     }
+}
+
+// NEW: Toast Notification Function
+export function showToast(message, type = 'info', duration = 5000) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.remove();
+    }, duration);
 }
