@@ -2,7 +2,7 @@
 body {
     font-family: 'Trebuchet MS', sans-serif;
     overflow: hidden;
-    background-color: #1f2937; /* bg-gray-800 */
+    background-color: #1f2p937; /* bg-gray-800 */
     color: #d1d5db; /* text-gray-300 */
     display: flex;
 }
@@ -448,10 +448,6 @@ body {
     transform: rotate(180deg);
 }
 #aiBottomPanelContent {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1rem;
-    padding: 1rem;
     max-height: 80vh;
     overflow-y: auto;
 }
