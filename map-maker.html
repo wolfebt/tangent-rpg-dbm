@@ -67,16 +67,21 @@
                         </button>
                     </div>
                     <div id="fileDropdownMenu" class="file-dropdown hidden mt-2 right-0 top-full">
-                        <button id="savePngBtn" class="file-dropdown-item">Save as GM PNG</button>
-                        <button id="savePlayerPngBtn" class="file-dropdown-item">Save as Player PNG</button>
-                        <button id="saveJsonBtn" class="file-dropdown-item">Save Map (.json)</button>
-                        <button id="loadJsonBtn" class="file-dropdown-item">Load Map (.json)</button>
+                        <button id="saveProjectBtn" class="file-dropdown-item">Save Project (.json)</button>
+                        <button id="loadProjectBtn" class="file-dropdown-item">Load Project (.json)</button>
+                        <button id="savePngBtn" class="file-dropdown-item">Save Current Map as PNG</button>
                     </div>
                     <input type="file" id="loadJsonInput" class="hidden" accept=".json">
                 </div>
                 
                 <!-- Scrollable Controls Area -->
                 <div class="flex-grow overflow-y-auto pr-2">
+                     <div class="control-panel mb-4">
+                        <h3>Atlas</h3>
+                        <div id="atlas-panel" class="mt-2 space-y-2"></div>
+                        <button id="addNewMapBtn" class="w-full mt-2">Add New Map</button>
+                    </div>
+
                      <div class="control-panel mb-4">
                         <div class="collapsible-header collapsed">
                             <h3>Tools</h3>
@@ -182,38 +187,6 @@
                         </div>
                     </div>
                     
-                    <!-- Genre Selection -->
-                    <div class="control-panel mb-4">
-                        <div class="collapsible-header collapsed">
-                            <h3>Genre</h3>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                        </div>
-                        <div class="collapsible-content hidden">
-                            <div id="genreSelector" class="grid grid-cols-3 gap-2">
-                                <button data-genre="fantasy" class="control-btn bg-gray-700 p-2 rounded-md text-sm font-medium hover:bg-gray-600 active">Fantasy</button>
-                                <button data-genre="modern" class="control-btn bg-gray-700 p-2 rounded-md text-sm font-medium hover:bg-gray-600">Modern</button>
-                                <button data-genre="scifi" class="control-btn bg-gray-700 p-2 rounded-md text-sm font-medium hover:bg-gray-600">Sci-Fi</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Map Scale Selection -->
-                    <div class="control-panel mb-4">
-                        <div class="collapsible-header collapsed">
-                            <h3>Map Scale</h3>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                        </div>
-                        <div class="collapsible-content hidden">
-                            <div id="scaleSelector" class="grid grid-cols-2 gap-2">
-                                <button data-scale="world" class="control-btn bg-gray-700 p-2 rounded-md text-sm font-medium hover:bg-gray-600 active">World</button>
-                                <button data-scale="city" class="control-btn bg-gray-700 p-2 rounded-md text-sm font-medium hover:bg-gray-600">City</button>
-                                <button data-scale="location" class="control-btn bg-gray-700 p-2 rounded-md text-sm font-medium hover:bg-gray-600">Location</button>
-                                <button data-scale="battle" class="control-btn bg-gray-700 p-2 rounded-md text-sm font-medium hover:bg-gray-600">Battle</button>
-                            </div>
-                        </div>
-                    </div>
-
-
                     <div class="control-panel mb-4">
                         <div id="actionsHeader" class="collapsible-header collapsed">
                             <h3>Actions</h3>
@@ -325,27 +298,6 @@
                                      </div>
                                  </div>
                              </div>
-                             <!-- Map Generation -->
-                             <div class="control-panel">
-                                 <h3 class="!border-b-0 !pb-2 text-base font-semibold">Map Generation</h3>
-                                 <div id="mapGenerationContent" class="collapsible-content">
-                                     <div class="mb-4">
-                                         <div id="dimensionInputs">
-                                             <div class="grid grid-cols-2 gap-2">
-                                                 <div>
-                                                     <label for="mapWidth">Width</label>
-                                                     <input type="number" id="mapWidth" value="50" min="1">
-                                                 </div>
-                                                 <div>
-                                                     <label for="mapHeight">Height</label>
-                                                     <input type="number" id="mapHeight" value="50" min="1">
-                                                 </div>
-                                             </div>
-                                         </div>
-                                         <button id="generateBaseMapBtn" class="mt-2">Generate Blank Map</button>
-                                     </div>
-                                 </div>
-                             </div>
                          </div>
                     </div>
                 </div>
@@ -354,7 +306,8 @@
         <!-- Resizer Handle -->
         <div id="resizer" class="resizer"></div>
         <!-- Canvas Area -->
-        <div id="canvas-container">
+        <div id="canvas-container" class="relative">
+            <div id="breadcrumb-nav" class="absolute top-2 left-2 z-20 bg-gray-900 bg-opacity-70 p-2 rounded-md text-sm"></div>
             <canvas id="mapCanvas"></canvas>
             <canvas id="wallCanvas"></canvas>
             <canvas id="maskCanvas"></canvas>
@@ -428,24 +381,42 @@
         <!-- Top Right Controls -->
         <div id="topRightControls">
             <div>
-                <label for="mapNameInput">Map Name</label>
-                <input type="text" id="mapNameInput" placeholder="Untitled Map" class="text-lg w-48">
+                <label for="projectNameInput">Project Name</label>
+                <input type="text" id="projectNameInput" placeholder="Untitled Campaign" class="text-lg w-48">
             </div>
         </div>
     </div>
 
-    <!-- Map Key Window -->
-    <div id="mapKeyWindow" class="hidden">
-        <div id="mapKeyHeader">
-            <h4>Map Key</h4>
-            <button id="mapKeyCloseBtn">&times;</button>
-        </div>
-        <div id="mapKeyContent">
-            <!-- Content will be dynamically generated here -->
+    <!-- Modals -->
+    <div id="newMapModal" class="modal-backdrop hidden">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md text-white">
+            <h3 class="text-lg font-bold mb-4">Create New Map</h3>
+            <label for="newMapNameInput">Map Name</label>
+            <input type="text" id="newMapNameInput" class="w-full" placeholder="e.g., Kingdom of Eldoria">
+            <label for="newMapScaleSelect" class="mt-4">Map Scale</label>
+            <select id="newMapScaleSelect" class="w-full">
+                <option value="world">World</option>
+                <option value="region">Region</option>
+                <option value="area">Area</option>
+                <option value="encounter">Encounter</option>
+            </select>
+            <div class="grid grid-cols-2 gap-4 mt-4">
+                <div>
+                    <label for="newMapWidthInput">Width</label>
+                    <input type="number" id="newMapWidthInput" value="50" min="1">
+                </div>
+                <div>
+                    <label for="newMapHeightInput">Height</label>
+                    <input type="number" id="newMapHeightInput" value="50" min="1">
+                </div>
+            </div>
+            <div class="flex justify-end gap-4 mt-6">
+                <button id="cancelNewMapBtn" class="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 transition">Cancel</button>
+                <button id="confirmNewMapBtn" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 transition">Create</button>
+            </div>
         </div>
     </div>
 
-    <!-- API Key Modal -->
     <div id="apiKeyModal" class="modal-backdrop hidden">
         <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md text-white">
             <h3 class="text-lg font-bold mb-4">AI Settings</h3>
@@ -461,7 +432,6 @@
         </div>
     </div>
     
-    <!-- Generated Key Modal -->
     <div id="dungeonKeyModal" class="modal-backdrop hidden">
         <div class="bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl text-white flex flex-col" style="max-height: 90vh;">
             <div class="flex justify-between items-center p-4 border-b border-gray-700">

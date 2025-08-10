@@ -1,55 +1,29 @@
-// Version 4.23 - State Management Module
-
+// Version 4.28 - Hierarchical Map Project Structure
 // --- State Variables ---
-// This file acts as the single source of truth for the application's shared state.
-
 export let terrains = {};
 export let assetManifest = {};
-export let gridType = 'hex';
-export let mapGrid = {};
-export let mapName = '';
-export let layers = [];
-export let activeLayerIndex = 0;
-export let currentTool = 'terrain';
-export let terrainBrushMode = 'hex';
-export let pencilBrushMode = 'freestyle';
-export let brushSize = 1;
-export let selectedTerrain = 'grass';
-export let selectedObjectKey = 'fantasy_world_tree';
-export let view = { zoom: 1, offsetX: 0, offsetY: 0 };
-export let gridColor = '#111827';
-export let pencilPaths = [];
-export let currentGenre = 'fantasy';
-export let currentScale = 'world';
-export let placedAssets = [];
 export let apiKey = '';
-export let gmNotes = {};
+
+// The main project object. It will hold all maps and project-level metadata.
+export let project = {
+    projectName: 'Untitled Campaign',
+    maps: {}, // Maps will be stored here, indexed by a unique ID
+};
+
+export let activeMapId = null; // ID of the currently active/visible map
+
+// --- Helper function to get the active map object ---
+export const getActiveMap = () => {
+    return project.maps && activeMapId ? project.maps[activeMapId] : null;
+};
 
 // --- State Update Functions ---
-// These functions are used by other modules to modify the state in a controlled way.
-
 export const setState = (newState) => {
     if (newState.terrains !== undefined) terrains = newState.terrains;
     if (newState.assetManifest !== undefined) assetManifest = newState.assetManifest;
-    if (newState.gridType !== undefined) gridType = newState.gridType;
-    if (newState.mapGrid !== undefined) mapGrid = newState.mapGrid;
-    if (newState.mapName !== undefined) mapName = newState.mapName;
-    if (newState.layers !== undefined) layers = newState.layers;
-    if (newState.activeLayerIndex !== undefined) activeLayerIndex = newState.activeLayerIndex;
-    if (newState.currentTool !== undefined) currentTool = newState.currentTool;
-    if (newState.terrainBrushMode !== undefined) terrainBrushMode = newState.terrainBrushMode;
-    if (newState.pencilBrushMode !== undefined) pencilBrushMode = newState.pencilBrushMode;
-    if (newState.brushSize !== undefined) brushSize = newState.brushSize;
-    if (newState.selectedTerrain !== undefined) selectedTerrain = newState.selectedTerrain;
-    if (newState.selectedObjectKey !== undefined) selectedObjectKey = newState.selectedObjectKey;
-    if (newState.view !== undefined) view = newState.view;
-    if (newState.gridColor !== undefined) gridColor = newState.gridColor;
-    if (newState.pencilPaths !== undefined) pencilPaths = newState.pencilPaths;
-    if (newState.currentGenre !== undefined) currentGenre = newState.currentGenre;
-    if (newState.currentScale !== undefined) currentScale = newState.currentScale;
-    if (newState.placedAssets !== undefined) placedAssets = newState.placedAssets;
     if (newState.apiKey !== undefined) apiKey = newState.apiKey;
-    if (newState.gmNotes !== undefined) gmNotes = newState.gmNotes;
+    if (newState.project !== undefined) project = newState.project;
+    if (newState.activeMapId !== undefined) activeMapId = newState.activeMapId;
 };
 
 // --- Shared Utility Functions ---
