@@ -2,7 +2,7 @@
 body {
     font-family: 'Trebuchet MS', sans-serif;
     overflow: hidden;
-    background-color: #1f2p937; /* bg-gray-800 */
+    background-color: #1f2937; /* bg-gray-800 - FIXED INVALID COLOR */
     color: #d1d5db; /* text-gray-300 */
     display: flex;
 }
