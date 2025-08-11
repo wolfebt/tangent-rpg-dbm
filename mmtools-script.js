@@ -1,4 +1,4 @@
-// Version 6.5 - Phase 3.3: Eraser Tool Implementation
+// Version 7.4 - Phase 3.3: User Guide and Final Polish
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -136,8 +136,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let panStart = { x: 0, y: 0 };
     let isDrawingShape = false;
     let shapeStartPoint = null;
-    let previewCanvas = document.createElement('canvas');
-    let previewCtx = previewCanvas.getContext('2d');
     let isPainting = false;
     let isPenciling = false;
     let currentPencilPath = null;
@@ -155,15 +153,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let wallStartPoint = null;
     let isFogging = false;
     let fogBrushSize = 5;
-    let selectedTokenIndex = -1;
     let isDraggingToken = false;
     let isDrawingPolygon = false;
     let currentPolygonPoints = [];
-    let selectedWall = { index: -1, point: null };
     let isDraggingWallEndpoint = false;
     let autoSaveInterval = null;
     let contextMapId = null;
-    let draggedLayerIndex = null;
+    let draggedLayerId = null;
     let currentEraserMode = 'terrain';
     let currentTool = 'terrain';
     let selectedTerrain = 'grass';
@@ -202,7 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.translate(view.offsetX, view.offsetY);
         ctx.scale(view.zoom, view.zoom);
 
-        activeMap.layers.forEach(layer => {
+        [...activeMap.layers].reverse().forEach(layer => {
             if (!layer.visible) return;
             drawLayerBackground(layer, ctx);
             drawLayerTerrain(layer, ctx);
@@ -211,7 +207,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         drawTokens(ctx);
-        drawSelectionHighlight(ctx);
         
         ctx.restore();
 
@@ -223,6 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
             drawGrid(drawingCtx);
         }
         drawPencilStrokes(drawingCtx);
+        drawSelectionHighlight(drawingCtx);
         
         drawingCtx.restore();
 
@@ -296,15 +292,23 @@ document.addEventListener('DOMContentLoaded', () => {
         activeMap.drawings.forEach(drawing => {
             if (isGmViewActive || !drawing.isGmOnly) {
                 targetCtx.strokeStyle = drawing.color;
-                targetCtx.lineWidth = drawing.width / view.zoom;
+                targetCtx.lineWidth = drawing.width; 
                 targetCtx.lineCap = 'round';
                 targetCtx.lineJoin = 'round';
                 targetCtx.beginPath();
-                if (drawing.points.length > 0) {
+
+                if (drawing.type === 'freestyle' && drawing.points.length > 0) {
                     targetCtx.moveTo(drawing.points[0].x, drawing.points[0].y);
                     for (let i = 1; i < drawing.points.length; i++) {
                         targetCtx.lineTo(drawing.points[i].x, drawing.points[i].y);
                     }
+                } else if (drawing.type === 'line') {
+                    targetCtx.moveTo(drawing.start.x, drawing.start.y);
+                    targetCtx.lineTo(drawing.end.x, drawing.end.y);
+                } else if (drawing.type === 'rectangle') {
+                    targetCtx.rect(drawing.x, drawing.y, drawing.width, drawing.height);
+                } else if (drawing.type === 'ellipse') {
+                    targetCtx.ellipse(drawing.x, drawing.y, drawing.radiusX, drawing.radiusY, 0, 0, 2 * Math.PI);
                 }
                 targetCtx.stroke();
             }
@@ -312,31 +316,81 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function drawTokens(targetCtx) {
-        // TODO: Implement token rendering logic.
+        const activeMap = state.getActiveMap();
+        if (!activeMap || !activeMap.tokens) return;
+        const hexSize = 30;
+
+        activeMap.tokens.forEach(token => {
+            if (token.lightRadius > 0) {
+                targetCtx.fillStyle = 'rgba(255, 255, 150, 0.2)';
+                targetCtx.beginPath();
+                targetCtx.arc(token.x, token.y, token.lightRadius * hexSize * 1.5, 0, 2 * Math.PI);
+                targetCtx.fill();
+            }
+
+            targetCtx.fillStyle = token.color;
+            targetCtx.beginPath();
+            targetCtx.arc(token.x, token.y, hexSize / 2, 0, 2 * Math.PI);
+            targetCtx.fill();
+            targetCtx.strokeStyle = 'black';
+            targetCtx.lineWidth = 2;
+            targetCtx.stroke();
+        });
     }
 
     function drawSelectionHighlight(targetCtx) {
         if (!selection) return;
 
         const activeMap = state.getActiveMap();
-        const layer = activeMap.layers.find(l => l.id === selection.layerId);
-        if (!layer || !layer.objects[selection.objectIndex]) return;
+        
+        if (selection.type === 'object') {
+            const layer = activeMap.layers.find(l => l.id === selection.layerId);
+            if (!layer || !layer.objects[selection.index]) return;
+            const obj = layer.objects[selection.index];
+            const assetImg = assetCache[obj.assetId];
+            if (!assetImg) return;
 
-        const obj = layer.objects[selection.objectIndex];
-        const assetImg = assetCache[obj.assetId];
-        if (!assetImg) return;
+            const width = assetImg.width * obj.scale;
+            const height = assetImg.height * obj.scale;
 
-        const width = assetImg.width * obj.scale;
-        const height = assetImg.height * obj.scale;
-
-        targetCtx.save();
-        targetCtx.translate(obj.x, obj.y);
-        targetCtx.rotate(obj.rotation * Math.PI / 180);
-        targetCtx.strokeStyle = '#3b82f6'; // Tailwind blue-500
-        targetCtx.lineWidth = 4 / view.zoom;
-        targetCtx.setLineDash([10 / view.zoom, 5 / view.zoom]);
-        targetCtx.strokeRect(-width / 2, -height / 2, width, height);
-        targetCtx.restore();
+            targetCtx.save();
+            targetCtx.translate(obj.x, obj.y);
+            targetCtx.rotate(obj.rotation * Math.PI / 180);
+            targetCtx.strokeStyle = '#3b82f6';
+            targetCtx.lineWidth = 4 / view.zoom;
+            targetCtx.setLineDash([10 / view.zoom, 5 / view.zoom]);
+            targetCtx.strokeRect(-width / 2, -height / 2, width, height);
+            targetCtx.restore();
+        } else if (selection.type === 'token') {
+            const token = activeMap.tokens[selection.index];
+            if (!token) return;
+            const hexSize = 30;
+            targetCtx.strokeStyle = '#3b82f6';
+            targetCtx.lineWidth = 4 / view.zoom;
+            targetCtx.setLineDash([10 / view.zoom, 5 / view.zoom]);
+            targetCtx.beginPath();
+            targetCtx.arc(token.x, token.y, hexSize / 2 + 5, 0, 2 * Math.PI);
+            targetCtx.stroke();
+        } else if (selection.type === 'wall') {
+            const wall = activeMap.walls[selection.index];
+            if (!wall) return;
+            targetCtx.strokeStyle = '#3b82f6';
+            targetCtx.lineWidth = 4 / view.zoom;
+            targetCtx.setLineDash([10 / view.zoom, 5 / view.zoom]);
+            targetCtx.beginPath();
+            targetCtx.moveTo(wall.start.x, wall.start.y);
+            targetCtx.lineTo(wall.end.x, wall.end.y);
+            targetCtx.stroke();
+            
+            targetCtx.fillStyle = '#3b82f6';
+            targetCtx.setLineDash([]);
+            targetCtx.beginPath();
+            targetCtx.arc(wall.start.x, wall.start.y, 8 / view.zoom, 0, 2 * Math.PI);
+            targetCtx.fill();
+            targetCtx.beginPath();
+            targetCtx.arc(wall.end.x, wall.end.y, 8 / view.zoom, 0, 2 * Math.PI);
+            targetCtx.fill();
+        }
     }
 
     function drawGrid(targetCtx) {
@@ -344,7 +398,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!activeMap || !activeMap.grid) return;
         
         targetCtx.strokeStyle = gridColorPicker.value;
-        targetCtx.lineWidth = 1 / view.zoom;
+        targetCtx.lineWidth = 1; 
 
         const hexSize = 30;
         for (const key in activeMap.grid) {
@@ -363,7 +417,7 @@ document.addEventListener('DOMContentLoaded', () => {
         wallCtx.translate(view.offsetX, view.offsetY);
         wallCtx.scale(view.zoom, view.zoom);
         wallCtx.strokeStyle = '#000000';
-        wallCtx.lineWidth = 5 / view.zoom;
+        wallCtx.lineWidth = 5;
         wallCtx.lineCap = 'round';
 
         activeMap.walls.forEach(wall => {
@@ -570,7 +624,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (toolName !== 'select') {
             selection = null;
+            assetContextMenu.classList.add('hidden');
             selectedObjectPanel.classList.add('hidden');
+        }
+
+        if (toolName.startsWith('eraser-')) {
+            eraserToolBtn.classList.add('active');
         }
 
         switch(toolName) {
@@ -580,19 +639,90 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'wall': toolWallBtn.classList.add('active'); canvas.style.cursor = 'crosshair'; break;
             case 'token': toolTokenBtn.classList.add('active'); tokenOptionsPanel.classList.remove('hidden'); canvas.style.cursor = 'copy'; break;
             case 'interact': toolInteractBtn.classList.add('active'); canvas.style.cursor = 'pointer'; break;
-            case 'eraser': eraserToolBtn.classList.add('active'); terrainOptionsPanel.classList.remove('hidden'); break;
+            case 'eraser-terrain':
+            case 'eraser-objects':
+            case 'eraser-drawings':
+                eraserToolBtn.classList.add('active');
+                terrainOptionsPanel.classList.remove('hidden');
+                canvas.style.cursor = 'crosshair';
+                break;
             case 'fog-reveal': toolFogRevealBtn.classList.add('active'); break;
             case 'fog-hide': toolFogHideBtn.classList.add('active'); break;
             case 'object': canvas.style.cursor = 'copy'; break;
         }
     }
 
-    function applyTool(coords, startCoords = null) {
+    function applyEraser(coords) {
         const activeMap = state.getActiveMap();
         if (!activeMap || !activeLayerId) return;
+        
+        const worldCoords = {
+            x: (coords.x - view.offsetX) / view.zoom,
+            y: (coords.y - view.offsetY) / view.zoom
+        };
+        let changed = false;
 
-        let targetLayer = activeMap.layers.find(l => l.id === activeLayerId);
-        if (!targetLayer) return;
+        switch (currentEraserMode) {
+            case 'terrain': {
+                const gridCoords = pixelToGridCoords(coords.x, coords.y);
+                const targetLayer = activeMap.layers.find(l => l.id === activeLayerId);
+                if (targetLayer && targetLayer.data) {
+                    const key = `${gridCoords.q},${gridCoords.r}`;
+                    if (targetLayer.data[key] && targetLayer.data[key].terrain) {
+                        delete targetLayer.data[key].terrain;
+                        changed = true;
+                    }
+                }
+                break;
+            }
+            case 'objects': {
+                const targetLayer = activeMap.layers.find(l => l.id === activeLayerId);
+                if (targetLayer && targetLayer.objects) {
+                    for (let i = targetLayer.objects.length - 1; i >= 0; i--) {
+                        const obj = targetLayer.objects[i];
+                        const asset = assetCache[obj.assetId];
+                        if (!asset) continue;
+
+                        const objWidth = asset.width * obj.scale;
+                        const objHeight = asset.height * obj.scale;
+                        
+                        if (worldCoords.x >= obj.x - objWidth / 2 && worldCoords.x <= obj.x + objWidth / 2 &&
+                            worldCoords.y >= obj.y - objHeight / 2 && worldCoords.y <= obj.y + objHeight / 2) {
+                            targetLayer.objects.splice(i, 1);
+                            changed = true;
+                            break;
+                        }
+                    }
+                }
+                break;
+            }
+            case 'drawings': {
+                if (activeMap.drawings) {
+                    for (let i = activeMap.drawings.length - 1; i >= 0; i--) {
+                        const drawing = activeMap.drawings[i];
+                        const tolerance = (drawing.width / 2) + 5;
+                        const isNear = drawing.points.some(p => {
+                            const dist = Math.sqrt(Math.pow(p.x - worldCoords.x, 2) + Math.pow(p.y - worldCoords.y, 2));
+                            return dist < tolerance;
+                        });
+                        if (isNear) {
+                            activeMap.drawings.splice(i, 1);
+                            changed = true;
+                        }
+                    }
+                }
+                break;
+            }
+        }
+        if (changed) {
+            drawAll();
+        }
+    }
+
+
+    function applyTool(coords, startCoords = null) {
+        const activeMap = state.getActiveMap();
+        if (!activeMap) return;
 
         const worldCoords = {
             x: (coords.x - view.offsetX) / view.zoom,
@@ -600,6 +730,9 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         if (currentTool === 'terrain') {
+            if (!activeLayerId) return;
+            let targetLayer = activeMap.layers.find(l => l.id === activeLayerId);
+            if (!targetLayer) return;
             const gridCoords = pixelToGridCoords(coords.x, coords.y);
             const key = `${gridCoords.q},${gridCoords.r}`;
             if (activeMap.grid[key]) {
@@ -608,6 +741,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 targetLayer.data[key].terrain = selectedTerrain;
             }
         } else if (currentTool === 'object' && selectedObject) {
+            if (!activeLayerId) return;
+            let targetLayer = activeMap.layers.find(l => l.id === activeLayerId);
+            if (!targetLayer) return;
             if (!targetLayer.objects) targetLayer.objects = [];
             const newObject = {
                 id: `obj_${Date.now()}`,
@@ -619,11 +755,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 isGmOnly: objectGmOnlyCheckbox.checked
             };
             targetLayer.objects.push(newObject);
+        } else if (currentTool === 'token') {
+            if (!activeMap.tokens) activeMap.tokens = [];
+            activeMap.tokens.push({
+                id: `token_${Date.now()}`,
+                x: worldCoords.x,
+                y: worldCoords.y,
+                color: tokenColorPicker.value,
+                lightRadius: parseInt(tokenLightRadiusSlider.value)
+            });
         } else if (currentTool === 'wall' && startCoords) {
             const worldStartCoords = {
                 x: (startCoords.x - view.offsetX) / view.zoom,
                 y: (startCoords.y - view.offsetY) / view.zoom
             };
+            if (!activeMap.walls) activeMap.walls = [];
             activeMap.walls.push({ start: worldStartCoords, end: worldCoords });
         } else if (currentTool === 'fog-reveal' && startCoords) {
             const rect = {
@@ -701,6 +847,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const firstLayerId = `layer_${Date.now()}`;
         state.project.maps[mapId] = {
             id: mapId, name: mapName, grid: newGrid,
+            width: width, 
+            height: height,
             layers: [{ 
                 id: firstLayerId, 
                 name: 'Ground', 
@@ -768,6 +916,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const item = document.createElement('div');
             item.className = 'layer-item';
             item.dataset.layerId = layer.id;
+            item.draggable = true;
             if (layer.id === activeLayerId) {
                 item.classList.add('active');
             }
@@ -855,7 +1004,9 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const [terrainsResponse, assetsResponse] = await Promise.all([ fetch('./terrains.json'), fetch('./assets.json') ]);
             if (!terrainsResponse.ok || !assetsResponse.ok) throw new Error('Failed to load core asset/terrain files.');
-            state.setState({ terrains: await terrainsResponse.json(), assetManifest: await assetsResponse.json() });
+            const terrainsData = await terrainsResponse.json();
+            const assetsData = await assetsResponse.json();
+            state.setState({ terrains: terrainsData, assetManifest: assetsData });
         } catch (error) {
             console.error(error);
             state.showModal(`Critical Error: Could not load core game files.`);
@@ -902,6 +1053,50 @@ document.addEventListener('DOMContentLoaded', () => {
     function checkForRecovery() { /* ... */ }
     function autoSaveProject() { /* ... */ }
     
+    function getHexesInLine(startCoords, endCoords) {
+        const hexes = [];
+        const N = Math.max(Math.abs(startCoords.q - endCoords.q), Math.abs(startCoords.r - endCoords.r), Math.abs(startCoords.s - endCoords.s));
+        for (let i = 0; i <= N; i++) {
+            const t = N === 0 ? 0.0 : i / N;
+            const q = Math.round(startCoords.q + (endCoords.q - startCoords.q) * t);
+            const r = Math.round(startCoords.r + (endCoords.r - startCoords.r) * t);
+            hexes.push({q, r});
+        }
+        return hexes;
+    }
+
+    function getHexesInRectangle(startCoords, endCoords) {
+        const hexes = [];
+        const minQ = Math.min(startCoords.q, endCoords.q);
+        const maxQ = Math.max(startCoords.q, endCoords.q);
+        const minR = Math.min(startCoords.r, endCoords.r);
+        const maxR = Math.max(startCoords.r, endCoords.r);
+        for (let q = minQ; q <= maxQ; q++) {
+            for (let r = minR; r <= maxR; r++) {
+                hexes.push({q, r});
+            }
+        }
+        return hexes;
+    }
+
+    function getHexesInEllipse(centerCoords, radiusX, radiusY) {
+        const hexes = [];
+        const {x: centerX, y: centerY} = hexToPixel(centerCoords.q, centerCoords.r, 30);
+        
+        const start = pixelToGridCoords(centerX - radiusX, centerY - radiusY);
+        const end = pixelToGridCoords(centerX + radiusX, centerY + radiusY);
+        
+        for (let q = start.q; q <= end.q; q++) {
+            for (let r = start.r; r <= end.r; r++) {
+                const {x, y} = hexToPixel(q, r, 30);
+                if (Math.pow((x - centerX) / radiusX, 2) + Math.pow((y - centerY) / radiusY, 2) <= 1) {
+                    hexes.push({q, r});
+                }
+            }
+        }
+        return hexes;
+    }
+
     function addEventListeners() {
         window.addEventListener('resize', resizeCanvas);
         document.addEventListener('aiImageGenerated', handleAIImage);
@@ -991,7 +1186,24 @@ document.addEventListener('DOMContentLoaded', () => {
         toolWallBtn.addEventListener('click', () => setActiveTool('wall'));
         toolTokenBtn.addEventListener('click', () => setActiveTool('token'));
         toolInteractBtn.addEventListener('click', () => setActiveTool('interact'));
-        eraserToolBtn.addEventListener('click', () => setActiveTool('eraser'));
+        
+        eraserToolBtn.addEventListener('click', () => eraserDropdownMenu.classList.toggle('hidden'));
+        eraseTerrainBtn.addEventListener('click', () => {
+            currentEraserMode = 'terrain';
+            setActiveTool('eraser-terrain');
+            eraserDropdownMenu.classList.add('hidden');
+        });
+        eraseObjectsBtn.addEventListener('click', () => {
+            currentEraserMode = 'objects';
+            setActiveTool('eraser-objects');
+            eraserDropdownMenu.classList.add('hidden');
+        });
+        eraseDrawingsBtn.addEventListener('click', () => {
+            currentEraserMode = 'drawings';
+            setActiveTool('eraser-drawings');
+            eraserDropdownMenu.classList.add('hidden');
+        });
+
         toolFogRevealBtn.addEventListener('click', () => setActiveTool('fog-reveal'));
         toolFogHideBtn.addEventListener('click', () => setActiveTool('fog-hide'));
 
@@ -1010,6 +1222,7 @@ document.addEventListener('DOMContentLoaded', () => {
         assetExportBtn.addEventListener('click', handleAssetExport);
 
         canvas.addEventListener('contextmenu', e => e.preventDefault());
+        
         canvas.addEventListener('mousedown', e => {
             if (e.button === 2) {
                 isPanning = true;
@@ -1018,23 +1231,124 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             if (e.button === 0) {
-                saveState();
                 const clickCoords = { x: e.clientX - canvas.getBoundingClientRect().left, y: e.clientY - canvas.getBoundingClientRect().top };
+                const worldCoords = { x: (clickCoords.x - view.offsetX) / view.zoom, y: (clickCoords.y - view.offsetY) / view.zoom };
                 
-                if (currentTool === 'pencil') {
-                    isPenciling = true;
-                    currentPencilPath = {
-                        points: [{ x: (clickCoords.x - view.offsetX) / view.zoom, y: (clickCoords.y - view.offsetY) / view.zoom }],
-                        color: pencilColorPicker.value,
-                        width: parseInt(pencilWidthSlider.value),
-                        isGmOnly: pencilGmOnlyCheckbox.checked
-                    };
-                } else {
-                    isPainting = true;
-                    shapeStartPoint = clickCoords;
-                    if (currentTool === 'terrain' || (currentTool === 'object' && selectedObject)) {
-                        applyTool(clickCoords);
+                if (currentTool === 'select') {
+                    const activeMap = state.getActiveMap();
+                    let found = false;
+
+                    if (selection && selection.type === 'wall') {
+                        const wall = activeMap.walls[selection.index];
+                        const handleRadius = 8 / view.zoom;
+                        const distToStart = Math.sqrt(Math.pow(worldCoords.x - wall.start.x, 2) + Math.pow(worldCoords.y - wall.start.y, 2));
+                        const distToEnd = Math.sqrt(Math.pow(worldCoords.x - wall.end.x, 2) + Math.pow(worldCoords.y - wall.end.y, 2));
+                        
+                        if (distToStart <= handleRadius) {
+                            isDraggingWallEndpoint = true;
+                            selection.handle = 'start';
+                            found = true;
+                        } else if (distToEnd <= handleRadius) {
+                            isDraggingWallEndpoint = true;
+                            selection.handle = 'end';
+                            found = true;
+                        }
                     }
+
+                    if (found) {
+                        drawAll();
+                        return;
+                    }
+                    
+                    for (let i = activeMap.tokens.length - 1; i >= 0; i--) {
+                        const token = activeMap.tokens[i];
+                        const dist = Math.sqrt(Math.pow(worldCoords.x - token.x, 2) + Math.pow(worldCoords.y - token.y, 2));
+                        if (dist <= (30 / 2)) {
+                            selection = { type: 'token', index: i };
+                            isDragging = true;
+                            dragOffsetX = worldCoords.x - token.x;
+                            dragOffsetY = worldCoords.y - token.y;
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    if (!found) {
+                        for (let layer of [...activeMap.layers].reverse()) {
+                            if (layer.objects) {
+                                for (let i = layer.objects.length - 1; i >= 0; i--) {
+                                    const obj = layer.objects[i];
+                                    const asset = assetCache[obj.assetId];
+                                    if (!asset) continue;
+                                    const objWidth = asset.width * obj.scale;
+                                    const objHeight = asset.height * obj.scale;
+                                    if (worldCoords.x >= obj.x - objWidth / 2 && worldCoords.x <= obj.x + objWidth / 2 &&
+                                        worldCoords.y >= obj.y - objHeight / 2 && worldCoords.y <= obj.y + objHeight / 2) {
+                                        selection = { type: 'object', layerId: layer.id, index: i };
+                                        isDragging = true;
+                                        dragOffsetX = worldCoords.x - obj.x;
+                                        dragOffsetY = worldCoords.y - obj.y;
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (found) break;
+                        }
+                    }
+
+                    if (!found && activeMap.walls) {
+                        const clickTolerance = 10 / view.zoom;
+                        for (let i = activeMap.walls.length - 1; i >= 0; i--) {
+                            const wall = activeMap.walls[i];
+                            const dx = wall.end.x - wall.start.x;
+                            const dy = wall.end.y - wall.start.y;
+                            const lenSq = dx*dx + dy*dy;
+                            const t = ((worldCoords.x - wall.start.x) * dx + (worldCoords.y - wall.start.y) * dy) / lenSq;
+                            const tClamped = Math.max(0, Math.min(1, t));
+                            const closestX = wall.start.x + tClamped * dx;
+                            const closestY = wall.start.y + tClamped * dy;
+                            const distSq = Math.pow(worldCoords.x - closestX, 2) + Math.pow(worldCoords.y - closestY, 2);
+                            if (distSq < clickTolerance * clickTolerance) {
+                                selection = { type: 'wall', index: i };
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!found) selection = null;
+                    updateContextMenu();
+                    drawAll();
+                    return;
+                }
+
+                saveState();
+                
+                const terrainBrush = terrainBrushModeSelect.value;
+                const pencilBrush = pencilBrushModeSelect.value;
+
+                if (currentTool.startsWith('eraser-')) {
+                    isPainting = true;
+                    applyEraser(clickCoords);
+                } else if (currentTool === 'pencil') {
+                    if (pencilBrush === 'freestyle') {
+                        isPenciling = true;
+                        currentPencilPath = {
+                            type: 'freestyle',
+                            points: [worldCoords],
+                            color: pencilColorPicker.value, width: parseInt(pencilWidthSlider.value), isGmOnly: pencilGmOnlyCheckbox.checked
+                        };
+                    } else {
+                        isDrawingShape = true;
+                        shapeStartPoint = clickCoords;
+                    }
+                } else if (currentTool === 'terrain' && (terrainBrush === 'hex' || terrainBrush === 'spray')) {
+                    isPainting = true;
+                    applyTool(clickCoords);
+                } else {
+                    isDrawingShape = true;
+                    shapeStartPoint = clickCoords;
                 }
             }
         });
@@ -1045,36 +1359,157 @@ document.addEventListener('DOMContentLoaded', () => {
                 view.offsetY += e.clientY - panStart.y;
                 panStart = { x: e.clientX, y: e.clientY };
                 drawAll();
-            } else if (isPenciling && currentPencilPath) {
-                const moveCoords = { x: e.clientX - canvas.getBoundingClientRect().left, y: e.clientY - canvas.getBoundingClientRect().top };
-                currentPencilPath.points.push({ x: (moveCoords.x - view.offsetX) / view.zoom, y: (moveCoords.y - view.offsetY) / view.zoom });
+                return;
+            }
+            
+            const moveCoords = { x: e.clientX - canvas.getBoundingClientRect().left, y: e.clientY - canvas.getBoundingClientRect().top };
+            const worldCoords = { x: (moveCoords.x - view.offsetX) / view.zoom, y: (moveCoords.y - view.offsetY) / view.zoom };
+
+            if (isDraggingWallEndpoint && selection && selection.type === 'wall') {
+                const wall = state.getActiveMap().walls[selection.index];
+                wall[selection.handle] = worldCoords;
                 drawAll();
-            } else if (isPainting && currentTool === 'terrain') {
-                const moveCoords = { x: e.clientX - canvas.getBoundingClientRect().left, y: e.clientY - canvas.getBoundingClientRect().top };
-                applyTool(moveCoords);
+            } else if (isDragging && selection) {
+                const activeMap = state.getActiveMap();
+                if (selection.type === 'object') {
+                    const layer = activeMap.layers.find(l => l.id === selection.layerId);
+                    const obj = layer.objects[selection.index];
+                    obj.x = worldCoords.x - dragOffsetX;
+                    obj.y = worldCoords.y - dragOffsetY;
+                } else if (selection.type === 'token') {
+                    const token = activeMap.tokens[selection.index];
+                    token.x = worldCoords.x - dragOffsetX;
+                    token.y = worldCoords.y - dragOffsetY;
+                }
+                updateContextMenu();
+                drawAll();
+            } else if (isPenciling && currentPencilPath) {
+                currentPencilPath.points.push(worldCoords);
+                drawAll(); 
+            } else if (isPainting) {
+                if (currentTool.startsWith('eraser-')) {
+                    applyEraser(moveCoords);
+                } else if (currentTool === 'terrain') {
+                    applyTool(moveCoords);
+                }
+            } else if (isDrawingShape) {
+                drawAll(); 
+                drawingCtx.save();
+                drawingCtx.translate(view.offsetX, view.offsetY);
+                drawingCtx.scale(view.zoom, view.zoom);
+                const worldStart = { x: (shapeStartPoint.x - view.offsetX) / view.zoom, y: (shapeStartPoint.y - view.offsetY) / view.zoom };
+                drawingCtx.setLineDash([5, 5]);
+                drawingCtx.lineWidth = 2 / view.zoom;
+
+                if (currentTool === 'pencil') {
+                    const pencilBrush = pencilBrushModeSelect.value;
+                    drawingCtx.strokeStyle = pencilColorPicker.value;
+                    drawingCtx.lineWidth = parseInt(pencilWidthSlider.value);
+                    drawingCtx.setLineDash([]);
+                    if (pencilBrush === 'line') {
+                        drawingCtx.beginPath();
+                        drawingCtx.moveTo(worldStart.x, worldStart.y);
+                        drawingCtx.lineTo(worldCoords.x, worldCoords.y);
+                        drawingCtx.stroke();
+                    } else if (pencilBrush === 'rectangle') {
+                        drawingCtx.strokeRect(worldStart.x, worldStart.y, worldCoords.x - worldStart.x, worldCoords.y - worldStart.y);
+                    } else if (pencilBrush === 'ellipse') {
+                        const radiusX = Math.abs(worldCoords.x - worldStart.x) / 2;
+                        const radiusY = Math.abs(worldCoords.y - worldStart.y) / 2;
+                        const centerX = worldStart.x + (worldCoords.x - worldStart.x) / 2;
+                        const centerY = worldStart.y + (worldCoords.y - worldStart.y) / 2;
+                        drawingCtx.beginPath();
+                        drawingCtx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
+                        drawingCtx.stroke();
+                    }
+                } else if (currentTool === 'object' && selectedObject) {
+                    const assetImg = assetCache[selectedObject];
+                    if (assetImg) {
+                        drawingCtx.globalAlpha = 0.5;
+                        drawingCtx.drawImage(assetImg, worldCoords.x - assetImg.width / 2, worldCoords.y - assetImg.height / 2);
+                        drawingCtx.globalAlpha = 1.0;
+                    }
+                } else if (currentTool === 'wall') {
+                    drawingCtx.strokeStyle = 'rgba(0,0,0,0.7)';
+                    drawingCtx.beginPath();
+                    drawingCtx.moveTo(worldStart.x, worldStart.y);
+                    drawingCtx.lineTo(worldCoords.x, worldCoords.y);
+                    drawingCtx.stroke();
+                }
+                drawingCtx.restore();
             }
         });
         
         canvas.addEventListener('mouseup', e => {
-            if (e.button === 2) { isPanning = false; canvas.classList.remove('panning'); }
+            if (e.button === 2) { isPanning = false; canvas.classList.remove('panning'); return; }
             if (e.button === 0) {
+                const endCoords = { x: e.clientX - canvas.getBoundingClientRect().left, y: e.clientY - canvas.getBoundingClientRect().top };
+                const activeMap = state.getActiveMap();
+                if (!activeMap) return;
+
                 if (isPenciling) {
-                    const activeMap = state.getActiveMap();
-                    if (activeMap && currentPencilPath && currentPencilPath.points.length > 1) {
+                    if (currentPencilPath && currentPencilPath.points.length > 1) {
                         if (!activeMap.drawings) activeMap.drawings = [];
                         activeMap.drawings.push(currentPencilPath);
                     }
-                    isPenciling = false;
-                    currentPencilPath = null;
-                    drawAll();
+                } else if (isDrawingShape) {
+                    if (currentTool === 'object' && selectedObject || currentTool === 'token' || currentTool === 'wall') {
+                        applyTool(endCoords, shapeStartPoint);
+                    } else {
+                        const worldStart = { x: (shapeStartPoint.x - view.offsetX) / view.zoom, y: (shapeStartPoint.y - view.offsetY) / view.zoom };
+                        const worldEnd = { x: (endCoords.x - view.offsetX) / view.zoom, y: (endCoords.y - view.offsetY) / view.zoom };
+                        
+                        if (currentTool === 'terrain') {
+                            const terrainBrush = terrainBrushModeSelect.value;
+                            const startHex = pixelToGridCoords(shapeStartPoint.x, shapeStartPoint.y);
+                            const endHex = pixelToGridCoords(endCoords.x, endCoords.y);
+                            let hexesToPaint = [];
+
+                            if (terrainBrush === 'line') {
+                                hexesToPaint = getHexesInLine(startHex, endHex);
+                            } else if (terrainBrush === 'rectangle') {
+                                hexesToPaint = getHexesInRectangle(startHex, endHex);
+                            } else if (terrainBrush === 'ellipse') {
+                                const radiusX = Math.abs(worldEnd.x - worldStart.x) / 2;
+                                const radiusY = Math.abs(worldEnd.y - worldStart.y) / 2;
+                                hexesToPaint = getHexesInEllipse(startHex, radiusX, radiusY);
+                            }
+                            
+                            const targetLayer = activeMap.layers.find(l => l.id === activeLayerId);
+                            if(targetLayer) {
+                                hexesToPaint.forEach(hex => {
+                                    const key = `${hex.q},${hex.r}`;
+                                    if (activeMap.grid[key]) {
+                                        if (!targetLayer.data[key]) targetLayer.data[key] = {};
+                                        targetLayer.data[key].terrain = selectedTerrain;
+                                    }
+                                });
+                            }
+                        } else if (currentTool === 'pencil') {
+                            const pencilBrush = pencilBrushModeSelect.value;
+                            if (!activeMap.drawings) activeMap.drawings = [];
+                            let newDrawing = { color: pencilColorPicker.value, width: parseInt(pencilWidthSlider.value), isGmOnly: pencilGmOnlyCheckbox.checked };
+
+                            if (pencilBrush === 'line') {
+                                newDrawing = { ...newDrawing, type: 'line', start: worldStart, end: worldEnd };
+                            } else if (pencilBrush === 'rectangle') {
+                                newDrawing = { ...newDrawing, type: 'rectangle', x: Math.min(worldStart.x, worldEnd.x), y: Math.min(worldStart.y, worldEnd.y), width: Math.abs(worldStart.x - worldEnd.x), height: Math.abs(worldStart.y - worldEnd.y) };
+                            } else if (pencilBrush === 'ellipse') {
+                                newDrawing = { ...newDrawing, type: 'ellipse', x: worldStart.x + (worldEnd.x - worldStart.x) / 2, y: worldStart.y + (worldEnd.y - worldStart.y) / 2, radiusX: Math.abs(worldEnd.x - worldStart.x) / 2, radiusY: Math.abs(worldEnd.y - worldStart.y) / 2 };
+                            }
+                            activeMap.drawings.push(newDrawing);
+                        }
+                    }
                 }
 
-                if (isPainting && (currentTool === 'wall' || currentTool.startsWith('fog-'))) {
-                    const endCoords = { x: e.clientX - canvas.getBoundingClientRect().left, y: e.clientY - canvas.getBoundingClientRect().top };
-                    applyTool(endCoords, shapeStartPoint);
-                }
+                isPenciling = false;
                 isPainting = false;
+                isDrawingShape = false;
+                isDragging = false;
+                isDraggingWallEndpoint = false;
                 shapeStartPoint = null;
+                currentPencilPath = null;
+                drawAll();
             }
         });
         
@@ -1082,8 +1517,12 @@ document.addEventListener('DOMContentLoaded', () => {
             isPanning = false;
             isPainting = false;
             isPenciling = false;
+            isDrawingShape = false;
+            isDragging = false;
+            isDraggingWallEndpoint = false;
             currentPencilPath = null;
             canvas.classList.remove('panning');
+            drawAll();
         });
 
         canvas.addEventListener('wheel', e => {
@@ -1102,6 +1541,214 @@ document.addEventListener('DOMContentLoaded', () => {
             view.zoom = newZoom;
             drawAll();
         });
+
+        window.addEventListener('keydown', e => {
+            if (!selection) return;
+            saveState();
+            const activeMap = state.getActiveMap();
+            let changed = true;
+
+            if (selection.type === 'object') {
+                const layer = activeMap.layers.find(l => l.id === selection.layerId);
+                const obj = layer.objects[selection.index];
+                switch(e.key) {
+                    case 'Delete': case 'Backspace':
+                        layer.objects.splice(selection.index, 1);
+                        selection = null;
+                        assetContextMenu.classList.add('hidden');
+                        break;
+                    case 'r': obj.rotation = (obj.rotation - 15) % 360; break;
+                    case 'R': obj.rotation = (obj.rotation + 15) % 360; break;
+                    case '+': case '=': obj.scale = Math.min(5, obj.scale + 0.1); break;
+                    case '-': obj.scale = Math.max(0.1, obj.scale - 0.1); break;
+                    default: changed = false;
+                }
+            } else if (selection.type === 'token') {
+                if (e.key === 'Delete' || e.key === 'Backspace') {
+                    activeMap.tokens.splice(selection.index, 1);
+                    selection = null;
+                } else {
+                    changed = false;
+                }
+            } else if (selection.type === 'wall') {
+                if (e.key === 'Delete' || e.key === 'Backspace') {
+                    activeMap.walls.splice(selection.index, 1);
+                    selection = null;
+                } else {
+                    changed = false;
+                }
+            }
+
+            if (changed) {
+                e.preventDefault();
+                drawAll();
+            }
+        });
+
+        assetRotateLeftBtn.addEventListener('click', () => {
+            if (!selection || selection.type !== 'object') return;
+            saveState();
+            const obj = state.getActiveMap().layers.find(l => l.id === selection.layerId).objects[selection.index];
+            obj.rotation = (obj.rotation - 15) % 360;
+            drawAll();
+        });
+        assetRotateRightBtn.addEventListener('click', () => {
+            if (!selection || selection.type !== 'object') return;
+            saveState();
+            const obj = state.getActiveMap().layers.find(l => l.id === selection.layerId).objects[selection.index];
+            obj.rotation = (obj.rotation + 15) % 360;
+            drawAll();
+        });
+        assetScaleUpBtn.addEventListener('click', () => {
+            if (!selection || selection.type !== 'object') return;
+            saveState();
+            const obj = state.getActiveMap().layers.find(l => l.id === selection.layerId).objects[selection.index];
+            obj.scale = Math.min(5, obj.scale + 0.1);
+            drawAll();
+        });
+        assetScaleDownBtn.addEventListener('click', () => {
+            if (!selection || selection.type !== 'object') return;
+            saveState();
+            const obj = state.getActiveMap().layers.find(l => l.id === selection.layerId).objects[selection.index];
+            obj.scale = Math.max(0.1, obj.scale - 0.1);
+            drawAll();
+        });
+        
+        deleteTokenBtn.addEventListener('click', () => {
+            if (!selection || selection.type !== 'token') return;
+            saveState();
+            state.getActiveMap().tokens.splice(selection.index, 1);
+            selection = null;
+            drawAll();
+        });
+
+        layerList.addEventListener('dragstart', e => {
+            const target = e.target.closest('.layer-item');
+            if (target) {
+                draggedLayerId = target.dataset.layerId;
+                e.dataTransfer.effectAllowed = 'move';
+                setTimeout(() => {
+                    target.classList.add('dragging');
+                }, 0);
+            }
+        });
+
+        layerList.addEventListener('dragend', e => {
+            const target = e.target.closest('.layer-item');
+            if (target) {
+                target.classList.remove('dragging');
+            }
+            draggedLayerId = null;
+        });
+
+        layerList.addEventListener('dragover', e => {
+            e.preventDefault();
+            const target = e.target.closest('.layer-item');
+            if (target && target.dataset.layerId !== draggedLayerId) {
+                document.querySelectorAll('.layer-item').forEach(el => el.style.borderTop = '');
+                target.style.borderTop = '2px solid #3b82f6';
+            }
+        });
+
+        layerList.addEventListener('dragleave', e => {
+             const target = e.target.closest('.layer-item');
+             if(target) {
+                target.style.borderTop = '';
+             }
+        });
+
+        layerList.addEventListener('drop', e => {
+            e.preventDefault();
+            document.querySelectorAll('.layer-item').forEach(el => el.style.borderTop = '');
+            const targetElement = e.target.closest('.layer-item');
+            if (!targetElement || !draggedLayerId || targetElement.dataset.layerId === draggedLayerId) {
+                return;
+            }
+
+            saveState();
+            const activeMap = state.getActiveMap();
+            const draggedIndex = activeMap.layers.findIndex(l => l.id === draggedLayerId);
+            const targetIndex = activeMap.layers.findIndex(l => l.id === targetElement.dataset.layerId);
+
+            const [draggedLayer] = activeMap.layers.splice(draggedIndex, 1);
+            activeMap.layers.splice(targetIndex, 0, draggedLayer);
+
+            renderLayerList();
+            drawAll();
+        });
+
+        userGuideBtn.addEventListener('click', () => {
+            const guideContent = `
+                <div class="space-y-4 text-gray-300">
+                    <div>
+                        <h4 class="text-lg font-bold text-white mb-2">Getting Started</h4>
+                        <p>Welcome to the AI-Assisted Map Maker! Start by giving your project a name in the top right. Use the <strong>Add New Map</strong> button to create your first map in the Atlas.</p>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-bold text-white mb-2">Navigating the Canvas</h4>
+                        <ul class="list-disc list-inside space-y-1">
+                            <li><strong>Pan:</strong> Right-click and drag to move around the map.</li>
+                            <li><strong>Zoom:</strong> Use your mouse wheel to zoom in and out.</li>
+                            <li><strong>Reset View:</strong> Click the "Center" button in the Actions panel to reset the view.</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-bold text-white mb-2">Core Tools</h4>
+                        <ul class="list-disc list-inside space-y-1">
+                            <li><strong>Terrain:</strong> Select a terrain type and use the brush options to paint hexes on the map.</li>
+                            <li><strong>Pencil:</strong> Draw freehand lines or shapes. Check "GM-Only" to make secret drawings.</li>
+                            <li><strong>Object:</strong> Select an object from the list and click on the map to place it.</li>
+                            <li><strong>Wall:</strong> Click and drag to create impassable walls for line of sight.</li>
+                            <li><strong>Token:</strong> Place colored tokens for players or monsters. Set their light radius in the options.</li>
+                            <li><strong>Eraser:</strong> Use the dropdown to choose what to erase: Terrain, Objects, or Drawings.</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-bold text-white mb-2">Selection & Editing</h4>
+                        <p>Use the <strong>Select</strong> tool (arrow icon) to edit things on the map:</p>
+                        <ul class="list-disc list-inside space-y-1">
+                            <li><strong>Move:</strong> Click and drag any selected object, token, or wall handle.</li>
+                            <li><strong>Delete:</strong> Select an item and press the <strong>Delete</strong> key.</li>
+                            <li><strong>Rotate/Scale Objects:</strong> When an object is selected, use the on-canvas controls or keyboard shortcuts (<strong>R/r</strong> to rotate, <strong>+/-</strong> to scale).</li>
+                        </ul>
+                    </div>
+                     <div>
+                        <h4 class="text-lg font-bold text-white mb-2">Layers</h4>
+                        <p>In the "Graphics Options" panel, you can manage layers. The map is drawn from the bottom of the list to the top. Drag and drop layers to reorder them.</p>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-bold text-white mb-2">GM Features</h4>
+                        <ul class="list-disc list-inside space-y-1">
+                            <li><strong>GM View:</strong> Click the eye icon in the header to toggle GM View. This shows/hides all GM-only objects and drawings.</li>
+                            <li><strong>Fog of War:</strong> Use the Reveal and Hide tools to manage what your players can see.</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-bold text-white mb-2">AI Assistant</h4>
+                        <p>Open the AI panel at the bottom to generate maps. First, enter your API key in Settings (gear icon). Then, follow the two-step process: generate a landform, then apply biomes.</p>
+                    </div>
+                </div>
+            `;
+            state.showContentModal("User Guide", guideContent);
+        });
+
+    }
+
+    function updateContextMenu() {
+        if (!selection || selection.type !== 'object') {
+            assetContextMenu.classList.add('hidden');
+            return;
+        }
+        const activeMap = state.getActiveMap();
+        const layer = activeMap.layers.find(l => l.id === selection.layerId);
+        const obj = layer.objects[selection.index];
+
+        const screenX = obj.x * view.zoom + view.offsetX;
+        const screenY = obj.y * view.zoom + view.offsetY;
+
+        assetContextMenu.classList.remove('hidden');
+        assetContextMenu.style.left = `${screenX + 30}px`;
+        assetContextMenu.style.top = `${screenY - assetContextMenu.offsetHeight / 2}px`;
     }
 
     initialize();

@@ -1,4 +1,4 @@
-// Version 6.0 - Phase 2.1: Intelligent Biome Application
+// Version 6.1 - Phase 2.1: Intelligent Biome Application (FIXED)
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -215,10 +215,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const finalImageBase64 = await callImageGenerationAI(fullPrompt, landformImageBase64);
 
             if (finalImageBase64) {
-                // This is the new intelligent application logic
                 await applyImageToMapTerrain(finalImageBase64);
                 state.showToast("Biomes applied! Your map has been painted.", "info");
-                landformImageBase64 = null; // Clear the landform after use
+                landformImageBase64 = null;
             }
         } catch (error) {
             console.error("Biome Application Error:", error);
@@ -228,13 +227,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    /**
-     * Analyzes a generated image and applies its colors as terrain to the current map.
-     * @param {string} imageBase64 The base64 encoded image to analyze.
-     */
     async function applyImageToMapTerrain(imageBase64) {
         const activeMap = state.getActiveMap();
-        if (!activeMap) return;
+        if (!activeMap || !activeMap.width || !activeMap.height) {
+            state.showToast("Cannot apply image: Active map has no dimensions.", "error");
+            return;
+        }
 
         const img = new Image();
         const promise = new Promise((resolve, reject) => {
@@ -252,45 +250,45 @@ document.addEventListener('DOMContentLoaded', () => {
         tempCtx.drawImage(img, 0, 0);
         const imageData = tempCtx.getImageData(0, 0, img.width, img.height);
 
-        const targetLayer = activeMap.layers[0]; // Assuming ground layer
+        const targetLayer = activeMap.layers[0];
         if (!targetLayer) return;
 
-        // Find the min/max coordinates of the grid to map image pixels correctly
-        let minQ = Infinity, maxQ = -Infinity, minR = Infinity, maxR = -Infinity;
-        Object.keys(activeMap.grid).forEach(key => {
-            const [q, r] = key.split(',').map(Number);
-            if (q < minQ) minQ = q;
-            if (q > maxQ) maxQ = q;
-            if (r < minR) minR = r;
-            if (r > maxR) maxR = r;
-        });
+        const mapWidth = activeMap.width;
+        const mapHeight = activeMap.height;
+        const halfWidth = Math.floor(mapWidth / 2);
+        const halfHeight = Math.floor(mapHeight / 2);
 
+        // Find min/max q and r for normalization
+        const minQ = -halfWidth;
+        const maxQ = halfWidth;
+        const minR = -halfHeight;
+        const maxR = halfHeight;
         const qRange = maxQ - minQ;
         const rRange = maxR - minR;
 
-        for (const key in activeMap.grid) {
-            const [q, r] = key.split(',').map(Number);
-            
-            // Normalize hex coordinates to a 0-1 range
-            const normX = (q - minQ) / qRange;
-            const normY = (r - minR) / rRange;
 
-            // Map normalized coordinates to pixel coordinates in the image
-            const pixelX = Math.floor(normX * img.width);
-            const pixelY = Math.floor(normY * img.height);
-            
-            // Get color from the image data
-            const i = (pixelY * imageData.width + pixelX) * 4;
-            const color = { r: imageData.data[i], g: imageData.data[i+1], b: imageData.data[i+2] };
+        for (let q = -halfWidth; q <= halfWidth; q++) {
+            for (let r = -halfHeight; r <= halfHeight; r++) {
+                const key = `${q},${r}`;
+                if (activeMap.grid[key]) {
+                    const normX = (q - minQ) / qRange;
+                    const normY = (r - minR) / rRange;
 
-            const closestTerrain = findClosestTerrain(color);
-            if (closestTerrain) {
-                if (!targetLayer.data[key]) targetLayer.data[key] = {};
-                targetLayer.data[key].terrain = closestTerrain;
+                    const pixelX = Math.floor(normX * img.width);
+                    const pixelY = Math.floor(normY * img.height);
+                    
+                    const i = (pixelY * imageData.width + pixelX) * 4;
+                    const color = { r: imageData.data[i], g: imageData.data[i+1], b: imageData.data[i+2] };
+
+                    const closestTerrain = findClosestTerrain(color);
+                    if (closestTerrain) {
+                        if (!targetLayer.data[key]) targetLayer.data[key] = {};
+                        targetLayer.data[key].terrain = closestTerrain;
+                    }
+                }
             }
         }
         
-        // Dispatch an event to tell the main script to redraw everything
         document.dispatchEvent(new CustomEvent('mapStateUpdated'));
     }
 

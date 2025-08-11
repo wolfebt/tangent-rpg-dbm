@@ -1,4 +1,4 @@
-// Version 6.1 - Phase 2.2: Asset Editor Activation
+// Version 6.2 - Phase 3.2: Asset Editor Completion
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -18,6 +18,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const colorPicker = document.getElementById('asset-color-picker');
     const brushSizeSlider = document.getElementById('asset-brush-size');
     const brushSizeValue = document.getElementById('asset-brush-size-value');
+    const assetCopyCodeBtn = document.getElementById('asset-copy-code-btn');
+    const assetPromptInput = document.getElementById('asset-prompt');
+    const assetLoadingOverlay = document.getElementById('loading-overlay');
+    const assetGenerateBtn = document.getElementById('asset-generate-btn');
 
     // --- Editor State ---
     let isDrawing = false;
@@ -89,9 +93,37 @@ document.addEventListener('DOMContentLoaded', () => {
         assetCtxDraw.closePath();
     }
 
+    async function handleAssetAIGeneration() {
+        const prompt = assetPromptInput.value;
+        if (!prompt) {
+            state.showModal("Please enter a prompt for the asset.");
+            return;
+        }
+        
+        // Refined prompt for better icon/asset generation
+        const fullPrompt = `An icon of ${prompt}, simple, 2d game asset, clean lines, vector style, on a transparent background`;
+        
+        assetLoadingOverlay.classList.remove('hidden');
+        // This function is defined in mmassist-script.js but available globally via module import
+        const generatedImageBase64 = await callImageGenerationAI(fullPrompt); 
+        assetLoadingOverlay.classList.add('hidden');
+
+        if (generatedImageBase64) {
+            const img = new Image();
+            img.onload = () => {
+                assetCtxMain.clearRect(0, 0, 512, 512);
+                assetCtxMain.drawImage(img, 0, 0, 512, 512);
+                updatePreview();
+            };
+            img.src = `data:image/png;base64,${generatedImageBase64}`;
+        }
+    }
+
+
     // --- Event Listeners ---
 
     assetTypeSelect.addEventListener('change', updatePreview);
+    assetGenerateBtn.addEventListener('click', handleAssetAIGeneration);
 
     toolPalette.addEventListener('click', (e) => {
         const button = e.target.closest('.asset-tool');
@@ -116,7 +148,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentPos = getMousePos(e);
         drawLine(lastPos.x, lastPos.y, currentPos.x, currentPos.y);
         lastPos = currentPos;
-        updatePreview();
     });
 
     assetCanvasDraw.addEventListener('mouseup', () => {
@@ -134,6 +165,17 @@ document.addEventListener('DOMContentLoaded', () => {
         assetCtxMain.drawImage(assetCanvasDraw, 0, 0);
         assetCtxDraw.clearRect(0, 0, assetCanvasDraw.width, assetCanvasDraw.height);
         updatePreview();
+    });
+
+    assetCopyCodeBtn.addEventListener('click', () => {
+        const output = document.getElementById('asset-export-output');
+        if (output.value) {
+            output.select();
+            document.execCommand('copy');
+            state.showToast("Export code copied to clipboard!", "info");
+        } else {
+            state.showToast("Generate export code first.", "warning");
+        }
     });
 
 });
