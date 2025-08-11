@@ -1,4 +1,4 @@
-// Version 4.30 - Added Auto-Save Recovery Modal
+// Version 4.31 - Fixed setActiveMapId bug
 // --- State Variables ---
 export let terrains = {};
 export let assetManifest = {};
@@ -18,11 +18,21 @@ export const getActiveMap = () => {
 };
 
 // --- State Update Functions ---
+
+/**
+ * Sets the active map ID.
+ * @param {string} mapId The ID of the map to set as active.
+ */
+export const setActiveMapId = (mapId) => {
+    activeMapId = mapId;
+};
+
 export const setState = (newState) => {
     if (newState.terrains !== undefined) terrains = newState.terrains;
     if (newState.assetManifest !== undefined) assetManifest = newState.assetManifest;
     if (newState.apiKey !== undefined) apiKey = newState.apiKey;
     if (newState.project !== undefined) project = newState.project;
+    // Ensure we can still set the activeMapId through the general setState function as well
     if (newState.activeMapId !== undefined) activeMapId = newState.activeMapId;
 };
 
