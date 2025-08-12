@@ -1,5 +1,6 @@
 // Version 6.2 - Phase 3.2: Asset Editor Completion
 import * as state from './state.js';
+import { callImageGenerationAI } from './mmassist-script.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- UI Elements ---
@@ -22,6 +23,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const assetPromptInput = document.getElementById('asset-prompt');
     const assetLoadingOverlay = document.getElementById('loading-overlay');
     const assetGenerateBtn = document.getElementById('asset-generate-btn');
+    const assetExportBtn = document.getElementById('asset-export-btn');
+    const assetNameInput = document.getElementById('asset-name');
+    const assetTagsInput = document.getElementById('asset-tags');
+    const assetEditorCloseBtn = document.getElementById('asset-editor-close-btn');
 
     // --- Editor State ---
     let isDrawing = false;
@@ -104,7 +109,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const fullPrompt = `An icon of ${prompt}, simple, 2d game asset, clean lines, vector style, on a transparent background`;
         
         assetLoadingOverlay.classList.remove('hidden');
-        // This function is defined in mmassist-script.js but available globally via module import
         const generatedImageBase64 = await callImageGenerationAI(fullPrompt); 
         assetLoadingOverlay.classList.add('hidden');
 
@@ -118,12 +122,57 @@ document.addEventListener('DOMContentLoaded', () => {
             img.src = `data:image/png;base64,${generatedImageBase64}`;
         }
     }
-
+    
+    function closeEditor() {
+        assetEditorOverlay.classList.add('hidden');
+        // Clear canvases and inputs for next time
+        assetCtxMain.clearRect(0, 0, assetCanvasMain.width, assetCanvasMain.height);
+        assetCtxDraw.clearRect(0, 0, assetCanvasDraw.width, assetCanvasDraw.height);
+        assetPromptInput.value = '';
+        assetNameInput.value = '';
+        assetTagsInput.value = '';
+    }
 
     // --- Event Listeners ---
 
     assetTypeSelect.addEventListener('change', updatePreview);
     assetGenerateBtn.addEventListener('click', handleAssetAIGeneration);
+    assetEditorCloseBtn.addEventListener('click', closeEditor);
+
+    assetExportBtn.addEventListener('click', () => {
+        const name = assetNameInput.value.trim();
+        if (!name) {
+            state.showModal("Please provide a name for the asset.");
+            return;
+        }
+
+        const combinedCanvas = document.createElement('canvas');
+        combinedCanvas.width = assetCanvasMain.width;
+        combinedCanvas.height = assetCanvasMain.height;
+        const combinedCtx = combinedCanvas.getContext('2d');
+        combinedCtx.drawImage(assetCanvasMain, 0, 0);
+        combinedCtx.drawImage(assetCanvasDraw, 0, 0);
+        const src = combinedCanvas.toDataURL('image/png');
+
+        const assetId = `custom_${name.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}`;
+        const tags = assetTagsInput.value.split(',').map(tag => tag.trim()).filter(Boolean);
+        
+        const newAsset = {
+            [assetId]: {
+                name: name,
+                src: src,
+                tags: tags,
+                type: assetTypeSelect.value
+            }
+        };
+
+        state.addNewAsset(newAsset);
+        
+        document.dispatchEvent(new CustomEvent('assetCreated', { detail: { assetId } }));
+        
+        state.showToast(`Asset "${name}" saved to your library!`, 'info');
+        closeEditor();
+    });
 
     toolPalette.addEventListener('click', (e) => {
         const button = e.target.closest('.asset-tool');

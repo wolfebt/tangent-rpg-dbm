@@ -76,7 +76,7 @@ body {
     height: 100%;
     overflow: hidden; /* Keep bottom panel contained */
 }
-#mapCanvas, #wallCanvas, #fogCanvas, #drawingCanvas, #maskCanvas {
+#mapCanvas, #wallCanvas, #fogCanvas, #drawingCanvas, #lightCanvas {
     position: absolute;
     top: 0;
     left: 0;
@@ -87,12 +87,12 @@ body {
     z-index: 2;
     pointer-events: none;
 }
-#fogCanvas {
-    z-index: 15;
+#lightCanvas {
+    z-index: 12;
     pointer-events: none;
 }
-#maskCanvas {
-    z-index: 5;
+#fogCanvas {
+    z-index: 15;
     pointer-events: none;
 }
 #drawingCanvas {

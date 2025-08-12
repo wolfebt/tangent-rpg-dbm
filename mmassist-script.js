@@ -1,76 +1,6 @@
 // Version 6.3 - Improved AI Prompt Engineering & Color Variants
 import * as state from './state.js';
-
-// --- This function is now imported by asset-editor.js ---
-export async function callImageGenerationAI(prompt, imageBase64 = null) {
-    if (!state.apiKey) {
-        state.showModal("Please set your API key in the settings first.");
-        return null;
-    }
-
-    const loadingModalMessage = imageBase64 ? "Applying biomes..." : "Generating...";
-    state.showModal(loadingModalMessage, null);
-
-    let apiUrl;
-    let payload;
-    const modelForTextToImage = "imagen-3.0-generate-002"; 
-    const modelForImageEdit = "gemini-2.0-flash-preview-image-generation";
-
-    if (!imageBase64) {
-        apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelForTextToImage}:predict?key=${state.apiKey}`;
-        payload = {
-            instances: [{ prompt: prompt }],
-            parameters: { "sampleCount": 1 }
-        };
-    } else {
-        apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelForImageEdit}:generateContent?key=${state.apiKey}`;
-        const parts = [
-            { text: prompt },
-            { inlineData: { mimeType: "image/png", data: imageBase64 } }
-        ];
-        payload = {
-            contents: [{ role: "user", parts: parts }],
-            generationConfig: { responseModalities: ['IMAGE'] },
-        };
-    }
-
-    try {
-        document.dispatchEvent(new CustomEvent('requestStateSave'));
-
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(`API request failed: ${error.error?.message || response.statusText}`);
-        }
-
-        const result = await response.json();
-        let base64Data;
-
-        if (!imageBase64) {
-            base64Data = result.predictions?.[0]?.bytesBase64Encoded;
-        } else {
-            base64Data = result.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
-        }
-
-        if (!base64Data) throw new Error("No image data found in API response.");
-
-        const genericModal = document.querySelector('.modal-backdrop');
-        if (genericModal) genericModal.remove();
-        
-        return base64Data;
-
-    } catch (error) {
-        console.error("AI Generation Error:", error);
-        state.showModal(`An error occurred during AI generation: ${error.message}`);
-        return null;
-    }
-}
-
+import { callImageGenerationAI } from './asset-editor.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- UI Elements ---
@@ -183,7 +113,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // *** MODIFIED FUNCTION: Now includes strict color mapping instructions ***
     async function handleApplyBiomes(isVariant = false) {
         if (!landformImageBase64) {
             state.showModal("Please generate a landform first (Step 1).");
@@ -200,7 +129,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // ** NEW: Construct the color mapping instruction string **
             let colorMappingInstructions = "CRITICAL INSTRUCTION: You must use ONLY the following hex colors for the corresponding terrain types: ";
             Object.values(state.terrains).forEach(terrain => {
                 colorMappingInstructions += `${terrain.name} must be exactly ${terrain.color}; `;
@@ -209,16 +137,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const advancedSettings = buildAdvancedPrompt();
             
-            let variantInstruction = isVariant ? "Re-render the map with a different artistic interpretation of textures and features, but you MUST still follow the critical color instructions. " : "";
+            let variantInstruction = isVariant ? "Re-render the map using a different artistic style for the colors, but you MUST still follow the critical color instructions. " : "";
 
-            const fullPrompt = colorMappingInstructions + variantInstruction + `Using the provided heightmap as a guide for elevation, render a full-color map. The landscape should feature: ${userPrompt}. Additional details: ${advancedSettings}.`;
+            const fullPrompt = `${colorMappingInstructions}Based on the heightmap, render a map featuring: ${userPrompt}. ${variantInstruction}Additional details: ${advancedSettings}.`;
 
             const finalImageBase64 = await callImageGenerationAI(fullPrompt, landformImageBase64);
 
             if (finalImageBase64) {
                 await applyImageToMapTerrain(finalImageBase64);
                 state.showToast("Biomes applied! Your map has been painted.", "info");
-                // Do not reset the landform image, allowing for more variants.
             }
         } catch (error) {
             console.error("Biome Application Error:", error);

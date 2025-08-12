@@ -36,7 +36,6 @@ export const setState = (newState) => {
     if (newState.activeMapId !== undefined) activeMapId = newState.activeMapId;
 };
 
-// *** NEW: Function to add a new asset and persist to localStorage ***
 /**
  * Adds a new asset to the manifest and saves custom assets to local storage.
  * @param {object} assetData The new asset object to add.
@@ -52,7 +51,9 @@ export function addNewAsset(assetData) {
     Object.assign(assetManifest, assetData);
 }
 
-// *** NEW: Function to load custom assets from localStorage into the live manifest ***
+/**
+ * Loads custom assets from localStorage into the live manifest.
+ */
 export function loadCustomAssets() {
     const customAssets = JSON.parse(localStorage.getItem('mapMakerCustomAssets')) || {};
     Object.assign(assetManifest, customAssets);
