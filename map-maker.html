@@ -28,9 +28,13 @@
             
             <!-- NEW TERRAIN PATTERNS -->
             <pattern id="pattern-dungeon-floor" width="16" height="16" patternUnits="userSpaceOnUse"><rect width="16" height="16" fill="#4a5568"/><path d="M0 8 H16 M8 0 V16" stroke="#2d3748" stroke-width="1"/></pattern>
+            <pattern id="pattern-dungeon-wall" width="16" height="16" patternUnits="userSpaceOnUse"><rect width="16" height="16" fill="#2d3748"/><path d="M0 0 L16 16 M16 0 L0 16" stroke="#1a202c" stroke-width="1.5"/></pattern>
             <pattern id="pattern-pavement" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#6b7280"/><rect x="0" y="0" width="6" height="6" fill="#718096"/><rect x="6" y="6" width="6" height="6" fill="#718096"/></pattern>
             <pattern id="pattern-metal-plating" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="#71717a"/><path d="M0 0 L10 10" stroke="#4a5568" stroke-width="1.5"/><circle cx="1" cy="1" r="1" fill="#4a5568"/><circle cx="9" cy="9" r="1" fill="#4a5568"/></pattern>
             <pattern id="pattern-wasteland" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#a16207"/><path d="M0 5 L5 0 L7 8 L12 3" stroke="#78350f" stroke-width="1" fill="none"/></pattern>
+            <pattern id="pattern-cobblestone" width="16" height="16" patternUnits="userSpaceOnUse"><rect width="16" height="16" fill="#718096"/><path d="M0 8 a8 8 0 0 1 8 -8 a8 8 0 0 1 8 8 M-8 8 a8 8 0 0 1 8 8 a8 8 0 0 1 8 -8" stroke="#4a5568" stroke-width="1" fill="none"/></pattern>
+            <pattern id="pattern-wooden-planks" width="20" height="20" patternUnits="userSpaceOnUse"><rect width="20" height="20" fill="#854d0e"/><path d="M0 0 H20 M0 10 H20" stroke="#522c04" stroke-width="2"/><path d="M5 0 V10 M15 10 V20" stroke="#522c04" stroke-width="1"/></pattern>
+            <pattern id="pattern-cavern-floor" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#78716c"/><circle cx="3" cy="3" r="2" fill="#57534e" opacity="0.5"/><circle cx="8" cy="9" r="1.5" fill="#57534e" opacity="0.5"/></pattern>
         </defs>
     </svg>
 
@@ -88,14 +92,13 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </div>
                         <div class="collapsible-content hidden">
-                            <!-- *** MODIFIED: Grid is now 4 columns to accommodate the new Text tool *** -->
                             <div class="grid grid-cols-4 gap-2">
                                 <button id="toolTerrainBtn" class="active">Terrain</button>
                                 <button id="toolPencilBtn">Pencil</button>
                                 <button id="toolSelectBtn">Select</button>
                                 <button id="toolWallBtn">Wall</button>
                                 <button id="toolTokenBtn">Token</button>
-                                <button id="toolTextBtn">Text</button> <!-- *** NEW: Text Tool Button *** -->
+                                <button id="toolTextBtn">Text</button>
                                 <button id="toolInteractBtn">Interact</button>
                             </div>
                         </div>
@@ -144,7 +147,6 @@
                                     <input type="range" id="pencilWidth" min="1" max="50" value="5" class="!mb-0">
                                 </div>
                             </div>
-                            <!-- GM Only Checkbox for Pencil -->
                             <div class="flex items-center mt-4">
                                 <input type="checkbox" id="pencilGmOnlyCheckbox" class="h-4 w-4 rounded !mb-0">
                                 <label for="pencilGmOnlyCheckbox" class="ml-2 !mb-0 text-sm">Draw as GM-Only (Secret)</label>
@@ -172,7 +174,6 @@
                         </div>
                     </div>
 
-                    <!-- NEW: Fog of War Panel -->
                     <div id="fogPanel" class="control-panel mb-4">
                         <div class="collapsible-header collapsed">
                             <h3>Fog of War</h3>
@@ -203,7 +204,6 @@
                                 <button id="redoBtn" title="Redo" disabled>
                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.9-6.7"/><path d="M3 2v6h6"/></svg>
                                 </button>
-                                <!-- MODIFIED: Eraser Button is now a dropdown container -->
                                 <div class="relative">
                                     <button id="eraserToolBtn" title="Eraser">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>
@@ -235,7 +235,6 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </div>
                          <div id="objectContent" class="collapsible-content hidden">
-                            <!-- GM Only Checkbox for Objects -->
                             <div class="flex items-center mb-2">
                                 <input type="checkbox" id="objectGmOnlyCheckbox" class="h-4 w-4 rounded !mb-0">
                                 <label for="objectGmOnlyCheckbox" class="ml-2 !mb-0 text-sm">Place as GM-Only (Secret)</label>
@@ -244,7 +243,6 @@
                          </div>
                     </div>
 
-                    <!-- *** MODIFIED: This panel is now a generic container for any selected item *** -->
                     <div id="selectedObjectPanel" class="control-panel mb-4 hidden">
                         <div class="collapsible-header">
                            <h3 id="selection-panel-header">Selected Item</h3>
@@ -273,7 +271,6 @@
                                      <input type="color" id="fontColorInput" value="#FFFFFF">
                                 </div>
                             </div>
-                            <!-- GM Only Checkbox for Text -->
                             <div class="flex items-center mt-2">
                                 <input type="checkbox" id="textGmOnlyCheckbox" class="h-4 w-4 rounded !mb-0">
                                 <label for="textGmOnlyCheckbox" class="ml-2 !mb-0 text-sm">Place as GM-Only (Secret)</label>
@@ -331,11 +328,10 @@
             <div id="breadcrumb-nav" class="absolute top-2 left-2 z-20 bg-gray-900 bg-opacity-70 p-2 rounded-md text-sm"></div>
             <canvas id="mapCanvas"></canvas>
             <canvas id="wallCanvas"></canvas>
-            <canvas id="lightCanvas"></canvas> <!-- NEW: Canvas for light and shadow -->
+            <canvas id="lightCanvas"></canvas>
             <canvas id="drawingCanvas"></canvas>
             <canvas id="fogCanvas"></canvas>
             
-            <!-- NEW: Asset Contextual Controls -->
             <div id="asset-context-menu" class="asset-context-menu hidden">
                 <button id="asset-rotate-left-btn" title="Rotate Left (r)">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.9-6.7"/><path d="M21 2v6h-6"/></svg>
@@ -357,7 +353,6 @@
                     <span>AI Assistant & Prompt Editor</span>
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
                 </div>
-                <!-- REWORKED AI CONTENT -->
                 <div id="aiBottomPanelContent" class="p-4 space-y-4">
                     <!-- Step 1: Landform Generation -->
                     <div class="control-panel">
@@ -373,58 +368,7 @@
                     <!-- Step 2: Biome Application -->
                     <div class="control-panel">
                         <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Step 2: Apply Biomes & Features</h4>
-                        <label for="aiBiomePrompt">Describe the biomes, climate, and features to add</label>
                         <textarea id="aiBiomePrompt" placeholder="e.g., Cover the mountains in snow and the lowlands in a dense pine forest. Add a large river flowing from the mountains to the bay." class="mb-2"></textarea>
-                        
-                        <!-- Advanced Options -->
-                        <div class="collapsible-header collapsed mt-2" id="advanced-options-header">
-                            <h5 class="text-sm font-semibold">Advanced Options</h5>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                        </div>
-                        <div class="collapsible-content hidden p-3 bg-gray-900 rounded-b-md" id="advanced-options-content">
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label for="artStyleSelect">Art Style</label>
-                                    <select id="artStyleSelect">
-                                        <option value="vintage fantasy">Vintage Fantasy</option>
-                                        <option value="watercolor">Watercolor</option>
-                                        <option value="satellite imagery">Satellite Imagery</option>
-                                        <option value="hand-drawn sketch">Hand-drawn Sketch</option>
-                                        <option value="pixel art">Pixel Art</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label for="featureDensity">Feature Density</label>
-                                    <select id="featureDensity">
-                                        <option value="sparse">Sparse</option>
-                                        <option value="moderate" selected>Moderate</option>
-                                        <option value="dense">Dense</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label for="waterPresence">Water Presence</label>
-                                    <select id="waterPresence">
-                                        <option value="arid, almost no water">Arid</option>
-                                        <option value="a few rivers and lakes">Temperate</option>
-                                        <option value="many rivers, large lakes, and wetlands">Wet</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label for="vegetationType">Primary Vegetation</label>
-                                    <input type="text" id="vegetationType" placeholder="e.g., Deciduous forest, Alien jungle">
-                                </div>
-                                <div>
-                                    <label for="climateType">Climate</label>
-                                    <input type="text" id="climateType" placeholder="e.g., Arctic, Tropical, Volcanic">
-                                </div>
-                                <div>
-                                    <label for="eraType">Technological Era</label>
-                                    <input type="text" id="eraType" placeholder="e.g., Stone Age, Medieval, Sci-Fi">
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- *** MODIFIED: Button group for biome application *** -->
                         <div class="grid grid-cols-2 gap-2 mt-2">
                             <button id="applyBiomesBtn" class="w-full" disabled>
                                 <span class="btn-text">Apply Biomes to Map</span>
@@ -435,6 +379,17 @@
                                 <span class="spinner hidden"></span>
                             </button>
                         </div>
+                    </div>
+
+                    <!-- NEW: Step 3: Dungeon Layout Generation -->
+                    <div class="control-panel">
+                        <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Step 3: Generate Dungeon Layout</h4>
+                        <label for="aiLayoutPrompt">Describe the dungeon or building layout</label>
+                        <textarea id="aiLayoutPrompt" placeholder="e.g., A small goblin hideout in a cave with a main chamber, a treasure room, and a barracks. Roughly 20x20." class="mb-2"></textarea>
+                        <button id="generateLayoutBtn" class="w-full">
+                            <span class="btn-text">Generate Layout</span>
+                            <span class="spinner hidden"></span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -473,7 +428,6 @@
                     <input type="number" id="newMapHeightInput" value="50" min="1">
                 </div>
             </div>
-             <!-- NEW: "Create as Child" Checkbox -->
             <div class="flex items-center mt-4">
                 <input type="checkbox" id="newMapAsChildCheckbox" class="h-4 w-4 rounded !mb-0">
                 <label for="newMapAsChildCheckbox" class="ml-2 !mb-0 text-sm">Set as child of current map</label>
@@ -500,19 +454,6 @@
         </div>
     </div>
     
-    <div id="dungeonKeyModal" class="modal-backdrop hidden">
-        <div class="bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl text-white flex flex-col" style="max-height: 90vh;">
-            <div class="flex justify-between items-center p-4 border-b border-gray-700">
-                <h3 class="text-xl font-bold">Generated Dungeon Key</h3>
-                <button id="keyModalCloseBtn" class="p-2 rounded-full hover:bg-gray-700">&times;</button>
-            </div>
-            <div id="dungeonKeyContent" class="p-6 overflow-y-auto text-sm text-gray-300 space-y-4">
-                <!-- Key content will be injected here -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Asset Editor Overlay -->
     <div id="asset-editor-overlay" class="hidden">
         <div class="asset-editor-main">
             <div class="asset-editor-top-bar">
@@ -568,16 +509,6 @@
                         <input type="text" id="asset-tags" placeholder="fantasy, world, vegetation">
                         <button id="asset-export-btn">Save to Library</button>
                     </div>
-                    <div id="asset-export-panel" class="control-panel">
-                        <div class="flex justify-between items-center">
-                            <h3>Legacy Export</h3>
-                            <button id="asset-copy-code-btn" class="p-1 rounded-md hover:bg-gray-700" title="Copy to Clipboard">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                            </button>
-                        </div>
-                        <p class="text-xs text-gray-400 mb-2">Assets are now saved automatically. This section is for manual export only.</p>
-                        <textarea id="asset-export-output" readonly></textarea>
-                    </div>
                 </div>
             </div>
         </div>
@@ -585,12 +516,6 @@
 
     <!-- NEW: Toast Notification Container -->
     <div id="toast-container"></div>
-
-    <!-- NEW: Atlas Context Menu -->
-    <div id="atlas-context-menu" class="context-menu hidden">
-        <button id="renameMapBtn">Rename</button>
-        <button id="deleteMapBtn">Delete</button>
-    </div>
 
     <script type="module" src="state.js"></script>
     <script type="module" src="mmtools-script.js"></script>

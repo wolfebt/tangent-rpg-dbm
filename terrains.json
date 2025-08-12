@@ -89,6 +89,12 @@
         "pattern": "pattern-dungeon-floor",
         "tags": ["fantasy", "location", "battle"]
     },
+    "dungeon_wall": {
+        "name": "Dungeon Wall",
+        "color": "#2d3748",
+        "pattern": "pattern-dungeon-wall",
+        "tags": ["fantasy", "location", "battle"]
+    },
     "pavement": {
         "name": "Pavement",
         "color": "#6b7280",

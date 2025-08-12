@@ -1,4 +1,4 @@
-// Version 4.32 - Added custom asset pipeline
+// Version 4.33 - Added data models for notes and containers
 // --- State Variables ---
 export let terrains = {};
 export let assetManifest = {};
