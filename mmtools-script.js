@@ -1,4 +1,4 @@
-// Version 7.4 - Phase 3.3: User Guide and Final Polish
+// Version 7.8 - Implemented Text & GM Notes Tool
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -40,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const toolSelectBtn = document.getElementById('toolSelectBtn');
     const toolWallBtn = document.getElementById('toolWallBtn');
     const toolTokenBtn = document.getElementById('toolTokenBtn');
+    const toolTextBtn = document.getElementById('toolTextBtn'); // *** NEW ***
     const toolInteractBtn = document.getElementById('toolInteractBtn');
     const terrainOptionsPanel = document.getElementById('terrainOptionsPanel');
     const pencilOptionsPanel = document.getElementById('pencilOptionsPanel');
@@ -95,9 +96,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancelNewMapBtn = document.getElementById('cancelNewMapBtn');
     const breadcrumbNav = document.getElementById('breadcrumb-nav');
     const selectedObjectPanel = document.getElementById('selectedObjectPanel');
-    const mapLinkSelect = document.getElementById('mapLinkSelect');
-    const setMapLinkBtn = document.getElementById('setMapLinkBtn');
-    const removeMapLinkBtn = document.getElementById('removeMapLinkBtn');
+    const selectionPanelHeader = document.getElementById('selection-panel-header');
+    const selectionPanelContent = document.getElementById('selection-panel-content');
     const newMapAsChildCheckbox = document.getElementById('newMapAsChildCheckbox');
     const atlasContextMenu = document.getElementById('atlas-context-menu');
     const renameMapBtn = document.getElementById('renameMapBtn');
@@ -113,22 +113,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const assetScaleUpBtn = document.getElementById('asset-scale-up-btn');
     const assetScaleDownBtn = document.getElementById('asset-scale-down-btn');
     const aiBottomPanel = document.getElementById('aiBottomPanel');
-
-    // Asset Editor UI
-    const assetEditorCloseBtn = document.getElementById('asset-editor-close-btn');
-    const assetGenerateBtn = document.getElementById('asset-generate-btn');
-    const assetPromptInput = document.getElementById('asset-prompt');
-    const assetCanvasMain = document.getElementById('asset-canvas-main');
-    const assetCanvasDraw = document.getElementById('asset-canvas-draw');
-    const assetCtxMain = assetCanvasMain.getContext('2d');
-    const assetCtxDraw = assetCanvasDraw.getContext('2d');
-    const assetExportBtn = document.getElementById('asset-export-btn');
-    const assetExportOutput = document.getElementById('asset-export-output');
-    const assetNameInput = document.getElementById('asset-name');
-    const assetTagsInput = document.getElementById('asset-tags');
-    const assetTypeSelect = document.getElementById('asset-type-select');
-    const assetLoadingOverlay = document.getElementById('loading-overlay');
-
 
     // --- Local State ---
     let view = { zoom: 1, offsetX: 0, offsetY: 0 };
@@ -203,9 +187,10 @@ document.addEventListener('DOMContentLoaded', () => {
             drawLayerBackground(layer, ctx);
             drawLayerTerrain(layer, ctx);
             drawPlacedObjects(layer, ctx);
-            drawTextLabels(layer, ctx);
         });
         
+        // *** MODIFIED: Text is drawn on top of all layers but below tokens ***
+        drawTextLabels(ctx);
         drawTokens(ctx);
         
         ctx.restore();
@@ -281,8 +266,24 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function drawTextLabels(layer, targetCtx) {
-        // TODO: Implement text rendering logic.
+    // *** NEW: Implemented text rendering function ***
+    function drawTextLabels(targetCtx) {
+        const activeMap = state.getActiveMap();
+        if (!activeMap || !activeMap.labels) return;
+
+        activeMap.labels.forEach(label => {
+            if (isGmViewActive || !label.isGmOnly) {
+                targetCtx.font = `${label.size}px 'Trebuchet MS'`;
+                targetCtx.fillStyle = label.color;
+                targetCtx.textAlign = 'center';
+                targetCtx.textBaseline = 'middle';
+                // Add a simple stroke for better readability
+                targetCtx.strokeStyle = 'black';
+                targetCtx.lineWidth = 2;
+                targetCtx.strokeText(label.text, label.x, label.y);
+                targetCtx.fillText(label.text, label.x, label.y);
+            }
+        });
     }
 
     function drawPencilStrokes(targetCtx) {
@@ -612,11 +613,49 @@ document.addEventListener('DOMContentLoaded', () => {
         redoBtn.disabled = redoStack.length === 0;
     }
 
+    function updateSelectionPanel() {
+        selectionPanelContent.innerHTML = ''; // Clear previous controls
+        if (!selection) {
+            selectedObjectPanel.classList.add('hidden');
+            return;
+        }
+
+        selectedObjectPanel.classList.remove('hidden');
+
+        if (selection.type === 'object') {
+            selectionPanelHeader.textContent = 'Selected Object';
+            const mapLinkHtml = `
+                <label for="mapLinkSelect">Link to Map</label>
+                <select id="mapLinkSelect" class="w-full p-2 border-gray-600 bg-gray-700 rounded mb-2"></select>
+                <div class="grid grid-cols-2 gap-2 mt-2">
+                    <button id="setMapLinkBtn" class="w-full">Set Link</button>
+                    <button id="removeMapLinkBtn" class="w-full">Remove Link</button>
+                </div>`;
+            selectionPanelContent.innerHTML = mapLinkHtml;
+            populateMapLinkDropdown();
+        } else if (selection.type === 'wall') {
+            selectionPanelHeader.textContent = 'Selected Wall';
+            const deleteWallBtn = document.createElement('button');
+            deleteWallBtn.textContent = 'Delete Wall';
+            deleteWallBtn.className = 'w-full';
+            deleteWallBtn.onclick = () => {
+                saveState();
+                state.getActiveMap().walls.splice(selection.index, 1);
+                selection = null;
+                updateSelectionPanel();
+                drawAll();
+            };
+            selectionPanelContent.appendChild(deleteWallBtn);
+        } else if (selection.type === 'token') {
+            selectionPanelHeader.textContent = 'Selected Token';
+        }
+    }
+
     function setActiveTool(toolName) {
         currentTool = toolName;
-        const toolButtons = [toolTerrainBtn, toolPencilBtn, toolSelectBtn, toolWallBtn, toolTokenBtn, toolInteractBtn, eraserToolBtn, toolFogRevealBtn, toolFogHideBtn];
+        const toolButtons = [toolTerrainBtn, toolPencilBtn, toolSelectBtn, toolWallBtn, toolTokenBtn, toolTextBtn, toolInteractBtn, eraserToolBtn, toolFogRevealBtn, toolFogHideBtn];
         toolButtons.forEach(btn => btn.classList.remove('active'));
-        [terrainOptionsPanel, pencilOptionsPanel, tokenOptionsPanel].forEach(p => p.classList.add('hidden'));
+        [terrainOptionsPanel, pencilOptionsPanel, tokenOptionsPanel, textToolPanel].forEach(p => p.classList.add('hidden'));
         
         if (toolName !== 'object') {
             selectedObject = null;
@@ -625,7 +664,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (toolName !== 'select') {
             selection = null;
             assetContextMenu.classList.add('hidden');
-            selectedObjectPanel.classList.add('hidden');
+            updateSelectionPanel();
         }
 
         if (toolName.startsWith('eraser-')) {
@@ -638,6 +677,7 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'select': toolSelectBtn.classList.add('active'); canvas.style.cursor = 'default'; break;
             case 'wall': toolWallBtn.classList.add('active'); canvas.style.cursor = 'crosshair'; break;
             case 'token': toolTokenBtn.classList.add('active'); tokenOptionsPanel.classList.remove('hidden'); canvas.style.cursor = 'copy'; break;
+            case 'text': toolTextBtn.classList.add('active'); textToolPanel.classList.remove('hidden'); canvas.style.cursor = 'text'; break; // *** NEW ***
             case 'interact': toolInteractBtn.classList.add('active'); canvas.style.cursor = 'pointer'; break;
             case 'eraser-terrain':
             case 'eraser-objects':
@@ -771,7 +811,22 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             if (!activeMap.walls) activeMap.walls = [];
             activeMap.walls.push({ start: worldStartCoords, end: worldCoords });
-        } else if (currentTool === 'fog-reveal' && startCoords) {
+        } 
+        // *** NEW: Logic for placing text ***
+        else if (currentTool === 'text') {
+            if (!activeMap.labels) activeMap.labels = [];
+            const newLabel = {
+                id: `label_${Date.now()}`,
+                text: textInput.value || "Label",
+                x: worldCoords.x,
+                y: worldCoords.y,
+                size: parseInt(fontSizeInput.value),
+                color: fontColorInput.value,
+                isGmOnly: textGmOnlyCheckbox.checked
+            };
+            activeMap.labels.push(newLabel);
+        }
+        else if (currentTool === 'fog-reveal' && startCoords) {
             const rect = {
                 x: (Math.min(startCoords.x, coords.x) - view.offsetX) / view.zoom,
                 y: (Math.min(startCoords.y, coords.y) - view.offsetY) / view.zoom,
@@ -860,6 +915,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tokens: [], 
             walls: [], 
             drawings: [],
+            labels: [], // *** NEW: Initialize labels array ***
             fog: { revealedRects: [] },
         };
         
@@ -896,6 +952,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function populateMapLinkDropdown() {
+        const mapLinkSelect = document.getElementById('mapLinkSelect');
+        if (!mapLinkSelect) return;
         mapLinkSelect.innerHTML = '<option value="">None</option>';
         Object.values(state.project.maps).forEach(map => {
             if (map.id !== state.activeMapId) {
@@ -937,66 +995,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function openAssetEditor() {
         assetEditorOverlay.classList.remove('hidden');
-        assetCtxMain.clearRect(0, 0, 512, 512);
-        assetCtxDraw.clearRect(0, 0, 512, 512);
-        assetExportOutput.value = '';
-        assetNameInput.value = '';
-        assetTagsInput.value = '';
     }
-
-    function closeAssetEditor() {
-        assetEditorOverlay.classList.add('hidden');
-    }
-
-    async function handleAssetAIGeneration() {
-        const prompt = assetPromptInput.value;
-        if (!prompt) {
-            state.showModal("Please enter a prompt for the asset.");
-            return;
-        }
-        
-        const fullPrompt = `${prompt}, icon, white background, simple, clear outline, 2d, game asset`;
-        
-        assetLoadingOverlay.classList.remove('hidden');
-        const generatedImageBase64 = await callImageGenerationAI(fullPrompt);
-        assetLoadingOverlay.classList.add('hidden');
-
-        if (generatedImageBase64) {
-            const img = new Image();
-            img.onload = () => {
-                assetCtxMain.clearRect(0, 0, 512, 512);
-                assetCtxMain.drawImage(img, 0, 0, 512, 512);
-            };
-            img.src = `data:image/png;base64,${generatedImageBase64}`;
-        }
-    }
-
-    function handleAssetExport() {
-        const name = assetNameInput.value || 'new-asset';
-        const tags = assetTagsInput.value.split(',').map(t => t.trim()).filter(t => t);
-        const type = assetTypeSelect.value;
-
-        const finalCanvas = document.createElement('canvas');
-        finalCanvas.width = 512;
-        finalCanvas.height = 512;
-        const finalCtx = finalCanvas.getContext('2d');
-        finalCtx.drawImage(assetCanvasMain, 0, 0);
-        finalCtx.drawImage(assetCanvasDraw, 0, 0);
-
-        const dataUrl = finalCanvas.toDataURL('image/png');
-
-        const safeName = name.toLowerCase().replace(/\s+/g, '_');
-        const exportObj = {
-            [safeName]: {
-                name: name,
-                src: dataUrl,
-                tags: tags
-            }
-        };
-
-        assetExportOutput.value = JSON.stringify(exportObj, null, 2).slice(1, -1) + ',';
-    }
-
 
     async function initialize() {
         state.setState({ apiKey: localStorage.getItem('mapMakerApiKey') || '' });
@@ -1007,6 +1006,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const terrainsData = await terrainsResponse.json();
             const assetsData = await assetsResponse.json();
             state.setState({ terrains: terrainsData, assetManifest: assetsData });
+            
+            state.loadCustomAssets();
+
         } catch (error) {
             console.error(error);
             state.showModal(`Critical Error: Could not load core game files.`);
@@ -1102,9 +1104,58 @@ document.addEventListener('DOMContentLoaded', () => {
         document.addEventListener('aiImageGenerated', handleAIImage);
         document.addEventListener('requestStateSave', saveState);
         document.addEventListener('mapStateUpdated', drawAll);
+        
+        document.addEventListener('assetCreated', (e) => {
+            populateObjectSelector();
+            loadAssets();
+        });
+
         undoBtn.addEventListener('click', undo);
         redoBtn.addEventListener('click', redo);
         resetViewBtn.addEventListener('click', centerView);
+
+        saveProjectBtn.addEventListener('click', () => {
+            state.project.projectName = projectNameInput.value || 'Untitled Campaign';
+            const projectData = JSON.stringify(state.project, null, 2);
+            const blob = new Blob([projectData], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${state.project.projectName.replace(/\s+/g, '_')}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            state.showToast('Project saved!', 'info');
+        });
+
+        loadProjectBtn.addEventListener('click', () => loadJsonInput.click());
+        loadJsonInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const loadedProject = JSON.parse(event.target.result);
+                    if (!loadedProject.maps || !loadedProject.projectName) {
+                        throw new Error("Invalid project file format.");
+                    }
+                    state.setState({ project: loadedProject });
+                    const firstMapId = Object.keys(loadedProject.maps)[0];
+                    state.setActiveMapId(firstMapId);
+                    
+                    initialize(); 
+                    
+                    projectNameInput.value = loadedProject.projectName;
+                    state.showToast('Project loaded successfully!', 'info');
+                } catch (error) {
+                    state.showModal(`Error loading project file: ${error.message}`);
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
+        });
+
 
         addLayerBtn.addEventListener('click', () => {
             const activeMap = state.getActiveMap();
@@ -1185,6 +1236,7 @@ document.addEventListener('DOMContentLoaded', () => {
         toolSelectBtn.addEventListener('click', () => setActiveTool('select'));
         toolWallBtn.addEventListener('click', () => setActiveTool('wall'));
         toolTokenBtn.addEventListener('click', () => setActiveTool('token'));
+        toolTextBtn.addEventListener('click', () => setActiveTool('text')); // *** NEW ***
         toolInteractBtn.addEventListener('click', () => setActiveTool('interact'));
         
         eraserToolBtn.addEventListener('click', () => eraserDropdownMenu.classList.toggle('hidden'));
@@ -1217,9 +1269,6 @@ document.addEventListener('DOMContentLoaded', () => {
         confirmNewMapBtn.addEventListener('click', handleAddNewMap);
 
         assetEditorBtn.addEventListener('click', openAssetEditor);
-        assetEditorCloseBtn.addEventListener('click', closeAssetEditor);
-        assetGenerateBtn.addEventListener('click', handleAssetAIGeneration);
-        assetExportBtn.addEventListener('click', handleAssetExport);
 
         canvas.addEventListener('contextmenu', e => e.preventDefault());
         
@@ -1318,7 +1367,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     if (!found) selection = null;
+                    
                     updateContextMenu();
+                    updateSelectionPanel();
                     drawAll();
                     return;
                 }
@@ -1331,7 +1382,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (currentTool.startsWith('eraser-')) {
                     isPainting = true;
                     applyEraser(clickCoords);
-                } else if (currentTool === 'pencil') {
+                } 
+                // *** NEW: Text tool doesn't use shape drawing, it places on click ***
+                else if (currentTool === 'text') {
+                    applyTool(clickCoords);
+                }
+                else if (currentTool === 'pencil') {
                     if (pencilBrush === 'freestyle') {
                         isPenciling = true;
                         currentPencilPath = {
@@ -1581,6 +1637,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (changed) {
                 e.preventDefault();
+                updateSelectionPanel();
                 drawAll();
             }
         });

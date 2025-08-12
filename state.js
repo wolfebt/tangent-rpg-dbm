@@ -1,4 +1,4 @@
-// Version 4.31 - Fixed setActiveMapId bug
+// Version 4.32 - Added custom asset pipeline
 // --- State Variables ---
 export let terrains = {};
 export let assetManifest = {};
@@ -35,6 +35,29 @@ export const setState = (newState) => {
     // Ensure we can still set the activeMapId through the general setState function as well
     if (newState.activeMapId !== undefined) activeMapId = newState.activeMapId;
 };
+
+// *** NEW: Function to add a new asset and persist to localStorage ***
+/**
+ * Adds a new asset to the manifest and saves custom assets to local storage.
+ * @param {object} assetData The new asset object to add.
+ */
+export function addNewAsset(assetData) {
+    // Get existing custom assets from storage, or initialize an empty object
+    let customAssets = JSON.parse(localStorage.getItem('mapMakerCustomAssets')) || {};
+    // Merge the new asset data
+    Object.assign(customAssets, assetData);
+    // Save back to localStorage
+    localStorage.setItem('mapMakerCustomAssets', JSON.stringify(customAssets));
+    // Also update the live manifest immediately
+    Object.assign(assetManifest, assetData);
+}
+
+// *** NEW: Function to load custom assets from localStorage into the live manifest ***
+export function loadCustomAssets() {
+    const customAssets = JSON.parse(localStorage.getItem('mapMakerCustomAssets')) || {};
+    Object.assign(assetManifest, customAssets);
+}
+
 
 // --- Shared Utility Functions ---
 

@@ -1,5 +1,76 @@
-// Version 6.1 - Phase 2.1: Intelligent Biome Application (FIXED)
+// Version 6.3 - Improved AI Prompt Engineering & Color Variants
 import * as state from './state.js';
+
+// --- This function is now imported by asset-editor.js ---
+export async function callImageGenerationAI(prompt, imageBase64 = null) {
+    if (!state.apiKey) {
+        state.showModal("Please set your API key in the settings first.");
+        return null;
+    }
+
+    const loadingModalMessage = imageBase64 ? "Applying biomes..." : "Generating...";
+    state.showModal(loadingModalMessage, null);
+
+    let apiUrl;
+    let payload;
+    const modelForTextToImage = "imagen-3.0-generate-002"; 
+    const modelForImageEdit = "gemini-2.0-flash-preview-image-generation";
+
+    if (!imageBase64) {
+        apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelForTextToImage}:predict?key=${state.apiKey}`;
+        payload = {
+            instances: [{ prompt: prompt }],
+            parameters: { "sampleCount": 1 }
+        };
+    } else {
+        apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelForImageEdit}:generateContent?key=${state.apiKey}`;
+        const parts = [
+            { text: prompt },
+            { inlineData: { mimeType: "image/png", data: imageBase64 } }
+        ];
+        payload = {
+            contents: [{ role: "user", parts: parts }],
+            generationConfig: { responseModalities: ['IMAGE'] },
+        };
+    }
+
+    try {
+        document.dispatchEvent(new CustomEvent('requestStateSave'));
+
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(`API request failed: ${error.error?.message || response.statusText}`);
+        }
+
+        const result = await response.json();
+        let base64Data;
+
+        if (!imageBase64) {
+            base64Data = result.predictions?.[0]?.bytesBase64Encoded;
+        } else {
+            base64Data = result.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+        }
+
+        if (!base64Data) throw new Error("No image data found in API response.");
+
+        const genericModal = document.querySelector('.modal-backdrop');
+        if (genericModal) genericModal.remove();
+        
+        return base64Data;
+
+    } catch (error) {
+        console.error("AI Generation Error:", error);
+        state.showModal(`An error occurred during AI generation: ${error.message}`);
+        return null;
+    }
+}
+
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- UI Elements ---
@@ -7,6 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const generateLandformBtn = document.getElementById('generateLandformBtn');
     const aiBiomePrompt = document.getElementById('aiBiomePrompt');
     const applyBiomesBtn = document.getElementById('applyBiomesBtn');
+    const generateColorVariantBtn = document.getElementById('generateColorVariantBtn'); // New Button
     const advancedOptionsHeader = document.getElementById('advanced-options-header');
     const advancedOptionsContent = document.getElementById('advanced-options-content');
 
@@ -14,12 +86,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let landformImageBase64 = null;
 
     // --- Helper Functions for Color Analysis ---
-
-    /**
-     * Converts a hex color string to an RGB object.
-     * @param {string} hex The hex color string (e.g., "#RRGGBB").
-     * @returns {{r: number, g: number, b: number}|null} An object with r, g, b properties or null.
-     */
     function hexToRgb(hex) {
         const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
         return result ? {
@@ -29,13 +95,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } : null;
     }
 
-    /**
-     * Calculates the squared Euclidean distance between two RGB colors.
-     * It's faster than full color difference and good enough for this purpose.
-     * @param {{r: number, g: number, b: number}} rgb1 The first color.
-     * @param {{r: number, g: number, b: number}} rgb2 The second color.
-     * @returns {number} The squared distance between the colors.
-     */
     function colorDistance(rgb1, rgb2) {
         const rDiff = rgb1.r - rgb2.r;
         const gDiff = rgb1.g - rgb2.g;
@@ -43,15 +102,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return rDiff * rDiff + gDiff * gDiff + bDiff * bDiff;
     }
 
-    /**
-     * Finds the terrain type that most closely matches a given RGB color.
-     * @param {{r: number, g: number, b: number}} targetRgb The color to match.
-     * @returns {string|null} The key of the closest matching terrain, or null.
-     */
     function findClosestTerrain(targetRgb) {
         let minDistance = Infinity;
         let closestTerrain = null;
-
         for (const key in state.terrains) {
             const terrain = state.terrains[key];
             const terrainRgb = hexToRgb(terrain.color);
@@ -65,8 +118,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return closestTerrain;
     }
-
-    // --- AI and Helper Functions ---
     
     function setAILoadingState(button, isLoading) {
         if (!button) return;
@@ -81,73 +132,6 @@ document.addEventListener('DOMContentLoaded', () => {
             button.disabled = false;
             if (btnText) btnText.style.opacity = '1';
             if (spinner) spinner.classList.add('hidden');
-        }
-    }
-
-    async function callImageGenerationAI(prompt, imageBase64 = null) {
-        if (!state.apiKey) {
-            state.showModal("Please set your API key in the settings first.");
-            return null;
-        }
-
-        const loadingModalMessage = imageBase64 ? "Applying biomes..." : "Generating landform...";
-        state.showModal(loadingModalMessage, null);
-
-        let apiUrl;
-        let payload;
-        const modelForTextToImage = "imagen-3.0-generate-002"; 
-        const modelForImageEdit = "gemini-2.0-flash-preview-image-generation";
-
-        if (!imageBase64) {
-            apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelForTextToImage}:predict?key=${state.apiKey}`;
-            payload = {
-                instances: [{ prompt: prompt }],
-                parameters: { "sampleCount": 1 }
-            };
-        } else {
-            apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelForImageEdit}:generateContent?key=${state.apiKey}`;
-            const parts = [
-                { text: prompt },
-                { inlineData: { mimeType: "image/png", data: imageBase64 } }
-            ];
-            payload = {
-                contents: [{ role: "user", parts: parts }],
-                generationConfig: { responseModalities: ['IMAGE'] },
-            };
-        }
-
-        try {
-            document.dispatchEvent(new CustomEvent('requestStateSave'));
-
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(`API request failed: ${error.error?.message || response.statusText}`);
-            }
-
-            const result = await response.json();
-            let base64Data;
-
-            if (!imageBase64) {
-                base64Data = result.predictions?.[0]?.bytesBase64Encoded;
-            } else {
-                base64Data = result.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
-            }
-
-            if (!base64Data) throw new Error("No image data found in API response.");
-
-            document.querySelector('.modal-backdrop')?.remove();
-            return base64Data;
-
-        } catch (error) {
-            console.error("AI Generation Error:", error);
-            state.showModal(`An error occurred during AI generation: ${error.message}`);
-            return null;
         }
     }
 
@@ -187,6 +171,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const event = new CustomEvent('aiImageGenerated', { detail: { imageBase64: landformImageBase64 } });
                 document.dispatchEvent(event);
                 state.showToast("Landform generated successfully. Now describe the biomes.", "info");
+                // Enable the biome buttons now that we have a landform
+                applyBiomesBtn.disabled = false;
+                generateColorVariantBtn.disabled = false;
             }
         } catch (error) {
             console.error("Landform Generation Error:", error);
@@ -196,12 +183,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function handleApplyBiomes() {
+    // *** MODIFIED FUNCTION: Now includes strict color mapping instructions ***
+    async function handleApplyBiomes(isVariant = false) {
         if (!landformImageBase64) {
             state.showModal("Please generate a landform first (Step 1).");
             return;
         }
-        setAILoadingState(applyBiomesBtn, true);
+        
+        const buttonToLoad = isVariant ? generateColorVariantBtn : applyBiomesBtn;
+        setAILoadingState(buttonToLoad, true);
+
         try {
             const userPrompt = aiBiomePrompt.value;
             if (!userPrompt) {
@@ -209,21 +200,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            // ** NEW: Construct the color mapping instruction string **
+            let colorMappingInstructions = "CRITICAL INSTRUCTION: You must use ONLY the following hex colors for the corresponding terrain types: ";
+            Object.values(state.terrains).forEach(terrain => {
+                colorMappingInstructions += `${terrain.name} must be exactly ${terrain.color}; `;
+            });
+            colorMappingInstructions += "Do not blend colors; use solid colors for each area. END CRITICAL INSTRUCTION. ";
+
             const advancedSettings = buildAdvancedPrompt();
-            const fullPrompt = `Using the provided heightmap as a guide for elevation, render a full-color map. The landscape should feature: ${userPrompt}. Additional details: ${advancedSettings}.`;
+            
+            let variantInstruction = isVariant ? "Re-render the map with a different artistic interpretation of textures and features, but you MUST still follow the critical color instructions. " : "";
+
+            const fullPrompt = colorMappingInstructions + variantInstruction + `Using the provided heightmap as a guide for elevation, render a full-color map. The landscape should feature: ${userPrompt}. Additional details: ${advancedSettings}.`;
 
             const finalImageBase64 = await callImageGenerationAI(fullPrompt, landformImageBase64);
 
             if (finalImageBase64) {
                 await applyImageToMapTerrain(finalImageBase64);
                 state.showToast("Biomes applied! Your map has been painted.", "info");
-                landformImageBase64 = null;
+                // Do not reset the landform image, allowing for more variants.
             }
         } catch (error) {
             console.error("Biome Application Error:", error);
             state.showModal(`An error occurred: ${error.message}`, 'error');
         } finally {
-            setAILoadingState(applyBiomesBtn, false);
+            setAILoadingState(buttonToLoad, false);
         }
     }
 
@@ -258,7 +259,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const halfWidth = Math.floor(mapWidth / 2);
         const halfHeight = Math.floor(mapHeight / 2);
 
-        // Find min/max q and r for normalization
         const minQ = -halfWidth;
         const maxQ = halfWidth;
         const minR = -halfHeight;
@@ -266,20 +266,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const qRange = maxQ - minQ;
         const rRange = maxR - minR;
 
-
         for (let q = -halfWidth; q <= halfWidth; q++) {
             for (let r = -halfHeight; r <= halfHeight; r++) {
                 const key = `${q},${r}`;
                 if (activeMap.grid[key]) {
                     const normX = (q - minQ) / qRange;
                     const normY = (r - minR) / rRange;
-
                     const pixelX = Math.floor(normX * img.width);
                     const pixelY = Math.floor(normY * img.height);
-                    
                     const i = (pixelY * imageData.width + pixelX) * 4;
                     const color = { r: imageData.data[i], g: imageData.data[i+1], b: imageData.data[i+2] };
-
                     const closestTerrain = findClosestTerrain(color);
                     if (closestTerrain) {
                         if (!targetLayer.data[key]) targetLayer.data[key] = {};
@@ -292,10 +288,10 @@ document.addEventListener('DOMContentLoaded', () => {
         document.dispatchEvent(new CustomEvent('mapStateUpdated'));
     }
 
-
     // --- Event Listeners ---
     if (generateLandformBtn) generateLandformBtn.addEventListener('click', handleGenerateLandform);
-    if (applyBiomesBtn) applyBiomesBtn.addEventListener('click', handleApplyBiomes);
+    if (applyBiomesBtn) applyBiomesBtn.addEventListener('click', () => handleApplyBiomes(false));
+    if (generateColorVariantBtn) generateColorVariantBtn.addEventListener('click', () => handleApplyBiomes(true));
     
     if (advancedOptionsHeader) {
         advancedOptionsHeader.addEventListener('click', () => {
