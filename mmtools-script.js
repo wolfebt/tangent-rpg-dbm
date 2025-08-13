@@ -1,4 +1,4 @@
-// Version 8.2 - Fixed terrain pattern rendering
+// Version 8.4 - Refactored tool selection and UI logic
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -35,17 +35,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveProjectBtn = document.getElementById('saveProjectBtn');
     const loadProjectBtn = document.getElementById('loadProjectBtn');
     const loadJsonInput = document.getElementById('loadJsonInput');
+    
+    // Tools
     const toolTerrainBtn = document.getElementById('toolTerrainBtn');
+    const toolObjectBtn = document.getElementById('toolObjectBtn');
     const toolPencilBtn = document.getElementById('toolPencilBtn');
     const toolSelectBtn = document.getElementById('toolSelectBtn');
-    const toolWallBtn = document.getElementById('toolWallBtn');
     const toolTokenBtn = document.getElementById('toolTokenBtn');
     const toolTextBtn = document.getElementById('toolTextBtn');
-    const toolInteractBtn = document.getElementById('toolInteractBtn');
+    const toolFogBtn = document.getElementById('toolFogBtn');
+
+    // Options Panels
     const terrainOptionsPanel = document.getElementById('terrainOptionsPanel');
+    const terrainContentPanel = document.getElementById('terrainContentPanel');
+    const objectOptionsPanel = document.getElementById('objectOptionsPanel');
     const pencilOptionsPanel = document.getElementById('pencilOptionsPanel');
     const tokenOptionsPanel = document.getElementById('tokenOptionsPanel');
-    const terrainBrushModeSelect = document.getElementById('terrainBrushMode');
+    const fogPanel = document.getElementById('fogPanel');
+
     const pencilBrushModeSelect = document.getElementById('pencilBrushMode');
     const pencilColorPicker = document.getElementById('pencilColorPicker');
     const pencilWidthSlider = document.getElementById('pencilWidth');
@@ -84,17 +91,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let view = { zoom: 1, offsetX: 0, offsetY: 0 };
     let isPanning = false;
     let panStart = { x: 0, y: 0 };
-    let isDrawingShape = false;
-    let shapeStartPoint = null;
     let isPainting = false;
-    let isPenciling = false;
-    let currentPencilPath = null;
     let selection = null;
-    let isDragging = false;
-    let dragOffsetX, dragOffsetY;
     let assetCache = {};
     let isGmViewActive = true;
-    let isDraggingWallEndpoint = false;
     let currentTool = 'terrain';
     let selectedTerrain = 'grass';
     let selectedObject = null;
@@ -102,7 +102,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let undoStack = [];
     let redoStack = [];
     let visibilityPolygons = [];
-    let hoveredObject = null;
 
     // --- Core Drawing & Rendering ---
 
@@ -113,13 +112,9 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.width = width;
         canvas.height = height;
         drawingCanvas.width = width;
-        drawingCanvas.height = height;
         wallCanvas.width = width;
-        wallCanvas.height = height;
         lightCanvas.width = width;
-        lightCanvas.height = height;
         fogCanvas.width = width;
-        fogCanvas.height = height;
         drawAll();
     }
 
@@ -139,7 +134,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if(activeMap.layers) {
             [...activeMap.layers].reverse().forEach(layer => {
                 if (!layer.visible) return;
-                drawLayerBackground(layer, ctx);
                 drawLayerTerrain(layer, ctx);
                 drawPlacedObjects(layer, ctx);
             });
@@ -158,8 +152,6 @@ document.addEventListener('DOMContentLoaded', () => {
             drawGrid(drawingCtx);
         }
         drawPencilStrokes(drawingCtx);
-        drawSelectionHighlight(drawingCtx);
-        drawHoverHighlight(drawingCtx);
         
         drawingCtx.restore();
 
@@ -168,23 +160,6 @@ document.addEventListener('DOMContentLoaded', () => {
         updateFogOfWar();
     }
     window.drawAll = drawAll;
-
-    function drawLayerBackground(layer, targetCtx) {
-        if (layer.backgroundImage && layer.backgroundImage.src) {
-            const img = assetCache[layer.backgroundImage.src];
-            const { minPxX, minPxY, mapPixelWidth, mapPixelHeight } = getMapPixelBounds();
-            if (img && img.complete) {
-                targetCtx.drawImage(img, minPxX, minPxY, mapPixelWidth, mapPixelHeight);
-            } else if (!img) {
-                const newImg = new Image();
-                newImg.onload = () => {
-                    assetCache[layer.backgroundImage.src] = newImg;
-                    drawAll();
-                };
-                newImg.src = layer.backgroundImage.src;
-            }
-        }
-    }
 
     function drawLayerTerrain(layer, targetCtx) {
         const hexSize = 30;
@@ -259,13 +234,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     for (let i = 1; i < drawing.points.length; i++) {
                         targetCtx.lineTo(drawing.points[i].x, drawing.points[i].y);
                     }
-                } else if (drawing.type === 'line') {
-                    targetCtx.moveTo(drawing.start.x, drawing.start.y);
-                    targetCtx.lineTo(drawing.end.x, drawing.end.y);
-                } else if (drawing.type === 'rectangle') {
-                    targetCtx.rect(drawing.x, drawing.y, drawing.width, drawing.height);
-                } else if (drawing.type === 'ellipse') {
-                    targetCtx.ellipse(drawing.x, drawing.y, drawing.radiusX, drawing.radiusY, 0, 0, 2 * Math.PI);
                 }
                 targetCtx.stroke();
             }
@@ -286,82 +254,6 @@ document.addEventListener('DOMContentLoaded', () => {
             targetCtx.lineWidth = 2;
             targetCtx.stroke();
         });
-    }
-
-    function drawSelectionHighlight(targetCtx) {
-        if (!selection) return;
-
-        const activeMap = state.getActiveMap();
-        
-        if (selection.type === 'object') {
-            const layer = activeMap.layers.find(l => l.id === selection.layerId);
-            if (!layer || !layer.objects[selection.index]) return;
-            const obj = layer.objects[selection.index];
-            const assetImg = assetCache[obj.assetId];
-            if (!assetImg) return;
-
-            const width = assetImg.width * obj.scale;
-            const height = assetImg.height * obj.scale;
-
-            targetCtx.save();
-            targetCtx.translate(obj.x, obj.y);
-            targetCtx.rotate(obj.rotation * Math.PI / 180);
-            targetCtx.strokeStyle = '#3b82f6';
-            targetCtx.lineWidth = 4 / view.zoom;
-            targetCtx.setLineDash([10 / view.zoom, 5 / view.zoom]);
-            targetCtx.strokeRect(-width / 2, -height / 2, width, height);
-            targetCtx.restore();
-        } else if (selection.type === 'token') {
-            const token = activeMap.tokens[selection.index];
-            if (!token) return;
-            const hexSize = 30;
-            targetCtx.strokeStyle = '#3b82f6';
-            targetCtx.lineWidth = 4 / view.zoom;
-            targetCtx.setLineDash([10 / view.zoom, 5 / view.zoom]);
-            targetCtx.beginPath();
-            targetCtx.arc(token.x, token.y, hexSize / 2 + 5, 0, 2 * Math.PI);
-            targetCtx.stroke();
-        } else if (selection.type === 'wall') {
-            const wall = activeMap.walls[selection.index];
-            if (!wall) return;
-            targetCtx.strokeStyle = '#3b82f6';
-            targetCtx.lineWidth = 4 / view.zoom;
-            targetCtx.setLineDash([10 / view.zoom, 5 / view.zoom]);
-            targetCtx.beginPath();
-            targetCtx.moveTo(wall.start.x, wall.start.y);
-            targetCtx.lineTo(wall.end.x, wall.end.y);
-            targetCtx.stroke();
-            
-            targetCtx.fillStyle = '#3b82f6';
-            targetCtx.setLineDash([]);
-            targetCtx.beginPath();
-            targetCtx.arc(wall.start.x, wall.start.y, 8 / view.zoom, 0, 2 * Math.PI);
-            targetCtx.fill();
-            targetCtx.beginPath();
-            targetCtx.arc(wall.end.x, wall.end.y, 8 / view.zoom, 0, 2 * Math.PI);
-            targetCtx.fill();
-        }
-    }
-
-    function drawHoverHighlight(targetCtx) {
-        if (!hoveredObject) return;
-
-        const obj = hoveredObject;
-        const assetImg = assetCache[obj.assetId];
-        if (!assetImg) return;
-
-        const width = assetImg.width * obj.scale;
-        const height = assetImg.height * obj.scale;
-
-        targetCtx.save();
-        targetCtx.translate(obj.x, obj.y);
-        targetCtx.rotate(obj.rotation * Math.PI / 180);
-        targetCtx.strokeStyle = 'rgba(96, 165, 250, 0.8)'; // A semi-transparent blue
-        targetCtx.lineWidth = 5 / view.zoom;
-        targetCtx.shadowColor = 'rgba(96, 165, 250, 1)';
-        targetCtx.shadowBlur = 15 / view.zoom;
-        targetCtx.strokeRect(-width / 2, -height / 2, width, height);
-        targetCtx.restore();
     }
 
     function drawGrid(targetCtx) {
@@ -442,8 +334,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function updateLightAndSight() {
-        // This function would calculate visibility polygons based on token positions and walls
-        // For simplicity, we'll just clear and redraw for now.
         visibilityPolygons = [];
         drawAll();
     }
@@ -451,6 +341,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateFogOfWar() {
         const activeMap = state.getActiveMap();
         if (!activeMap || !activeMap.fog) return;
+
+        if (isGmViewActive) {
+            fogCtx.clearRect(0, 0, fogCanvas.width, fogCanvas.height);
+            return;
+        }
 
         fogCtx.clearRect(0, 0, fogCanvas.width, fogCanvas.height);
         fogCtx.fillStyle = 'rgba(0, 0, 0, 0.8)';
@@ -523,10 +418,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return { q: rx, r: rz };
     }
 
-    function getMapPixelBounds() {
-        return { minPxX: -2000, minPxY: -2000, mapPixelWidth: 4000, mapPixelHeight: 4000 };
-    }
-
     async function loadAssets() {
         const promises = Object.keys(state.assetManifest).map(key => {
             return new Promise((resolve) => {
@@ -544,15 +435,6 @@ document.addEventListener('DOMContentLoaded', () => {
         await Promise.all(promises);
     }
     
-    function saveState() {
-        const activeMap = state.getActiveMap();
-        if (!activeMap) return;
-        const serializableMap = JSON.parse(JSON.stringify(activeMap));
-        undoStack.push(serializableMap);
-        redoStack = [];
-        updateUndoRedoButtons();
-    }
-
     function undo() {
         if (undoStack.length === 0) return;
         const activeMap = state.getActiveMap();
@@ -584,151 +466,7 @@ document.addEventListener('DOMContentLoaded', () => {
         redoBtn.disabled = redoStack.length === 0;
     }
 
-    function updateSelectionPanel() {
-        selectionPanelContent.innerHTML = '';
-        if (!selection) {
-            selectedObjectPanel.classList.add('hidden');
-            return;
-        }
-
-        selectedObjectPanel.classList.remove('hidden');
-        const activeMap = state.getActiveMap();
-        let selectedItem = null;
-        const itemType = selection.type;
-
-        if (itemType === 'object') {
-            const layer = activeMap.layers.find(l => l.id === selection.layerId);
-            selectedItem = layer?.objects[selection.index];
-            selectionPanelHeader.textContent = 'Selected Object';
-        } else if (itemType === 'token') {
-            selectedItem = activeMap.tokens[selection.index];
-            selectionPanelHeader.textContent = 'Selected Token';
-        } else if (itemType === 'wall') {
-            selectedItem = activeMap.walls[selection.index];
-            selectionPanelHeader.textContent = 'Selected Wall';
-        } else if (itemType === 'label') {
-            selectedItem = activeMap.labels[selection.index];
-            selectionPanelHeader.textContent = 'Selected Label';
-        }
-
-        if (!selectedItem) {
-            selection = null;
-            selectedObjectPanel.classList.add('hidden');
-            return;
-        }
-
-        if (itemType === 'object' || itemType === 'token' || itemType === 'label') {
-            const notesHeader = document.createElement('h4');
-            notesHeader.className = 'text-md font-semibold mt-4 border-t border-gray-600 pt-2';
-            notesHeader.textContent = 'GM Notes';
-            selectionPanelContent.appendChild(notesHeader);
-
-            const notesTextarea = document.createElement('textarea');
-            notesTextarea.className = 'w-full p-2 border-gray-600 bg-gray-700 rounded mt-2';
-            notesTextarea.value = selectedItem.notes || '';
-            notesTextarea.placeholder = 'Add secret notes here...';
-            notesTextarea.oninput = () => {
-                selectedItem.notes = notesTextarea.value;
-            };
-            selectionPanelContent.appendChild(notesTextarea);
-        }
-
-        if (itemType === 'object') {
-            // Container Logic
-            const containerHeader = document.createElement('h4');
-            containerHeader.className = 'text-md font-semibold mt-4 border-t border-gray-600 pt-2';
-            containerHeader.textContent = 'Container';
-            selectionPanelContent.appendChild(containerHeader);
-
-            const containerCheckboxWrapper = document.createElement('div');
-            containerCheckboxWrapper.className = 'flex items-center mt-2';
-            const containerCheckbox = document.createElement('input');
-            containerCheckbox.type = 'checkbox';
-            containerCheckbox.id = 'isContainerCheckbox';
-            containerCheckbox.checked = selectedItem.isContainer;
-            containerCheckbox.onchange = () => {
-                selectedItem.isContainer = containerCheckbox.checked;
-                updateSelectionPanel();
-            };
-            containerCheckboxWrapper.appendChild(containerCheckbox);
-            const containerLabel = document.createElement('label');
-            containerLabel.htmlFor = 'isContainerCheckbox';
-            containerLabel.textContent = 'Is Container';
-            containerLabel.className = 'ml-2';
-            containerCheckboxWrapper.appendChild(containerLabel);
-            selectionPanelContent.appendChild(containerCheckboxWrapper);
-
-            if (selectedItem.isContainer) {
-                const inventoryContainer = document.createElement('div');
-                inventoryContainer.id = 'inventory-section';
-                selectionPanelContent.appendChild(inventoryContainer);
-                renderInventory(selectedItem, inventoryContainer);
-            }
-        }
-        
-        if (itemType === 'wall') {
-            const deleteWallBtn = document.createElement('button');
-            deleteWallBtn.textContent = 'Delete Wall';
-            deleteWallBtn.className = 'w-full mt-4';
-            deleteWallBtn.onclick = () => {
-                saveState();
-                activeMap.walls.splice(selection.index, 1);
-                selection = null;
-                updateSelectionPanel();
-                updateLightAndSight();
-                drawAll();
-            };
-            selectionPanelContent.appendChild(deleteWallBtn);
-        }
-    }
-    
-    function renderInventory(item, container) {
-        container.innerHTML = '';
-
-        const list = document.createElement('ul');
-        list.className = 'mt-2 space-y-1';
-        (item.inventory || []).forEach((invItem, index) => {
-            const li = document.createElement('li');
-            li.className = 'flex justify-between items-center bg-gray-900 p-1 rounded text-sm';
-            li.textContent = invItem;
-            
-            const deleteBtn = document.createElement('button');
-            deleteBtn.textContent = 'X';
-            deleteBtn.className = 'text-red-500 hover:text-red-400 px-2 !mb-0';
-            deleteBtn.onclick = () => {
-                item.inventory.splice(index, 1);
-                renderInventory(item, container);
-            };
-            li.appendChild(deleteBtn);
-            list.appendChild(li);
-        });
-        container.appendChild(list);
-
-        const addItemWrapper = document.createElement('div');
-        addItemWrapper.className = 'flex gap-2 mt-2';
-        const newItemInput = document.createElement('input');
-        newItemInput.type = 'text';
-        newItemInput.placeholder = 'New item...';
-        newItemInput.className = 'flex-grow !mb-0';
-        addItemWrapper.appendChild(newItemInput);
-        
-        const addItemBtn = document.createElement('button');
-        addItemBtn.textContent = 'Add';
-        addItemBtn.className = 'flex-shrink-0 !mb-0';
-        addItemBtn.onclick = () => {
-            const value = newItemInput.value.trim();
-            if (value) {
-                if (!item.inventory) item.inventory = [];
-                item.inventory.push(value);
-                newItemInput.value = '';
-                renderInventory(item, container);
-            }
-        };
-        addItemWrapper.appendChild(addItemBtn);
-        container.appendChild(addItemWrapper);
-    }
-
-    function applyTool(coords, startCoords = null) {
+    function applyTool(coords) {
         const activeMap = state.getActiveMap();
         if (!activeMap) return;
 
@@ -757,7 +495,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 rotation: 0,
                 scale: 1,
                 isGmOnly: objectGmOnlyCheckbox.checked,
-                mapLink: null,
                 notes: "",
                 isContainer: false,
                 inventory: []
@@ -791,10 +528,7 @@ document.addEventListener('DOMContentLoaded', () => {
         drawAll();
     }
     
-    // --- Initialization and Event Listeners ---
-    
     async function initialize() {
-        // Fetch initial data
         try {
             const [terrainsRes, assetsRes] = await Promise.all([
                 fetch('terrains.json'),
@@ -815,7 +549,6 @@ document.addEventListener('DOMContentLoaded', () => {
             state.loadCustomAssets();
             await loadAssets();
             
-            // Create a default map if none exist
             if (Object.keys(state.project.maps).length === 0) {
                 handleAddNewMap(true); 
             } else {
@@ -845,22 +578,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     img.onload = () => {
                         terrain.canvasPatternObject = ctx.createPattern(img, 'repeat');
                         patternsLoaded++;
-                        if (patternsLoaded === terrainKeys.length) {
-                            resolve();
-                        }
+                        if (patternsLoaded === terrainKeys.length) resolve();
                     };
                     img.onerror = () => {
                         patternsLoaded++;
-                        if (patternsLoaded === terrainKeys.length) {
-                            resolve();
-                        }
+                        if (patternsLoaded === terrainKeys.length) resolve();
                     }
                     img.src = "data:image/svg+xml;base64," + window.btoa(s);
                 } else {
                     patternsLoaded++;
-                    if (patternsLoaded === terrainKeys.length) {
-                        resolve();
-                    }
+                    if (patternsLoaded === terrainKeys.length) resolve();
                 }
             });
         });
@@ -868,16 +595,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function switchTool(tool) {
         currentTool = tool;
-        // Update button active states
-        document.querySelectorAll('.control-panel button[id^="tool"]').forEach(btn => btn.classList.remove('active'));
-        const activeBtn = document.getElementById(`tool${tool.charAt(0).toUpperCase() + tool.slice(1)}Btn`);
-        if(activeBtn) activeBtn.classList.add('active');
+        document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(`tool${tool.charAt(0).toUpperCase() + tool.slice(1)}Btn`)?.classList.add('active');
 
-        // Show/hide options panels
-        if(terrainOptionsPanel) terrainOptionsPanel.classList.toggle('hidden', tool !== 'terrain');
-        if(pencilOptionsPanel) pencilOptionsPanel.classList.toggle('hidden', tool !== 'pencil');
-        if(tokenOptionsPanel) tokenOptionsPanel.classList.toggle('hidden', tool !== 'token');
-        if(textToolPanel) textToolPanel.classList.toggle('hidden', tool !== 'text');
+        const toolPanels = [terrainOptionsPanel, terrainContentPanel, objectOptionsPanel, pencilOptionsPanel, tokenOptionsPanel, textToolPanel, fogPanel];
+        toolPanels.forEach(p => p.classList.add('hidden'));
+
+        if (tool === 'terrain') {
+            terrainOptionsPanel.classList.remove('hidden');
+            terrainContentPanel.classList.remove('hidden');
+        } else if (tool === 'object') {
+            objectOptionsPanel.classList.remove('hidden');
+        } else if (tool === 'pencil') {
+            pencilOptionsPanel.classList.remove('hidden');
+        } else if (tool === 'token') {
+            tokenOptionsPanel.classList.remove('hidden');
+        } else if (tool === 'text') {
+            textToolPanel.classList.remove('hidden');
+        } else if (tool === 'fog') {
+            fogPanel.classList.remove('hidden');
+        }
     }
 
     function setupUI() {
@@ -886,16 +623,15 @@ document.addEventListener('DOMContentLoaded', () => {
         window.addEventListener('resize', resizeCanvas);
 
         canvas.addEventListener('mousedown', (e) => {
-            if (e.button === 1) { // Middle mouse button
+            if (e.button === 1) { // Middle mouse
                 isPanning = true;
                 panStart.x = e.clientX - view.offsetX;
                 panStart.y = e.clientY - view.offsetY;
                 canvas.classList.add('panning');
                 e.preventDefault();
-            } else if (e.button === 0) { // Left mouse button
+            } else if (e.button === 0) { // Left mouse
                  isPainting = true;
-                 const coords = {x: e.offsetX, y: e.offsetY};
-                 applyTool(coords);
+                 applyTool({x: e.offsetX, y: e.offsetY});
             }
         });
 
@@ -905,18 +641,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 view.offsetY = e.clientY - panStart.y;
                 drawAll();
             } else if (isPainting) {
-                const coords = {x: e.offsetX, y: e.offsetY};
-                applyTool(coords);
+                applyTool({x: e.offsetX, y: e.offsetY});
             }
         });
         
         canvas.addEventListener('mouseup', (e) => {
-            if (e.button === 1) {
-                isPanning = false;
-                canvas.classList.remove('panning');
-            } else if (e.button === 0) {
-                isPainting = false;
-            }
+            isPanning = false;
+            isPainting = false;
+            canvas.classList.remove('panning');
         });
 
         canvas.addEventListener('wheel', (e) => {
@@ -925,11 +657,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const wheel = e.deltaY < 0 ? 1 : -1;
             const zoom = Math.exp(wheel * zoomIntensity);
             
-            const mouseX = e.offsetX;
-            const mouseY = e.offsetY;
-
-            view.offsetX = (view.offsetX - mouseX) * zoom + mouseX;
-            view.offsetY = (view.offsetY - mouseY) * zoom + mouseY;
+            view.offsetX = (view.offsetX - e.offsetX) * zoom + e.offsetX;
+            view.offsetY = (view.offsetY - e.offsetY) * zoom + e.offsetY;
             view.zoom *= zoom;
 
             drawAll();
@@ -947,21 +676,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Tool selection
         toolTerrainBtn.addEventListener('click', () => switchTool('terrain'));
+        toolObjectBtn.addEventListener('click', () => switchTool('object'));
         toolPencilBtn.addEventListener('click', () => switchTool('pencil'));
         toolSelectBtn.addEventListener('click', () => switchTool('select'));
-        toolWallBtn.addEventListener('click', () => switchTool('wall'));
         toolTokenBtn.addEventListener('click', () => switchTool('token'));
         toolTextBtn.addEventListener('click', () => switchTool('text'));
-        toolInteractBtn.addEventListener('click', () => switchTool('interact'));
+        toolFogBtn.addEventListener('click', () => switchTool('fog'));
 
-        // Collapsible panels
         document.querySelectorAll('.collapsible-header').forEach(header => {
             header.addEventListener('click', () => {
                 const content = header.nextElementSibling;
-                const icon = header.querySelector('svg');
                 content.classList.toggle('hidden');
-                header.classList.toggle('collapsed');
-                if(icon) icon.style.transform = content.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(-90deg)';
             });
         });
     }
@@ -1019,35 +744,20 @@ document.addEventListener('DOMContentLoaded', () => {
             activeLayerId = newMap.layers[0].id;
             return;
         }
-        // Show modal for user input
         newMapModal.classList.remove('hidden');
     }
 
     function createNewMapData(name, width, height) {
         const newMap = {
-            id: `map_${Date.now()}`,
-            name: name,
-            width: width,
-            height: height,
-            grid: {},
-            layers: [
-                { id: `layer_${Date.now()}`, name: 'Ground', visible: true, data: {}, objects: [] }
-            ],
-            walls: [],
-            tokens: [],
-            labels: [],
-            drawings: [],
-            fog: { revealedRects: [] },
-            parentId: null,
-            children: []
+            id: `map_${Date.now()}`, name, width, height, grid: {},
+            layers: [{ id: `layer_${Date.now()}`, name: 'Ground', visible: true, data: {}, objects: [] }],
+            walls: [], tokens: [], labels: [], drawings: [],
+            fog: { revealedRects: [] }, parentId: null, children: []
         };
-        // Populate grid
         const size = Math.max(width, height);
         for (let q = -size; q <= size; q++) {
             for (let r = -size; r <= size; r++) {
-                if (Math.abs(q + r) <= size) {
-                    newMap.grid[`${q},${r}`] = {};
-                }
+                if (Math.abs(q + r) <= size) newMap.grid[`${q},${r}`] = {};
             }
         }
         return newMap;
@@ -1061,7 +771,6 @@ document.addEventListener('DOMContentLoaded', () => {
         state.project.maps[newMapId] = createNewMapData(name, width, height);
         state.setActiveMapId(newMapId);
         newMapModal.classList.add('hidden');
-        // You would also update the atlas panel here
         drawAll();
     });
 

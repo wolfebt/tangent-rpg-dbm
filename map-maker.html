@@ -80,36 +80,100 @@
                 
                 <!-- Scrollable Controls Area -->
                 <div class="flex-grow overflow-y-auto pr-2">
-                     <div class="control-panel mb-4">
-                        <h3>Atlas</h3>
-                        <div id="atlas-panel" class="mt-2 space-y-2"></div>
-                        <button id="addNewMapBtn" class="w-full mt-2">Add New Map</button>
-                    </div>
-
-                     <div class="control-panel mb-4">
-                        <div class="collapsible-header collapsed">
-                            <h3>Tools</h3>
+                    <div class="control-panel mb-4">
+                        <div id="actionsHeader" class="collapsible-header">
+                            <h3>Actions</h3>
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </div>
-                        <div class="collapsible-content hidden">
-                            <div class="grid grid-cols-4 gap-2">
-                                <button id="toolTerrainBtn" class="active">Terrain</button>
-                                <button id="toolPencilBtn">Pencil</button>
-                                <button id="toolSelectBtn">Select</button>
-                                <button id="toolWallBtn">Wall</button>
-                                <button id="toolTokenBtn">Token</button>
-                                <button id="toolTextBtn">Text</button>
-                                <button id="toolInteractBtn">Interact</button>
+                        <div id="actionsContent" class="collapsible-content">
+                            <button id="addNewMapBtn" class="w-full mb-2">Add New Map</button>
+                            <button id="assetEditorBtn" class="w-full mb-2">Create New Asset</button>
+                            <div class="grid grid-cols-4 gap-2 my-2">
+                                <button id="undoBtn" title="Undo" disabled>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.9-6.7"/><path d="M21 2v6h-6"/></svg>
+                                </button>
+                                <button id="redoBtn" title="Redo" disabled>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.9-6.7"/><path d="M3 2v6h6"/></svg>
+                                </button>
+                                <div class="relative">
+                                    <button id="eraserToolBtn" title="Eraser">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>
+                                    </button>
+                                    <div id="eraserDropdownMenu" class="file-dropdown hidden -left-1/2 top-full mt-2 !w-48">
+                                        <button id="eraseTerrainBtn" class="file-dropdown-item">Erase Terrain</button>
+                                        <button id="eraseObjectsBtn" class="file-dropdown-item">Erase Objects</button>
+                                        <button id="eraseDrawingsBtn" class="file-dropdown-item">Erase Drawings</button>
+                                    </div>
+                                </div>
+                                <button id="resetViewBtn" title="Reset View & Zoom">Center</button>
+                            </div>
+                            <!-- TOOLS -->
+                            <div class="control-panel !p-0 !border-0 mt-4">
+                                <h3 class="!border-b-0 !pb-2 text-base font-semibold">Tools</h3>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <button id="toolTerrainBtn" class="tool-btn active">Terrain</button>
+                                    <button id="toolObjectBtn" class="tool-btn">Object</button>
+                                    <button id="toolPencilBtn" class="tool-btn">Pencil</button>
+                                    <button id="toolSelectBtn" class="tool-btn">Select</button>
+                                    <button id="toolTokenBtn" class="tool-btn">Token</button>
+                                    <button id="toolTextBtn" class="tool-btn">Text</button>
+                                    <button id="toolFogBtn" class="tool-btn">Fog</button>
+                                </div>
+                            </div>
+                            <div id="graphicsDropdown" class="mt-4 control-panel !p-0 !border-0">
+                                 <div id="graphicsBtn" class="collapsible-header collapsed !border-t !pt-4">
+                                     <h3>Graphics Options</h3>
+                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                 </div>
+                                 <div id="graphicsContent" class="collapsible-content hidden">
+                                     <!-- Layers -->
+                                     <div class="control-panel mb-4">
+                                         <h3 class="!border-b-0 !pb-2 text-base font-semibold">Layers</h3>
+                                         <div id="layerContent" class="collapsible-content">
+                                             <div id="layerList" class="flex flex-col gap-2 mb-4"></div>
+                                             <div class="grid grid-cols-2 gap-2">
+                                                 <button id="addLayerBtn">Add Layer</button>
+                                                 <button id="deleteLayerBtn">Delete Layer</button>
+                                             </div>
+                                         </div>
+                                     </div>
+                                     <!-- Grid Options -->
+                                     <div class="control-panel mb-4">
+                                         <h3 class="!border-b-0 !pb-2 text-base font-semibold">Grid Options</h3>
+                                         <div class="mb-4">
+                                             <label for="gridTypeSelect">Grid Type</label>
+                                             <select id="gridTypeSelect">
+                                                 <option value="hex">Hex</option>
+                                                 <option value="square">Square</option>
+                                             </select>
+                                         </div>
+                                         <div class="grid grid-cols-2 gap-4 items-center">
+                                             <div>
+                                                 <label for="gridColorPicker" class="text-sm">Color</label>
+                                                 <input type="color" id="gridColorPicker" value="#111827" class="!p-1 !h-9 !mb-0">
+                                             </div>
+                                             <div class="flex items-center justify-end pt-5">
+                                                 <input type="checkbox" id="gridVisibleCheckbox" class="h-4 w-4 rounded !mb-0" checked>
+                                                 <label for="gridVisibleCheckbox" class="ml-2 !mb-0">Visible</label>
+                                             </div>
+                                         </div>
+                                     </div>
+                                 </div>
                             </div>
                         </div>
                     </div>
 
+                     <div class="control-panel mb-4">
+                        <h3>Atlas</h3>
+                        <div id="atlas-panel" class="mt-2 space-y-2"></div>
+                    </div>
+
                     <div id="terrainOptionsPanel" class="control-panel mb-4">
-                         <div class="collapsible-header collapsed">
+                         <div class="collapsible-header">
                             <h3>Brush Options</h3>
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </div>
-                        <div class="collapsible-content hidden">
+                        <div class="collapsible-content">
                             <label for="terrainBrushMode">Terrain Brush</label>
                             <select id="terrainBrushMode">
                                 <option value="hex">Hex</option>
@@ -125,11 +189,11 @@
                     </div>
 
                     <div id="pencilOptionsPanel" class="control-panel mb-4 hidden">
-                        <div class="collapsible-header collapsed">
+                        <div class="collapsible-header">
                             <h3>Pencil Options</h3>
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </div>
-                        <div class="collapsible-content hidden">
+                        <div class="collapsible-content">
                             <label for="pencilBrushMode">Pencil Mode</label>
                             <select id="pencilBrushMode">
                                 <option value="freestyle">Freestyle</option>
@@ -155,11 +219,11 @@
                     </div>
 
                     <div id="tokenOptionsPanel" class="control-panel mb-4 hidden">
-                        <div class="collapsible-header collapsed">
+                        <div class="collapsible-header">
                             <h3>Token Options</h3>
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </div>
-                        <div class="collapsible-content hidden">
+                        <div class="collapsible-content">
                             <label for="tokenLightRadius">Light Radius (in hexes): <span id="tokenLightRadiusValue">5</span></label>
                             <input type="range" id="tokenLightRadius" min="0" max="30" value="5" class="mb-2">
                              <div class="grid grid-cols-2 gap-4 items-center">
@@ -174,12 +238,12 @@
                         </div>
                     </div>
 
-                    <div id="fogPanel" class="control-panel mb-4">
-                        <div class="collapsible-header collapsed">
+                    <div id="fogPanel" class="control-panel mb-4 hidden">
+                        <div class="collapsible-header">
                             <h3>Fog of War</h3>
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </div>
-                        <div class="collapsible-content hidden">
+                        <div class="collapsible-content">
                             <div class="grid grid-cols-2 gap-2">
                                 <button id="toolFogRevealBtn">Reveal</button>
                                 <button id="toolFogHideBtn">Hide</button>
@@ -189,52 +253,23 @@
                             <button id="resetFogBtn" class="w-full">Reset Fog (Cover All)</button>
                         </div>
                     </div>
-                    
-                    <div class="control-panel mb-4">
-                        <div id="actionsHeader" class="collapsible-header collapsed">
-                            <h3>Actions</h3>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                        </div>
-                        <div id="actionsContent" class="collapsible-content hidden">
-                            <button id="assetEditorBtn" class="w-full mb-2">Create New Asset</button>
-                            <div class="grid grid-cols-4 gap-2 my-2">
-                                <button id="undoBtn" title="Undo" disabled>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.9-6.7"/><path d="M21 2v6h-6"/></svg>
-                                </button>
-                                <button id="redoBtn" title="Redo" disabled>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.9-6.7"/><path d="M3 2v6h6"/></svg>
-                                </button>
-                                <div class="relative">
-                                    <button id="eraserToolBtn" title="Eraser">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>
-                                    </button>
-                                    <div id="eraserDropdownMenu" class="file-dropdown hidden -left-1/2 top-full mt-2 !w-48">
-                                        <button id="eraseTerrainBtn" class="file-dropdown-item">Erase Terrain</button>
-                                        <button id="eraseObjectsBtn" class="file-dropdown-item">Erase Objects</button>
-                                        <button id="eraseDrawingsBtn" class="file-dropdown-item">Erase Drawings</button>
-                                    </div>
-                                </div>
-                                <button id="resetViewBtn" title="Reset View & Zoom">Center</button>
-                            </div>
-                        </div>
-                    </div>
                                     
-                    <div class="control-panel mb-4">
-                         <div id="terrainHeader" class="collapsible-header collapsed">
+                    <div id="terrainContentPanel" class="control-panel mb-4">
+                         <div id="terrainHeader" class="collapsible-header">
                             <h3>Terrain Type</h3>
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </div>
-                        <div id="terrainContent" class="collapsible-content hidden">
+                        <div id="terrainContent" class="collapsible-content">
                             <div id="terrainSelector" class="flex flex-col gap-2"></div>
                         </div>
                     </div>
 
-                    <div class="control-panel mb-4">
-                        <div id="objectHeader" class="collapsible-header collapsed">
+                    <div id="objectOptionsPanel" class="control-panel mb-4 hidden">
+                        <div id="objectHeader" class="collapsible-header">
                             <h3>Objects</h3>
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </div>
-                         <div id="objectContent" class="collapsible-content hidden">
+                         <div id="objectContent" class="collapsible-content">
                             <div class="flex items-center mb-2">
                                 <input type="checkbox" id="objectGmOnlyCheckbox" class="h-4 w-4 rounded !mb-0">
                                 <label for="objectGmOnlyCheckbox" class="ml-2 !mb-0 text-sm">Place as GM-Only (Secret)</label>
@@ -253,12 +288,12 @@
                         </div>
                     </div>
 
-                    <div id="textToolPanel" class="control-panel mb-4">
-                        <div id="textHeader" class="collapsible-header collapsed">
+                    <div id="textToolPanel" class="control-panel mb-4 hidden">
+                        <div id="textHeader" class="collapsible-header">
                             <h3>Text & GM Notes</h3>
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </div>
-                         <div id="textContent" class="collapsible-content hidden">
+                         <div id="textContent" class="collapsible-content">
                             <label for="textInput">Text</label>
                             <input type="text" id="textInput" value="Label">
                             <div class="grid grid-cols-2 gap-4">
@@ -275,47 +310,6 @@
                                 <input type="checkbox" id="textGmOnlyCheckbox" class="h-4 w-4 rounded !mb-0">
                                 <label for="textGmOnlyCheckbox" class="ml-2 !mb-0 text-sm">Place as GM-Only (Secret)</label>
                             </div>
-                         </div>
-                    </div>
-
-                    <div id="graphicsDropdown" class="mt-4 control-panel">
-                         <div id="graphicsBtn" class="collapsible-header collapsed">
-                             <h3>Graphics Options</h3>
-                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                         </div>
-                         <div id="graphicsContent" class="collapsible-content hidden">
-                             <!-- Layers -->
-                             <div class="control-panel mb-4">
-                                 <h3 class="!border-b-0 !pb-2 text-base font-semibold">Layers</h3>
-                                 <div id="layerContent" class="collapsible-content">
-                                     <div id="layerList" class="flex flex-col gap-2 mb-4"></div>
-                                     <div class="grid grid-cols-2 gap-2">
-                                         <button id="addLayerBtn">Add Layer</button>
-                                         <button id="deleteLayerBtn">Delete Layer</button>
-                                     </div>
-                                 </div>
-                             </div>
-                             <!-- Grid Options -->
-                             <div class="control-panel mb-4">
-                                 <h3 class="!border-b-0 !pb-2 text-base font-semibold">Grid Options</h3>
-                                 <div class="mb-4">
-                                     <label for="gridTypeSelect">Grid Type</label>
-                                     <select id="gridTypeSelect">
-                                         <option value="hex">Hex</option>
-                                         <option value="square">Square</option>
-                                     </select>
-                                 </div>
-                                 <div class="grid grid-cols-2 gap-4 items-center">
-                                     <div>
-                                         <label for="gridColorPicker" class="text-sm">Color</label>
-                                         <input type="color" id="gridColorPicker" value="#111827" class="!p-1 !h-9 !mb-0">
-                                     </div>
-                                     <div class="flex items-center justify-end pt-5">
-                                         <input type="checkbox" id="gridVisibleCheckbox" class="h-4 w-4 rounded !mb-0" checked>
-                                         <label for="gridVisibleCheckbox" class="ml-2 !mb-0">Visible</label>
-                                     </div>
-                                 </div>
-                             </div>
                          </div>
                     </div>
                 </div>
