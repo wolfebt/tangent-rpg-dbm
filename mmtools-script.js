@@ -376,6 +376,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function drawHexOutline(ctx, x, y, size) {
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+            const angle_deg = 60 * i + 30;
+            const angle_rad = Math.PI / 180 * angle_deg;
+            ctx.lineTo(x + size * Math.cos(angle_rad), y + size * Math.sin(angle_rad));
+        }
+        ctx.closePath();
+        ctx.stroke();
+    }
+
     function drawWalls() {
         const activeMap = state.getActiveMap();
         if (!activeMap || !activeMap.walls) return;
@@ -425,6 +436,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         lightCtx.restore();
+    }
+    
+    function updateLightAndSight() {
+        // This function would calculate visibility polygons based on token positions and walls
+        // For simplicity, we'll just clear and redraw for now.
+        visibilityPolygons = [];
+        drawAll();
     }
 
     function updateFogOfWar() {
@@ -731,17 +749,208 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             activeMap.labels.push(newLabel);
         }
-        // ... other tool logic ...
         drawAll();
     }
-
-    function handleAddNewMap() {
-        // ... (existing implementation)
+    
+    // --- Initialization and Event Listeners ---
+    
+    async function initialize() {
+        // Fetch initial data
+        try {
+            const [terrainsRes, assetsRes] = await Promise.all([
+                fetch('terrains.json'),
+                fetch('assets.json')
+            ]);
+            const terrainsData = await terrainsRes.json();
+            const assetsData = await assetsRes.json();
+            
+            state.setState({
+                terrains: terrainsData,
+                assetManifest: assetsData
+            });
+            
+            state.loadCustomAssets();
+            await loadAssets();
+            
+            // Create a default map if none exist
+            if (Object.keys(state.project.maps).length === 0) {
+                handleAddNewMap(true); // Create a default map on first load
+            } else {
+                // Otherwise, set the first map as active
+                state.setActiveMapId(Object.keys(state.project.maps)[0]);
+            }
+            
+            setupUI();
+            resizeCanvas();
+            
+        } catch (error) {
+            console.error("Initialization failed:", error);
+            state.showModal("Failed to load essential map data. Please refresh the page.");
+        }
     }
 
-    async function initialize() {
-        // ... (existing implementation)
+    function setupUI() {
+        // Populate terrain and object selectors
+        populateSelectors();
+        
+        // Setup event listeners for UI elements
+        // ... (this is where you'd add all your addEventListener calls)
+        
+        window.addEventListener('resize', resizeCanvas);
+
+        canvas.addEventListener('mousedown', (e) => {
+            if (e.button === 1) { // Middle mouse button
+                isPanning = true;
+                panStart.x = e.clientX - view.offsetX;
+                panStart.y = e.clientY - view.offsetY;
+                canvas.classList.add('panning');
+                e.preventDefault();
+            } else if (e.button === 0) { // Left mouse button
+                 const coords = {x: e.offsetX, y: e.offsetY};
+                 applyTool(coords);
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isPanning) {
+                view.offsetX = e.clientX - panStart.x;
+                view.offsetY = e.clientY - panStart.y;
+                drawAll();
+            }
+        });
+        
+        canvas.addEventListener('mouseup', (e) => {
+            if (e.button === 1) {
+                isPanning = false;
+                canvas.classList.remove('panning');
+            }
+        });
+
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoomIntensity = 0.1;
+            const wheel = e.deltaY < 0 ? 1 : -1;
+            const zoom = Math.exp(wheel * zoomIntensity);
+            
+            const mouseX = e.offsetX;
+            const mouseY = e.offsetY;
+
+            view.offsetX = (view.offsetX - mouseX) * zoom + mouseX;
+            view.offsetY = (view.offsetY - mouseY) * zoom + mouseY;
+            view.zoom *= zoom;
+
+            drawAll();
+        });
+
+        resetViewBtn.addEventListener('click', () => {
+            view.zoom = 1;
+            view.offsetX = 0;
+            view.offsetY = 0;
+            drawAll();
+        });
+
+        undoBtn.addEventListener('click', undo);
+        redoBtn.addEventListener('click', redo);
     }
     
-    // ... (rest of the file)
+    function populateSelectors() {
+        terrainSelector.innerHTML = '';
+        Object.keys(state.terrains).forEach(key => {
+            const terrain = state.terrains[key];
+            const div = document.createElement('div');
+            div.className = 'item-container';
+            div.dataset.terrain = key;
+            div.innerHTML = `
+                <div class="texture-swatch" style="background-color: ${terrain.color};"></div>
+                <span class="item-label">${terrain.name}</span>
+            `;
+            div.addEventListener('click', () => {
+                selectedTerrain = key;
+                document.querySelectorAll('#terrainSelector .item-container').forEach(el => el.classList.remove('active'));
+                div.classList.add('active');
+            });
+            terrainSelector.appendChild(div);
+        });
+
+        objectSelector.innerHTML = '';
+        Object.keys(state.assetManifest).forEach(key => {
+            const asset = state.assetManifest[key];
+            if (asset.type === 'object') {
+                const div = document.createElement('div');
+                div.className = 'item-container';
+                div.dataset.object = key;
+                div.innerHTML = `
+                    <div class="object-swatch"><img src="${asset.src}" alt="${asset.name}"></div>
+                    <span class="item-label">${asset.name}</span>
+                `;
+                 div.addEventListener('click', () => {
+                    selectedObject = key;
+                    document.querySelectorAll('#objectSelector .item-container').forEach(el => el.classList.remove('active'));
+                    div.classList.add('active');
+                });
+                objectSelector.appendChild(div);
+            }
+        });
+    }
+
+    function handleAddNewMap(isDefault = false) {
+        if (isDefault) {
+            const defaultMapId = `map_${Date.now()}`;
+            state.project.maps[defaultMapId] = createNewMapData("Default Map", 50, 50);
+            state.setActiveMapId(defaultMapId);
+            return;
+        }
+        // Show modal for user input
+        newMapModal.classList.remove('hidden');
+    }
+
+    function createNewMapData(name, width, height) {
+        const newMap = {
+            id: `map_${Date.now()}`,
+            name: name,
+            width: width,
+            height: height,
+            grid: {},
+            layers: [
+                { id: `layer_${Date.now()}`, name: 'Ground', visible: true, data: {}, objects: [] }
+            ],
+            walls: [],
+            tokens: [],
+            labels: [],
+            drawings: [],
+            fog: { revealedRects: [] },
+            parentId: null,
+            children: []
+        };
+        // Populate grid
+        for (let q = -width; q <= width; q++) {
+            for (let r = -height; r <= height; r++) {
+                if (Math.abs(q + r) <= width) {
+                    newMap.grid[`${q},${r}`] = {};
+                }
+            }
+        }
+        return newMap;
+    }
+
+    confirmNewMapBtn.addEventListener('click', () => {
+        const name = newMapNameInput.value || 'Untitled Map';
+        const width = parseInt(newMapNameInput.value) || 50;
+        const height = parseInt(newMapNameInput.value) || 50;
+        const newMapId = `map_${Date.now()}`;
+        state.project.maps[newMapId] = createNewMapData(name, width, height);
+        state.setActiveMapId(newMapId);
+        newMapModal.classList.add('hidden');
+        // You would also update the atlas panel here
+        drawAll();
+    });
+
+    cancelNewMapBtn.addEventListener('click', () => {
+        newMapModal.classList.add('hidden');
+    });
+
+    addNewMapBtn.addEventListener('click', () => handleAddNewMap());
+
+
+    initialize();
 });

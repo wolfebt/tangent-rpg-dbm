@@ -19,7 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const colorPicker = document.getElementById('asset-color-picker');
     const brushSizeSlider = document.getElementById('asset-brush-size');
     const brushSizeValue = document.getElementById('asset-brush-size-value');
-    const assetCopyCodeBtn = document.getElementById('asset-copy-code-btn');
     const assetPromptInput = document.getElementById('asset-prompt');
     const assetLoadingOverlay = document.getElementById('loading-overlay');
     const assetGenerateBtn = document.getElementById('asset-generate-btn');
@@ -39,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * Updates the tiling preview canvas.
      */
     function updatePreview() {
+        if (!assetPreviewPanel || !assetTypeSelect) return;
         if (assetTypeSelect.value !== 'terrain') {
             assetPreviewPanel.classList.add('hidden');
             return;
@@ -135,11 +135,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Event Listeners ---
 
-    assetTypeSelect.addEventListener('change', updatePreview);
-    assetGenerateBtn.addEventListener('click', handleAssetAIGeneration);
-    assetEditorCloseBtn.addEventListener('click', closeEditor);
+    if(assetTypeSelect) assetTypeSelect.addEventListener('change', updatePreview);
+    if(assetGenerateBtn) assetGenerateBtn.addEventListener('click', handleAssetAIGeneration);
+    if(assetEditorCloseBtn) assetEditorCloseBtn.addEventListener('click', closeEditor);
 
-    assetExportBtn.addEventListener('click', () => {
+    if(assetExportBtn) assetExportBtn.addEventListener('click', () => {
         const name = assetNameInput.value.trim();
         if (!name) {
             state.showModal("Please provide a name for the asset.");
@@ -174,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
         closeEditor();
     });
 
-    toolPalette.addEventListener('click', (e) => {
+    if(toolPalette) toolPalette.addEventListener('click', (e) => {
         const button = e.target.closest('.asset-tool');
         if (button && button.dataset.tool) {
             currentTool = button.dataset.tool;
@@ -183,48 +183,38 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    brushSizeSlider.addEventListener('input', () => {
-        brushSizeValue.textContent = brushSizeSlider.value;
+    if(brushSizeSlider) brushSizeSlider.addEventListener('input', () => {
+        if(brushSizeValue) brushSizeValue.textContent = brushSizeSlider.value;
     });
 
-    assetCanvasDraw.addEventListener('mousedown', (e) => {
-        isDrawing = true;
-        lastPos = getMousePos(e);
-    });
+    if(assetCanvasDraw) {
+        assetCanvasDraw.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            lastPos = getMousePos(e);
+        });
 
-    assetCanvasDraw.addEventListener('mousemove', (e) => {
-        if (!isDrawing) return;
-        const currentPos = getMousePos(e);
-        drawLine(lastPos.x, lastPos.y, currentPos.x, currentPos.y);
-        lastPos = currentPos;
-    });
+        assetCanvasDraw.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+            const currentPos = getMousePos(e);
+            drawLine(lastPos.x, lastPos.y, currentPos.x, currentPos.y);
+            lastPos = currentPos;
+        });
 
-    assetCanvasDraw.addEventListener('mouseup', () => {
-        if (!isDrawing) return;
-        isDrawing = false;
-        // Merge the drawing layer onto the main layer
-        assetCtxMain.drawImage(assetCanvasDraw, 0, 0);
-        assetCtxDraw.clearRect(0, 0, assetCanvasDraw.width, assetCanvasDraw.height);
-        updatePreview();
-    });
+        assetCanvasDraw.addEventListener('mouseup', () => {
+            if (!isDrawing) return;
+            isDrawing = false;
+            // Merge the drawing layer onto the main layer
+            assetCtxMain.drawImage(assetCanvasDraw, 0, 0);
+            assetCtxDraw.clearRect(0, 0, assetCanvasDraw.width, assetCanvasDraw.height);
+            updatePreview();
+        });
 
-    assetCanvasDraw.addEventListener('mouseleave', () => {
-        if (!isDrawing) return;
-        isDrawing = false;
-        assetCtxMain.drawImage(assetCanvasDraw, 0, 0);
-        assetCtxDraw.clearRect(0, 0, assetCanvasDraw.width, assetCanvasDraw.height);
-        updatePreview();
-    });
-
-    assetCopyCodeBtn.addEventListener('click', () => {
-        const output = document.getElementById('asset-export-output');
-        if (output.value) {
-            output.select();
-            document.execCommand('copy');
-            state.showToast("Export code copied to clipboard!", "info");
-        } else {
-            state.showToast("Generate export code first.", "warning");
-        }
-    });
-
+        assetCanvasDraw.addEventListener('mouseleave', () => {
+            if (!isDrawing) return;
+            isDrawing = false;
+            assetCtxMain.drawImage(assetCanvasDraw, 0, 0);
+            assetCtxDraw.clearRect(0, 0, assetCanvasDraw.width, assetCanvasDraw.height);
+            updatePreview();
+        });
+    }
 });

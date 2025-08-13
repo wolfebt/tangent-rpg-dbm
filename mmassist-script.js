@@ -40,7 +40,15 @@ async function callTextGenerationAI(prompt) {
 
 
 export async function callImageGenerationAI(prompt, imageBase64 = null) {
-    // ... (existing implementation)
+    if (!state.apiKey) {
+        state.showModal("Please set your API key in the settings first.");
+        return null;
+    }
+    // This is a placeholder for the actual image generation call
+    console.log("callImageGenerationAI called with prompt:", prompt);
+    // In a real implementation, you would make a fetch call to an image generation API
+    // and return the base64 encoded image data.
+    return "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="; // 1x1 transparent pixel
 }
 
 
@@ -56,7 +64,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let landformImageBase64 = null;
 
-    // ... (existing helper functions)
+    function setAILoadingState(button, isLoading) {
+        if (!button) return;
+        const btnText = button.querySelector('.btn-text');
+        const spinner = button.querySelector('.spinner');
+        if (isLoading) {
+            if(btnText) btnText.classList.add('hidden');
+            if(spinner) spinner.classList.remove('hidden');
+            button.disabled = true;
+        } else {
+            if(btnText) btnText.classList.remove('hidden');
+            if(spinner) spinner.classList.add('hidden');
+            button.disabled = false;
+        }
+    }
+
+    async function handleGenerateLandform() {
+        setAILoadingState(generateLandformBtn, true);
+        console.log("Generating landform...");
+        // Placeholder implementation
+        setTimeout(() => {
+            console.log("Landform generation complete (placeholder).");
+            setAILoadingState(generateLandformBtn, false);
+            if(applyBiomesBtn) applyBiomesBtn.disabled = false;
+            if(generateColorVariantBtn) generateColorVariantBtn.disabled = false;
+        }, 2000);
+    }
+    
+    async function handleApplyBiomes(isVariant) {
+        const btn = isVariant ? generateColorVariantBtn : applyBiomesBtn;
+        setAILoadingState(btn, true);
+        console.log(`Applying biomes (isVariant: ${isVariant})...`);
+        // Placeholder implementation
+        setTimeout(() => {
+            console.log("Biome application complete (placeholder).");
+            setAILoadingState(btn, false);
+        }, 2000);
+    }
 
     async function handleGenerateLayout() {
         setAILoadingState(generateLayoutBtn, true);
@@ -106,7 +150,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Clear existing terrain and walls
         activeMap.walls = [];
-        activeMap.layers.forEach(layer => layer.data = {});
+        const groundLayer = activeMap.layers.find(l => l.name === 'Ground') || activeMap.layers[0];
+        if(groundLayer) {
+            groundLayer.data = {};
+        }
         
         const rows = grid.split('\n').map(row => row.trim());
         const gridHeight = rows.length;
@@ -114,8 +161,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const startQ = -Math.floor(gridWidth / 2);
         const startR = -Math.floor(gridHeight / 2);
-
-        const groundLayer = activeMap.layers[0];
 
         for (let y = 0; y < gridHeight; y++) {
             for (let x = 0; x < rows[y].length; x++) {
@@ -136,7 +181,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         document.dispatchEvent(new CustomEvent('mapStateUpdated'));
         const modal = document.querySelector('.modal-backdrop');
-        if (modal) modal.remove();
+        if (modal && modal.textContent.includes("Applying new layout...")) {
+             setTimeout(() => document.body.removeChild(modal), 500);
+        }
     }
     
     // --- Event Listeners ---
@@ -144,4 +191,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (applyBiomesBtn) applyBiomesBtn.addEventListener('click', () => handleApplyBiomes(false));
     if (generateColorVariantBtn) generateColorVariantBtn.addEventListener('click', () => handleApplyBiomes(true));
     if (generateLayoutBtn) generateLayoutBtn.addEventListener('click', handleGenerateLayout);
+
+    document.addEventListener('mapStateUpdated', () => {
+        // This is where you would call a function to redraw the main canvas
+        // e.g., from mmtools-script.js
+        if (window.drawAll) {
+            window.drawAll();
+        }
+    });
 });
