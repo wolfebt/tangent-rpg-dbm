@@ -1,4 +1,4 @@
-// Version 8.5 - Fixed hex grid rendering and removed Atlas panel
+// Version 8.7 - Corrected hex drawing logic definitively
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -272,7 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function drawHexOutline(ctx, x, y, size) {
         ctx.beginPath();
-        for (let i = 0; i <= 6; i++) {
+        for (let i = 0; i < 6; i++) {
             const angle_deg = 60 * i + 30;
             const angle_rad = Math.PI / 180 * angle_deg;
             const pointX = x + size * Math.cos(angle_rad);
@@ -283,6 +283,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 ctx.lineTo(pointX, pointY);
             }
         }
+        ctx.closePath();
         ctx.stroke();
     }
 
