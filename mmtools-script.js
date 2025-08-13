@@ -1,4 +1,4 @@
-// Version 8.1 - Fully implemented UI event listeners and tool switching
+// Version 8.2 - Fixed terrain pattern rendering
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -478,10 +478,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         targetCtx.closePath();
         
-        const pattern = document.getElementById(terrain.pattern);
-        if (pattern) {
-             targetCtx.fillStyle = `url(#${terrain.pattern})`;
-        } else if (terrain.color) {
+        if (terrain && terrain.canvasPatternObject) {
+            targetCtx.fillStyle = terrain.canvasPatternObject;
+        } else if (terrain && terrain.color) {
             targetCtx.fillStyle = terrain.color;
         } else {
             targetCtx.fillStyle = '#888';
@@ -812,6 +811,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 assetManifest: assetsData
             });
             
+            await createTerrainPatterns();
             state.loadCustomAssets();
             await loadAssets();
             
@@ -831,17 +831,53 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function createTerrainPatterns() {
+        return new Promise(resolve => {
+            const terrainKeys = Object.keys(state.terrains);
+            let patternsLoaded = 0;
+            
+            terrainKeys.forEach(key => {
+                const terrain = state.terrains[key];
+                const patternEl = document.getElementById(terrain.pattern);
+                if (patternEl) {
+                    const s = new XMLSerializer().serializeToString(patternEl);
+                    const img = new Image();
+                    img.onload = () => {
+                        terrain.canvasPatternObject = ctx.createPattern(img, 'repeat');
+                        patternsLoaded++;
+                        if (patternsLoaded === terrainKeys.length) {
+                            resolve();
+                        }
+                    };
+                    img.onerror = () => {
+                        patternsLoaded++;
+                        if (patternsLoaded === terrainKeys.length) {
+                            resolve();
+                        }
+                    }
+                    img.src = "data:image/svg+xml;base64," + window.btoa(s);
+                } else {
+                    patternsLoaded++;
+                    if (patternsLoaded === terrainKeys.length) {
+                        resolve();
+                    }
+                }
+            });
+        });
+    }
+
     function switchTool(tool) {
         currentTool = tool;
         // Update button active states
-        document.querySelectorAll('#tools-panel button').forEach(btn => btn.classList.remove('active'));
-        document.getElementById(`tool${tool.charAt(0).toUpperCase() + tool.slice(1)}Btn`).classList.add('active');
+        document.querySelectorAll('.control-panel button[id^="tool"]').forEach(btn => btn.classList.remove('active'));
+        const activeBtn = document.getElementById(`tool${tool.charAt(0).toUpperCase() + tool.slice(1)}Btn`);
+        if(activeBtn) activeBtn.classList.add('active');
 
         // Show/hide options panels
-        terrainOptionsPanel.classList.toggle('hidden', tool !== 'terrain');
-        pencilOptionsPanel.classList.toggle('hidden', tool !== 'pencil');
-        tokenOptionsPanel.classList.toggle('hidden', tool !== 'token');
-        textToolPanel.classList.toggle('hidden', tool !== 'text');
+        if(terrainOptionsPanel) terrainOptionsPanel.classList.toggle('hidden', tool !== 'terrain');
+        if(pencilOptionsPanel) pencilOptionsPanel.classList.toggle('hidden', tool !== 'pencil');
+        if(tokenOptionsPanel) tokenOptionsPanel.classList.toggle('hidden', tool !== 'token');
+        if(textToolPanel) textToolPanel.classList.toggle('hidden', tool !== 'text');
     }
 
     function setupUI() {
@@ -925,7 +961,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const icon = header.querySelector('svg');
                 content.classList.toggle('hidden');
                 header.classList.toggle('collapsed');
-                if(icon) icon.style.transform = content.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+                if(icon) icon.style.transform = content.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(-90deg)';
             });
         });
     }
@@ -939,7 +975,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 div.className = 'item-container';
                 div.dataset.terrain = key;
                 div.innerHTML = `
-                    <div class="texture-swatch" style="background-color: ${terrain.color}; background-image: url(#${terrain.pattern})"></div>
+                    <div class="texture-swatch" style="background-color: ${terrain.color};"></div>
                     <span class="item-label">${terrain.name}</span>
                 `;
                 div.addEventListener('click', () => {
@@ -1019,8 +1055,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if(confirmNewMapBtn) confirmNewMapBtn.addEventListener('click', () => {
         const name = newMapNameInput.value || 'Untitled Map';
-        const width = parseInt(newMapNameInput.value) || 50;
-        const height = parseInt(newMapNameInput.value) || 50;
+        const width = parseInt(newMapWidthInput.value) || 50;
+        const height = parseInt(newMapHeightInput.value) || 50;
         const newMapId = `map_${Date.now()}`;
         state.project.maps[newMapId] = createNewMapData(name, width, height);
         state.setActiveMapId(newMapId);
