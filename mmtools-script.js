@@ -1,4 +1,4 @@
-// Version 8.4 - Refactored tool selection and UI logic
+// Version 8.5 - Fixed hex grid rendering and removed Atlas panel
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -74,7 +74,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const resetFogBtn = document.getElementById('resetFogBtn');
     const assetEditorBtn = document.getElementById('assetEditorBtn');
     const assetEditorOverlay = document.getElementById('asset-editor-overlay');
-    const atlasPanel = document.getElementById('atlas-panel');
     const addNewMapBtn = document.getElementById('addNewMapBtn');
     const newMapModal = document.getElementById('newMapModal');
     const newMapNameInput = document.getElementById('newMapNameInput');
@@ -273,12 +272,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function drawHexOutline(ctx, x, y, size) {
         ctx.beginPath();
-        for (let i = 0; i < 6; i++) {
+        for (let i = 0; i <= 6; i++) {
             const angle_deg = 60 * i + 30;
             const angle_rad = Math.PI / 180 * angle_deg;
-            ctx.lineTo(x + size * Math.cos(angle_rad), y + size * Math.sin(angle_rad));
+            const pointX = x + size * Math.cos(angle_rad);
+            const pointY = y + size * Math.sin(angle_rad);
+            if (i === 0) {
+                ctx.moveTo(pointX, pointY);
+            } else {
+                ctx.lineTo(pointX, pointY);
+            }
         }
-        ctx.closePath();
         ctx.stroke();
     }
 
