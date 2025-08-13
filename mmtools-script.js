@@ -1,4 +1,4 @@
-// Version 8.7 - Corrected hex drawing logic definitively
+// Version 8.8 - Fixed hex fill drawing logic
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -374,7 +374,15 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = 0; i < 6; i++) {
             const angle_deg = 60 * i + 30;
             const angle_rad = Math.PI / 180 * angle_deg;
-            targetCtx.lineTo(x + size * Math.cos(angle_rad), y + size * Math.sin(angle_rad));
+            const pointX = x + size * Math.cos(angle_rad);
+            const pointY = y + size * Math.sin(angle_rad);
+            // *** BUG FIX START ***
+            if (i === 0) {
+                targetCtx.moveTo(pointX, pointY);
+            } else {
+                targetCtx.lineTo(pointX, pointY);
+            }
+            // *** BUG FIX END ***
         }
         targetCtx.closePath();
         
