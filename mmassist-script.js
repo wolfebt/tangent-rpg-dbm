@@ -1,4 +1,4 @@
-// Version 7.0 - Implemented AI Dungeon Layout Generation
+// Version 7.1 - Added event dispatch for map updates
 import * as state from './state.js';
 
 async function callTextGenerationAI(prompt) {
@@ -182,7 +182,11 @@ document.addEventListener('DOMContentLoaded', () => {
         document.dispatchEvent(new CustomEvent('mapStateUpdated'));
         const modal = document.querySelector('.modal-backdrop');
         if (modal && modal.textContent.includes("Applying new layout...")) {
-             setTimeout(() => document.body.removeChild(modal), 500);
+             setTimeout(() => {
+                if(document.body.contains(modal)) {
+                    document.body.removeChild(modal);
+                }
+            }, 500);
         }
     }
     
@@ -191,12 +195,4 @@ document.addEventListener('DOMContentLoaded', () => {
     if (applyBiomesBtn) applyBiomesBtn.addEventListener('click', () => handleApplyBiomes(false));
     if (generateColorVariantBtn) generateColorVariantBtn.addEventListener('click', () => handleApplyBiomes(true));
     if (generateLayoutBtn) generateLayoutBtn.addEventListener('click', handleGenerateLayout);
-
-    document.addEventListener('mapStateUpdated', () => {
-        // This is where you would call a function to redraw the main canvas
-        // e.g., from mmtools-script.js
-        if (window.drawAll) {
-            window.drawAll();
-        }
-    });
 });

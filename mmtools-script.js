@@ -1,4 +1,4 @@
-// Version 8.0 - Implemented GM Notes and Container Objects
+// Version 8.1 - Fully implemented UI event listeners and tool switching
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -136,12 +136,14 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.translate(view.offsetX, view.offsetY);
         ctx.scale(view.zoom, view.zoom);
 
-        [...activeMap.layers].reverse().forEach(layer => {
-            if (!layer.visible) return;
-            drawLayerBackground(layer, ctx);
-            drawLayerTerrain(layer, ctx);
-            drawPlacedObjects(layer, ctx);
-        });
+        if(activeMap.layers) {
+            [...activeMap.layers].reverse().forEach(layer => {
+                if (!layer.visible) return;
+                drawLayerBackground(layer, ctx);
+                drawLayerTerrain(layer, ctx);
+                drawPlacedObjects(layer, ctx);
+            });
+        }
         
         drawTextLabels(ctx);
         drawTokens(ctx);
@@ -165,6 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
         drawLightMask();
         updateFogOfWar();
     }
+    window.drawAll = drawAll;
 
     function drawLayerBackground(layer, targetCtx) {
         if (layer.backgroundImage && layer.backgroundImage.src) {
@@ -475,9 +478,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         targetCtx.closePath();
         
-        if (terrain && terrain.canvasPattern) {
-            targetCtx.fillStyle = terrain.canvasPattern;
-        } else if (terrain && terrain.color) {
+        const pattern = document.getElementById(terrain.pattern);
+        if (pattern) {
+             targetCtx.fillStyle = `url(#${terrain.pattern})`;
+        } else if (terrain.color) {
             targetCtx.fillStyle = terrain.color;
         } else {
             targetCtx.fillStyle = '#888';
@@ -491,8 +495,37 @@ document.addEventListener('DOMContentLoaded', () => {
         return { x, y };
     }
 
+    function pixelToHex(x, y, size) {
+        const q = (Math.sqrt(3)/3 * x - 1/3 * y) / size;
+        const r = (2/3 * y) / size;
+        return hexRound(q, r);
+    }
+
+    function hexRound(q, r) {
+        let x = q;
+        let y = -q-r;
+        let z = r;
+        
+        let rx = Math.round(x);
+        let ry = Math.round(y);
+        let rz = Math.round(z);
+
+        const x_diff = Math.abs(rx - x);
+        const y_diff = Math.abs(ry - y);
+        const z_diff = Math.abs(rz - z);
+
+        if (x_diff > y_diff && x_diff > z_diff) {
+            rx = -ry - rz;
+        } else if (y_diff > z_diff) {
+            ry = -rx - rz;
+        } else {
+            rz = -rx - ry;
+        }
+        return { q: rx, r: rz };
+    }
+
     function getMapPixelBounds() {
-        return { minPxX: -1000, minPxY: -1000, mapPixelWidth: 2000, mapPixelHeight: 2000 };
+        return { minPxX: -2000, minPxY: -2000, mapPixelWidth: 4000, mapPixelHeight: 4000 };
     }
 
     async function loadAssets() {
@@ -705,7 +738,14 @@ document.addEventListener('DOMContentLoaded', () => {
             y: (coords.y - view.offsetY) / view.zoom
         };
 
-        if (currentTool === 'object' && selectedObject) {
+        if (currentTool === 'terrain') {
+            const hexCoords = pixelToHex(worldCoords.x, worldCoords.y, 30);
+            const key = `${hexCoords.q},${hexCoords.r}`;
+            const activeLayer = activeMap.layers.find(l => l.id === activeLayerId);
+            if (activeLayer && activeMap.grid[key]) {
+                activeLayer.data[key] = { terrain: selectedTerrain };
+            }
+        } else if (currentTool === 'object' && selectedObject) {
             if (!activeLayerId) return;
             let targetLayer = activeMap.layers.find(l => l.id === activeLayerId);
             if (!targetLayer) return;
@@ -761,6 +801,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 fetch('terrains.json'),
                 fetch('assets.json')
             ]);
+            if (!terrainsRes.ok || !assetsRes.ok) {
+                throw new Error("Failed to fetch initial data.");
+            }
             const terrainsData = await terrainsRes.json();
             const assetsData = await assetsRes.json();
             
@@ -774,9 +817,8 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Create a default map if none exist
             if (Object.keys(state.project.maps).length === 0) {
-                handleAddNewMap(true); // Create a default map on first load
+                handleAddNewMap(true); 
             } else {
-                // Otherwise, set the first map as active
                 state.setActiveMapId(Object.keys(state.project.maps)[0]);
             }
             
@@ -789,12 +831,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function switchTool(tool) {
+        currentTool = tool;
+        // Update button active states
+        document.querySelectorAll('#tools-panel button').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(`tool${tool.charAt(0).toUpperCase() + tool.slice(1)}Btn`).classList.add('active');
+
+        // Show/hide options panels
+        terrainOptionsPanel.classList.toggle('hidden', tool !== 'terrain');
+        pencilOptionsPanel.classList.toggle('hidden', tool !== 'pencil');
+        tokenOptionsPanel.classList.toggle('hidden', tool !== 'token');
+        textToolPanel.classList.toggle('hidden', tool !== 'text');
+    }
+
     function setupUI() {
-        // Populate terrain and object selectors
         populateSelectors();
-        
-        // Setup event listeners for UI elements
-        // ... (this is where you'd add all your addEventListener calls)
         
         window.addEventListener('resize', resizeCanvas);
 
@@ -806,6 +857,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 canvas.classList.add('panning');
                 e.preventDefault();
             } else if (e.button === 0) { // Left mouse button
+                 isPainting = true;
                  const coords = {x: e.offsetX, y: e.offsetY};
                  applyTool(coords);
             }
@@ -816,6 +868,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 view.offsetX = e.clientX - panStart.x;
                 view.offsetY = e.clientY - panStart.y;
                 drawAll();
+            } else if (isPainting) {
+                const coords = {x: e.offsetX, y: e.offsetY};
+                applyTool(coords);
             }
         });
         
@@ -823,6 +878,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (e.button === 1) {
                 isPanning = false;
                 canvas.classList.remove('panning');
+            } else if (e.button === 0) {
+                isPainting = false;
             }
         });
 
@@ -851,53 +908,79 @@ document.addEventListener('DOMContentLoaded', () => {
 
         undoBtn.addEventListener('click', undo);
         redoBtn.addEventListener('click', redo);
+
+        // Tool selection
+        toolTerrainBtn.addEventListener('click', () => switchTool('terrain'));
+        toolPencilBtn.addEventListener('click', () => switchTool('pencil'));
+        toolSelectBtn.addEventListener('click', () => switchTool('select'));
+        toolWallBtn.addEventListener('click', () => switchTool('wall'));
+        toolTokenBtn.addEventListener('click', () => switchTool('token'));
+        toolTextBtn.addEventListener('click', () => switchTool('text'));
+        toolInteractBtn.addEventListener('click', () => switchTool('interact'));
+
+        // Collapsible panels
+        document.querySelectorAll('.collapsible-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const content = header.nextElementSibling;
+                const icon = header.querySelector('svg');
+                content.classList.toggle('hidden');
+                header.classList.toggle('collapsed');
+                if(icon) icon.style.transform = content.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+            });
+        });
     }
     
     function populateSelectors() {
-        terrainSelector.innerHTML = '';
-        Object.keys(state.terrains).forEach(key => {
-            const terrain = state.terrains[key];
-            const div = document.createElement('div');
-            div.className = 'item-container';
-            div.dataset.terrain = key;
-            div.innerHTML = `
-                <div class="texture-swatch" style="background-color: ${terrain.color};"></div>
-                <span class="item-label">${terrain.name}</span>
-            `;
-            div.addEventListener('click', () => {
-                selectedTerrain = key;
-                document.querySelectorAll('#terrainSelector .item-container').forEach(el => el.classList.remove('active'));
-                div.classList.add('active');
-            });
-            terrainSelector.appendChild(div);
-        });
-
-        objectSelector.innerHTML = '';
-        Object.keys(state.assetManifest).forEach(key => {
-            const asset = state.assetManifest[key];
-            if (asset.type === 'object') {
+        if(terrainSelector) {
+            terrainSelector.innerHTML = '';
+            Object.keys(state.terrains).forEach(key => {
+                const terrain = state.terrains[key];
                 const div = document.createElement('div');
                 div.className = 'item-container';
-                div.dataset.object = key;
+                div.dataset.terrain = key;
                 div.innerHTML = `
-                    <div class="object-swatch"><img src="${asset.src}" alt="${asset.name}"></div>
-                    <span class="item-label">${asset.name}</span>
+                    <div class="texture-swatch" style="background-color: ${terrain.color}; background-image: url(#${terrain.pattern})"></div>
+                    <span class="item-label">${terrain.name}</span>
                 `;
-                 div.addEventListener('click', () => {
-                    selectedObject = key;
-                    document.querySelectorAll('#objectSelector .item-container').forEach(el => el.classList.remove('active'));
+                div.addEventListener('click', () => {
+                    selectedTerrain = key;
+                    document.querySelectorAll('#terrainSelector .item-container').forEach(el => el.classList.remove('active'));
                     div.classList.add('active');
                 });
-                objectSelector.appendChild(div);
-            }
-        });
+                terrainSelector.appendChild(div);
+            });
+        }
+
+        if(objectSelector) {
+            objectSelector.innerHTML = '';
+            Object.keys(state.assetManifest).forEach(key => {
+                const asset = state.assetManifest[key];
+                if (asset.type !== 'terrain') {
+                    const div = document.createElement('div');
+                    div.className = 'item-container';
+                    div.dataset.object = key;
+                    div.innerHTML = `
+                        <div class="object-swatch"><img src="${asset.src}" alt="${asset.name}"></div>
+                        <span class="item-label">${asset.name}</span>
+                    `;
+                     div.addEventListener('click', () => {
+                        selectedObject = key;
+                        document.querySelectorAll('#objectSelector .item-container').forEach(el => el.classList.remove('active'));
+                        div.classList.add('active');
+                    });
+                    objectSelector.appendChild(div);
+                }
+            });
+        }
     }
 
     function handleAddNewMap(isDefault = false) {
         if (isDefault) {
             const defaultMapId = `map_${Date.now()}`;
-            state.project.maps[defaultMapId] = createNewMapData("Default Map", 50, 50);
+            const newMap = createNewMapData("Default Map", 50, 50);
+            state.project.maps[defaultMapId] = newMap;
             state.setActiveMapId(defaultMapId);
+            activeLayerId = newMap.layers[0].id;
             return;
         }
         // Show modal for user input
@@ -923,9 +1006,10 @@ document.addEventListener('DOMContentLoaded', () => {
             children: []
         };
         // Populate grid
-        for (let q = -width; q <= width; q++) {
-            for (let r = -height; r <= height; r++) {
-                if (Math.abs(q + r) <= width) {
+        const size = Math.max(width, height);
+        for (let q = -size; q <= size; q++) {
+            for (let r = -size; r <= size; r++) {
+                if (Math.abs(q + r) <= size) {
                     newMap.grid[`${q},${r}`] = {};
                 }
             }
@@ -933,7 +1017,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return newMap;
     }
 
-    confirmNewMapBtn.addEventListener('click', () => {
+    if(confirmNewMapBtn) confirmNewMapBtn.addEventListener('click', () => {
         const name = newMapNameInput.value || 'Untitled Map';
         const width = parseInt(newMapNameInput.value) || 50;
         const height = parseInt(newMapNameInput.value) || 50;
@@ -945,12 +1029,13 @@ document.addEventListener('DOMContentLoaded', () => {
         drawAll();
     });
 
-    cancelNewMapBtn.addEventListener('click', () => {
+    if(cancelNewMapBtn) cancelNewMapBtn.addEventListener('click', () => {
         newMapModal.classList.add('hidden');
     });
 
-    addNewMapBtn.addEventListener('click', () => handleAddNewMap());
+    if(addNewMapBtn) addNewMapBtn.addEventListener('click', () => handleAddNewMap());
 
+    document.addEventListener('mapStateUpdated', drawAll);
 
     initialize();
 });
