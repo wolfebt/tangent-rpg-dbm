@@ -1,220 +1,240 @@
-// Version 6.2 - Phase 3.2: Asset Editor Completion
-import * as state from './state.js';
-import { callImageGenerationAI } from './mmassist-script.js';
+// Version 4.35 - Module Import Fix
 
-document.addEventListener('DOMContentLoaded', () => {
-    // --- UI Elements ---
-    const assetEditorOverlay = document.getElementById('asset-editor-overlay');
-    if (!assetEditorOverlay) return; // Stop if the editor isn't on this page
+// --- DOM ELEMENTS ---
+const assetEditorOverlay = document.getElementById('asset-editor-overlay');
+const assetTypeSelect = document.getElementById('asset-type-select');
+const previewPanel = document.getElementById('asset-preview-panel');
+const mainCanvas = document.getElementById('asset-canvas-main');
+const drawCanvas = document.getElementById('asset-canvas-draw');
+const previewCanvas = document.getElementById('asset-preview-canvas');
+const generateBtn = document.getElementById('asset-generate-btn');
+const promptInput = document.getElementById('asset-prompt');
+const loadingOverlay = document.getElementById('loading-overlay');
+const exportBtn = document.getElementById('asset-export-btn');
+const exportOutput = document.getElementById('asset-export-output');
+const assetNameInput = document.getElementById('asset-name');
+const assetTagsInput = document.getElementById('asset-tags');
+const toolBtns = document.querySelectorAll('.asset-tool');
+const colorPicker = document.getElementById('asset-color-picker');
+const brushSizeSlider = document.getElementById('asset-brush-size');
+const brushSizeValue = document.getElementById('asset-brush-size-value');
+const closeBtn = document.getElementById('asset-editor-close-btn');
 
-    const assetCanvasMain = document.getElementById('asset-canvas-main');
-    const assetCanvasDraw = document.getElementById('asset-canvas-draw');
-    const assetCtxMain = assetCanvasMain.getContext('2d');
-    const assetCtxDraw = assetCanvasDraw.getContext('2d');
-    const assetTypeSelect = document.getElementById('asset-type-select');
-    const assetPreviewPanel = document.getElementById('asset-preview-panel');
-    const assetPreviewCanvas = document.getElementById('asset-preview-canvas');
-    const assetPreviewCtx = assetPreviewCanvas.getContext('2d');
-    const toolPalette = document.querySelector('.asset-tool-palette');
-    const colorPicker = document.getElementById('asset-color-picker');
-    const brushSizeSlider = document.getElementById('asset-brush-size');
-    const brushSizeValue = document.getElementById('asset-brush-size-value');
-    const assetPromptInput = document.getElementById('asset-prompt');
-    const assetLoadingOverlay = document.getElementById('loading-overlay');
-    const assetGenerateBtn = document.getElementById('asset-generate-btn');
-    const assetExportBtn = document.getElementById('asset-export-btn');
-    const assetNameInput = document.getElementById('asset-name');
-    const assetTagsInput = document.getElementById('asset-tags');
-    const assetEditorCloseBtn = document.getElementById('asset-editor-close-btn');
+// --- STATE ---
+let mainCtx = mainCanvas.getContext('2d');
+let drawCtx = drawCanvas.getContext('2d');
+let previewCtx = previewCanvas.getContext('2d');
+let currentTool = 'pencil';
+let brushSize = 5;
+let brushColor = '#FFFFFF';
+let isDrawing = false;
+let lastPos = { x: 0, y: 0 };
 
-    // --- Editor State ---
-    let isDrawing = false;
-    let currentTool = 'pencil'; // 'pencil' or 'eraser'
-    let lastPos = { x: 0, y: 0 };
+// --- FUNCTIONS ---
 
-    // --- Functions ---
+function switchMode(mode) {
+    previewPanel.classList.toggle('hidden', mode !== 'terrain');
+    clearAllCanvases();
+}
 
-    /**
-     * Updates the tiling preview canvas.
-     */
-    function updatePreview() {
-        if (!assetPreviewPanel || !assetTypeSelect) return;
-        if (assetTypeSelect.value !== 'terrain') {
-            assetPreviewPanel.classList.add('hidden');
-            return;
-        }
-        assetPreviewPanel.classList.remove('hidden');
+function clearAllCanvases() {
+    mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+    drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+    updateTilingPreview();
+}
 
-        // Create a temporary canvas with the combined main and drawing layers
-        const combinedCanvas = document.createElement('canvas');
-        combinedCanvas.width = assetCanvasMain.width;
-        combinedCanvas.height = assetCanvasMain.height;
-        const combinedCtx = combinedCanvas.getContext('2d');
-        combinedCtx.drawImage(assetCanvasMain, 0, 0);
-        combinedCtx.drawImage(assetCanvasDraw, 0, 0);
+function updateTilingPreview() {
+    if (assetTypeSelect.value !== 'terrain') return;
+    
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = mainCanvas.width;
+    tempCanvas.height = mainCanvas.height;
+    const tempCtx = tempCanvas.getContext('2d');
+    
+    // Composite the main and drawing layers
+    tempCtx.drawImage(mainCanvas, 0, 0);
+    tempCtx.drawImage(drawCanvas, 0, 0);
 
-        // Create a pattern and fill the preview canvas
-        const pattern = assetPreviewCtx.createPattern(combinedCanvas, 'repeat');
-        assetPreviewCtx.fillStyle = pattern;
-        assetPreviewCtx.fillRect(0, 0, assetPreviewCanvas.width, assetPreviewCanvas.height);
-    }
+    // Clear preview and draw tiled pattern
+    previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+    const pattern = previewCtx.createPattern(tempCanvas, 'repeat');
+    previewCtx.fillStyle = pattern;
+    previewCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+}
 
-    /**
-     * Gets the mouse position on the asset canvas.
-     * @param {MouseEvent} e The mouse event.
-     * @returns {{x: number, y: number}} The coordinates on the canvas.
-     */
-    function getMousePos(e) {
-        const rect = assetCanvasDraw.getBoundingClientRect();
-        return {
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top
-        };
-    }
+function draw(e) {
+    if (!isDrawing) return;
+    
+    const rect = drawCanvas.getBoundingClientRect();
+    const currentPos = {
+        x: (e.clientX - rect.left) * (drawCanvas.width / rect.width),
+        y: (e.clientY - rect.top) * (drawCanvas.height / rect.height)
+    };
 
-    /**
-     * Draws a line on the drawing canvas.
-     * @param {number} x1 Start X.
-     * @param {number} y1 Start Y.
-     * @param {number} x2 End X.
-     * @param {number} y2 End Y.
-     */
-    function drawLine(x1, y1, x2, y2) {
-        assetCtxDraw.beginPath();
-        assetCtxDraw.strokeStyle = colorPicker.value;
-        assetCtxDraw.lineWidth = brushSizeSlider.value;
-        assetCtxDraw.lineCap = 'round';
-        assetCtxDraw.lineJoin = 'round';
-
-        if (currentTool === 'eraser') {
-            assetCtxDraw.globalCompositeOperation = 'destination-out';
-        } else {
-            assetCtxDraw.globalCompositeOperation = 'source-over';
-        }
-
-        assetCtxDraw.moveTo(x1, y1);
-        assetCtxDraw.lineTo(x2, y2);
-        assetCtxDraw.stroke();
-        assetCtxDraw.closePath();
-    }
-
-    async function handleAssetAIGeneration() {
-        const prompt = assetPromptInput.value;
-        if (!prompt) {
-            state.showModal("Please enter a prompt for the asset.");
-            return;
-        }
-        
-        // Refined prompt for better icon/asset generation
-        const fullPrompt = `An icon of ${prompt}, simple, 2d game asset, clean lines, vector style, on a transparent background`;
-        
-        assetLoadingOverlay.classList.remove('hidden');
-        const generatedImageBase64 = await callImageGenerationAI(fullPrompt); 
-        assetLoadingOverlay.classList.add('hidden');
-
-        if (generatedImageBase64) {
-            const img = new Image();
-            img.onload = () => {
-                assetCtxMain.clearRect(0, 0, 512, 512);
-                assetCtxMain.drawImage(img, 0, 0, 512, 512);
-                updatePreview();
-            };
-            img.src = `data:image/png;base64,${generatedImageBase64}`;
-        }
+    drawCtx.beginPath();
+    drawCtx.moveTo(lastPos.x, lastPos.y);
+    drawCtx.lineTo(currentPos.x, currentPos.y);
+    
+    drawCtx.strokeStyle = brushColor;
+    drawCtx.lineWidth = brushSize;
+    drawCtx.lineCap = 'round';
+    drawCtx.lineJoin = 'round';
+    
+    if (currentTool === 'eraser') {
+        drawCtx.globalCompositeOperation = 'destination-out';
+    } else {
+        drawCtx.globalCompositeOperation = 'source-over';
     }
     
-    function closeEditor() {
-        assetEditorOverlay.classList.add('hidden');
-        // Clear canvases and inputs for next time
-        assetCtxMain.clearRect(0, 0, assetCanvasMain.width, assetCanvasMain.height);
-        assetCtxDraw.clearRect(0, 0, assetCanvasDraw.width, assetCanvasDraw.height);
-        assetPromptInput.value = '';
-        assetNameInput.value = '';
-        assetTagsInput.value = '';
+    drawCtx.stroke();
+    
+    // Edge wrapping for terrain mode
+    if (assetTypeSelect.value === 'terrain') {
+        const wrapX = currentPos.x < brushSize ? drawCanvas.width : (currentPos.x > drawCanvas.width - brushSize ? -drawCanvas.width : 0);
+        const wrapY = currentPos.y < brushSize ? drawCanvas.height : (currentPos.y > drawCanvas.height - brushSize ? -drawCanvas.height : 0);
+
+        if (wrapX !== 0 || wrapY !== 0) {
+            drawCtx.moveTo(lastPos.x + wrapX, lastPos.y + wrapY);
+            drawCtx.lineTo(currentPos.x + wrapX, currentPos.y + wrapY);
+            drawCtx.stroke();
+        }
     }
 
-    // --- Event Listeners ---
+    lastPos = currentPos;
+    updateTilingPreview();
+}
 
-    if(assetTypeSelect) assetTypeSelect.addEventListener('change', updatePreview);
-    if(assetGenerateBtn) assetGenerateBtn.addEventListener('click', handleAssetAIGeneration);
-    if(assetEditorCloseBtn) assetEditorCloseBtn.addEventListener('click', closeEditor);
-
-    if(assetExportBtn) assetExportBtn.addEventListener('click', () => {
-        const name = assetNameInput.value.trim();
-        if (!name) {
-            state.showModal("Please provide a name for the asset.");
-            return;
-        }
-
-        const combinedCanvas = document.createElement('canvas');
-        combinedCanvas.width = assetCanvasMain.width;
-        combinedCanvas.height = assetCanvasMain.height;
-        const combinedCtx = combinedCanvas.getContext('2d');
-        combinedCtx.drawImage(assetCanvasMain, 0, 0);
-        combinedCtx.drawImage(assetCanvasDraw, 0, 0);
-        const src = combinedCanvas.toDataURL('image/png');
-
-        const assetId = `custom_${name.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}`;
-        const tags = assetTagsInput.value.split(',').map(tag => tag.trim()).filter(Boolean);
-        
-        const newAsset = {
-            [assetId]: {
-                name: name,
-                src: src,
-                tags: tags,
-                type: assetTypeSelect.value
-            }
-        };
-
-        state.addNewAsset(newAsset);
-        
-        document.dispatchEvent(new CustomEvent('assetCreated', { detail: { assetId } }));
-        
-        state.showToast(`Asset "${name}" saved to your library!`, 'info');
-        closeEditor();
-    });
-
-    if(toolPalette) toolPalette.addEventListener('click', (e) => {
-        const button = e.target.closest('.asset-tool');
-        if (button && button.dataset.tool) {
-            currentTool = button.dataset.tool;
-            document.querySelectorAll('.asset-tool-palette .asset-tool').forEach(btn => btn.classList.remove('active'));
-            button.classList.add('active');
-        }
-    });
-
-    if(brushSizeSlider) brushSizeSlider.addEventListener('input', () => {
-        if(brushSizeValue) brushSizeValue.textContent = brushSizeSlider.value;
-    });
-
-    if(assetCanvasDraw) {
-        assetCanvasDraw.addEventListener('mousedown', (e) => {
-            isDrawing = true;
-            lastPos = getMousePos(e);
-        });
-
-        assetCanvasDraw.addEventListener('mousemove', (e) => {
-            if (!isDrawing) return;
-            const currentPos = getMousePos(e);
-            drawLine(lastPos.x, lastPos.y, currentPos.x, currentPos.y);
-            lastPos = currentPos;
-        });
-
-        assetCanvasDraw.addEventListener('mouseup', () => {
-            if (!isDrawing) return;
-            isDrawing = false;
-            // Merge the drawing layer onto the main layer
-            assetCtxMain.drawImage(assetCanvasDraw, 0, 0);
-            assetCtxDraw.clearRect(0, 0, assetCanvasDraw.width, assetCanvasDraw.height);
-            updatePreview();
-        });
-
-        assetCanvasDraw.addEventListener('mouseleave', () => {
-            if (!isDrawing) return;
-            isDrawing = false;
-            assetCtxMain.drawImage(assetCanvasDraw, 0, 0);
-            assetCtxDraw.clearRect(0, 0, assetCanvasDraw.width, assetCanvasDraw.height);
-            updatePreview();
-        });
+async function generateAIAsset() {
+    const userPrompt = promptInput.value;
+    if (!userPrompt) {
+        alert("Please enter a prompt.");
+        return;
     }
+    
+    loadingOverlay.classList.remove('hidden');
+    generateBtn.disabled = true;
+
+    try {
+        const payload = { instances: [{ prompt: userPrompt }], parameters: { "sampleCount": 1} };
+        const apiKey = ""; // API key will be provided by the environment
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+        
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(`API Error: ${error.error?.message || response.statusText}`);
+        }
+
+        const result = await response.json();
+        if (result.predictions && result.predictions.length > 0 && result.predictions[0].bytesBase64Encoded) {
+            const base64Data = result.predictions[0].bytesBase64Encoded;
+            const imageUrl = `data:image/png;base64,${base64Data}`;
+            
+            const img = new Image();
+            img.onload = () => {
+                clearAllCanvases();
+                mainCtx.drawImage(img, 0, 0, mainCanvas.width, mainCanvas.height);
+                updateTilingPreview();
+            };
+            img.src = imageUrl;
+        } else {
+            throw new Error("No image data found in API response.");
+        }
+
+    } catch (error) {
+        console.error("AI Generation Error:", error);
+        alert(`An error occurred: ${error.message}`);
+    } finally {
+        loadingOverlay.classList.add('hidden');
+        generateBtn.disabled = false;
+    }
+}
+
+function generateExportCode() {
+    const name = assetNameInput.value.trim();
+    if (!name) {
+        alert("Please provide a name for your asset.");
+        return;
+    }
+
+    const finalCanvas = document.createElement('canvas');
+    finalCanvas.width = mainCanvas.width;
+    finalCanvas.height = mainCanvas.height;
+    const finalCtx = finalCanvas.getContext('2d');
+    finalCtx.drawImage(mainCanvas, 0, 0);
+    finalCtx.drawImage(drawCanvas, 0, 0);
+    
+    const dataUri = finalCanvas.toDataURL('image/png');
+    const assetId = name.toLowerCase().replace(/[^a-z0-9]/gi, '_');
+    const tags = assetTagsInput.value.split(',').map(t => `"${t.trim()}"`).join(', ');
+
+    let jsonSnippet = '';
+
+    if (assetTypeSelect.value === 'object') {
+        jsonSnippet = `"${assetId}": {\n  "name": "${name}",\n  "src": "${dataUri}",\n  "tags": [${tags}]\n}`;
+    } else { // Terrain
+        const patternId = `pattern-${assetId}`;
+        jsonSnippet = `"${assetId}": {\n  "name": "${name}",\n  "color": "#ffffff",\n  "pattern": "${patternId}",\n  "tags": [${tags}]\n}`;
+        
+        const svgPattern = `<pattern id="${patternId}" width="${mainCanvas.width}" height="${mainCanvas.height}" patternUnits="userSpaceOnUse">\n  <image href="${dataUri}" width="${mainCanvas.width}" height="${mainCanvas.height}"/>\n</pattern>`;
+        
+        jsonSnippet += `\n\n<!-- Add this to map-maker.html's <defs> section -->\n${svgPattern}`;
+    }
+    
+    exportOutput.value = jsonSnippet;
+    navigator.clipboard.writeText(jsonSnippet).then(() => {
+        alert("Export code copied to clipboard!");
+    }).catch(err => {
+        console.error('Failed to copy: ', err);
+        alert("Could not copy to clipboard. Please copy manually from the text box.");
+    });
+}
+
+// --- EVENT LISTENERS ---
+assetTypeSelect.addEventListener('change', (e) => switchMode(e.target.value));
+
+generateBtn.addEventListener('click', generateAIAsset);
+exportBtn.addEventListener('click', generateExportCode);
+
+toolBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        toolBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentTool = btn.dataset.tool;
+    });
 });
+
+brushSizeSlider.addEventListener('input', (e) => {
+    brushSize = parseInt(e.target.value);
+    brushSizeValue.textContent = brushSize;
+});
+colorPicker.addEventListener('input', (e) => brushColor = e.target.value);
+
+drawCanvas.addEventListener('mousedown', (e) => {
+    isDrawing = true;
+    const rect = drawCanvas.getBoundingClientRect();
+    lastPos = {
+        x: (e.clientX - rect.left) * (drawCanvas.width / rect.width),
+        y: (e.clientY - rect.top) * (drawCanvas.height / rect.height)
+    };
+});
+drawCanvas.addEventListener('mousemove', draw);
+drawCanvas.addEventListener('mouseup', () => {
+    isDrawing = false;
+    updateTilingPreview();
+});
+drawCanvas.addEventListener('mouseleave', () => {
+    isDrawing = false;
+});
+
+closeBtn.addEventListener('click', () => {
+    assetEditorOverlay.classList.add('hidden');
+});
+
+// --- INITIALIZATION ---
+switchMode('object'); // Default to object mode
