@@ -572,6 +572,31 @@ document.addEventListener('DOMContentLoaded', () => {
     
     async function initialize() {
         // ... (initialization logic)
+
+        // FIX: Add event listeners for collapsible sections
+        accordionHeaders.forEach(header => {
+            header.addEventListener('click', () => {
+                const content = header.nextElementSibling;
+                const isCurrentlyCollapsed = header.classList.contains('collapsed');
+
+                // First, collapse all other headers
+                accordionHeaders.forEach(otherHeader => {
+                    if (otherHeader !== header) {
+                        otherHeader.classList.add('collapsed');
+                        otherHeader.nextElementSibling.classList.add('hidden');
+                    }
+                });
+
+                // Then, toggle the clicked one
+                if (isCurrentlyCollapsed) {
+                    header.classList.remove('collapsed');
+                    content.classList.remove('hidden');
+                } else {
+                    header.classList.add('collapsed');
+                    content.classList.add('hidden');
+                }
+            });
+        });
     }
     
     initialize();
