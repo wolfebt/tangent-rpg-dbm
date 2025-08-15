@@ -1,4 +1,4 @@
-// Version 4.31 - Toast Notifications
+// Version 4.33 - Added data models for notes and containers
 // --- State Variables ---
 export let terrains = {};
 export let assetManifest = {};
@@ -18,13 +18,47 @@ export const getActiveMap = () => {
 };
 
 // --- State Update Functions ---
+
+/**
+ * Sets the active map ID.
+ * @param {string} mapId The ID of the map to set as active.
+ */
+export const setActiveMapId = (mapId) => {
+    activeMapId = mapId;
+};
+
 export const setState = (newState) => {
     if (newState.terrains !== undefined) terrains = newState.terrains;
     if (newState.assetManifest !== undefined) assetManifest = newState.assetManifest;
     if (newState.apiKey !== undefined) apiKey = newState.apiKey;
     if (newState.project !== undefined) project = newState.project;
+    // Ensure we can still set the activeMapId through the general setState function as well
     if (newState.activeMapId !== undefined) activeMapId = newState.activeMapId;
 };
+
+/**
+ * Adds a new asset to the manifest and saves custom assets to local storage.
+ * @param {object} assetData The new asset object to add.
+ */
+export function addNewAsset(assetData) {
+    // Get existing custom assets from storage, or initialize an empty object
+    let customAssets = JSON.parse(localStorage.getItem('mapMakerCustomAssets')) || {};
+    // Merge the new asset data
+    Object.assign(customAssets, assetData);
+    // Save back to localStorage
+    localStorage.setItem('mapMakerCustomAssets', JSON.stringify(customAssets));
+    // Also update the live manifest immediately
+    Object.assign(assetManifest, assetData);
+}
+
+/**
+ * Loads custom assets from localStorage into the live manifest.
+ */
+export function loadCustomAssets() {
+    const customAssets = JSON.parse(localStorage.getItem('mapMakerCustomAssets')) || {};
+    Object.assign(assetManifest, customAssets);
+}
+
 
 // --- Shared Utility Functions ---
 
@@ -53,6 +87,35 @@ export function showModal(message, onConfirm) {
     }
 }
 
+// NEW: Specific modal for session recovery
+export function showRecoveryModal(onRestore, onDiscard) {
+    const existingModal = document.querySelector('.modal-backdrop');
+    if(existingModal) existingModal.remove();
+
+    const modalBackdrop = document.createElement('div');
+    modalBackdrop.className = 'modal-backdrop fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50';
+    modalBackdrop.innerHTML = `
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md text-white">
+            <h3 class="text-lg font-bold mb-4">Unsaved Session Found</h3>
+            <p class="mb-6 text-sm text-gray-300">It looks like you have unsaved work from a previous session. Would you like to restore it?</p>
+            <div class="flex justify-end gap-4">
+                <button id="modalDiscard" class="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 transition">Discard</button>
+                <button id="modalRestore" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 transition">Restore Session</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modalBackdrop);
+    modalBackdrop.querySelector('#modalDiscard').onclick = () => {
+        onDiscard();
+        document.body.removeChild(modalBackdrop);
+    };
+    modalBackdrop.querySelector('#modalRestore').onclick = () => {
+        onRestore();
+        document.body.removeChild(modalBackdrop);
+    };
+}
+
+
 export function showContentModal(title, content) {
     const existingModal = document.querySelector('.modal-backdrop');
     if(existingModal) existingModal.remove();
@@ -80,24 +143,18 @@ export function showContentModal(title, content) {
     }
 }
 
-export function showToast(message) {
+// NEW: Toast Notification Function
+export function showToast(message, type = 'info', duration = 5000) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
     const toast = document.createElement('div');
-    toast.className = 'toast-notification';
+    toast.className = `toast ${type}`;
     toast.textContent = message;
-    document.body.appendChild(toast);
 
-    // Animate in
-    setTimeout(() => {
-        toast.classList.add('show');
-    }, 10);
+    container.appendChild(toast);
 
-    // Animate out and remove
     setTimeout(() => {
-        toast.classList.remove('show');
-        toast.addEventListener('transitionend', () => {
-            if (toast.parentNode) {
-                toast.parentNode.removeChild(toast);
-            }
-        });
-    }, 3500);
+        toast.remove();
+    }, duration);
 }
