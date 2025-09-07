@@ -141,6 +141,24 @@ document.addEventListener('DOMContentLoaded', () => {
         if(activeMap.layers) {
             [...activeMap.layers].reverse().forEach(layer => {
                 if (!layer.visible) return;
+
+                // --- NEW: Draw Layer Background Image ---
+                if (layer.backgroundImage) {
+                    const cacheKey = layer.backgroundImageCacheKey || layer.id;
+                    if (assetCache[cacheKey]) {
+                        ctx.drawImage(assetCache[cacheKey], 0, 0, activeMap.width * squareSize, activeMap.height * squareSize);
+                    } else if (!assetCache[cacheKey]) {
+                        // Load and cache the image
+                        const img = new Image();
+                        img.onload = () => {
+                            assetCache[cacheKey] = img;
+                            drawAll(); // Redraw once loaded
+                        };
+                        img.src = layer.backgroundImage;
+                    }
+                }
+                // --- END NEW ---
+
                 drawLayerTerrain(layer, ctx);
                 drawPlacedObjects(layer, ctx);
             });

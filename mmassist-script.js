@@ -1,49 +1,110 @@
-// Version 5.1 - Final review and implementation for robust, non-destructive AI layout generation
+// Version 6.0 - Reworked AI Assist for iterative image generation
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- UI Elements ---
-    const aiLayoutPrompt = document.getElementById('aiLayoutPrompt');
-    const generateLayoutBtn = document.getElementById('generateLayoutBtn');
     const aiBottomPanelHeader = document.getElementById('aiBottomPanelHeader');
+    const initialPromptInput = document.getElementById('ai-prompt-initial');
+    const refinePromptInput = document.getElementById('ai-prompt-refine');
+    const generateBtn = document.getElementById('ai-generate-btn');
+    const updateBtn = document.getElementById('ai-update-btn');
+    const transferBtn = document.getElementById('ai-transfer-btn');
+    const renderArea = document.getElementById('ai-render-area');
+    const imageOutput = document.getElementById('ai-image-output');
+    const placeholderText = renderArea.querySelector('span');
+
+    // --- State ---
+    let currentAiImageBase64 = null;
+    let isGenerating = false;
 
     // --- Core AI Functions ---
 
-    function buildContextualPrompt(userPrompt, actionType) {
-        const activeMap = state.getActiveMap();
-        if (!activeMap) return "";
-
-        let preamble = `You are an expert TTRPG dungeon designer. Your task is to interpret a user's request and provide a structured JSON response to generate a map layout. The grid is a simple square grid.`;
-
-        if (actionType === 'layout') {
-            preamble += ` You are generating a new dungeon layout within a ${activeMap.width}x${activeMap.height} square area. The origin (0,0) is the top-left. Generate a series of rooms and corridors. For each room, provide a list of all the integer coordinates (x, y) that make up its floor space. Also, generate a list of coordinates for doors. Doors should be single coordinates placed on the edge of a room, logically connecting them or leading out.`;
-        }
-
-        return `${preamble} The user's specific request is: "${userPrompt}". Please generate the appropriate JSON response. Do not place elements outside the map boundaries of ${activeMap.width}x${activeMap.height}.`;
+    // Toggles the loading state for a button
+    function toggleButtonLoading(button, isLoading) {
+        const buttonText = button.querySelector('.btn-text');
+        const spinner = button.querySelector('.spinner');
+        isGenerating = isLoading;
+        button.disabled = isLoading;
+        if (spinner) spinner.classList.toggle('hidden', !isLoading);
+        if (button.id === 'ai-generate-btn') buttonText.textContent = isLoading ? 'Generating...' : 'Generate';
+        if (button.id === 'ai-update-btn') buttonText.textContent = isLoading ? 'Updating...' : 'Update Image';
     }
 
-    async function callGenerativeAIForJSON(prompt, schema) {
-        if (!state.apiKey) {
-            state.showModal("Please set your AI API key in the Settings menu (gear icon) first.");
-            return null;
+    // Handles the initial image generation
+    async function handleInitialGeneration() {
+        if (isGenerating) return;
+        const prompt = initialPromptInput.value;
+        if (!prompt) {
+            state.showToast("Please enter a prompt for the initial generation.", "error");
+            return;
         }
-        
-        const buttonSpinner = generateLayoutBtn.querySelector('.spinner');
-        const buttonText = generateLayoutBtn.querySelector('.btn-text');
+
+        toggleButtonLoading(generateBtn, true);
+        currentAiImageBase64 = null; // Clear previous image
 
         try {
-            buttonText.textContent = "Generating...";
-            buttonSpinner.classList.remove('hidden');
-            generateLayoutBtn.disabled = true;
+            const payload = { instances: [{ prompt: prompt }], parameters: { "sampleCount": 1 } };
+            const apiKey = ""; // API key will be proxied
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+            
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
 
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${state.apiKey}`;
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(`API Error: ${error.error?.message || response.statusText}`);
+            }
+
+            const result = await response.json();
+            if (result.predictions && result.predictions.length > 0 && result.predictions[0].bytesBase64Encoded) {
+                currentAiImageBase64 = result.predictions[0].bytesBase64Encoded;
+                imageOutput.src = `data:image/png;base64,${currentAiImageBase64}`;
+                placeholderText.classList.add('hidden');
+                imageOutput.classList.remove('hidden');
+                updateBtn.disabled = false;
+                transferBtn.disabled = false;
+                state.showToast("Image generated successfully!", "success");
+            } else {
+                throw new Error("No image data found in API response.");
+            }
+        } catch (error) {
+            console.error("AI Initial Generation Error:", error);
+            state.showToast(`An error occurred: ${error.message}`, "error");
+            placeholderText.classList.remove('hidden');
+            imageOutput.classList.add('hidden');
+        } finally {
+            toggleButtonLoading(generateBtn, false);
+        }
+    }
+    
+    // Handles iterative image updates
+    async function handleIterativeUpdate() {
+        if (isGenerating || !currentAiImageBase64) return;
+        const prompt = refinePromptInput.value;
+        if (!prompt) {
+            state.showToast("Please enter a prompt to refine the image.", "error");
+            return;
+        }
+
+        toggleButtonLoading(updateBtn, true);
+        
+        try {
             const payload = {
-                contents: [{ role: "user", parts: [{ text: prompt }] }],
+                contents: [{
+                    parts: [
+                        { text: prompt },
+                        { inlineData: { mimeType: "image/png", data: currentAiImageBase64 } }
+                    ]
+                }],
                 generationConfig: {
-                    responseMimeType: "application/json",
-                    responseSchema: schema,
+                    responseModalities: ['IMAGE']
                 },
             };
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${apiKey}`;
 
             const response = await fetch(apiUrl, {
                 method: 'POST',
@@ -53,166 +114,69 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!response.ok) {
                 const error = await response.json();
-                console.error("AI API Error:", error);
-                throw new Error(`API request failed: ${error.error?.message || 'Unknown error'}`);
+                throw new Error(`API Error: ${error.error?.message || response.statusText}`);
             }
 
             const result = await response.json();
-            const jsonString = result.candidates?.[0]?.content?.parts?.[0]?.text;
-
-            if (!jsonString) {
-                throw new Error("Could not find valid JSON data in the AI response.");
-            }
+            const base64Data = result?.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
             
-            return JSON.parse(jsonString);
-
+            if (base64Data) {
+                currentAiImageBase64 = base64Data;
+                imageOutput.src = `data:image/png;base64,${currentAiImageBase64}`;
+                state.showToast("Image updated successfully!", "success");
+                refinePromptInput.value = ""; // Clear prompt after use
+            } else {
+                throw new Error("No updated image data found in API response.");
+            }
         } catch (error) {
-            console.error("AI JSON Generation Error:", error);
-            state.showModal(`An error occurred during AI generation: ${error.message}`);
-            return null;
+            console.error("AI Iterative Update Error:", error);
+            state.showToast(`An error occurred during update: ${error.message}`, "error");
         } finally {
-            buttonText.textContent = "Generate Layout";
-            buttonSpinner.classList.add('hidden');
-            generateLayoutBtn.disabled = false;
+            toggleButtonLoading(updateBtn, false);
         }
     }
 
-    function ingestGeneratedLayout(layoutData) {
+    // Handles transferring the image to a new map layer
+    function handleTransferToLayer() {
+        if (!currentAiImageBase64) {
+            state.showToast("No image to transfer.", "error");
+            return;
+        }
         const activeMap = state.getActiveMap();
-        if (!activeMap) return; // Should be caught by the handler, but as a safeguard.
-
-        const squareSize = 50; 
-        
-        // --- Non-destructive approach: Create a new layer for the AI content ---
-        const newLayerName = `AI Layout - ${new Date().toLocaleTimeString()}`;
-        const newLayer = { 
-            id: `layer_${Date.now()}`, 
-            name: newLayerName, 
-            visible: true, 
-            objects: [], 
-            terrainPatches: [] 
-        };
-        
-        // Ingest Rooms as terrain patches on the new layer
-        if (layoutData.rooms) {
-            layoutData.rooms.forEach(room => {
-                if (room.coordinates) {
-                    room.coordinates.forEach(coord => {
-                        const { px, py } = { px: coord.x * squareSize, py: coord.y * squareSize };
-                        // Create a dense spray of small patches to form a solid floor
-                        for (let i = 0; i < 5; i++) { // Add more density
-                             newLayer.terrainPatches.push({
-                                x: px + (Math.random() * squareSize),
-                                y: py + (Math.random() * squareSize),
-                                radius: squareSize * 0.4, 
-                                terrain: 'dungeon_floor' 
-                            });
-                        }
-                    });
-                }
-            });
-        }
-    
-        // Ingest Doors as objects on the new layer
-        if (layoutData.doors) {
-             layoutData.doors.forEach(door => {
-                 if (door.coordinates) {
-                    const { px, py } = { px: door.coordinates.x * squareSize, py: door.coordinates.y * squareSize };
-                    newLayer.objects.push({
-                        id: `obj_door_${Date.now()}_${Math.random()}`,
-                        assetId: 'fantasy_location_door',
-                        x: px + squareSize / 2,
-                        y: py + squareSize / 2,
-                        rotation: 0,
-                        scale: 1,
-                        isGmOnly: false
-                    });
-                 }
-             });
-        }
-        
-        // Add the new layer to the top of the layer stack
-        activeMap.layers.unshift(newLayer);
-        // Dispatch an event to tell the UI to update
-        document.dispatchEvent(new CustomEvent('mapStateUpdated')); 
-
-        state.showToast("AI layout generated on new layer!", "success");
-        window.drawAll(); 
-    }
-
-    // --- Event Handler Implementations ---
-
-    async function handleLayoutGeneration() {
-        if (!state.getActiveMap()) {
-            state.showModal("Please add or select a map before generating a layout.");
+        if (!activeMap) {
+            state.showToast("Please select a map first.", "error");
             return;
         }
 
-        const userPrompt = aiLayoutPrompt.value;
-        if (!userPrompt) {
-            state.showModal("Please describe the layout you want to generate.");
-            return;
-        }
-
-        const schema = {
-            type: "OBJECT",
-            properties: {
-                rooms: {
-                    type: "ARRAY",
-                    items: {
-                        type: "OBJECT",
-                        properties: {
-                            id: { type: "NUMBER" },
-                            description: { type: "STRING" },
-                            coordinates: {
-                                type: "ARRAY",
-                                items: {
-                                    type: "OBJECT",
-                                    properties: { x: { type: "NUMBER" }, y: { type: "NUMBER" } },
-                                    required: ["x", "y"]
-                                }
-                            }
-                        },
-                        required: ["id", "description", "coordinates"]
-                    }
-                },
-                doors: {
-                    type: "ARRAY",
-                    items: {
-                        type: "OBJECT",
-                        properties: {
-                            coordinates: {
-                                type: "OBJECT",
-                                properties: { x: { type: "NUMBER" }, y: { type: "NUMBER" } },
-                                required: ["x", "y"]
-                            }
-                        },
-                        required: ["coordinates"]
-                    }
-                }
-            },
-            required: ["rooms", "doors"]
+        state.saveStateForUndo();
+        const layerName = `AI Layer - ${new Date().toLocaleTimeString()}`;
+        const newLayer = {
+            id: `layer_${Date.now()}`,
+            name: layerName,
+            visible: true,
+            objects: [],
+            terrainPatches: [],
+            backgroundImage: `data:image/png;base64,${currentAiImageBase64}`, // Add the new property
+            backgroundImageCacheKey: `ai_bg_${Date.now()}` // Unique key for caching
         };
+
+        activeMap.layers.unshift(newLayer); // Add to the top (drawn first, so it's in the back)
         
-        const fullPrompt = buildContextualPrompt(userPrompt, 'layout');
-        if (!fullPrompt) return;
-
-        const layoutData = await callGenerativeAIForJSON(fullPrompt, schema);
-
-        if (layoutData) {
-            state.saveStateForUndo(); 
-            ingestGeneratedLayout(layoutData);
-        }
+        // Dispatch event to notify other modules (like mmtools-script)
+        document.dispatchEvent(new CustomEvent('mapStateUpdated'));
+        state.showToast(`Image transferred to new layer "${layerName}"`, "success");
     }
+
 
     // --- Event Listeners Setup ---
-
     function addAiEventListeners() {
         aiBottomPanelHeader.addEventListener('click', () => {
             document.getElementById('aiBottomPanel').classList.toggle('closed');
         });
         
-        generateLayoutBtn.addEventListener('click', handleLayoutGeneration);
+        generateBtn.addEventListener('click', handleInitialGeneration);
+        updateBtn.addEventListener('click', handleIterativeUpdate);
+        transferBtn.addEventListener('click', handleTransferToLayer);
     }
 
     addAiEventListeners();

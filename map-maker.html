@@ -309,49 +309,42 @@
                 </button>
             </div>
 
-            <!-- AI Bottom Panel -->
+            <!-- AI Assist Panel -->
             <div id="aiBottomPanel" class="closed">
                 <div id="aiBottomPanelHeader">
-                    <span>AI Assistant & Prompt Editor</span>
+                    <span>AI Assist</span>
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
                 </div>
-                <div id="aiBottomPanelContent" class="p-4 space-y-4">
-                    <!-- Step 1: Landform Generation -->
-                    <div class="control-panel">
-                        <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Step 1: Generate Landform Foundation</h4>
-                        <label for="aiLandformPrompt">Describe the basic landscape</label>
-                        <textarea id="aiLandformPrompt" placeholder="e.g., A rugged mountain range with a central volcano. A coastline with sandy beaches and a large bay." class="mb-2"></textarea>
-                        <button id="generateLandformBtn" class="w-full">
-                            <span class="btn-text">Generate Grayscale Landform</span>
+                <div id="aiBottomPanelContent" class="p-4 grid grid-cols-3 gap-4">
+                    <!-- Generation Controls -->
+                    <div class="control-panel col-span-1 flex flex-col">
+                        <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Step 1: Generate Image</h4>
+                        <label for="ai-prompt-initial">Describe the landscape or building</label>
+                        <textarea id="ai-prompt-initial" rows="5" placeholder="e.g., A birds-eye view of a ruined castle on a clifftop. A detailed battlemap of a tavern's common room."></textarea>
+                        <button id="ai-generate-btn" class="w-full mt-2">
+                            <span class="btn-text">Generate</span>
                             <span class="spinner hidden"></span>
                         </button>
-                    </div>
+                        
+                        <div class="border-t border-gray-700 my-4"></div>
 
-                    <!-- Step 2: Biome Application -->
-                    <div class="control-panel">
-                        <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Step 2: Apply Biomes & Features</h4>
-                        <textarea id="aiBiomePrompt" placeholder="e.g., Cover the mountains in snow and the lowlands in a dense pine forest. Add a large river flowing from the mountains to the bay." class="mb-2"></textarea>
-                        <div class="grid grid-cols-2 gap-2 mt-2">
-                            <button id="applyBiomesBtn" class="w-full" disabled>
-                                <span class="btn-text">Apply Biomes to Map</span>
-                                <span class="spinner hidden"></span>
-                            </button>
-                            <button id="generateColorVariantBtn" class="w-full" disabled>
-                                <span class="btn-text">Try New Colors</span>
-                                <span class="spinner hidden"></span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- NEW: Step 3: Dungeon Layout Generation -->
-                    <div class="control-panel">
-                        <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Step 3: Generate Dungeon Layout</h4>
-                        <label for="aiLayoutPrompt">Describe the dungeon or building layout</label>
-                        <textarea id="aiLayoutPrompt" placeholder="e.g., A small goblin hideout in a cave with a main chamber, a treasure room, and a barracks. Roughly 20x20." class="mb-2"></textarea>
-                        <button id="generateLayoutBtn" class="w-full">
-                            <span class="btn-text">Generate Layout</span>
+                        <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Step 2: Refine Image</h4>
+                        <label for="ai-prompt-refine">Describe changes or additions</label>
+                        <textarea id="ai-prompt-refine" rows="5" placeholder="e.g., Add a path leading to the castle gate. Make the tavern floor dirtier. Add a river flowing past the cliff."></textarea>
+                        <button id="ai-update-btn" class="w-full mt-2" disabled>
+                            <span class="btn-text">Update Image</span>
                             <span class="spinner hidden"></span>
                         </button>
+
+                        <div class="flex-grow"></div> <!-- Spacer -->
+
+                        <button id="ai-transfer-btn" class="w-full mt-4" disabled>Transfer to New Layer</button>
+                    </div>
+
+                    <!-- Image Render Area -->
+                    <div id="ai-render-area" class="col-span-2 bg-gray-900 rounded-md flex items-center justify-center p-2 border-2 border-dashed border-gray-600">
+                        <span class="text-gray-500">AI image will be rendered here</span>
+                        <img id="ai-image-output" class="hidden max-w-full max-h-full object-contain"/>
                     </div>
                 </div>
             </div>
