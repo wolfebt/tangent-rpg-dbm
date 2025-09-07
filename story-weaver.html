@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Story Weaver AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827;
+            color: #d1d5db;
+        }
+        .stage { display: none; }
+        .stage.active { display: block; }
+        .idea-card {
+            border: 2px solid #374151;
+            transition: border-color 0.3s, transform 0.2s;
+        }
+        .idea-card.selected-card {
+            border-color: #3b82f6;
+            transform: translateY(-2px);
+        }
+        .loader {
+            border: 4px solid #374151;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 2rem auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .btn-primary {
+            background-color: #2563eb;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        .btn-primary:hover:not(:disabled) { background-color: #1d4ed8; }
+        .btn-secondary {
+            background-color: #4b5563;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        .btn-secondary:hover:not(:disabled) { background-color: #374151; }
+        :disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1f2937; }
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+        
+        #status-message {
+            transition: opacity 0.5s ease-in-out;
+        }
+        .modal {
+            transition: opacity 0.25s ease;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
+        <header class="text-center mb-4">
+            <h1 class="text-4xl font-bold text-white">Story Weaver AI</h1>
+            <p class="text-lg text-gray-400 mt-2">Your AI-powered partner for literary creation.</p>
+        </header>
+        
+        <div class="text-center mb-6 flex items-center justify-center gap-4">
+            <button id="project-options-btn" class="py-2 px-5 rounded-lg font-semibold btn-primary">
+                Project Options
+            </button>
+            <span id="status-message" class="text-sm text-gray-400 opacity-0"></span>
+        </div>
+
+        <nav class="flex justify-center border border-gray-700 rounded-lg p-1 mb-8 max-w-xl mx-auto bg-gray-800">
+            <button data-stage="brainstorm" class="nav-btn flex-1 text-center py-2 px-4 rounded-md transition-colors duration-300 font-semibold bg-blue-600 text-white">1. Brainstorm</button>
+            <button data-stage="outline" class="nav-btn flex-1 text-center py-2 px-4 rounded-md transition-colors duration-300 font-semibold text-gray-400">2. Outline</button>
+            <button data-stage="treatment" class="nav-btn flex-1 text-center py-2 px-4 rounded-md transition-colors duration-300 font-semibold text-gray-400">3. Treatment</button>
+            <button data-stage="write" class="nav-btn flex-1 text-center py-2 px-4 rounded-md transition-colors duration-300 font-semibold text-gray-400">4. Write</button>
+        </nav>
+
+        <main>
+            <!-- Stage 1: Brainstorm -->
+            <div id="brainstorm" class="stage active">
+                <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                    <h2 class="text-2xl font-semibold mb-4 text-white">Creative Brainstorming</h2>
+                    <label for="brainstorm-type-select" class="block text-sm font-medium text-gray-400 mb-2">I want to brainstorm...</label>
+                    <select id="brainstorm-type-select" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 mb-4">
+                        <option value="Story Ideas">Story Ideas</option>
+                        <option value="Characters">Characters</option>
+                        <option value="Settings">Settings</option>
+                        <option value="Plot Twists">Plot Twists</option>
+                        <option value="Story Hooks">Story Hooks</option>
+                    </select>
+                    <textarea id="brainstorm-input" class="w-full h-32 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Enter a genre, theme, or concept... e.g., 'cyberpunk noir', 'a haunted lighthouse', 'a character who can talk to ghosts'"></textarea>
+                    <button id="generate-ideas-btn" class="mt-4 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Concepts</button>
+                </div>
+                <div id="ideas-output" class="mt-8 grid gap-6 md:grid-cols-1 lg:grid-cols-2"></div>
+                <div id="ideas-loader" class="hidden"><div class="loader"></div></div>
+            </div>
+
+            <!-- Stage 2: Outline -->
+            <div id="outline" class="stage">
+                 <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                    <h2 class="text-2xl font-semibold mb-4 text-white">Create a Story Outline</h2>
+                    <div id="chosen-idea-display" class="p-4 mb-4 bg-gray-900 border-2 border-gray-700 rounded-lg text-gray-300 min-h-[5rem]"><span class="text-gray-500">First, choose a concept from the Brainstorm tab.</span></div>
+                    <label for="outline-structure" class="block text-sm font-medium text-gray-400 mb-2">Select an outline structure:</label>
+                    <select id="outline-structure" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option>Three-Act Structure</option>
+                        <option>The Hero's Journey</option>
+                        <option>Save the Cat Beat Sheet</option>
+                        <option>Five-Act Structure</option>
+                    </select>
+                    <button id="generate-outline-btn" class="mt-4 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Outline</button>
+                </div>
+                <div id="outline-output" class="mt-8"></div>
+                <div id="outline-loader" class="hidden"><div class="loader"></div></div>
+            </div>
+
+            <!-- Stage 3: Treatment -->
+            <div id="treatment" class="stage">
+                <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                    <h2 class="text-2xl font-semibold mb-4 text-white">Develop a Story Treatment</h2>
+                    <p class="text-gray-400 mb-2">Your chosen outline:</p>
+                    <div id="chosen-outline-display" class="p-4 mb-4 bg-gray-900 border-2 border-gray-700 rounded-lg text-gray-300 min-h-[5rem] max-h-48 overflow-y-auto"><span class="text-gray-500">First, generate and select an outline from the Outline tab.</span></div>
+                    <button id="generate-treatment-btn" class="w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Treatment from Outline</button>
+                </div>
+                <div id="treatment-output" class="mt-8"></div>
+                <div id="treatment-loader" class="hidden"><div class="loader"></div></div>
+            </div>
+
+            <!-- Stage 4: Write -->
+            <div id="write" class="stage">
+                <div class="flex flex-col lg:flex-row gap-8">
+                    <aside class="w-full lg:w-1/3 bg-gray-800 p-4 rounded-lg shadow-lg h-full lg:max-h-[80vh] overflow-y-auto">
+                        <h3 class="text-xl font-semibold mb-4 text-white">Story Treatment</h3>
+                        <div id="treatment-reference" class="text-sm prose prose-invert max-w-none text-gray-300"><p class="text-gray-500">First, generate and select a treatment from the Treatment tab.</p></div>
+                    </aside>
+                    <div class="w-full lg:w-2/3">
+                        <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-6">
+                             <h3 class="text-xl font-semibold mb-4 text-white">AI Writing Assistant</h3>
+                             <label for="writing-format-select" class="block text-sm font-medium text-gray-400 mb-2">What are you writing?</label>
+                             <select id="writing-format-select" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 mb-4">
+                                <option value="Novel / Book Chapter">Novel / Book Chapter</option>
+                                <option value="Screenplay Scene">Screenplay Scene</option>
+                                <option value="Short Story Excerpt">Short Story Excerpt</option>
+                                <option value="Dialogue Only">Dialogue Only</option>
+                             </select>
+                             <label for="writing-prompt-input" class="block text-sm font-medium text-gray-400 mb-2">Writing Prompt</label>
+                             <textarea id="writing-prompt-input" class="w-full h-24 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., 'Write the opening scene at the docks', 'Describe the main villain, Kaelen', 'Write dialogue between the hero and the mentor about the quest'"></textarea>
+                             <button id="generate-writing-btn" class="mt-4 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Text</button>
+                             <div id="writing-loader" class="hidden mt-4"><div class="loader"></div></div>
+                        </div>
+                        <h2 class="text-2xl font-semibold mb-4 text-white">Your Story</h2>
+                        <div id="main-editor" contenteditable="true" class="w-full h-96 p-4 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 overflow-y-auto" aria-label="Main story editor"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Project Options Modal -->
+    <div id="project-modal" class="modal fixed inset-0 bg-black/60 items-center justify-center hidden z-50 opacity-0">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md relative border border-gray-700">
+            <button id="close-modal-btn" class="absolute top-3 right-3 text-gray-500 hover:text-white transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            <h2 class="text-2xl font-bold text-white mb-6">Project Options</h2>
+            <div class="space-y-4">
+                <button id="load-json-btn" class="w-full py-3 px-4 rounded-lg font-semibold btn-secondary">Load Project from JSON File</button>
+                <input type="file" id="json-file-input" class="hidden" accept=".json">
+                <button id="export-json-btn" class="w-full py-3 px-4 rounded-lg font-semibold btn-secondary">Export Project to JSON File</button>
+                <button id="export-text-btn" class="w-full py-3 px-4 rounded-lg font-semibold btn-secondary">Export Story as Text File</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const state = {
+            brainstormConcept: '',
+            storyOutline: '',
+            storyTreatment: '',
+        };
+
+        // DOM Elements
+        const statusMessage = document.getElementById('status-message');
+        const projectOptionsBtn = document.getElementById('project-options-btn');
+        const projectModal = document.getElementById('project-modal');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const loadJsonBtn = document.getElementById('load-json-btn');
+        const jsonFileInput = document.getElementById('json-file-input');
+        const exportJsonBtn = document.getElementById('export-json-btn');
+        const exportTextBtn = document.getElementById('export-text-btn');
+        const navButtons = document.querySelectorAll('.nav-btn');
+        const stages = document.querySelectorAll('.stage');
+        const loaders = { ideas: document.getElementById('ideas-loader'), outline: document.getElementById('outline-loader'), treatment: document.getElementById('treatment-loader'), writing: document.getElementById('writing-loader') };
+        const brainstormTypeSelect = document.getElementById('brainstorm-type-select');
+        const brainstormInput = document.getElementById('brainstorm-input');
+        const generateIdeasBtn = document.getElementById('generate-ideas-btn');
+        const ideasOutput = document.getElementById('ideas-output');
+        const chosenIdeaDisplay = document.getElementById('chosen-idea-display');
+        const outlineStructureSelect = document.getElementById('outline-structure');
+        const generateOutlineBtn = document.getElementById('generate-outline-btn');
+        const outlineOutput = document.getElementById('outline-output');
+        const chosenOutlineDisplay = document.getElementById('chosen-outline-display');
+        const generateTreatmentBtn = document.getElementById('generate-treatment-btn');
+        const treatmentOutput = document.getElementById('treatment-output');
+        const treatmentReference = document.getElementById('treatment-reference');
+        const writingFormatSelect = document.getElementById('writing-format-select');
+        const writingPromptInput = document.getElementById('writing-prompt-input');
+        const generateWritingBtn = document.getElementById('generate-writing-btn');
+        const mainEditor = document.getElementById('main-editor');
+        
+        // --- Local Save/Load, Export, and Modal Logic ---
+
+        function showStatus(message, isError = false) {
+            statusMessage.textContent = message;
+            statusMessage.style.color = isError ? '#ef4444' : '#9ca3af';
+            statusMessage.style.opacity = '1';
+            setTimeout(() => { statusMessage.style.opacity = '0'; }, 3000);
+        }
+        
+        function updateUiFromState(data) {
+            state.brainstormConcept = data.brainstormConcept || '';
+            state.storyOutline = data.storyOutline || '';
+            state.storyTreatment = data.storyTreatment || '';
+            mainEditor.innerHTML = data.editorContent || '';
+            
+            chosenIdeaDisplay.innerHTML = state.brainstormConcept || `<span class="text-gray-500">First, choose a concept from the Brainstorm tab.</span>`;
+            
+            if (state.storyOutline) {
+                const formatted = cleanAndFormat(state.storyOutline);
+                chosenOutlineDisplay.innerHTML = `<div class="prose prose-invert max-w-none text-gray-300 text-sm">${formatted}</div>`;
+                outlineOutput.innerHTML = `<div class="bg-gray-900 p-6 rounded-lg shadow-inner"><div class="prose prose-invert max-w-none">${formatted}</div></div>
+                                           <button id="use-outline-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Develop this Outline into a Treatment →</button>`;
+            } else {
+                 chosenOutlineDisplay.innerHTML = `<span class="text-gray-500">First, generate and select an outline...</span>`;
+                 outlineOutput.innerHTML = '';
+            }
+
+             if (state.storyTreatment) {
+                const formatted = cleanAndFormat(state.storyTreatment);
+                treatmentReference.innerHTML = `<div class="prose prose-invert max-w-none">${formatted}</div>`;
+                treatmentOutput.innerHTML = `<div class="bg-gray-900 p-6 rounded-lg shadow-inner"><div class="prose prose-invert max-w-none">${formatted}</div></div>
+                                             <button id="use-treatment-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Start Writing with this Treatment →</button>`;
+            } else {
+                 treatmentReference.innerHTML = `<p class="text-gray-500">First, generate and select a treatment...</p>`;
+                 treatmentOutput.innerHTML = '';
+            }
+        }
+        
+        function handleJsonLoad(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (confirm("Loading this file will overwrite your current work in this session. Are you sure?")) {
+                        updateUiFromState(data);
+                        showStatus("Project loaded successfully.");
+                        closeModal();
+                    }
+                } catch (error) {
+                    alert("Error: Invalid or corrupted JSON file.");
+                    console.error("JSON Parse Error:", error);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = null; 
+        }
+
+        function exportToJson() {
+            const projectData = { ...state, editorContent: mainEditor.innerHTML };
+            const dataStr = JSON.stringify(projectData, null, 2);
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "story-weaver-project.json";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showStatus("Project exported as JSON.");
+            closeModal();
+        }
+
+        function htmlToText(html) {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            return tempDiv.textContent || tempDiv.innerText || "";
+        }
+
+        function exportAsText() {
+            const separator = "\n\n========================================\n\n";
+            let textContent = `STORY WEAVER PROJECT EXPORT\n${new Date().toLocaleString()}\n`;
+            
+            textContent += separator + "BRAINSTORM CONCEPT:\n\n" + htmlToText(state.brainstormConcept);
+            textContent += separator + "STORY OUTLINE:\n\n" + state.storyOutline;
+            textContent += separator + "STORY TREATMENT:\n\n" + state.storyTreatment;
+            textContent += separator + "YOUR STORY:\n\n" + htmlToText(mainEditor.innerHTML);
+
+            const blob = new Blob([textContent], { type: "text/plain" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "story-weaver-export.txt";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showStatus("Project exported as Text.");
+            closeModal();
+        }
+        
+        function openModal() {
+            projectModal.classList.remove('hidden');
+            projectModal.classList.add('flex');
+            setTimeout(() => projectModal.style.opacity = 1, 10);
+        }
+        function closeModal() {
+            projectModal.style.opacity = 0;
+            setTimeout(() => {
+                projectModal.classList.add('hidden');
+                projectModal.classList.remove('flex');
+            }, 250);
+        }
+
+        // --- Core Application Logic (Gemini calls, etc.) ---
+        function setActiveStage(stageName) {
+            stages.forEach(s => s.classList.toggle('active', s.id === stageName)); 
+            navButtons.forEach(b => { 
+                b.classList.toggle('bg-blue-600', b.dataset.stage === stageName); 
+                b.classList.toggle('text-white', b.dataset.stage === stageName); 
+                b.classList.toggle('text-gray-400', b.dataset.stage !== stageName); 
+            }); 
+        }
+        async function callGeminiAPI(prompt, loaderElement) {
+            loaderElement.style.display = 'block';
+            try {
+                const apiKey = ""; 
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                const payload = { contents: [{ parts: [{ text: prompt }] }] };
+                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const result = await response.json();
+                return result.candidates?.[0]?.content?.parts?.[0]?.text;
+            } catch(e) {
+                console.error(e);
+                return "Error: Could not generate content. Please try again.";
+            } finally {
+                loaderElement.style.display = 'none';
+            }
+        }
+        function cleanAndFormat(text) { 
+            return text ? text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/^\* (.*$)/gim, '<li class="ml-4 list-disc">$1</li>').replace(/\n/g, '<br>') : "";
+        }
+        function cleanAndParseBrainstorm(rawResponse) {
+            if (!rawResponse) return [];
+            const delimiter = /^\s*---+\s*$/m; 
+            return rawResponse.split(delimiter).map(s => s.trim()).filter(Boolean); 
+        }
+        navButtons.forEach(btn => btn.addEventListener('click', () => setActiveStage(btn.dataset.stage)));
+
+        // --- Event Listeners ---
+        generateIdeasBtn.addEventListener('click', async () => {
+            ideasOutput.innerHTML = ''; 
+            const brainstormType = brainstormTypeSelect.value; 
+            const userInput = brainstormInput.value.trim(); 
+            if(!userInput) return; 
+            let prompt = ''; 
+            const base = `You are a creative assistant for a writer. Your output must ONLY be the generated concepts, with each concept separated by a line containing only '---'. Do not include any introductory phrases or conversational text.`; 
+            switch (brainstormType) { 
+                case 'Characters': prompt = `${base} Brainstorm 5 unique characters based on the theme: "${userInput}". For each character, provide a **Name:**, a **Description:**, and their **Motivation:**.`; break; 
+                case 'Settings': prompt = `${base} Brainstorm 5 unique settings based on the theme: "${userInput}". For each setting, provide a **Name:**, a **Description:**, and the **Atmosphere:**.`; break; 
+                case 'Plot Twists': prompt = `${base} Brainstorm 5 shocking plot twists related to the idea: "${userInput}". For each twist, provide a **Twist:** title and a **Description:** of how it unfolds.`; break; 
+                case 'Story Hooks': prompt = `${base} Brainstorm 5 compelling story hooks (opening lines or scenarios) based on the idea: "${userInput}". For each hook, provide a **Hook:** title and a **Description:** of the scenario.`; break; 
+                default: prompt = `${base} Brainstorm 5 unique story ideas based on the premise: "${userInput}". For each idea, you MUST provide a **Title:**, a **Logline:**, and a **Synopsis:**.`; 
+            } 
+            const rawResponse = await callGeminiAPI(prompt, loaders.ideas); 
+            const ideasArray = cleanAndParseBrainstorm(rawResponse); 
+            if (ideasArray.length === 0) { 
+                ideasOutput.innerHTML = `<p class="text-center text-gray-400 col-span-full">The AI couldn't generate concepts for that prompt. Please try again.</p>`; 
+                return; 
+            } 
+            ideasOutput.innerHTML = ideasArray.map(ideaText => { 
+                const firstLine = ideaText.match(/\*\*(.*?):\*\*\s*(.*)/); 
+                const title = firstLine ? firstLine[2].trim() : "Untitled Concept"; 
+                const formattedContent = cleanAndFormat(ideaText); 
+                const fullIdeaContent = `<div class="prose prose-invert max-w-none text-gray-300">${formattedContent}</div>`; 
+                return `<div class="idea-card bg-gray-900 p-6 rounded-lg flex flex-col"><h3 class="text-xl font-bold text-blue-400 mb-3">${title}</h3><div class="space-y-4 flex-grow prose prose-invert max-w-none text-gray-300 text-sm">${formattedContent}</div><button class="select-idea-btn mt-6 py-2 px-4 w-full rounded-lg font-semibold btn-secondary" data-idea-content="${encodeURIComponent(fullIdeaContent)}">Develop this Concept →</button></div>`; 
+            }).join(''); 
+        });
+        ideasOutput.addEventListener('click', e => { if (e.target.classList.contains('select-idea-btn')) { state.brainstormConcept = decodeURIComponent(e.target.dataset.ideaContent); chosenIdeaDisplay.innerHTML = state.brainstormConcept; document.querySelectorAll('.idea-card').forEach(c => c.classList.remove('selected-card')); e.target.closest('.idea-card').classList.add('selected-card'); setActiveStage('outline'); } });
+        generateOutlineBtn.addEventListener('click', async () => { if (!state.brainstormConcept) return; const prompt = `You are a story outlining expert. Your output must ONLY be the story outline itself. Do not include any introductory phrases. Generate a detailed story outline for the following concept using the **${outlineStructureSelect.value}**:\n\n${state.brainstormConcept}`; outlineOutput.innerHTML = ''; const generatedOutline = await callGeminiAPI(prompt, loaders.outline); state.storyOutline = generatedOutline; const formattedOutline = cleanAndFormat(generatedOutline); outlineOutput.innerHTML = `<div class="bg-gray-900 p-6 rounded-lg shadow-inner"><div class="prose prose-invert max-w-none text-gray-300">${formattedOutline}</div></div><button id="use-outline-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Develop Treatment →</button>`; });
+        outlineOutput.addEventListener('click', e => { if (e.target.id === 'use-outline-btn') { chosenOutlineDisplay.innerHTML = `<div class="prose prose-invert max-w-none text-gray-300 text-sm">${cleanAndFormat(state.storyOutline)}</div>`; setActiveStage('treatment'); } });
+        generateTreatmentBtn.addEventListener('click', async () => { if (!state.storyOutline) return; const prompt = `Act as a professional writer. Expand the following story outline into a narrative treatment. Write in present tense prose. Provide ONLY the treatment text.\n\n**Outline:**\n${state.storyOutline}`; treatmentOutput.innerHTML = ''; const generatedTreatment = await callGeminiAPI(prompt, loaders.treatment); state.storyTreatment = generatedTreatment; const formattedTreatment = cleanAndFormat(generatedTreatment); treatmentOutput.innerHTML = `<div class="bg-gray-900 p-6 rounded-lg shadow-inner"><div class="prose prose-invert max-w-none text-gray-300">${formattedTreatment}</div></div><button id="use-treatment-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Start Writing →</button>`; });
+        treatmentOutput.addEventListener('click', e => { if (e.target.id === 'use-treatment-btn') { treatmentReference.innerHTML = `<div class="prose prose-invert max-w-none text-gray-300">${cleanAndFormat(state.storyTreatment)}</div>`; setActiveStage('write'); } });
+        
+        // **BUG FIX in generateWritingBtn listener**
+        generateWritingBtn.addEventListener('click', async () => {
+            if (!writingPromptInput.value.trim()) {
+                showStatus("Please enter a writing prompt.", true);
+                return;
+            }
+            if (!state.storyTreatment) {
+                showStatus("Please generate a treatment before writing.", true);
+                setActiveStage('treatment'); // Guide user back
+                return;
+            }
+            const format = writingFormatSelect.value;
+            const role = format === "Screenplay Scene" ? "screenwriter" : "novelist";
+            
+            // CORRECTED: The prompt now correctly uses the state.storyTreatment variable
+            const prompt = `You are a talented ${role}. Your task is to write a piece in the format of a **${format}**. 
+            Use the following story treatment as your guide:
+            ---
+            TREATMENT START
+            ${state.storyTreatment}
+            TREATMENT END
+            ---
+            Now, fulfill this specific user request: "${writingPromptInput.value}"
+            
+            Write the requested text in a compelling way, ensuring it is correctly formatted for a ${format}. Do not repeat the prompt or the treatment. Provide only the generated text.`;
+            
+            const generatedText = await callGeminiAPI(prompt, loaders.writing);
+            const formattedText = cleanAndFormat(generatedText);
+            const selection = window.getSelection();
+            const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+            const contentNode = document.createElement('div');
+            contentNode.innerHTML = `<br>${formattedText}<br>`;
+            if (range && mainEditor.contains(range.commonAncestorContainer)) {
+                range.deleteContents();
+                range.insertNode(contentNode);
+            } else {
+                mainEditor.appendChild(contentNode);
+            }
+            writingPromptInput.value = '';
+        });
+        
+        // Modal Event Listeners
+        projectOptionsBtn.addEventListener('click', openModal);
+        closeModalBtn.addEventListener('click', closeModal);
+        projectModal.addEventListener('click', (e) => { if (e.target === projectModal) { closeModal(); } });
+        loadJsonBtn.addEventListener('click', () => jsonFileInput.click());
+        jsonFileInput.addEventListener('change', handleJsonLoad);
+        exportJsonBtn.addEventListener('click', exportToJson);
+        exportTextBtn.addEventListener('click', exportAsText);
+
+    </script>
+</body>
+</html>
+
