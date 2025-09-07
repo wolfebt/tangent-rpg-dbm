@@ -1,4 +1,4 @@
-// Version 13.0 - Full implementation review and final fixes
+// Version 13.1 - Added local storage persistence for API Key
 // --- State Variables ---
 export let terrains = {};
 export let assetManifest = {};
@@ -28,6 +28,14 @@ export const setState = (newState) => {
     if (newState.project !== undefined) project = newState.project;
     if (newState.activeMapId !== undefined) activeMapId = newState.activeMapId;
 };
+
+// --- NEW: Load API Key from Local Storage ---
+export function loadApiKey() {
+    const savedKey = localStorage.getItem('mapMakerApiKey');
+    if (savedKey) {
+        apiKey = savedKey;
+    }
+}
 
 export function addNewAsset(assetData) {
     let customAssets = JSON.parse(localStorage.getItem('mapMakerCustomAssets')) || {};

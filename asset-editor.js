@@ -1,5 +1,7 @@
-// Version 13.0 - Full implementation review and final fixes
-import { addNewAsset, showToast } from './state.js';
+// Version 13.1 - Use central API key from state
+import { addNewAsset, showToast, apiKey } from './state.js';
+import * as state from './state.js';
+
 
 // --- DOM ELEMENTS ---
 const assetEditorOverlay = document.getElementById('asset-editor-overlay');
@@ -110,14 +112,17 @@ async function generateAIAsset() {
         showToast("Please enter a prompt.", "error");
         return;
     }
+    if (!state.apiKey) {
+        state.showToast("Please set your API Key in the settings menu first.", "error");
+        return;
+    }
     
     loadingOverlay.classList.remove('hidden');
     generateBtn.disabled = true;
 
     try {
         const payload = { instances: [{ prompt: userPrompt }], parameters: { "sampleCount": 1} };
-        const apiKey = ""; 
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${state.apiKey}`;
         
         const response = await fetch(apiUrl, {
             method: 'POST',

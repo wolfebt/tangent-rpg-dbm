@@ -1,4 +1,4 @@
-// Version 13.2 - Activated all header menu buttons and implemented their functionality
+// Version 13.3 - Load API key on startup
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -549,6 +549,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     async function initialize() {
         try {
+            state.loadApiKey(); // Load API key from local storage on startup
+            
             const [terrainsRes, assetsRes] = await Promise.all([
                 fetch('terrains.json'),
                 fetch('assets.json')

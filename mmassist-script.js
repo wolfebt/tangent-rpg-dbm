@@ -1,4 +1,4 @@
-// Version 6.0 - Reworked AI Assist for iterative image generation
+// Version 6.1 - Use central API key from state
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -38,14 +38,17 @@ document.addEventListener('DOMContentLoaded', () => {
             state.showToast("Please enter a prompt for the initial generation.", "error");
             return;
         }
+        if (!state.apiKey) {
+            state.showToast("Please set your API Key in the settings menu first.", "error");
+            return;
+        }
 
         toggleButtonLoading(generateBtn, true);
         currentAiImageBase64 = null; // Clear previous image
 
         try {
             const payload = { instances: [{ prompt: prompt }], parameters: { "sampleCount": 1 } };
-            const apiKey = ""; // API key will be proxied
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${state.apiKey}`;
             
             const response = await fetch(apiUrl, {
                 method: 'POST',
@@ -88,6 +91,10 @@ document.addEventListener('DOMContentLoaded', () => {
             state.showToast("Please enter a prompt to refine the image.", "error");
             return;
         }
+        if (!state.apiKey) {
+            state.showToast("Please set your API Key in the settings menu first.", "error");
+            return;
+        }
 
         toggleButtonLoading(updateBtn, true);
         
@@ -103,8 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     responseModalities: ['IMAGE']
                 },
             };
-            const apiKey = "";
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${apiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${state.apiKey}`;
 
             const response = await fetch(apiUrl, {
                 method: 'POST',
