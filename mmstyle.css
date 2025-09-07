@@ -76,7 +76,7 @@ body {
     height: 100%;
     overflow: hidden; /* Keep bottom panel contained */
 }
-#mapCanvas, #wallCanvas, #fogCanvas, #drawingCanvas, #maskCanvas {
+#mapCanvas, #wallCanvas, #fogCanvas, #drawingCanvas, #maskCanvas, #lightCanvas {
     position: absolute;
     top: 0;
     left: 0;
@@ -86,6 +86,11 @@ body {
 #wallCanvas {
     z-index: 2;
     pointer-events: none;
+}
+#lightCanvas {
+    z-index: 4;
+    pointer-events: none;
+    mix-blend-mode: screen; /* Or other blend modes for cool effects */
 }
 #fogCanvas {
     z-index: 15;
@@ -238,7 +243,7 @@ body {
 }
 
 /* --- ACTIVE STATE HIGHLIGHTING --- */
-.control-panel button.active, .control-btn.active {
+.control-panel button.active, .tool-btn.active {
     background-color: #3b82f6 !important; /* blue-500 */
     color: #f9fafb !important; /* gray-50 */
     box-shadow: 0 0 0 2px #111827, 0 0 0 4px #3b82f6;
@@ -456,6 +461,13 @@ body {
     display: none !important;
 }
 .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0,0,0,0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
     transition: opacity 0.3s ease;
 }
 
@@ -470,3 +482,57 @@ body {
 #dungeonKeyContent p {
     line-height: 1.6;
 }
+
+/* Toast Notification Styles */
+#toast-container {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.toast {
+    padding: 1rem 1.5rem;
+    border-radius: 0.5rem;
+    color: white;
+    font-weight: bold;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    animation: toast-fade-in 0.5s ease;
+}
+.toast.toast-success {
+    background-color: #22c55e; /* green-500 */
+}
+.toast.toast-error {
+    background-color: #ef4444; /* red-500 */
+}
+.toast.toast-info {
+    background-color: #3b82f6; /* blue-500 */
+}
+.toast-fade-out {
+    animation: toast-fade-out 0.5s ease forwards;
+}
+
+@keyframes toast-fade-in {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes toast-fade-out {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+}
+

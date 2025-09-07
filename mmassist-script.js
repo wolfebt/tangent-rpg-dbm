@@ -1,4 +1,4 @@
-// Version 9.0 - Switched to Square Grid Logic for AI
+// Version 13.0 - Full implementation review and final fixes
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -27,11 +27,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!activeMap) return "";
 
         let preamble = `You are an expert TTRPG map designer and game master. Your task is to interpret a user's request and provide a structured JSON response. `;
-        preamble += `The current map scale is '${activeMap.scale}'. The grid is a square grid.`;
+        preamble += `The current map scale is '${activeMap.scale}'. `;
 
         switch (actionType) {
             case 'layout':
-                preamble += `You are generating a new map layout. `;
+                preamble += `You are generating a new map layout. The grid type is square. `;
                 break;
             case 'dressing':
                 preamble += `You are dressing an existing area with objects. The user has selected a specific region on the map. You must only place objects within the provided coordinates. `;
@@ -45,16 +45,6 @@ document.addEventListener('DOMContentLoaded', () => {
                  preamble += `You are editing the terrain data of a selected area. You must only affect the provided coordinates. `;
                  preamble += `Available terrain types are: ${JSON.stringify(Object.keys(state.terrains))}. `;
                  preamble += `The selected coordinates are: ${JSON.stringify(additionalContext.selectedSquares)}. `;
-                break;
-            case 'hexcrawl': // Retaining name, but logic is grid-agnostic
-                const mapWidth = activeMap.width;
-                const mapHeight = activeMap.height;
-                preamble += `You are generating content for a grid-based regional map. The user has requested details for ${additionalContext.squareCount} locations. Generate a list of points of interest, brief descriptions, and suggest an appropriate terrain type for each. The map grid is ${mapWidth}x${mapHeight}. Choose random, valid coordinates within these bounds.`;
-                break;
-            case 'pointcrawl':
-                const p_mapWidth = activeMap.width;
-                const p_mapHeight = activeMap.height;
-                preamble += `You are generating content for a pointcrawl-style map (like a city or region). Create a series of named locations (nodes) and the connections (edges) between them. Provide a brief description for each node and suggest logical coordinates on a ${p_mapWidth}x${p_mapHeight} grid.`;
                 break;
             case 'keyGeneration':
                 preamble += `You are an adventure writer creating a descriptive key for a dungeon map. Based on the provided room data (which includes room numbers, terrain types, and a list of objects in each room), write an evocative, sensory-rich description for each room. The descriptions should be suitable for a GM to read aloud.`;
@@ -116,72 +106,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    function analyzeMapForRooms() {
-        const activeMap = state.getActiveMap();
-        if (!activeMap) return [];
-
-        const groundLayer = activeMap.layers.find(l => l.name === 'Ground');
-        if (!groundLayer) return [];
-
-        const doorSquares = new Set();
-        activeMap.placedAssets.forEach(asset => {
-            if (asset.assetId.includes('door')) {
-                 // You'll need a pixelToGrid function available here
-                // doorSquares.add(`${asset.x},${asset.y}`); 
-            }
-        });
-
-        const rooms = [];
-        const visited = new Set();
-        let roomCounter = 1;
-
-        const directions = [
-            { x: 0, y: 1 }, { x: 0, y: -1 }, { x: 1, y: 0 }, { x: -1, y: 0 }
-        ];
-
-        for (const key in activeMap.mapGrid) {
-            if (visited.has(key)) continue;
-
-            const groundData = groundLayer.data[key];
-            const terrainType = groundData ? groundData.terrain : null;
-
-            if (terrainType) {
-                const currentRoom = {
-                    id: roomCounter++,
-                    terrain: terrainType,
-                    coordinates: []
-                };
-                
-                const queue = [key];
-                visited.add(key);
-
-                while (queue.length > 0) {
-                    const currentKey = queue.shift();
-                    const [x, y] = currentKey.split(',').map(Number);
-                    currentRoom.coordinates.push({ x, y });
-
-                    for (const dir of directions) {
-                        const neighborX = x + dir.x;
-                        const neighborY = y + dir.y;
-                        const neighborKey = `${neighborX},${neighborY}`;
-
-                        if (activeMap.mapGrid[neighborKey] && !visited.has(neighborKey) && !doorSquares.has(neighborKey)) {
-                            const neighborTerrain = groundLayer.data[neighborKey] ? groundLayer.data[neighborKey].terrain : null;
-                            if (neighborTerrain === terrainType) {
-                                visited.add(neighborKey);
-                                queue.push(neighborKey);
-                            }
-                        }
-                    }
-                }
-                if (currentRoom.coordinates.length > 0) {
-                    rooms.push(currentRoom);
-                }
-            }
-        }
-        return rooms;
-    }
-
     // --- Event Handler Implementations ---
 
     async function handleLayoutGeneration() {
@@ -194,14 +118,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const schema = {
             type: "OBJECT",
             properties: {
-                rooms: {
+                terrainChanges: {
                     type: "ARRAY",
                     items: {
                         type: "OBJECT",
                         properties: {
-                            id: { type: "NUMBER" },
-                            description: { type: "STRING" },
-                            coordinates: {
+                           coordinates: {
                                 type: "ARRAY",
                                 items: {
                                     type: "OBJECT",
@@ -211,74 +133,70 @@ document.addEventListener('DOMContentLoaded', () => {
                                     },
                                     required: ["x", "y"]
                                 }
-                            }
+                            },
+                            terrainType: { type: "STRING" }
                         },
-                        required: ["id", "description", "coordinates"]
+                        required: ["coordinates", "terrainType"]
                     }
                 },
-                doors: {
+                objectPlacements: {
                     type: "ARRAY",
                     items: {
                         type: "OBJECT",
                         properties: {
-                            coordinates: {
-                                type: "OBJECT",
-                                properties: {
-                                    x: { type: "NUMBER" },
-                                    y: { type: "NUMBER" }
-                                },
-                                required: ["x", "y"]
-                            }
+                           x: { type: "NUMBER" },
+                           y: { type: "NUMBER" },
+                           assetId: { type: "STRING" }
                         },
-                        required: ["coordinates"]
+                        required: ["x", "y", "assetId"]
                     }
                 }
             },
-            required: ["rooms", "doors"]
+            required: ["terrainChanges"]
         };
         
         const fullPrompt = buildContextualPrompt(userPrompt, 'layout');
         const layoutData = await callGenerativeAIForJSON(fullPrompt, schema);
 
         if (layoutData) {
-            // This function would need to be adapted to ingest the new square grid data
-            // ingestGeneratedLayout(layoutData);
-            console.log("Layout data received:", layoutData);
-            state.showToast("AI Layout Generated!", "success");
+            // Ingest generated layout - This part needs to be implemented
+            state.showModal("Layout data received from AI. Ingestion logic needs to be implemented.");
+            console.log(layoutData);
         }
     }
 
     async function handleAiDressing() {
-        // ... (Implementation for handleAiDressing adapted for squares)
+        state.showModal("This AI feature is not yet implemented.");
     }
     async function handleAiDataEdit() {
-        // ... (Implementation for handleAiDataEdit adapted for squares)
+        state.showModal("This AI feature is not yet implemented.");
     }
     async function handleHexcrawlGeneration() {
-        // ... (Implementation for hexcrawl adapted for squares)
+        state.showModal("This AI feature is not yet implemented.");
     }
     async function handlePointcrawlGeneration() {
-        // ... (Implementation for pointcrawl adapted for squares)
+        state.showModal("This AI feature is not yet implemented.");
     }
     async function handleKeyGeneration() {
-        // ... (Implementation for key generation adapted for squares)
+        state.showModal("This AI feature is not yet implemented.");
     }
 
 
     function addAiEventListeners() {
+        if (!aiBottomPanelHeader) return;
         aiBottomPanelHeader.addEventListener('click', () => {
             document.getElementById('aiBottomPanel').classList.toggle('closed');
         });
         
         generateLayoutBtn.addEventListener('click', handleLayoutGeneration);
-        // dressAreaBtn.addEventListener('click', handleAiDressing);
-        // applyAiDataEditBtn.addEventListener('click', handleAiDataEdit);
-        // generateHexcrawlBtn.addEventListener('click', handleHexcrawlGeneration);
-        // generatePointcrawlBtn.addEventListener('click', handlePointcrawlGeneration);
-        // generateKeyBtn.addEventListener('click', handleKeyGeneration);
+        if (dressAreaBtn) dressAreaBtn.addEventListener('click', handleAiDressing);
+        if (applyAiDataEditBtn) applyAiDataEditBtn.addEventListener('click', handleAiDataEdit);
+        if (generateHexcrawlBtn) generateHexcrawlBtn.addEventListener('click', handleHexcrawlGeneration);
+        if (generatePointcrawlBtn) generatePointcrawlBtn.addEventListener('click', handlePointcrawlGeneration);
+        if (generateKeyBtn) generateKeyBtn.addEventListener('click', handleKeyGeneration);
 
-        if(keyModalCloseBtn) keyModalCloseBtn.addEventListener('click', () => dungeonKeyModal.classList.add('hidden'));
-        if(dungeonKeyModal) dungeonKeyModal.addEventListener('click', (e) => {
+        if (keyModalCloseBtn) keyModalCloseBtn.addEventListener('click', () => dungeonKeyModal.classList.add('hidden'));
+        if (dungeonKeyModal) dungeonKeyModal.addEventListener('click', (e) => {
             if (e.target === dungeonKeyModal) {
                 dungeonKeyModal.classList.add('hidden');
             }

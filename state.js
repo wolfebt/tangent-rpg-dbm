@@ -1,17 +1,15 @@
-// Version 11.0 - No changes needed
-// Version 4.33 - Added data models for notes and containers
+// Version 13.0 - Full implementation review and final fixes
 // --- State Variables ---
 export let terrains = {};
 export let assetManifest = {};
 export let apiKey = '';
 
-// The main project object. It will hold all maps and project-level metadata.
 export let project = {
     projectName: 'Untitled Campaign',
-    maps: {}, // Maps will be stored here, indexed by a unique ID
+    maps: {}, 
 };
 
-export let activeMapId = null; // ID of the currently active/visible map
+export let activeMapId = null; 
 
 // --- Helper function to get the active map object ---
 export const getActiveMap = () => {
@@ -19,11 +17,6 @@ export const getActiveMap = () => {
 };
 
 // --- State Update Functions ---
-
-/**
- * Sets the active map ID.
- * @param {string} mapId The ID of the map to set as active.
- */
 export const setActiveMapId = (mapId) => {
     activeMapId = mapId;
 };
@@ -33,28 +26,16 @@ export const setState = (newState) => {
     if (newState.assetManifest !== undefined) assetManifest = newState.assetManifest;
     if (newState.apiKey !== undefined) apiKey = newState.apiKey;
     if (newState.project !== undefined) project = newState.project;
-    // Ensure we can still set the activeMapId through the general setState function as well
     if (newState.activeMapId !== undefined) activeMapId = newState.activeMapId;
 };
 
-/**
- * Adds a new asset to the manifest and saves custom assets to local storage.
- * @param {object} assetData The new asset object to add.
- */
 export function addNewAsset(assetData) {
-    // Get existing custom assets from storage, or initialize an empty object
     let customAssets = JSON.parse(localStorage.getItem('mapMakerCustomAssets')) || {};
-    // Merge the new asset data
     Object.assign(customAssets, assetData);
-    // Save back to localStorage
     localStorage.setItem('mapMakerCustomAssets', JSON.stringify(customAssets));
-    // Also update the live manifest immediately
     Object.assign(assetManifest, assetData);
 }
 
-/**
- * Loads custom assets from localStorage into the live manifest.
- */
 export function loadCustomAssets() {
     const customAssets = JSON.parse(localStorage.getItem('mapMakerCustomAssets')) || {};
     Object.assign(assetManifest, customAssets);
@@ -88,7 +69,6 @@ export function showModal(message, onConfirm) {
     }
 }
 
-// NEW: Specific modal for session recovery
 export function showRecoveryModal(onRestore, onDiscard) {
     const existingModal = document.querySelector('.modal-backdrop');
     if(existingModal) existingModal.remove();
@@ -144,19 +124,26 @@ export function showContentModal(title, content) {
     }
 }
 
-// NEW: Toast Notification Function
-export function showToast(message, type = 'info', duration = 5000) {
+export function showToast(message, type = 'info', duration = 3000) {
     const container = document.getElementById('toast-container');
-    if (!container) return;
-
+    if (!container) {
+        const newContainer = document.createElement('div');
+        newContainer.id = 'toast-container';
+        document.body.appendChild(newContainer);
+    }
+    
+    const toastContainer = document.getElementById('toast-container');
     const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
+    toast.className = `toast toast-${type}`;
     toast.textContent = message;
 
-    container.appendChild(toast);
+    toastContainer.appendChild(toast);
 
     setTimeout(() => {
-        toast.remove();
+        toast.classList.add('toast-fade-out');
+        toast.addEventListener('animationend', () => {
+            toast.remove();
+        });
     }, duration);
 }
 

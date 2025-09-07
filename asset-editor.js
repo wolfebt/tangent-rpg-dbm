@@ -1,4 +1,5 @@
-// Version 4.35 - Module Import Fix
+// Version 13.0 - Full implementation review and final fixes
+import { addNewAsset, showToast } from './state.js';
 
 // --- DOM ELEMENTS ---
 const assetEditorOverlay = document.getElementById('asset-editor-overlay');
@@ -88,7 +89,6 @@ function draw(e) {
     
     drawCtx.stroke();
     
-    // Edge wrapping for terrain mode
     if (assetTypeSelect.value === 'terrain') {
         const wrapX = currentPos.x < brushSize ? drawCanvas.width : (currentPos.x > drawCanvas.width - brushSize ? -drawCanvas.width : 0);
         const wrapY = currentPos.y < brushSize ? drawCanvas.height : (currentPos.y > drawCanvas.height - brushSize ? -drawCanvas.height : 0);
@@ -107,7 +107,7 @@ function draw(e) {
 async function generateAIAsset() {
     const userPrompt = promptInput.value;
     if (!userPrompt) {
-        alert("Please enter a prompt.");
+        showToast("Please enter a prompt.", "error");
         return;
     }
     
@@ -116,7 +116,7 @@ async function generateAIAsset() {
 
     try {
         const payload = { instances: [{ prompt: userPrompt }], parameters: { "sampleCount": 1} };
-        const apiKey = ""; // API key will be provided by the environment
+        const apiKey = ""; 
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
         
         const response = await fetch(apiUrl, {
@@ -148,17 +148,17 @@ async function generateAIAsset() {
 
     } catch (error) {
         console.error("AI Generation Error:", error);
-        alert(`An error occurred: ${error.message}`);
+        showToast(`An error occurred: ${error.message}`, "error");
     } finally {
         loadingOverlay.classList.add('hidden');
         generateBtn.disabled = false;
     }
 }
 
-function generateExportCode() {
+function saveAssetToLibrary() {
     const name = assetNameInput.value.trim();
     if (!name) {
-        alert("Please provide a name for your asset.");
+        showToast("Please provide a name for your asset.", "error");
         return;
     }
 
@@ -170,36 +170,45 @@ function generateExportCode() {
     finalCtx.drawImage(drawCanvas, 0, 0);
     
     const dataUri = finalCanvas.toDataURL('image/png');
-    const assetId = name.toLowerCase().replace(/[^a-z0-9]/gi, '_');
-    const tags = assetTagsInput.value.split(',').map(t => `"${t.trim()}"`).join(', ');
+    const assetId = `custom_${name.toLowerCase().replace(/[^a-z0-9]/gi, '_')}_${Date.now()}`;
+    const tags = assetTagsInput.value.split(',').map(t => t.trim()).filter(t => t);
 
-    let jsonSnippet = '';
+    let newAssetObject = {};
 
     if (assetTypeSelect.value === 'object') {
-        jsonSnippet = `"${assetId}": {\n  "name": "${name}",\n  "src": "${dataUri}",\n  "tags": [${tags}]\n}`;
-    } else { // Terrain
+        newAssetObject = {
+            [assetId]: {
+                name: name,
+                src: dataUri,
+                tags: tags
+            }
+        };
+    } else { 
         const patternId = `pattern-${assetId}`;
-        jsonSnippet = `"${assetId}": {\n  "name": "${name}",\n  "color": "#ffffff",\n  "pattern": "${patternId}",\n  "tags": [${tags}]\n}`;
-        
-        const svgPattern = `<pattern id="${patternId}" width="${mainCanvas.width}" height="${mainCanvas.height}" patternUnits="userSpaceOnUse">\n  <image href="${dataUri}" width="${mainCanvas.width}" height="${mainCanvas.height}"/>\n</pattern>`;
-        
-        jsonSnippet += `\n\n<!-- Add this to map-maker.html's <defs> section -->\n${svgPattern}`;
+        newAssetObject = {
+            [assetId]: {
+                name: name,
+                color: "#ffffff",
+                pattern: patternId,
+                tags: tags,
+                isCustom: true,
+                src: dataUri
+            }
+        };
     }
     
-    exportOutput.value = jsonSnippet;
-    navigator.clipboard.writeText(jsonSnippet).then(() => {
-        alert("Export code copied to clipboard!");
-    }).catch(err => {
-        console.error('Failed to copy: ', err);
-        alert("Could not copy to clipboard. Please copy manually from the text box.");
-    });
+    addNewAsset(newAssetObject);
+    showToast(`Asset "${name}" saved to your library!`, 'success');
+    document.dispatchEvent(new CustomEvent('assetLibraryUpdated'));
+    assetEditorOverlay.classList.add('hidden');
 }
+
 
 // --- EVENT LISTENERS ---
 assetTypeSelect.addEventListener('change', (e) => switchMode(e.target.value));
 
 generateBtn.addEventListener('click', generateAIAsset);
-exportBtn.addEventListener('click', generateExportCode);
+exportBtn.addEventListener('click', saveAssetToLibrary);
 
 toolBtns.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -237,4 +246,5 @@ closeBtn.addEventListener('click', () => {
 });
 
 // --- INITIALIZATION ---
-switchMode('object'); // Default to object mode
+switchMode('object');
+
