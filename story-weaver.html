@@ -92,6 +92,16 @@
             outline: none;
             border-color: #2563eb;
         }
+        .storyboard-panel {
+            background-color: #1f2937;
+            border: 1px solid #374151;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+        .storyboard-panel .panel-loader {
+            width: 3rem;
+            height: 3rem;
+        }
     </style>
 </head>
 <body class="antialiased">
@@ -124,6 +134,7 @@
                     <button data-stage="outline" class="nav-btn flex-1 text-center py-2 px-4 rounded-md transition-colors duration-300 font-semibold text-gray-400">2. Outline</button>
                     <button data-stage="treatment" class="nav-btn flex-1 text-center py-2 px-4 rounded-md transition-colors duration-300 font-semibold text-gray-400">3. Treatment</button>
                     <button data-stage="write" class="nav-btn flex-1 text-center py-2 px-4 rounded-md transition-colors duration-300 font-semibold text-gray-400">4. Write</button>
+                    <button data-stage="storyboard" class="nav-btn flex-1 text-center py-2 px-4 rounded-md transition-colors duration-300 font-semibold text-gray-400">5. Storyboard</button>
                 </nav>
 
                 <div id="brainstorm" class="stage active">
@@ -243,6 +254,46 @@
                         <div id="main-editor" contenteditable="true" class="w-full min-h-[50vh] p-4 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 overflow-y-auto" aria-label="Main story editor"></div>
                     </div>
                 </div>
+                
+                <div id="storyboard" class="stage">
+                    <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                        <h2 class="text-2xl font-semibold mb-4 text-white">Create a Storyboard</h2>
+                        <div class="flex space-x-2 mb-4">
+                            <button id="load-treatment-to-storyboard" class="flex-1 py-2 px-4 text-sm rounded-lg font-semibold btn-secondary">Load from Treatment</button>
+                            <button id="load-story-to-storyboard" class="flex-1 py-2 px-4 text-sm rounded-lg font-semibold btn-secondary">Load from Story</button>
+                        </div>
+                        <label for="storyboard-description" class="block text-sm font-medium text-gray-400 mb-2">Scene Description</label>
+                        <textarea id="storyboard-description" class="w-full h-48 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Paste or write the scene you want to visualize..."></textarea>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                            <div>
+                                <label for="storyboard-panels" class="block text-sm font-medium text-gray-400 mb-2">Number of Panels</label>
+                                <input type="number" id="storyboard-panels" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" value="4" min="1" max="8">
+                            </div>
+                            <div>
+                                <label for="storyboard-style" class="block text-sm font-medium text-gray-400 mb-2">Art Style</label>
+                                <select id="storyboard-style" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                    <option>Sketch</option>
+                                    <option>Painting</option>
+                                    <option>Anime</option>
+                                    <option>Photorealistic</option>
+                                    <option>Comic Book</option>
+                                    <option>Cinematic</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button id="generate-storyboard-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Storyboard</button>
+                    </div>
+                    <div id="storyboard-loader" class="hidden text-center mt-4">
+                        <p class="mb-2 text-gray-400">Generating panel descriptions...</p>
+                        <div class="loader inline-block"></div>
+                    </div>
+                    <div id="storyboard-output" class="mt-8 grid gap-6 grid-cols-1 md:grid-cols-2">
+                        <!-- Storyboard panels will be dynamically inserted here -->
+                    </div>
+                </div>
+
             </main>
 
             <aside class="lg:col-span-4 bg-gray-900/50 border border-gray-700 rounded-lg p-4 h-fit sticky top-8">
@@ -342,6 +393,14 @@
         const writingGuidanceInput = document.getElementById('writing-guidance-input');
         const writingSecondaryGuidance = document.getElementById('writing-secondary-guidance');
         const generateWritingBtn = document.getElementById('generate-writing-btn');
+        const generateStoryboardBtn = document.getElementById('generate-storyboard-btn');
+        const storyboardDescription = document.getElementById('storyboard-description');
+        const storyboardPanels = document.getElementById('storyboard-panels');
+        const storyboardStyle = document.getElementById('storyboard-style');
+        const storyboardOutput = document.getElementById('storyboard-output');
+        const storyboardLoader = document.getElementById('storyboard-loader');
+        const loadTreatmentToStoryboardBtn = document.getElementById('load-treatment-to-storyboard');
+        const loadStoryToStoryboardBtn = document.getElementById('load-story-to-storyboard');
         
         function showStatus(message, isError = false) {
             statusMessage.textContent = message;
@@ -528,6 +587,41 @@
                 loaderElement.style.display = 'none';
             }
         }
+
+        async function callImagen(positivePrompt, negativePrompt) {
+            const apiKey = localStorage.getItem('geminiApiKey');
+            if (!apiKey) {
+                showStatus("API Key is missing for image generation. Please add it in Settings.", true);
+                openModal('settings');
+                return null;
+            }
+            try {
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+                const payload = {
+                    instances: [{ prompt: positivePrompt, negativePrompt: negativePrompt }],
+                    parameters: { "sampleCount": 1 }
+                };
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+                }
+                const result = await response.json();
+                if (result.predictions?.[0]?.bytesBase64Encoded) {
+                    return `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
+                }
+                throw new Error('API returned a valid response but no image data was found.');
+            } catch(e) {
+                console.error("Imagen API Error:", e);
+                showStatus(`Image Gen Error: ${e.message}`, true);
+                return null;
+            }
+        }
+
         function cleanAndFormat(text) { 
             return text ? text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/^\* (.*$)/gim, '<li class="ml-4 list-disc">$1</li>').replace(/\n/g, '<br>') : "";
         }
@@ -699,18 +793,18 @@
             }
 
             switch (brainstormType) { 
-                case 'Characters': prompt = `${fullBase} Brainstorm 8 unique characters based on the theme: "${userInput}". For each character, provide a **Name:**, a **Description:**, and their **Motivation:**.`; break; 
-                case 'Settings': prompt = `${fullBase} Brainstorm 8 unique settings based on the theme: "${userInput}". For each setting, provide a **Name:**, a **Description:**, and the **Atmosphere:**.`; break; 
-                case 'Plot Twists': prompt = `${fullBase} Brainstorm 8 shocking plot twists related to the idea: "${userInput}". For each twist, provide a **Twist:** title and a **Description:** of how it unfolds.`; break; 
-                case 'Story Hooks': prompt = `${fullBase} Brainstorm 8 compelling story hooks based on the idea: "${userInput}". For each hook, provide a **Hook:** title and a **Description:** of the scenario.`; break; 
-                case 'Design Concept': prompt = `${fullBase} Brainstorm 8 design concepts for: "${userInput}". For each, provide a **Concept:** title, a **Description:** of the visual style, and a list of **Key Elements:**.`; break;
+                case 'Characters': prompt = `${fullBase} Brainstorm 5 unique characters based on the theme: "${userInput}". For each character, provide a **Name:**, a **Description:**, and their **Motivation:**.`; break; 
+                case 'Settings': prompt = `${fullBase} Brainstorm 5 unique settings based on the theme: "${userInput}". For each setting, provide a **Name:**, a **Description:**, and the **Atmosphere:**.`; break; 
+                case 'Plot Twists': prompt = `${fullBase} Brainstorm 5 shocking plot twists related to the idea: "${userInput}". For each twist, provide a **Twist:** title and a **Description:** of how it unfolds.`; break; 
+                case 'Story Hooks': prompt = `${fullBase} Brainstorm 5 compelling story hooks based on the idea: "${userInput}". For each hook, provide a **Hook:** title and a **Description:** of the scenario.`; break; 
+                case 'Design Concept': prompt = `${fullBase} Brainstorm 5 design concepts for: "${userInput}". For each, provide a **Concept:** title, a **Description:** of the visual style, and a list of **Key Elements:**.`; break;
                 case 'Shopping List': prompt = `${fullBase} Create a detailed shopping list for: "${userInput}". For each item, provide the **Item:** name, **Quantity:**, and **Notes:**.`; break;
-                case 'Travel Ideas': prompt = `${fullBase} Brainstorm 8 travel ideas related to: "${userInput}". For each, provide a **Destination:**, a **Description:** of why to go, and a list of **Activities:**.`; break;
+                case 'Travel Ideas': prompt = `${fullBase} Brainstorm 5 travel ideas related to: "${userInput}". For each, provide a **Destination:**, a **Description:** of why to go, and a list of **Activities:**.`; break;
                 case 'Story Ideas': 
-                    prompt = `${fullBase} Brainstorm 8 unique story ideas based on the premise: "${userInput}". For each idea, you MUST provide a **Title:**, a **Logline:**, and a **Synopsis:**.`; 
+                    prompt = `${fullBase} Brainstorm 5 unique story ideas based on the premise: "${userInput}". For each idea, you MUST provide a **Title:**, a **Logline:**, and a **Synopsis:**.`; 
                     break;
                 default:
-                    prompt = `${fullBase} Brainstorm 8 concepts for "${brainstormType}" based on the theme: "${userInput}". For each concept, give it a bolded **Title:** and a detailed description.`;
+                    prompt = `${fullBase} Brainstorm 5 concepts for "${brainstormType}" based on the theme: "${userInput}". For each concept, give it a bolded **Title:** and a detailed description.`;
             } 
             const rawResponse = await callGeminiAPI(prompt, loaders.ideas); 
             if (rawResponse.startsWith("Error:")) { showStatus(rawResponse, true); return; }
@@ -889,6 +983,98 @@
             writingSecondaryGuidance.value = '';
         });
         
+        async function handleStoryboardGeneration() {
+            const description = storyboardDescription.value.trim();
+            if (!description) {
+                showStatus("Please enter a scene description.", true);
+                return;
+            }
+
+            const numPanels = parseInt(storyboardPanels.value, 10);
+            const style = storyboardStyle.value;
+
+            storyboardLoader.classList.remove('hidden');
+            storyboardOutput.innerHTML = '';
+            generateStoryboardBtn.disabled = true;
+
+            const panelPrompt = `You are a film director. Based on the following scene description, break it down into ${numPanels} distinct, chronological storyboard panels. For each panel, provide a concise, visual-only description suitable for an AI image generator. Focus on camera angles (e.g., wide shot, close-up), character actions, and key visual elements. Do not describe sounds or dialogue. Format the output with each panel description separated by a line containing only '---'.\n\n**Scene:**\n${description}`;
+
+            const panelDescriptionsText = await callGeminiAPI(panelPrompt, storyboardLoader.querySelector('.loader'));
+            
+            if (!panelDescriptionsText || panelDescriptionsText.startsWith("Error:")) {
+                showStatus(panelDescriptionsText || "Failed to generate panel descriptions.", true);
+                storyboardLoader.classList.add('hidden');
+                generateStoryboardBtn.disabled = false;
+                return;
+            }
+            
+            storyboardLoader.querySelector('p').textContent = 'Descriptions generated. Now creating images...';
+
+            const panelPrompts = panelDescriptionsText.split('---').map(p => p.trim()).filter(Boolean);
+
+            for (let i = 0; i < panelPrompts.length; i++) {
+                const panelDiv = document.createElement('div');
+                panelDiv.className = 'storyboard-panel';
+                panelDiv.innerHTML = `
+                    <div class="aspect-video bg-gray-900 flex items-center justify-center">
+                        <div class="loader panel-loader"></div>
+                    </div>
+                    <div class="p-3 text-xs text-gray-400">
+                        <p>${i + 1}. ${panelPrompts[i]}</p>
+                    </div>`;
+                storyboardOutput.appendChild(panelDiv);
+            }
+
+            let styleKeywords = "epic digital painting, detailed brushwork, dramatic lighting, fantasy art";
+            if (style === 'Photorealistic') styleKeywords = "photorealistic, hyperdetailed, 8k, cinematic, professional photography, sharp focus";
+            if (style === 'Anime') styleKeywords = "anime style, vibrant, cinematic, detailed background art, by Makoto Shinkai and Studio Ghibli";
+            if (style === 'Sketch') styleKeywords = "detailed pencil sketch, black and white, monochrome, architectural drawing, hand-drawn, graphite on textured paper";
+            if (style === 'Comic Book') styleKeywords = "comic book art style, bold lines, vibrant colors, halftone dots, dynamic action";
+            if (style === 'Cinematic') styleKeywords = "cinematic film still, anamorphic lens, high contrast, moody lighting, detailed";
+            
+            const imagePromises = panelPrompts.map(prompt => {
+                const fullPrompt = `${prompt}, ${styleKeywords}`;
+                return callImagen(fullPrompt, "text, watermark, signature, ugly, deformed");
+            });
+
+            const generatedImages = await Promise.all(imagePromises);
+
+            storyboardLoader.classList.add('hidden');
+            generateStoryboardBtn.disabled = false;
+            storyboardLoader.querySelector('p').textContent = 'Generating panel descriptions...';
+
+            const panelDivs = storyboardOutput.querySelectorAll('.storyboard-panel');
+            generatedImages.forEach((imageUrl, index) => {
+                if (panelDivs[index]) {
+                    const container = panelDivs[index].querySelector('.aspect-video');
+                    if (imageUrl) {
+                        container.innerHTML = `<img src="${imageUrl}" class="w-full h-full object-cover">`;
+                    } else {
+                        container.innerHTML = `<div class="p-4 text-center text-red-400 text-sm">Image failed to generate.</div>`;
+                    }
+                }
+            });
+        }
+        
+        loadTreatmentToStoryboardBtn.addEventListener('click', () => {
+            if (state.storyTreatment) {
+                storyboardDescription.value = htmlToText(state.storyTreatment);
+                showStatus("Loaded content from Treatment.");
+            } else {
+                showStatus("No Treatment content to load.", true);
+            }
+        });
+
+        loadStoryToStoryboardBtn.addEventListener('click', () => {
+            const storyText = mainEditor.innerText;
+            if (storyText.trim()) {
+                storyboardDescription.value = storyText;
+                showStatus("Loaded content from Story editor.");
+            } else {
+                showStatus("No content in the Story editor to load.", true);
+            }
+        });
+
         projectOptionsBtn.addEventListener('click', () => openModal('project'));
         closeModalBtn.addEventListener('click', () => closeModal('project'));
         projectModal.addEventListener('click', (e) => { if (e.target === projectModal) { closeModal('project'); } });
@@ -904,6 +1090,8 @@
         saveApiKeyBtn.addEventListener('click', saveApiKey);
         loadAssetBtn.addEventListener('click', () => assetFileInput.click());
         assetFileInput.addEventListener('change', handleAssetLoad);
+        generateStoryboardBtn.addEventListener('click', handleStoryboardGeneration);
+
 
         projectTitleEl.addEventListener('input', (e) => {
             state.projectTitle = e.target.textContent;
