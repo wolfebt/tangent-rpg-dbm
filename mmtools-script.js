@@ -1,4 +1,4 @@
-// Version 13.0 - Full implementation review and final fixes
+// Version 13.1 - Fixed event propagation for menus and verified all action buttons
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -198,11 +198,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const endY = (canvas.height - view.offsetY) / view.zoom;
         
         targetCtx.beginPath();
-        for (let x = startX; x <= endX; x += squareSize) {
+        for (let x = startX - (startX % squareSize); x <= endX; x += squareSize) {
             targetCtx.moveTo(x, startY);
             targetCtx.lineTo(x, endY);
         }
-        for (let y = startY; y <= endY; y += squareSize) {
+        for (let y = startY - (startY % squareSize); y <= endY; y += squareSize) {
             targetCtx.moveTo(startX, y);
             targetCtx.lineTo(endX, y);
         }
@@ -750,24 +750,32 @@ document.addEventListener('DOMContentLoaded', () => {
         assetEditorBtn.addEventListener('click', () => {
             assetEditorOverlay.classList.remove('hidden');
         });
+        
+        // --- Menu Event Handlers with stopPropagation ---
+        fileMenuBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            fileDropdownMenu.classList.toggle('hidden');
+        });
 
         eraserToolBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             eraserDropdownMenu.classList.toggle('hidden');
         });
-        document.addEventListener('click', () => eraserDropdownMenu.classList.add('hidden'));
+
+        document.addEventListener('click', () => {
+            fileDropdownMenu.classList.add('hidden');
+            eraserDropdownMenu.classList.add('hidden');
+        });
+
 
         document.getElementById('eraseTerrainBtn').addEventListener('click', () => {
             switchTool('erase-terrain');
-            eraserDropdownMenu.classList.add('hidden');
         });
         document.getElementById('eraseObjectsBtn').addEventListener('click', () => {
             state.showModal("Erasing objects is not yet implemented.");
-            eraserDropdownMenu.classList.add('hidden');
         });
         document.getElementById('eraseDrawingsBtn').addEventListener('click', () => {
             state.showModal("Erasing drawings is not yet implemented.");
-            eraserDropdownMenu.classList.add('hidden');
         });
 
 
