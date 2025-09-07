@@ -1,4 +1,4 @@
-// Version 12.0 - Implemented Free-form Circular Brush for Terrain
+// Version 12.1 - Added random name generation for new maps
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -799,6 +799,8 @@ document.addEventListener('DOMContentLoaded', () => {
             activeLayerId = newMap.layers[0].id;
             return;
         }
+        // Set a random 8-character alphanumeric name for the new map
+        newMapNameInput.value = Math.random().toString(36).substring(2, 10).toUpperCase();
         newMapModal.classList.remove('hidden');
     }
 
@@ -843,4 +845,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initialize();
 });
+
 
