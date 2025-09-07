@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Story Weaver AI</title>
+    <title>AI Story Weaver</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -297,10 +297,7 @@
                             <button id="load-treatment-to-storyboard" class="flex-1 py-2 px-4 text-sm rounded-lg font-semibold btn-secondary">Load from Treatment</button>
                             <button id="load-story-to-storyboard" class="flex-1 py-2 px-4 text-sm rounded-lg font-semibold btn-secondary">Load from Story</button>
                         </div>
-                        <label for="storyboard-description" class="block text-sm font-medium text-gray-400 mb-2">Scene Description</label>
-                        <textarea id="storyboard-description" class="w-full h-48 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Paste or write the scene you want to visualize..."></textarea>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                             <div>
                                 <label for="storyboard-panels" class="block text-sm font-medium text-gray-400 mb-2">Number of Panels</label>
                                 <input type="number" id="storyboard-panels" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" value="4" min="1" max="8">
@@ -317,11 +314,14 @@
                                 </select>
                             </div>
                         </div>
-
+                        <label for="storyboard-description" class="block text-sm font-medium text-gray-400 mb-2">Scene Description</label>
+                        <textarea id="storyboard-description" class="w-full h-48 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Paste or write the scene you want to visualize..."></textarea>
+                        <label for="storyboard-secondary-guidance" class="block text-sm font-medium text-gray-400 mb-2 mt-4">Secondary Guidance (Optional)</label>
+                        <textarea id="storyboard-secondary-guidance" class="w-full h-24 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., Maintain a consistent color palette of blues and grays, ensure the main character always wears a red scarf..."></textarea>
                         <button id="generate-storyboard-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Storyboard</button>
                     </div>
                     <div id="storyboard-loader" class="hidden text-center mt-4">
-                        <p class="mb-2 text-gray-400">Generating panel descriptions...</p>
+                        <p class="mb-2 text-gray-400">Generating visual seeds...</p>
                         <div class="loader inline-block"></div>
                     </div>
                     <div id="storyboard-output" class="mt-8 grid gap-6 grid-cols-1 md:grid-cols-2">
@@ -425,6 +425,7 @@
         const storyboardLoader = document.getElementById('storyboard-loader');
         const loadTreatmentToStoryboardBtn = document.getElementById('load-treatment-to-storyboard');
         const loadStoryToStoryboardBtn = document.getElementById('load-story-to-storyboard');
+        const storyboardSecondaryGuidance = document.getElementById('storyboard-secondary-guidance');
         
         function showStatus(message, isError = false) {
             statusMessage.textContent = message;
@@ -791,7 +792,23 @@
             generateStoryboardBtn.disabled = true;
 
             const assetContext = getAssetContextForAI();
-            const panelPrompt = `${assetContext}You are a film director. Based on the following scene description, break it down into ${numPanels} distinct, chronological storyboard panels. For each panel, provide a concise, visual-only description suitable for an AI image generator. Focus on camera angles (e.g., wide shot, close-up), character actions, and key visual elements. Do not describe sounds or dialogue. Format the output with each panel description separated by a line containing only '---'.\n\n**Scene:**\n${description}`;
+            const secondaryGuidance = storyboardSecondaryGuidance.value.trim();
+            const guidanceText = secondaryGuidance ? `\n\n**Secondary Guidance:**\n${secondaryGuidance}` : '';
+
+            // First Gemini call for the visual seed
+            storyboardLoader.querySelector('p').textContent = 'Generating visual consistency seed...';
+            const seedPrompt = `Based on the following scene description, assets, and guidance, create a concise "Visual Style Guide" for an AI image generator. This guide should be a comma-separated list of key visual descriptors to ensure consistency across multiple images. Include defining features of characters, clothing, setting, and overall mood.\n\n**CONTEXT:**\n${assetContext}\n${description}\n${guidanceText}`;
+            const visualSeed = await callGeminiAPI(seedPrompt, storyboardLoader.querySelector('.loader'));
+            
+            if (!visualSeed || visualSeed.startsWith("Error:")) {
+                showStatus(visualSeed || "Failed to generate visual seed.", true);
+                storyboardLoader.classList.add('hidden');
+                generateStoryboardBtn.disabled = false;
+                return;
+            }
+
+            storyboardLoader.querySelector('p').textContent = 'Generating panel descriptions...';
+            const panelPrompt = `You are a film director. Based on the following scene description, break it down into ${numPanels} distinct, chronological storyboard panels. For each panel, provide a concise, visual-only description suitable for an AI image generator. Focus on camera angles (e.g., wide shot, close-up), character actions, and key visual elements. Do not describe sounds or dialogue. Format the output with each panel description separated by a line containing only '---'.\n\n**Scene:**\n${description}`;
 
             const panelDescriptionsText = await callGeminiAPI(panelPrompt, storyboardLoader.querySelector('.loader'));
             
@@ -827,15 +844,15 @@
             if (style === 'Cinematic') styleKeywords = "cinematic film still, anamorphic lens, high contrast, moody lighting, detailed";
             
             const imagePromises = panelPrompts.map(prompt => {
-                const fullPrompt = `${prompt}, ${styleKeywords}`;
-                return callImagen(fullPrompt, "text, watermark, signature, ugly, deformed");
+                const fullPrompt = `${visualSeed}, ${prompt}, ${styleKeywords}`;
+                return callImagen(fullPrompt, "text, watermark, signature, ugly, deformed, blurry");
             });
 
             const generatedImages = await Promise.all(imagePromises);
 
             storyboardLoader.classList.add('hidden');
             generateStoryboardBtn.disabled = false;
-            storyboardLoader.querySelector('p').textContent = 'Generating panel descriptions...';
+            storyboardLoader.querySelector('p').textContent = 'Generating visual seeds...';
 
             const panelDivs = storyboardOutput.querySelectorAll('.storyboard-panel');
             generatedImages.forEach((imageUrl, index) => {
