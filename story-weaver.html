@@ -157,9 +157,9 @@
 
                 <div class="bg-gray-900/50 border border-gray-700 rounded-lg p-4">
                     <h2 class="text-xl font-bold mb-4 text-blue-400">Story Assets</h2>
-                    <p class="text-sm text-gray-400 mb-4">Load JSON files from the Character and Scene builders to provide context for the AI.</p>
-                    <button id="load-asset-btn" class="w-full py-2 px-4 rounded-lg font-semibold btn-secondary mb-4">Load Asset File (.json)</button>
-                    <input type="file" id="asset-file-input" class="hidden" accept=".json" multiple>
+                    <p class="text-sm text-gray-400 mb-4">Load JSON and Image files to provide context for the AI.</p>
+                    <button id="load-asset-btn" class="w-full py-2 px-4 rounded-lg font-semibold btn-secondary mb-4">Load Asset(s)</button>
+                    <input type="file" id="asset-file-input" class="hidden" accept=".json,image/*" multiple>
                     
                     <div id="asset-container" class="space-y-4 max-h-[40vh] overflow-y-auto">
                         <!-- Loaded assets will be dynamically inserted here -->
@@ -170,7 +170,8 @@
             <main class="lg:col-span-9">
                 <div id="brainstorm" class="stage active">
                     <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-                        <h2 class="text-2xl font-semibold mb-4 text-white">Creative Brainstorming</h2>
+                        <h2 class="text-2xl font-semibold mb-2 text-white">Creative Brainstorming</h2>
+                        <p class="text-gray-400 mb-6">Start your creative process here. Choose a concept type, provide a theme or idea, and let the AI generate a list of unique concepts to spark your imagination.</p>
                         <label for="brainstorm-type-select" class="block text-sm font-medium text-gray-400 mb-2">I want to brainstorm...</label>
                         <select id="brainstorm-type-select" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 mb-4">
                             <optgroup label="Story Writing">
@@ -202,7 +203,8 @@
 
                 <div id="outline" class="stage">
                      <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-                        <h2 class="text-2xl font-semibold mb-4 text-white">Create a Story Outline</h2>
+                        <h2 class="text-2xl font-semibold mb-2 text-white">Create a Story Outline</h2>
+                        <p class="text-gray-400 mb-6">Structure your narrative. Bring in a concept from the previous stage or paste your own, then select a narrative framework to build a detailed, actionable outline.</p>
                         <label for="outline-structure" class="block text-sm font-medium text-gray-400 mb-2">Select an outline structure:</label>
                         <select id="outline-structure" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 mb-4">
                             <optgroup label="Classic Structures">
@@ -235,7 +237,8 @@
 
                 <div id="treatment" class="stage">
                     <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-                        <h2 class="text-2xl font-semibold mb-4 text-white">Develop a Story Treatment</h2>
+                        <h2 class="text-2xl font-semibold mb-2 text-white">Develop a Story Treatment</h2>
+                        <p class="text-gray-400 mb-6">Flesh out your story. Use your outline to generate a prose summary of the narrative, describing key scenes, character actions, and emotional arcs.</p>
                         <label for="treatment-format-select" class="block text-sm font-medium text-gray-400 mb-2">What is the final format of this story?</label>
                          <select id="treatment-format-select" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 mb-4">
                             <optgroup label="Prose & Narrative">
@@ -269,8 +272,8 @@
 
                 <div id="write" class="stage">
                     <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-6">
-                         <h3 class="text-xl font-semibold mb-4 text-white">AI Writing Assistant</h3>
-                         
+                         <h3 class="text-2xl font-semibold mb-2 text-white">AI Writing Assistant</h3>
+                         <p class="text-gray-400 mb-6">Use the main editor below to write your story. Use this panel to get AI assistance for expanding, rewriting, or adding to your text.</p>
                          <label for="writing-guidance-input" class="block text-sm font-medium text-gray-400 mb-2">Primary Prompt / Request</label>
                          <textarea id="writing-guidance-input" class="w-full h-24 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., 'Write the opening scene...', 'Expand on the confrontation...'"></textarea>
                          
@@ -288,7 +291,8 @@
                 
                 <div id="storyboard" class="stage">
                     <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-                        <h2 class="text-2xl font-semibold mb-4 text-white">Create a Storyboard</h2>
+                        <h2 class="text-2xl font-semibold mb-2 text-white">Create a Storyboard</h2>
+                        <p class="text-gray-400 mb-6">Visualize your scenes. Load content from your treatment or story, and the AI will break it down into key visual moments and generate storyboard panels.</p>
                         <div class="flex space-x-2 mb-4">
                             <button id="load-treatment-to-storyboard" class="flex-1 py-2 px-4 text-sm rounded-lg font-semibold btn-secondary">Load from Treatment</button>
                             <button id="load-story-to-storyboard" class="flex-1 py-2 px-4 text-sm rounded-lg font-semibold btn-secondary">Load from Story</button>
@@ -659,35 +663,51 @@
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     try {
-                        const data = JSON.parse(e.target.result);
-                        addAssetToState(data);
+                        if (file.type === 'application/json') {
+                            const data = JSON.parse(e.target.result);
+                            addAssetToState({ type: 'json', content: data, fileName: file.name });
+                        } else if (file.type.startsWith('image/')) {
+                            addAssetToState({ type: 'image', content: e.target.result, fileName: file.name });
+                        }
                     } catch (error) {
-                        alert(`Error parsing ${file.name}: Invalid JSON format.`);
+                        alert(`Error parsing ${file.name}.`);
+                        console.error("Asset Parse Error:", error);
                     }
                 };
-                reader.readAsText(file);
+
+                if (file.type === 'application/json') {
+                    reader.readAsText(file);
+                } else if (file.type.startsWith('image/')) {
+                    reader.readAsDataURL(file);
+                }
             });
             event.target.value = null;
         }
 
-        function addAssetToState(jsonData) {
+        function addAssetToState(assetData) {
             const asset = {
                 id: `asset-${Date.now()}-${Math.random()}`,
                 label: '',
                 notes: '',
-                content: jsonData,
                 includeInPrompt: true
             };
 
-            if (jsonData.name && jsonData.personality) {
-                asset.type = 'Character';
-                asset.name = jsonData.name;
-            } else if (jsonData['location-name'] && jsonData.atmosphere) {
-                asset.type = 'Scene';
-                asset.name = jsonData['location-name'];
-            } else {
-                asset.type = 'Unknown';
-                asset.name = 'Unnamed Asset';
+            if (assetData.type === 'json') {
+                asset.content = assetData.content;
+                if (asset.content.name && asset.content.personality) {
+                    asset.type = 'Character';
+                    asset.name = asset.content.name;
+                } else if (asset.content['location-name'] && asset.content.atmosphere) {
+                    asset.type = 'Scene';
+                    asset.name = asset.content['location-name'];
+                } else {
+                    asset.type = 'JSON Data';
+                    asset.name = assetData.fileName;
+                }
+            } else if (assetData.type === 'image') {
+                asset.content = assetData.content; // Base64 data URL
+                asset.type = 'Image';
+                asset.name = assetData.fileName;
             }
             
             state.assets.push(asset);
@@ -702,15 +722,21 @@
                 card.className = 'asset-card space-y-2';
                 card.dataset.id = asset.id;
                 
+                let contentPreview = '';
+                if (asset.type === 'Image') {
+                    contentPreview = `<img src="${asset.content}" class="rounded w-full h-auto object-cover mt-2">`;
+                }
+
                 card.innerHTML = `
                     <div class="flex justify-between items-center">
-                        <strong class="text-blue-400">${asset.type}: <span class="text-white">${asset.name}</span></strong>
+                        <strong class="text-${asset.type === 'Image' ? 'green' : 'blue'}-400">${asset.type}: <span class="text-white truncate" style="max-width: 120px;">${asset.name}</span></strong>
                         <div class="flex items-center space-x-2">
                             <label for="include-${asset.id}" class="text-xs text-gray-400">Include</label>
                             <input type="checkbox" id="include-${asset.id}" class="asset-include-checkbox w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500" data-id="${asset.id}" ${asset.includeInPrompt ? 'checked' : ''}>
                             <button class="remove-asset-btn text-red-400 hover:text-red-300 text-xs font-bold pl-2">REMOVE</button>
                         </div>
                     </div>
+                    ${contentPreview}
                     <div>
                         <label class="text-xs text-gray-400">Label</label>
                         <input type="text" class="asset-input asset-label" value="${asset.label}" placeholder="e.g., Protagonist, Main Villain">
@@ -726,10 +752,7 @@
 
         function getAssetContextForAI() {
             const includedAssets = state.assets.filter(asset => asset.includeInPrompt);
-
-            if (includedAssets.length === 0) {
-                return "";
-            }
+            if (includedAssets.length === 0) return "";
 
             let context = "\n\n--- STORY ASSETS CONTEXT ---\n";
             includedAssets.forEach(asset => {
@@ -745,6 +768,8 @@
                     context += `Location: ${asset.content['location-name'] || 'N/A'}\n`;
                     context += `Description: ${asset.content.overview || 'N/A'}\n`;
                     context += `Atmosphere: ${asset.content.atmosphere || 'N/A'}\n`;
+                } else if (asset.type === 'Image') {
+                    context += `Visual Reference Name: ${asset.name}\n`;
                 }
             });
             context += "--- END ASSETS CONTEXT ---\n\n";
@@ -765,7 +790,8 @@
             storyboardOutput.innerHTML = '';
             generateStoryboardBtn.disabled = true;
 
-            const panelPrompt = `You are a film director. Based on the following scene description, break it down into ${numPanels} distinct, chronological storyboard panels. For each panel, provide a concise, visual-only description suitable for an AI image generator. Focus on camera angles (e.g., wide shot, close-up), character actions, and key visual elements. Do not describe sounds or dialogue. Format the output with each panel description separated by a line containing only '---'.\n\n**Scene:**\n${description}`;
+            const assetContext = getAssetContextForAI();
+            const panelPrompt = `${assetContext}You are a film director. Based on the following scene description, break it down into ${numPanels} distinct, chronological storyboard panels. For each panel, provide a concise, visual-only description suitable for an AI image generator. Focus on camera angles (e.g., wide shot, close-up), character actions, and key visual elements. Do not describe sounds or dialogue. Format the output with each panel description separated by a line containing only '---'.\n\n**Scene:**\n${description}`;
 
             const panelDescriptionsText = await callGeminiAPI(panelPrompt, storyboardLoader.querySelector('.loader'));
             
