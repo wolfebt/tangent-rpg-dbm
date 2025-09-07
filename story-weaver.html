@@ -134,17 +134,17 @@
         </header>
         
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:items-start">
-            <aside class="lg:col-span-3 h-fit sticky top-8 space-y-6">
+            <aside class="lg:col-span-3 h-fit lg:sticky top-8 space-y-6">
                 <div class="bg-gray-900/50 border border-gray-700 rounded-lg p-4">
-                     <div class="flex items-center justify-between gap-4 mb-4">
-                        <button id="project-options-btn" class="flex-1 py-2 px-3 text-sm rounded-lg font-semibold btn-primary">
-                            Project
-                        </button>
-                        <button id="settings-btn" class="p-2 rounded-lg btn-secondary" title="Settings">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0l-.1.41a2 2 0 01-2.23 1.52l-.4-.1a2 2 0 00-2.2 2.2l.1.4a2 2 0 01-1.52 2.23l-.41.1c-1.56.38-1.56 2.6 0 2.98l.41.1a2 2 0 011.52 2.23l-.1.4a2 2 0 002.2 2.2l.4-.1a2 2 0 012.23 1.52l.1.41c.38 1.56 2.6 1.56 2.98 0l.1-.41a2 2 0 012.23-1.52l.4.1a2 2 0 002.2-2.2l-.1-.4a2 2 0 011.52-2.23l.41-.1c-1.56-.38-1.56-2.6 0-2.98l-.41-.1a2 2 0 01-1.52-2.23l.1-.4a2 2 0 00-2.2-2.2l-.4.1a2 2 0 01-2.23-1.52l-.1-.41zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>
-                        </button>
-                    </div>
-                     <span id="status-message" class="text-sm text-gray-400 opacity-0 h-4 block text-center"></span>
+                        <div class="flex items-center justify-between gap-4 mb-4">
+                            <button id="project-options-btn" class="flex-1 py-2 px-3 text-sm rounded-lg font-semibold btn-primary">
+                                Project
+                            </button>
+                            <button id="settings-btn" class="p-2 rounded-lg btn-secondary" title="Settings">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0l-.1.41a2 2 0 01-2.23 1.52l-.4-.1a2 2 0 00-2.2 2.2l.1.4a2 2 0 01-1.52 2.23l-.41.1c-1.56.38-1.56 2.6 0 2.98l.41.1a2 2 0 011.52 2.23l-.1.4a2 2 0 002.2 2.2l.4-.1a2 2 0 012.23 1.52l.1.41c.38 1.56 2.6 1.56 2.98 0l.1-.41a2 2 0 012.23-1.52l.4.1a2 2 0 002.2-2.2l-.1-.4a2 2 0 011.52-2.23l.41-.1c-1.56-.38-1.56-2.6 0-2.98l-.41-.1a2 2 0 01-1.52-2.23l.1-.4a2 2 0 00-2.2-2.2l-.4.1a2 2 0 01-2.23-1.52l-.1-.41zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>
+                            </button>
+                        </div>
+                        <span id="status-message" class="text-sm text-gray-400 opacity-0 h-4 block text-center"></span>
                 </div>
 
                 <nav class="bg-gray-900/50 border border-gray-700 rounded-lg p-4 space-y-2">
@@ -202,35 +202,35 @@
                 </div>
 
                 <div id="outline" class="stage">
-                     <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-                        <h2 class="text-2xl font-semibold mb-2 text-white">Create a Story Outline</h2>
-                        <p class="text-gray-400 mb-6">Structure your narrative. Bring in a concept from the previous stage or paste your own, then select a narrative framework to build a detailed, actionable outline.</p>
-                        <label for="outline-structure" class="block text-sm font-medium text-gray-400 mb-2">Select an outline structure:</label>
-                        <select id="outline-structure" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 mb-4">
-                            <optgroup label="Classic Structures">
-                                <option>Three-Act Structure</option>
-                                <option>The Hero's Journey</option>
-                                <option>Five-Act Structure</option>
-                            </optgroup>
-                            <optgroup label="Novel Writing">
-                                <option>Save the Cat Beat Sheet</option>
-                                <option>Snowflake Method</option>
-                                <option>Fichtean Curve</option>
-                            </optgroup>
-                            <optgroup label="Custom">
-                                <option value="Other">Other...</option>
-                            </optgroup>
-                        </select>
-                        <div id="other-outline-container" class="hidden mb-4">
-                            <label for="other-outline-input" class="block text-sm font-medium text-gray-400 mb-2">Define custom outline structure</label>
-                            <input type="text" id="other-outline-input" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., Episodic TV format, 10-step plan">
+                        <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                            <h2 class="text-2xl font-semibold mb-2 text-white">Create a Story Outline</h2>
+                            <p class="text-gray-400 mb-6">Structure your narrative. Bring in a concept from the previous stage or paste your own, then select a narrative framework to build a detailed, actionable outline.</p>
+                            <label for="outline-structure" class="block text-sm font-medium text-gray-400 mb-2">Select an outline structure:</label>
+                            <select id="outline-structure" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 mb-4">
+                                <optgroup label="Classic Structures">
+                                    <option>Three-Act Structure</option>
+                                    <option>The Hero's Journey</option>
+                                    <option>Five-Act Structure</option>
+                                </optgroup>
+                                <optgroup label="Novel Writing">
+                                    <option>Save the Cat Beat Sheet</option>
+                                    <option>Snowflake Method</option>
+                                    <option>Fichtean Curve</option>
+                                </optgroup>
+                                <optgroup label="Custom">
+                                    <option value="Other">Other...</option>
+                                </optgroup>
+                            </select>
+                            <div id="other-outline-container" class="hidden mb-4">
+                                <label for="other-outline-input" class="block text-sm font-medium text-gray-400 mb-2">Define custom outline structure</label>
+                                <input type="text" id="other-outline-input" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., Episodic TV format, 10-step plan">
+                            </div>
+                            <label class="block text-sm font-medium text-gray-400 mb-2">Your Concept</label>
+                            <div id="chosen-idea-display" contenteditable="true" class="editable-area p-4 mb-4 bg-gray-900 border-2 border-gray-700 rounded-lg text-gray-300 min-h-[5rem]"><span class="text-gray-500">Select a concept from the Brainstorm tab, or type/paste your own concept here.</span></div>
+                            <label for="outline-secondary-guidance" class="block text-sm font-medium text-gray-400 mb-2 mt-4">Secondary Guidance (Optional)</label>
+                            <textarea id="outline-secondary-guidance" class="w-full h-24 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., Make the second act focus on a betrayal, ensure the ending is a cliffhanger..."></textarea>
+                            <button id="generate-outline-btn" class="mt-4 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Outline</button>
                         </div>
-                        <label class="block text-sm font-medium text-gray-400 mb-2">Your Concept</label>
-                        <div id="chosen-idea-display" contenteditable="true" class="editable-area p-4 mb-4 bg-gray-900 border-2 border-gray-700 rounded-lg text-gray-300 min-h-[5rem]"><span class="text-gray-500">Select a concept from the Brainstorm tab, or type/paste your own concept here.</span></div>
-                        <label for="outline-secondary-guidance" class="block text-sm font-medium text-gray-400 mb-2 mt-4">Secondary Guidance (Optional)</label>
-                        <textarea id="outline-secondary-guidance" class="w-full h-24 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., Make the second act focus on a betrayal, ensure the ending is a cliffhanger..."></textarea>
-                        <button id="generate-outline-btn" class="mt-4 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Outline</button>
-                    </div>
                     <div id="outline-output" class="mt-8"></div>
                     <div id="outline-loader" class="hidden"><div class="loader"></div></div>
                 </div>
@@ -240,26 +240,26 @@
                         <h2 class="text-2xl font-semibold mb-2 text-white">Develop a Story Treatment</h2>
                         <p class="text-gray-400 mb-6">Flesh out your story. Use your outline to generate a prose summary of the narrative, describing key scenes, character actions, and emotional arcs.</p>
                         <label for="treatment-format-select" class="block text-sm font-medium text-gray-400 mb-2">What is the final format of this story?</label>
-                         <select id="treatment-format-select" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 mb-4">
-                            <optgroup label="Prose & Narrative">
-                                <option>Novel / Book Chapter</option>
-                                <option>Short Story</option>
-                                <option>Flash Fiction</option>
-                            </optgroup>
-                            <optgroup label="Scripts & Performance">
-                                <option>Screenplay Scene</option>
-                                <option>Dialogue Only</option>
-                                <option>Stage Play Scene</option>
-                                <option>Comic Book Script</option>
-                            </optgroup>
-                            <optgroup label="Custom">
-                                <option value="Other">Other...</option>
-                            </optgroup>
-                         </select>
-                         <div id="other-treatment-container" class="hidden mb-4">
-                            <label for="other-treatment-input" class="block text-sm font-medium text-gray-400 mb-2">Define custom format</label>
-                            <input type="text" id="other-treatment-input" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., Video Game Quest, Podcast Episode">
-                        </div>
+                            <select id="treatment-format-select" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 mb-4">
+                                <optgroup label="Prose & Narrative">
+                                    <option>Novel / Book Chapter</option>
+                                    <option>Short Story</option>
+                                    <option>Flash Fiction</option>
+                                </optgroup>
+                                <optgroup label="Scripts & Performance">
+                                    <option>Screenplay Scene</option>
+                                    <option>Dialogue Only</option>
+                                    <option>Stage Play Scene</option>
+                                    <option>Comic Book Script</option>
+                                </optgroup>
+                                <optgroup label="Custom">
+                                    <option value="Other">Other...</option>
+                                </optgroup>
+                            </select>
+                            <div id="other-treatment-container" class="hidden mb-4">
+                                <label for="other-treatment-input" class="block text-sm font-medium text-gray-400 mb-2">Define custom format</label>
+                                <input type="text" id="other-treatment-input" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., Video Game Quest, Podcast Episode">
+                            </div>
                         <label class="block text-sm font-medium text-gray-400 mb-2">Your Outline</label>
                         <div id="chosen-outline-display" contenteditable="true" class="editable-area p-4 mb-4 bg-gray-900 border-2 border-gray-700 rounded-lg text-gray-300 min-h-[5rem] max-h-48 overflow-y-auto"><span class="text-gray-500">Generate an outline in the previous step, or type/paste your own outline here.</span></div>
                         <label for="treatment-secondary-guidance" class="block text-sm font-medium text-gray-400 mb-2 mt-4">Secondary Guidance (Optional)</label>
@@ -279,7 +279,7 @@
                                 <span class="text-gray-500">Your generated treatment will appear here once created.</span>
                             </div>
                         </div>
-                
+                        
                         <div class="lg:col-span-2 space-y-8">
                             <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
                                 <h3 class="text-xl font-semibold mb-2 text-white">AI Writing Assistant</h3>
@@ -295,7 +295,7 @@
                                 
                                 <label for="writing-secondary-guidance" class="block text-sm font-medium text-gray-400 mb-2 mt-4">Secondary Guidance (Optional)</label>
                                 <textarea id="writing-secondary-guidance" class="w-full h-24 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., 'Make the tone more suspenseful', 'Keep the sentences short and punchy'"></textarea>
-                
+        
                                 <button id="generate-writing-btn" class="mt-4 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Text</button>
                                 <div id="writing-loader" class="hidden mt-4"><div class="loader"></div></div>
                             </div>
@@ -487,7 +487,7 @@
                  outlineOutput.innerHTML = '';
             }
 
-             if (state.storyTreatment) {
+                if (state.storyTreatment) {
                 const formatted = cleanAndFormat(state.storyTreatment);
                 treatmentOutput.innerHTML = `<div class="bg-gray-900 p-6 rounded-lg shadow-inner"><div class="prose prose-invert max-w-none">${formatted}</div></div><button id="use-treatment-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Start Writing →</button>`;
                 writeTreatmentReference.innerHTML = formatted;
