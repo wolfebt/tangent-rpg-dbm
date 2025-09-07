@@ -287,7 +287,6 @@
         <div id="resizer" class="resizer"></div>
         <!-- Canvas Area -->
         <div id="canvas-container" class="relative">
-            <!-- ADDED CANVAS ELEMENTS HERE -->
             <canvas id="mapCanvas"></canvas>
             <canvas id="wallCanvas"></canvas>
             <canvas id="lightCanvas"></canvas>
@@ -302,57 +301,64 @@
                     <span>AI Assist</span>
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
                 </div>
-                <div id="aiBottomPanelContent">
-                    <!-- Step 1: Landform Generation -->
-                    <div class="control-panel">
-                        <h4 class="text-md font-bold text-gray-200 mb-2 border-b border-gray-600 pb-2">Step 1: Generate Initial Image</h4>
-                        <div class="grid grid-cols-2 gap-4 mb-3">
-                            <div>
-                                <label for="ai-drawing-style">Style</label>
-                                <select id="ai-drawing-style">
-                                    <option value="detailed sketch style">Sketch</option>
-                                    <option value="watercolor painting style">Watercolor</option>
-                                    <option value="pixel art style">Pixel Art</option>
-                                    <option value="fantasy map style">Fantasy Map</option>
-                                    <option value="blueprint style">Blueprint</option>
-                                </select>
+                <div id="aiBottomPanelContent" class="flex">
+                    <!-- Steps Column -->
+                    <div class="w-1/3 flex flex-col gap-4">
+                        <!-- Step 1: Landform Generation -->
+                        <div class="control-panel flex-grow flex flex-col">
+                            <h4 class="text-md font-bold text-gray-200 mb-2 border-b border-gray-600 pb-2">Step 1: Generate Initial Image</h4>
+                            <div class="flex-grow overflow-y-auto pr-1">
+                                <div class="grid grid-cols-2 gap-4 mb-3">
+                                    <div>
+                                        <label for="ai-drawing-style">Style</label>
+                                        <select id="ai-drawing-style">
+                                            <option value="detailed sketch style">Sketch</option>
+                                            <option value="watercolor painting style">Watercolor</option>
+                                            <option value="pixel art style">Pixel Art</option>
+                                            <option value="fantasy map style">Fantasy Map</option>
+                                            <option value="blueprint style">Blueprint</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="ai-color-style">Color</label>
+                                        <select id="ai-color-style">
+                                            <option value="monochrome">Monochrome</option>
+                                            <option value="vibrant color">Vibrant Color</option>
+                                            <option value="pastel color">Pastel Color</option>
+                                            <option value="sepia tone">Sepia Tone</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <label for="ai-prompt-initial">Describe the landscape or building</label>
+                                <textarea id="ai-prompt-initial" placeholder="e.g., A rugged mountain range with a central volcano..." class="mb-2" rows="3"></textarea>
                             </div>
-                            <div>
-                                <label for="ai-color-style">Color</label>
-                                <select id="ai-color-style">
-                                    <option value="monochrome">Monochrome</option>
-                                    <option value="vibrant color">Vibrant Color</option>
-                                    <option value="pastel color">Pastel Color</option>
-                                    <option value="sepia tone">Sepia Tone</option>
-                                </select>
+                            <button id="ai-generate-btn" class="w-full mt-auto">
+                                <span class="btn-text">Generate</span>
+                                <span class="spinner hidden"></span>
+                            </button>
+                        </div>
+
+                        <!-- Step 2: Refine and Transfer -->
+                        <div class="control-panel flex-grow flex flex-col">
+                            <h4 class="text-md font-bold text-gray-200 mb-2 border-b border-gray-600 pb-2">Step 2: Refine & Transfer</h4>
+                            <div class="flex-grow overflow-y-auto pr-1">
+                                <label for="ai-prompt-refine">Describe changes or additions</label>
+                                <textarea id="ai-prompt-refine" placeholder="e.g., Add a large river flowing from the mountains." class="mb-2" rows="3"></textarea>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 mt-auto">
+                                 <button id="ai-update-btn" class="w-full" disabled>
+                                    <span class="btn-text">Update Image</span>
+                                    <span class="spinner hidden"></span>
+                                </button>
+                                <button id="ai-transfer-btn" class="w-full" disabled>Transfer to New Layer</button>
                             </div>
                         </div>
-                        <label for="ai-prompt-initial">Describe the landscape or building</label>
-                        <textarea id="ai-prompt-initial" placeholder="e.g., A rugged mountain range with a central volcano. A small goblin hideout in a cave..." class="mb-2"></textarea>
-                        <button id="ai-generate-btn" class="w-full">
-                            <span class="btn-text">Generate</span>
-                            <span class="spinner hidden"></span>
-                        </button>
                     </div>
 
                     <!-- Rendering Area -->
-                    <div id="ai-render-area" class="control-panel">
+                    <div id="ai-render-area" class="control-panel w-2/3 h-full flex items-center justify-center">
                          <img id="ai-image-output" class="hidden" alt="AI Generated Image">
                          <span class="text-gray-400">Your generated image will appear here</span>
-                    </div>
-
-                    <!-- Step 2: Refine and Transfer -->
-                    <div class="control-panel">
-                        <h4 class="text-md font-bold text-gray-200 mb-2 border-b border-gray-600 pb-2">Step 2: Refine & Transfer</h4>
-                        <label for="ai-prompt-refine">Describe changes or additions</label>
-                        <textarea id="ai-prompt-refine" placeholder="e.g., Add a large river flowing from the mountains. Make the cave entrance larger." class="mb-2"></textarea>
-                        <div class="grid grid-cols-2 gap-2 mt-2">
-                             <button id="ai-update-btn" class="w-full" disabled>
-                                <span class="btn-text">Update Image</span>
-                                <span class="spinner hidden"></span>
-                            </button>
-                            <button id="ai-transfer-btn" class="w-full" disabled>Transfer to New Layer</button>
-                        </div>
                     </div>
                 </div>
             </div>
