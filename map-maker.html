@@ -3,512 +3,1110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Map Maker</title>
+    <title>Story Weaver AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="mmstyle.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827;
+            color: #d1d5db;
+        }
+        .stage { display: none; }
+        .stage.active { display: block; }
+        .idea-card {
+            border: 2px solid #374151;
+            transition: border-color 0.3s, transform 0.2s;
+        }
+        .idea-card.selected-card {
+            border-color: #3b82f6;
+            transform: translateY(-2px);
+        }
+        .loader {
+            border: 4px solid #374151;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 2rem auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .btn-primary {
+            background-color: #2563eb;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        .btn-primary:hover:not(:disabled) { background-color: #1d4ed8; }
+        .btn-secondary {
+            background-color: #4b5563;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        .btn-secondary:hover:not(:disabled) { background-color: #374151; }
+        :disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        #status-message {
+            transition: opacity 0.5s ease-in-out;
+        }
+        .modal {
+            transition: opacity 0.25s ease;
+        }
+        #project-title {
+            outline: none;
+            border-bottom: 2px solid transparent;
+            transition: border-color 0.3s;
+        }
+        #project-title:focus {
+            border-bottom-color: #3b82f6;
+        }
+        .editable-area {
+            outline: none;
+            transition: box-shadow 0.2s;
+        }
+        .editable-area:focus {
+            box-shadow: 0 0 0 2px #2563eb;
+        }
+        .asset-card {
+            background-color: #1f2937;
+            border: 1px solid #374151;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+        }
+        .asset-input {
+            width: 100%;
+            background-color: #374151;
+            border: 1px solid #4b5563;
+            border-radius: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            color: #d1d5db;
+        }
+        .asset-input:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+        .storyboard-panel {
+            background-color: #1f2937;
+            border: 1px solid #374151;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+        .storyboard-panel .panel-loader {
+            width: 3rem;
+            height: 3rem;
+        }
+    </style>
 </head>
-<body>
-    <!-- SVG Definitions for Patterns -->
-    <svg width="0" height="0" style="position:absolute;z-index:-1;">
-        <defs>
-            <pattern id="pattern-water" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="#4c92c8"/><path d="M-5,5 Q-2.5,0 0,5 T5,5 T10,5 T15,5" stroke="#2b5a7a" stroke-width="1" fill="none"/></pattern>
-            <pattern id="pattern-sand" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill="#f0d9a0"/><circle cx="1" cy="1" r="1" fill="#b59a72"/><circle cx="4" cy="4" r="1" fill="#b59a72"/></pattern>
-            <pattern id="pattern-grass" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="#86c440"/><path d="M0,10 L5,0 L10,10" stroke="#4d7225" stroke-width="1" fill="none"/></pattern>
-            <pattern id="pattern-plains" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#a6d15a"/><path d="M0 6 H12 M6 0 V12" stroke="#6d8e35" stroke-width="0.5"/></pattern>
-            <pattern id="pattern-forest" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#4a8232"/><path d="M2 10 L6 2 L10 10 Z" fill="#2a4d1c"/></pattern>
-            <pattern id="pattern-hills" width="15" height="15" patternUnits="userSpaceOnUse"><rect width="15" height="15" fill="#a08b6b"/><path d="M0 15 C 5 0, 10 0, 15 15" stroke="#6b5a46" stroke-width="2" fill="none"/></pattern>
-            <pattern id="pattern-mountain" width="16" height="16" patternUnits="userSpaceOnUse"><rect width="16" height="16" fill="#6f6f6f"/><path d="M0 16 L8 0 L16 16 Z" stroke="#404040" stroke-width="1" fill="#707070"/></pattern>
-            <pattern id="pattern-snow" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="#ffffff"/><path d="M0 5 H10 M5 0 V10 M2 2 L8 8 M2 8 L8 2" stroke="#c0c0c0" stroke-width="1"/></pattern>
-            <pattern id="pattern-dirt" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#a07040"/><path d="M0 0 L8 8 M8 0 L0 8" stroke="#6b4a25" stroke-width="0.5"/></pattern>
-            <pattern id="pattern-road" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="#b0a89f"/><rect x="3" y="0" width="4" height="10" fill="#888279"/></pattern>
-            <pattern id="pattern-lava" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#e25822"/><circle cx="6" cy="6" r="5" fill="#e06030" opacity="0.5"/><circle cx="3" cy="9" r="3" fill="#cc3700" opacity="0.6"/></pattern>
-            <pattern id="pattern-crags" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="#5a5a5a"/><path d="M0 10 L5 0 L10 10" stroke="#303030" stroke-width="1.5" fill="none"/><path d="M0 5 L10 5" stroke="#303030" stroke-width="1" fill="none"/></pattern>
-            <pattern id="pattern-swamp" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#4d6642"/><path d="M-2,6 Q1,3 4,6 T10,6" stroke="#2c3e23" stroke-width="1.5" fill="none"/><circle cx="9" cy="3" r="1" fill="#526d1a"/></pattern>
-            <pattern id="pattern-tundra" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="#cdd3d6"/><path d="M0 0 L10 10 M10 0 L0 10" stroke="#90989a" stroke-width="0.5"/></pattern>
-            
-            <!-- NEW TERRAIN PATTERNS -->
-            <pattern id="pattern-dungeon-floor" width="16" height="16" patternUnits="userSpaceOnUse"><rect width="16" height="16" fill="#4a5568"/><path d="M0 8 H16 M8 0 V16" stroke="#2d3748" stroke-width="1"/></pattern>
-            <pattern id="pattern-dungeon-wall" width="16" height="16" patternUnits="userSpaceOnUse"><rect width="16" height="16" fill="#2d3748"/><path d="M0 0 L16 16 M16 0 L0 16" stroke="#1a202c" stroke-width="1.5"/></pattern>
-            <pattern id="pattern-pavement" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#6b7280"/><rect x="0" y="0" width="6" height="6" fill="#718096"/><rect x="6" y="6" width="6" height="6" fill="#718096"/></pattern>
-            <pattern id="pattern-metal-plating" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="#71717a"/><path d="M0 0 L10 10" stroke="#4a5568" stroke-width="1.5"/><circle cx="1" cy="1" r="1" fill="#4a5568"/><circle cx="9" cy="9" r="1" fill="#4a5568"/></pattern>
-            <pattern id="pattern-wasteland" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#a16207"/><path d="M0 5 L5 0 L7 8 L12 3" stroke="#78350f" stroke-width="1" fill="none"/></pattern>
-            <pattern id="pattern-cobblestone" width="16" height="16" patternUnits="userSpaceOnUse"><rect width="16" height="16" fill="#718096"/><path d="M0 8 a8 8 0 0 1 8 -8 a8 8 0 0 1 8 8 M-8 8 a8 8 0 0 1 8 8 a8 8 0 0 1 8 -8" stroke="#4a5568" stroke-width="1" fill="none"/></pattern>
-            <pattern id="pattern-wooden-planks" width="20" height="20" patternUnits="userSpaceOnUse"><rect width="20" height="20" fill="#854d0e"/><path d="M0 0 H20 M0 10 H20" stroke="#522c04" stroke-width="2"/><path d="M5 0 V10 M15 10 V20" stroke="#522c04" stroke-width="1"/></pattern>
-            <pattern id="pattern-cavern-floor" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#78716c"/><circle cx="3" cy="3" r="2" fill="#57534e" opacity="0.5"/><circle cx="8" cy="9" r="1.5" fill="#57534e" opacity="0.5"/></pattern>
-        </defs>
-    </svg>
+<body class="antialiased">
 
-    <!-- Main Container -->
-    <div id="main-container">
-        <!-- Control Panel -->
-        <div id="panelWrapper">
-            <div id="controlContainer" class="control-container p-4 flex flex-col shadow-lg">
-                <!-- Panel Header -->
-                <div class="flex justify-between items-center mb-4 flex-shrink-0 relative">
-                    <div class="flex items-center">
-                        <h2 class="text-2xl font-bold text-gray-100">Map Controls</h2>
-                        <button id="userGuideBtn" class="ml-2 p-1 rounded-md hover:bg-gray-700" title="Open User Guide">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
-                        </button>
-                        <button id="settingsBtn" class="ml-1 p-1 rounded-md hover:bg-gray-700" title="Settings">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-                        </button>
-                        <button id="mapKeyBtn" class="ml-1 p-1 rounded-md hover:bg-gray-700" title="Toggle Map Key">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4a6.5 6.5 0 1 0-4-4Z"/><circle cx="16.5" cy="7.5" r=".5"/></svg>
-                        </button>
-                        <!-- GM View Toggle Button -->
-                        <button id="gmViewToggleBtn" class="ml-1 p-1 rounded-md hover:bg-gray-700" title="Toggle GM View">
-                            <svg id="gmViewIconOn" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                            <svg id="gmViewIconOff" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-                        </button>
+    <div class="container mx-auto max-w-screen-xl p-4 sm:p-6 lg:p-8">
+        <header class="text-center mb-4">
+            <h1 class="text-4xl font-bold text-white">Story Weaver AI</h1>
+            <p class="text-lg text-gray-400 mt-2">Your AI-powered partner for literary creation.</p>
+            <div class="mt-4">
+                <h2 id="project-title" contenteditable="true" title="Click to edit project title" class="text-2xl font-semibold text-gray-300 inline-block p-1 rounded-md hover:bg-gray-700/50 cursor-pointer">Untitled Project</h2>
+            </div>
+        </header>
+        
+        <div class="text-center mb-6 flex items-center justify-center gap-4">
+            <button id="project-options-btn" class="py-2 px-5 rounded-lg font-semibold btn-primary">
+                Project Options
+            </button>
+            <button id="settings-btn" class="p-2 rounded-lg btn-secondary" title="Settings">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0l-.1.41a2 2 0 01-2.23 1.52l-.4-.1a2 2 0 00-2.2 2.2l.1.4a2 2 0 01-1.52 2.23l-.41.1c-1.56.38-1.56 2.6 0 2.98l.41.1a2 2 0 011.52 2.23l-.1.4a2 2 0 002.2 2.2l.4-.1a2 2 0 012.23 1.52l.1.41c.38 1.56 2.6 1.56 2.98 0l.1-.41a2 2 0 012.23-1.52l.4.1a2 2 0 002.2-2.2l-.1-.4a2 2 0 011.52-2.23l.41-.1c-1.56-.38-1.56-2.6 0-2.98l-.41-.1a2 2 0 01-1.52-2.23l.1-.4a2 2 0 00-2.2-2.2l-.4.1a2 2 0 01-2.23-1.52l-.1-.41zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+                </svg>
+            </button>
+            <span id="status-message" class="text-sm text-gray-400 opacity-0"></span>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <main class="lg:col-span-8">
+                <nav class="flex justify-center border border-gray-700 rounded-lg p-1 mb-8 w-full mx-auto bg-gray-800">
+                    <button data-stage="brainstorm" class="nav-btn flex-1 text-center py-2 px-4 rounded-md transition-colors duration-300 font-semibold bg-blue-600 text-white">1. Brainstorm</button>
+                    <button data-stage="outline" class="nav-btn flex-1 text-center py-2 px-4 rounded-md transition-colors duration-300 font-semibold text-gray-400">2. Outline</button>
+                    <button data-stage="treatment" class="nav-btn flex-1 text-center py-2 px-4 rounded-md transition-colors duration-300 font-semibold text-gray-400">3. Treatment</button>
+                    <button data-stage="write" class="nav-btn flex-1 text-center py-2 px-4 rounded-md transition-colors duration-300 font-semibold text-gray-400">4. Write</button>
+                    <button data-stage="storyboard" class="nav-btn flex-1 text-center py-2 px-4 rounded-md transition-colors duration-300 font-semibold text-gray-400">5. Storyboard</button>
+                </nav>
+
+                <div id="brainstorm" class="stage active">
+                    <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                        <h2 class="text-2xl font-semibold mb-4 text-white">Creative Brainstorming</h2>
+                        <label for="brainstorm-type-select" class="block text-sm font-medium text-gray-400 mb-2">I want to brainstorm...</label>
+                        <select id="brainstorm-type-select" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 mb-4">
+                            <optgroup label="Story Writing">
+                                <option value="Story Ideas">Story Ideas</option>
+                                <option value="Characters">Characters</option>
+                                <option value="Settings">Settings</option>
+                                <option value="Plot Twists">Plot Twists</option>
+                                <option value="Story Hooks">Story Hooks</option>
+                            </optgroup>
+                            <optgroup label="General Purpose">
+                                <option value="Design Concept">Design Concepts</option>
+                                <option value="Shopping List">Shopping Lists</option>
+                                <option value="Travel Ideas">Travel Ideas</option>
+                            </optgroup>
+                            <optgroup label="Custom">
+                                <option value="Other">Other...</option>
+                            </optgroup>
+                        </select>
+                        <div id="other-format-container" class="hidden mb-4">
+                            <label for="other-format-input" class="block text-sm font-medium text-gray-400 mb-2">Define custom format</label>
+                            <input type="text" id="other-format-input" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., Recipe, Workout Plan, Blog Post Ideas">
+                        </div>
+                        <textarea id="brainstorm-input" class="w-full h-32 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Enter a theme or concept..."></textarea>
+                        <button id="generate-ideas-btn" class="mt-4 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Concepts</button>
                     </div>
-                    <div class="flex items-center">
-                        <button id="fileMenuBtn" class="p-2 rounded-md hover:bg-gray-700">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
-                        </button>
-                        <button id="collapseBtn" class="p-2 rounded-md hover:bg-gray-700 ml-2" title="Hide Panel">
-                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                        </button>
+                    <div id="ideas-output" class="mt-8 grid gap-6 md:grid-cols-1"></div>
+                    <div id="ideas-loader" class="hidden"><div class="loader"></div></div>
+                </div>
+
+                <div id="outline" class="stage">
+                     <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                        <h2 class="text-2xl font-semibold mb-4 text-white">Create a Story Outline</h2>
+                        <label for="outline-structure" class="block text-sm font-medium text-gray-400 mb-2">Select an outline structure:</label>
+                        <select id="outline-structure" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 mb-4">
+                            <optgroup label="Classic Structures">
+                                <option>Three-Act Structure</option>
+                                <option>The Hero's Journey</option>
+                                <option>Five-Act Structure</option>
+                            </optgroup>
+                            <optgroup label="Novel Writing">
+                                <option>Save the Cat Beat Sheet</option>
+                                <option>Snowflake Method</option>
+                                <option>Fichtean Curve</option>
+                            </optgroup>
+                            <optgroup label="Custom">
+                                <option value="Other">Other...</option>
+                            </optgroup>
+                        </select>
+                        <div id="other-outline-container" class="hidden mb-4">
+                            <label for="other-outline-input" class="block text-sm font-medium text-gray-400 mb-2">Define custom outline structure</label>
+                            <input type="text" id="other-outline-input" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., Episodic TV format, 10-step plan">
+                        </div>
+                        <label class="block text-sm font-medium text-gray-400 mb-2">Your Concept</label>
+                        <div id="chosen-idea-display" contenteditable="true" class="editable-area p-4 mb-4 bg-gray-900 border-2 border-gray-700 rounded-lg text-gray-300 min-h-[5rem]"><span class="text-gray-500">Select a concept from the Brainstorm tab, or type/paste your own concept here.</span></div>
+                        <label for="outline-secondary-guidance" class="block text-sm font-medium text-gray-400 mb-2 mt-4">Secondary Guidance (Optional)</label>
+                        <textarea id="outline-secondary-guidance" class="w-full h-24 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., Make the second act focus on a betrayal, ensure the ending is a cliffhanger..."></textarea>
+                        <button id="generate-outline-btn" class="mt-4 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Outline</button>
                     </div>
-                    <div id="fileDropdownMenu" class="file-dropdown hidden mt-2 right-0 top-full">
-                        <button id="saveProjectBtn" class="file-dropdown-item">Save Project (.json)</button>
-                        <button id="loadProjectBtn" class="file-dropdown-item">Load Project (.json)</button>
-                        <button id="savePngBtn" class="file-dropdown-item">Save Current Map as PNG</button>
+                    <div id="outline-output" class="mt-8"></div>
+                    <div id="outline-loader" class="hidden"><div class="loader"></div></div>
+                </div>
+
+                <div id="treatment" class="stage">
+                    <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                        <h2 class="text-2xl font-semibold mb-4 text-white">Develop a Story Treatment</h2>
+                        <label for="treatment-format-select" class="block text-sm font-medium text-gray-400 mb-2">What is the final format of this story?</label>
+                         <select id="treatment-format-select" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 mb-4">
+                            <optgroup label="Prose & Narrative">
+                                <option>Novel / Book Chapter</option>
+                                <option>Short Story</option>
+                                <option>Flash Fiction</option>
+                            </optgroup>
+                            <optgroup label="Scripts & Performance">
+                                <option>Screenplay Scene</option>
+                                <option>Dialogue Only</option>
+                                <option>Stage Play Scene</option>
+                                <option>Comic Book Script</option>
+                            </optgroup>
+                            <optgroup label="Custom">
+                                <option value="Other">Other...</option>
+                            </optgroup>
+                         </select>
+                         <div id="other-treatment-container" class="hidden mb-4">
+                            <label for="other-treatment-input" class="block text-sm font-medium text-gray-400 mb-2">Define custom format</label>
+                            <input type="text" id="other-treatment-input" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., Video Game Quest, Podcast Episode">
+                        </div>
+                        <label class="block text-sm font-medium text-gray-400 mb-2">Your Outline</label>
+                        <div id="chosen-outline-display" contenteditable="true" class="editable-area p-4 mb-4 bg-gray-900 border-2 border-gray-700 rounded-lg text-gray-300 min-h-[5rem] max-h-48 overflow-y-auto"><span class="text-gray-500">Generate an outline in the previous step, or type/paste your own outline here.</span></div>
+                        <label for="treatment-secondary-guidance" class="block text-sm font-medium text-gray-400 mb-2 mt-4">Secondary Guidance (Optional)</label>
+                        <textarea id="treatment-secondary-guidance" class="w-full h-24 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., Emphasize the romantic subplot, write in a gritty, noir style..."></textarea>
+                        <button id="generate-treatment-btn" class="w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Treatment from Outline</button>
                     </div>
-                    <input type="file" id="loadJsonInput" class="hidden" accept=".json">
+                    <div id="treatment-output" class="mt-8"></div>
+                    <div id="treatment-loader" class="hidden"><div class="loader"></div></div>
+                </div>
+
+                <div id="write" class="stage">
+                    <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-6">
+                         <h3 class="text-xl font-semibold mb-4 text-white">AI Writing Assistant</h3>
+                         
+                         <label for="writing-guidance-input" class="block text-sm font-medium text-gray-400 mb-2">Primary Prompt / Request</label>
+                         <textarea id="writing-guidance-input" class="w-full h-24 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., 'Write the opening scene...', 'Expand on the confrontation...'"></textarea>
+                         
+                         <label for="writing-secondary-guidance" class="block text-sm font-medium text-gray-400 mb-2 mt-4">Secondary Guidance (Optional)</label>
+                         <textarea id="writing-secondary-guidance" class="w-full h-24 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., 'Make the tone more suspenseful', 'Keep the sentences short and punchy'"></textarea>
+
+                         <button id="generate-writing-btn" class="mt-4 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Text</button>
+                         <div id="writing-loader" class="hidden mt-4"><div class="loader"></div></div>
+                    </div>
+                    <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                        <h2 class="text-2xl font-semibold mb-4 text-white">Your Story</h2>
+                        <div id="main-editor" contenteditable="true" class="w-full min-h-[50vh] p-4 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 overflow-y-auto" aria-label="Main story editor"></div>
+                    </div>
                 </div>
                 
-                <!-- Scrollable Controls Area -->
-                <div class="flex-grow overflow-y-auto pr-2">
-                    <div class="control-panel mb-4">
-                        <div id="actionsHeader" class="collapsible-header">
-                            <h3>Actions</h3>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                <div id="storyboard" class="stage">
+                    <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                        <h2 class="text-2xl font-semibold mb-4 text-white">Create a Storyboard</h2>
+                        <div class="flex space-x-2 mb-4">
+                            <button id="load-treatment-to-storyboard" class="flex-1 py-2 px-4 text-sm rounded-lg font-semibold btn-secondary">Load from Treatment</button>
+                            <button id="load-story-to-storyboard" class="flex-1 py-2 px-4 text-sm rounded-lg font-semibold btn-secondary">Load from Story</button>
                         </div>
-                        <div id="actionsContent" class="collapsible-content">
-                            <button id="addNewMapBtn" class="w-full mb-2">Add New Map</button>
-                            <button id="assetEditorBtn" class="w-full mb-2">Create New Asset</button>
-                            <div class="grid grid-cols-4 gap-2 my-2">
-                                <button id="undoBtn" title="Undo" disabled>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.9-6.7"/><path d="M21 2v6h-6"/></svg>
-                                </button>
-                                <button id="redoBtn" title="Redo" disabled>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.9-6.7"/><path d="M3 2v6h6"/></svg>
-                                </button>
-                                <div class="relative">
-                                    <button id="eraserToolBtn" title="Eraser">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>
-                                    </button>
-                                    <div id="eraserDropdownMenu" class="file-dropdown hidden -left-1/2 top-full mt-2 !w-48">
-                                        <button id="eraseTerrainBtn" class="file-dropdown-item">Erase Terrain</button>
-                                        <button id="eraseObjectsBtn" class="file-dropdown-item">Erase Objects</button>
-                                        <button id="eraseDrawingsBtn" class="file-dropdown-item">Erase Drawings</button>
-                                    </div>
-                                </div>
-                                <button id="resetViewBtn" title="Reset View & Zoom">Center</button>
+                        <label for="storyboard-description" class="block text-sm font-medium text-gray-400 mb-2">Scene Description</label>
+                        <textarea id="storyboard-description" class="w-full h-48 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Paste or write the scene you want to visualize..."></textarea>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                            <div>
+                                <label for="storyboard-panels" class="block text-sm font-medium text-gray-400 mb-2">Number of Panels</label>
+                                <input type="number" id="storyboard-panels" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" value="4" min="1" max="8">
                             </div>
-                            <!-- TOOLS -->
-                            <div class="control-panel !p-0 !border-0 mt-4">
-                                <h3 class="!border-b-0 !pb-2 text-base font-semibold">Tools</h3>
-                                <div class="grid grid-cols-3 gap-2">
-                                    <button id="toolTerrainBtn" class="tool-btn active">Terrain</button>
-                                    <button id="toolObjectBtn" class="tool-btn">Object</button>
-                                    <button id="toolPencilBtn" class="tool-btn">Pencil</button>
-                                    <button id="toolSelectBtn" class="tool-btn">Select</button>
-                                    <button id="toolTokenBtn" class="tool-btn">Token</button>
-                                    <button id="toolTextBtn" class="tool-btn">Text</button>
-                                    <button id="toolFogBtn" class="tool-btn">Fog</button>
-                                </div>
-                            </div>
-                            <div id="graphicsDropdown" class="mt-4 control-panel !p-0 !border-0">
-                                 <div id="graphicsBtn" class="collapsible-header collapsed !border-t !pt-4">
-                                     <h3>Graphics Options</h3>
-                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                                 </div>
-                                 <div id="graphicsContent" class="collapsible-content hidden">
-                                     <!-- Layers -->
-                                     <div class="control-panel mb-4">
-                                         <h3 class="!border-b-0 !pb-2 text-base font-semibold">Layers</h3>
-                                         <div id="layerContent" class="collapsible-content">
-                                             <div id="layerList" class="flex flex-col gap-2 mb-4"></div>
-                                             <div class="grid grid-cols-2 gap-2">
-                                                 <button id="addLayerBtn">Add Layer</button>
-                                                 <button id="deleteLayerBtn">Delete Layer</button>
-                                             </div>
-                                         </div>
-                                     </div>
-                                     <!-- Grid Options -->
-                                     <div class="control-panel mb-4">
-                                         <h3 class="!border-b-0 !pb-2 text-base font-semibold">Grid Options</h3>
-                                         <div class="mb-4">
-                                             <label for="gridTypeSelect">Grid Type</label>
-                                             <select id="gridTypeSelect">
-                                                 <option value="hex">Hex</option>
-                                                 <option value="square">Square</option>
-                                             </select>
-                                         </div>
-                                         <div class="grid grid-cols-2 gap-4 items-center">
-                                             <div>
-                                                 <label for="gridColorPicker" class="text-sm">Color</label>
-                                                 <input type="color" id="gridColorPicker" value="#111827" class="!p-1 !h-9 !mb-0">
-                                             </div>
-                                             <div class="flex items-center justify-end pt-5">
-                                                 <input type="checkbox" id="gridVisibleCheckbox" class="h-4 w-4 rounded !mb-0" checked>
-                                                 <label for="gridVisibleCheckbox" class="ml-2 !mb-0">Visible</label>
-                                             </div>
-                                         </div>
-                                     </div>
-                                 </div>
+                            <div>
+                                <label for="storyboard-style" class="block text-sm font-medium text-gray-400 mb-2">Art Style</label>
+                                <select id="storyboard-style" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                    <option>Sketch</option>
+                                    <option>Painting</option>
+                                    <option>Anime</option>
+                                    <option>Photorealistic</option>
+                                    <option>Comic Book</option>
+                                    <option>Cinematic</option>
+                                </select>
                             </div>
                         </div>
-                    </div>
 
-                    <div id="terrainOptionsPanel" class="control-panel mb-4">
-                         <div class="collapsible-header">
-                            <h3>Brush Options</h3>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                        </div>
-                        <div class="collapsible-content">
-                            <label for="terrainBrushMode">Terrain Brush</label>
-                            <select id="terrainBrushMode">
-                                <option value="hex">Hex</option>
-                                <option value="spray">Spray</option>
-                                <option value="line">Line</option>
-                                <option value="rectangle">Rectangle</option>
-                                <option value="ellipse">Ellipse</option>
-                                <option value="polygon">Polygon</option>
-                            </select>
-                            <label for="brushSize">Brush/Object Size: <span id="brushSizeValue">1</span></label>
-                            <input type="range" id="brushSize" min="1" max="10" value="1" class="mb-3">
-                        </div>
+                        <button id="generate-storyboard-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Storyboard</button>
                     </div>
-
-                    <div id="pencilOptionsPanel" class="control-panel mb-4 hidden">
-                        <div class="collapsible-header">
-                            <h3>Pencil Options</h3>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                        </div>
-                        <div class="collapsible-content">
-                            <label for="pencilBrushMode">Pencil Mode</label>
-                            <select id="pencilBrushMode">
-                                <option value="freestyle">Freestyle</option>
-                                <option value="line">Line</option>
-                                <option value="rectangle">Rectangle</option>
-                                <option value="ellipse">Ellipse</option>
-                            </select>
-                            <div class="grid grid-cols-2 gap-4 mt-4">
-                                <div>
-                                    <label for="pencilColorPicker">Color</label>
-                                    <input type="color" id="pencilColorPicker" value="#FFFFFF" class="!mb-0">
-                                </div>
-                                 <div>
-                                    <label for="pencilWidth">Width: <span id="pencilWidthValue">5</span></label>
-                                    <input type="range" id="pencilWidth" min="1" max="50" value="5" class="!mb-0">
-                                </div>
-                            </div>
-                            <div class="flex items-center mt-4">
-                                <input type="checkbox" id="pencilGmOnlyCheckbox" class="h-4 w-4 rounded !mb-0">
-                                <label for="pencilGmOnlyCheckbox" class="ml-2 !mb-0 text-sm">Draw as GM-Only (Secret)</label>
-                            </div>
-                        </div>
+                    <div id="storyboard-loader" class="hidden text-center mt-4">
+                        <p class="mb-2 text-gray-400">Generating panel descriptions...</p>
+                        <div class="loader inline-block"></div>
                     </div>
-
-                    <div id="tokenOptionsPanel" class="control-panel mb-4 hidden">
-                        <div class="collapsible-header">
-                            <h3>Token Options</h3>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                        </div>
-                        <div class="collapsible-content">
-                            <label for="tokenLightRadius">Light Radius (in hexes): <span id="tokenLightRadiusValue">5</span></label>
-                            <input type="range" id="tokenLightRadius" min="0" max="30" value="5" class="mb-2">
-                             <div class="grid grid-cols-2 gap-4 items-center">
-                                 <div>
-                                     <label for="tokenColor" class="text-sm">Color</label>
-                                     <input type="color" id="tokenColor" value="#facc15" class="!p-1 !h-9 !mb-0">
-                                 </div>
-                                 <div class="flex items-center justify-end pt-5">
-                                     <button id="deleteTokenBtn" class="w-full">Delete Token</button>
-                                 </div>
-                             </div>
-                        </div>
-                    </div>
-
-                    <div id="fogPanel" class="control-panel mb-4 hidden">
-                        <div class="collapsible-header">
-                            <h3>Fog of War</h3>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                        </div>
-                        <div class="collapsible-content">
-                            <div class="grid grid-cols-2 gap-2">
-                                <button id="toolFogRevealBtn">Reveal</button>
-                                <button id="toolFogHideBtn">Hide</button>
-                            </div>
-                            <label for="fogBrushSize" class="mt-4">Brush Size: <span id="fogBrushSizeValue">5</span></label>
-                            <input type="range" id="fogBrushSize" min="1" max="20" value="5" class="mb-2">
-                            <button id="resetFogBtn" class="w-full">Reset Fog (Cover All)</button>
-                        </div>
-                    </div>
-                                        
-                    <div id="terrainContentPanel" class="control-panel mb-4">
-                         <div id="terrainHeader" class="collapsible-header">
-                            <h3>Terrain Type</h3>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                        </div>
-                        <div id="terrainContent" class="collapsible-content">
-                            <div id="terrainSelector" class="flex flex-col gap-2"></div>
-                        </div>
-                    </div>
-
-                    <div id="objectOptionsPanel" class="control-panel mb-4 hidden">
-                        <div id="objectHeader" class="collapsible-header">
-                            <h3>Objects</h3>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                        </div>
-                         <div id="objectContent" class="collapsible-content">
-                            <div class="flex items-center mb-2">
-                                <input type="checkbox" id="objectGmOnlyCheckbox" class="h-4 w-4 rounded !mb-0">
-                                <label for="objectGmOnlyCheckbox" class="ml-2 !mb-0 text-sm">Place as GM-Only (Secret)</label>
-                            </div>
-                            <div id="objectSelector" class="flex flex-col gap-2"></div>
-                         </div>
-                    </div>
-
-                    <div id="selectedObjectPanel" class="control-panel mb-4 hidden">
-                        <div class="collapsible-header">
-                           <h3 id="selection-panel-header">Selected Item</h3>
-                           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                        </div>
-                        <div id="selection-panel-content" class="collapsible-content">
-                           <!-- Content is now dynamically inserted by JS -->
-                        </div>
-                    </div>
-
-                    <div id="textToolPanel" class="control-panel mb-4 hidden">
-                        <div id="textHeader" class="collapsible-header">
-                            <h3>Text & GM Notes</h3>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                        </div>
-                         <div id="textContent" class="collapsible-content">
-                            <label for="textInput">Text</label>
-                            <input type="text" id="textInput" value="Label">
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                     <label for="fontSizeInput">Size</label>
-                                     <input type="number" id="fontSizeInput" value="20" min="1">
-                                </div>
-                                <div>
-                                     <label for="fontColorInput">Color</label>
-                                     <input type="color" id="fontColorInput" value="#FFFFFF">
-                                </div>
-                            </div>
-                            <div class="flex items-center mt-2">
-                                <input type="checkbox" id="textGmOnlyCheckbox" class="h-4 w-4 rounded !mb-0">
-                                <label for="textGmOnlyCheckbox" class="ml-2 !mb-0 text-sm">Place as GM-Only (Secret)</label>
-                            </div>
-                         </div>
+                    <div id="storyboard-output" class="mt-8 grid gap-6 grid-cols-1 md:grid-cols-2">
+                        <!-- Storyboard panels will be dynamically inserted here -->
                     </div>
                 </div>
+
+            </main>
+
+            <aside class="lg:col-span-4 bg-gray-900/50 border border-gray-700 rounded-lg p-4 h-fit sticky top-8">
+                <h2 class="text-xl font-bold mb-4 text-blue-400">Story Assets</h2>
+                <p class="text-sm text-gray-400 mb-4">Load JSON files from the Character and Scene builders to provide context for the AI.</p>
+                <button id="load-asset-btn" class="w-full py-2 px-4 rounded-lg font-semibold btn-secondary mb-4">Load Asset File (.json)</button>
+                <input type="file" id="asset-file-input" class="hidden" accept=".json" multiple>
+                
+                <div id="asset-container" class="space-y-4 max-h-[60vh] overflow-y-auto">
+                    <!-- Loaded assets will be dynamically inserted here -->
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <div id="project-modal" class="modal fixed inset-0 bg-black/60 items-center justify-center hidden z-50 opacity-0">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md relative border border-gray-700">
+            <button id="close-modal-btn" class="absolute top-3 right-3 text-gray-500 hover:text-white transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            <h2 class="text-2xl font-bold text-white mb-6">Project Options</h2>
+            <div class="space-y-4">
+                <button id="load-json-btn" class="w-full py-3 px-4 rounded-lg font-semibold btn-secondary">Load Project from JSON File</button>
+                <input type="file" id="json-file-input" class="hidden" accept=".json">
+                <button id="export-json-btn" class="w-full py-3 px-4 rounded-lg font-semibold btn-secondary">Export Project to JSON File</button>
+                <button id="export-text-btn" class="w-full py-3 px-4 rounded-lg font-semibold btn-secondary">Export Story as Text File</button>
             </div>
         </div>
-        <!-- Resizer Handle -->
-        <div id="resizer" class="resizer"></div>
-        <!-- Canvas Area -->
-        <div id="canvas-container" class="relative">
-            <div id="breadcrumb-nav" class="absolute top-2 left-2 z-20 bg-gray-900 bg-opacity-70 p-2 rounded-md text-sm"></div>
-            <canvas id="mapCanvas"></canvas>
-            <canvas id="wallCanvas"></canvas>
-            <canvas id="lightCanvas"></canvas>
-            <canvas id="drawingCanvas"></canvas>
-            <canvas id="fogCanvas"></canvas>
+    </div>
+
+    <div id="settings-modal" class="modal fixed inset-0 bg-black/60 items-center justify-center hidden z-50 opacity-0">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md relative border border-gray-700">
+            <button id="close-settings-modal-btn" class="absolute top-3 right-3 text-gray-500 hover:text-white transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            <h2 class="text-2xl font-bold text-white mb-4">Settings</h2>
+            <p class="text-sm text-gray-400 mb-4">Your Gemini API key is stored locally in your browser and is never sent to our servers.</p>
+            <div class="space-y-2">
+                <label for="api-key-input" class="block text-sm font-medium text-gray-300">Gemini API Key</label>
+                <input type="password" id="api-key-input" class="w-full p-2 bg-gray-900 text-gray-300 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Enter your API key">
+            </div>
+            <button id="save-api-key-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Save Key</button>
+        </div>
+    </div>
+
+    <script>
+        const state = {
+            projectTitle: 'Untitled Project',
+            brainstormConcept: '',
+            storyOutline: '',
+            storyTreatment: '',
+            writingFormat: 'Novel / Book Chapter',
+            assets: []
+        };
+
+        const projectTitleEl = document.getElementById('project-title');
+        const statusMessage = document.getElementById('status-message');
+        const projectOptionsBtn = document.getElementById('project-options-btn');
+        const projectModal = document.getElementById('project-modal');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const loadJsonBtn = document.getElementById('load-json-btn');
+        const jsonFileInput = document.getElementById('json-file-input');
+        const exportJsonBtn = document.getElementById('export-json-btn');
+        const exportTextBtn = document.getElementById('export-text-btn');
+        const settingsBtn = document.getElementById('settings-btn');
+        const settingsModal = document.getElementById('settings-modal');
+        const closeSettingsModalBtn = document.getElementById('close-settings-modal-btn');
+        const apiKeyInput = document.getElementById('api-key-input');
+        const saveApiKeyBtn = document.getElementById('save-api-key-btn');
+        const navButtons = document.querySelectorAll('.nav-btn');
+        const stages = document.querySelectorAll('.stage');
+        const loaders = { ideas: document.getElementById('ideas-loader'), outline: document.getElementById('outline-loader'), treatment: document.getElementById('treatment-loader'), writing: document.getElementById('writing-loader') };
+        const brainstormTypeSelect = document.getElementById('brainstorm-type-select');
+        const brainstormInput = document.getElementById('brainstorm-input');
+        const generateIdeasBtn = document.getElementById('generate-ideas-btn');
+        const ideasOutput = document.getElementById('ideas-output');
+        const chosenIdeaDisplay = document.getElementById('chosen-idea-display');
+        const outlineStructureSelect = document.getElementById('outline-structure');
+        const generateOutlineBtn = document.getElementById('generate-outline-btn');
+        const outlineOutput = document.getElementById('outline-output');
+        const chosenOutlineDisplay = document.getElementById('chosen-outline-display');
+        const generateTreatmentBtn = document.getElementById('generate-treatment-btn');
+        const treatmentOutput = document.getElementById('treatment-output');
+        const treatmentFormatSelect = document.getElementById('treatment-format-select');
+        const mainEditor = document.getElementById('main-editor');
+        const loadAssetBtn = document.getElementById('load-asset-btn');
+        const assetFileInput = document.getElementById('asset-file-input');
+        const assetContainer = document.getElementById('asset-container');
+        const otherFormatContainer = document.getElementById('other-format-container');
+        const otherFormatInput = document.getElementById('other-format-input');
+        const otherOutlineContainer = document.getElementById('other-outline-container');
+        const otherOutlineInput = document.getElementById('other-outline-input');
+        const otherTreatmentContainer = document.getElementById('other-treatment-container');
+        const otherTreatmentInput = document.getElementById('other-treatment-input');
+        const outlineSecondaryGuidance = document.getElementById('outline-secondary-guidance');
+        const treatmentSecondaryGuidance = document.getElementById('treatment-secondary-guidance');
+        const writingGuidanceInput = document.getElementById('writing-guidance-input');
+        const writingSecondaryGuidance = document.getElementById('writing-secondary-guidance');
+        const generateWritingBtn = document.getElementById('generate-writing-btn');
+        const generateStoryboardBtn = document.getElementById('generate-storyboard-btn');
+        const storyboardDescription = document.getElementById('storyboard-description');
+        const storyboardPanels = document.getElementById('storyboard-panels');
+        const storyboardStyle = document.getElementById('storyboard-style');
+        const storyboardOutput = document.getElementById('storyboard-output');
+        const storyboardLoader = document.getElementById('storyboard-loader');
+        const loadTreatmentToStoryboardBtn = document.getElementById('load-treatment-to-storyboard');
+        const loadStoryToStoryboardBtn = document.getElementById('load-story-to-storyboard');
+        
+        function showStatus(message, isError = false) {
+            statusMessage.textContent = message;
+            statusMessage.style.color = isError ? '#ef4444' : '#9ca3af';
+            statusMessage.style.opacity = '1';
+            setTimeout(() => { statusMessage.style.opacity = '0'; }, 3000);
+        }
+        
+        function updateUiFromState(data) {
+            state.projectTitle = data.projectTitle || 'Untitled Project';
+            state.brainstormConcept = data.brainstormConcept || '';
+            state.storyOutline = data.storyOutline || '';
+            state.storyTreatment = data.storyTreatment || '';
+            state.writingFormat = data.writingFormat || 'Novel / Book Chapter';
+            state.assets = data.assets || [];
             
-            <div id="asset-context-menu" class="asset-context-menu hidden">
-                <button id="asset-rotate-left-btn" title="Rotate Left (r)">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.9-6.7"/><path d="M21 2v6h-6"/></svg>
-                </button>
-                <button id="asset-rotate-right-btn" title="Rotate Right (R)">
-                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.9-6.7"/><path d="M3 2v6h6"/></svg>
-                </button>
-                <button id="asset-scale-up-btn" title="Scale Up (+)">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-                </button>
-                <button id="asset-scale-down-btn" title="Scale Down (-)">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-                </button>
-            </div>
+            projectTitleEl.textContent = state.projectTitle;
+            mainEditor.innerHTML = data.editorContent || '';
+            
+            const isStandardFormat = [...treatmentFormatSelect.options].some(opt => opt.value === state.writingFormat);
+            if(isStandardFormat) {
+                treatmentFormatSelect.value = state.writingFormat;
+                otherTreatmentContainer.classList.add('hidden');
+            } else {
+                treatmentFormatSelect.value = 'Other';
+                otherTreatmentInput.value = state.writingFormat;
+                otherTreatmentContainer.classList.remove('hidden');
+            }
+            
+            chosenIdeaDisplay.innerHTML = state.brainstormConcept || `<span class="text-gray-500">Select a concept, or type/paste your own.</span>`;
+            
+            if (state.storyOutline) {
+                const formatted = cleanAndFormat(state.storyOutline);
+                chosenOutlineDisplay.innerHTML = `<div class="prose prose-invert max-w-none text-gray-300 text-sm">${formatted}</div>`;
+                outlineOutput.innerHTML = `<div class="bg-gray-900 p-6 rounded-lg shadow-inner"><div class="prose prose-invert max-w-none">${formatted}</div></div><button id="use-outline-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Develop Treatment →</button>`;
+            } else {
+                 chosenOutlineDisplay.innerHTML = `<span class="text-gray-500">Generate or type/paste an outline.</span>`;
+                 outlineOutput.innerHTML = '';
+            }
 
-            <!-- AI Bottom Panel -->
-            <div id="aiBottomPanel" class="closed">
-                <div id="aiBottomPanelHeader">
-                    <span>AI Assistant & Prompt Editor</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
-                </div>
-                <div id="aiBottomPanelContent" class="p-4 space-y-4">
-                    <!-- Step 1: Landform Generation -->
-                    <div class="control-panel">
-                        <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Step 1: Generate Landform Foundation</h4>
-                        <label for="aiLandformPrompt">Describe the basic landscape</label>
-                        <textarea id="aiLandformPrompt" placeholder="e.g., A rugged mountain range with a central volcano. A coastline with sandy beaches and a large bay." class="mb-2"></textarea>
-                        <button id="generateLandformBtn" class="w-full">
-                            <span class="btn-text">Generate Grayscale Landform</span>
-                            <span class="spinner hidden"></span>
-                        </button>
-                    </div>
+             if (state.storyTreatment) {
+                const formatted = cleanAndFormat(state.storyTreatment);
+                treatmentOutput.innerHTML = `<div class="bg-gray-900 p-6 rounded-lg shadow-inner"><div class="prose prose-invert max-w-none">${formatted}</div></div><button id="use-treatment-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Start Writing →</button>`;
+            } else {
+                 treatmentOutput.innerHTML = '';
+            }
+            renderAssets();
+        }
+        
+        function handleJsonLoad(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (confirm("Loading this file will overwrite your current project. Are you sure?")) {
+                        updateUiFromState(data);
+                        showStatus("Project loaded successfully.");
+                        closeModal('project');
+                    }
+                } catch (error) {
+                    alert("Error: Invalid or corrupted JSON file.");
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = null; 
+        }
 
-                    <!-- Step 2: Biome Application -->
-                    <div class="control-panel">
-                        <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Step 2: Apply Biomes & Features</h4>
-                        <textarea id="aiBiomePrompt" placeholder="e.g., Cover the mountains in snow and the lowlands in a dense pine forest. Add a large river flowing from the mountains to the bay." class="mb-2"></textarea>
-                        <div class="grid grid-cols-2 gap-2 mt-2">
-                            <button id="applyBiomesBtn" class="w-full" disabled>
-                                <span class="btn-text">Apply Biomes to Map</span>
-                                <span class="spinner hidden"></span>
-                            </button>
-                            <button id="generateColorVariantBtn" class="w-full" disabled>
-                                <span class="btn-text">Try New Colors</span>
-                                <span class="spinner hidden"></span>
-                            </button>
+        function sanitizeFilename(name) {
+            if (!name) return 'untitled-project';
+            return name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        }
+
+        function exportToJson() {
+            const projectData = { ...state, editorContent: mainEditor.innerHTML };
+            const dataStr = JSON.stringify(projectData, null, 2);
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${sanitizeFilename(state.projectTitle)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showStatus("Project exported as JSON.");
+            closeModal('project');
+        }
+
+        function htmlToText(html) {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            return tempDiv.textContent || tempDiv.innerText || "";
+        }
+
+        function exportAsText() {
+            const separator = "\n\n========================================\n\n";
+            let textContent = `PROJECT TITLE: ${state.projectTitle}\nWRITING FORMAT: ${state.writingFormat}\nEXPORTED ON: ${new Date().toLocaleString()}\n`;
+            
+            textContent += separator + "BRAINSTORM CONCEPT:\n\n" + htmlToText(state.brainstormConcept);
+            textContent += separator + "STORY OUTLINE:\n\n" + state.storyOutline;
+            textContent += separator + "STORY TREATMENT:\n\n" + state.storyTreatment;
+            textContent += separator + "YOUR STORY:\n\n" + htmlToText(mainEditor.innerHTML);
+
+            const blob = new Blob([textContent], { type: "text/plain" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${sanitizeFilename(state.projectTitle)}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showStatus("Project exported as Text.");
+            closeModal('project');
+        }
+        
+        function openModal(type) {
+            const modal = (type === 'settings') ? settingsModal : projectModal;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => modal.style.opacity = 1, 10);
+        }
+
+        function closeModal(type) {
+            const modal = (type === 'settings') ? settingsModal : projectModal;
+            modal.style.opacity = 0;
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 250);
+        }
+
+        function saveApiKey() {
+            const key = apiKeyInput.value.trim();
+            if (key) {
+                localStorage.setItem('geminiApiKey', key);
+                showStatus("API Key saved successfully.");
+                closeModal('settings');
+            } else {
+                localStorage.removeItem('geminiApiKey');
+                showStatus("API Key removed.", true);
+                closeModal('settings');
+            }
+        }
+
+        function loadApiKey() {
+            const key = localStorage.getItem('geminiApiKey');
+            if (key) {
+                apiKeyInput.value = key;
+            }
+        }
+
+        function setActiveStage(stageName) {
+            stages.forEach(s => s.classList.toggle('active', s.id === stageName)); 
+            navButtons.forEach(b => { 
+                b.classList.toggle('bg-blue-600', b.dataset.stage === stageName); 
+                b.classList.toggle('text-white', b.dataset.stage === stageName); 
+                b.classList.toggle('text-gray-400', b.dataset.stage !== stageName); 
+            }); 
+        }
+
+        async function callGeminiAPI(prompt, loaderElement) {
+            const apiKey = localStorage.getItem('geminiApiKey');
+            if (!apiKey) {
+                showStatus("API Key is missing. Please add it in Settings.", true);
+                openModal('settings');
+                return "Error: API Key is missing. Please add it in the settings menu (gear icon).";
+            }
+
+            loaderElement.style.display = 'block';
+            try {
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                const payload = { contents: [{ parts: [{ text: prompt }] }] };
+                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const result = await response.json();
+                return result.candidates?.[0]?.content?.parts?.[0]?.text;
+            } catch(e) {
+                console.error(e);
+                return "Error: Could not generate content. Please try again.";
+            } finally {
+                loaderElement.style.display = 'none';
+            }
+        }
+
+        async function callImagen(positivePrompt, negativePrompt) {
+            const apiKey = localStorage.getItem('geminiApiKey');
+            if (!apiKey) {
+                showStatus("API Key is missing for image generation. Please add it in Settings.", true);
+                openModal('settings');
+                return null;
+            }
+            try {
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+                const payload = {
+                    instances: [{ prompt: positivePrompt, negativePrompt: negativePrompt }],
+                    parameters: { "sampleCount": 1 }
+                };
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+                }
+                const result = await response.json();
+                if (result.predictions?.[0]?.bytesBase64Encoded) {
+                    return `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
+                }
+                throw new Error('API returned a valid response but no image data was found.');
+            } catch(e) {
+                console.error("Imagen API Error:", e);
+                showStatus(`Image Gen Error: ${e.message}`, true);
+                return null;
+            }
+        }
+
+        function cleanAndFormat(text) { 
+            return text ? text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/^\* (.*$)/gim, '<li class="ml-4 list-disc">$1</li>').replace(/\n/g, '<br>') : "";
+        }
+        function cleanAndParseBrainstorm(rawResponse) {
+            if (!rawResponse) return [];
+            const delimiter = /^\s*---+\s*$/m; 
+            return rawResponse.split(delimiter).map(s => s.trim()).filter(Boolean); 
+        }
+        navButtons.forEach(btn => btn.addEventListener('click', () => setActiveStage(btn.dataset.stage)));
+
+        function handleAssetLoad(event) {
+            const files = event.target.files;
+            if (!files.length) return;
+
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        addAssetToState(data);
+                    } catch (error) {
+                        alert(`Error parsing ${file.name}: Invalid JSON format.`);
+                    }
+                };
+                reader.readAsText(file);
+            });
+            event.target.value = null;
+        }
+
+        function addAssetToState(jsonData) {
+            const asset = {
+                id: `asset-${Date.now()}-${Math.random()}`,
+                label: '',
+                notes: '',
+                content: jsonData,
+                includeInPrompt: true
+            };
+
+            if (jsonData.name && jsonData.personality) {
+                asset.type = 'Character';
+                asset.name = jsonData.name;
+            } else if (jsonData['location-name'] && jsonData.atmosphere) {
+                asset.type = 'Scene';
+                asset.name = jsonData['location-name'];
+            } else {
+                asset.type = 'Unknown';
+                asset.name = 'Unnamed Asset';
+            }
+            
+            state.assets.push(asset);
+            renderAssets();
+            showStatus(`${asset.type} "${asset.name}" loaded.`);
+        }
+
+        function renderAssets() {
+            assetContainer.innerHTML = '';
+            state.assets.forEach(asset => {
+                const card = document.createElement('div');
+                card.className = 'asset-card space-y-2';
+                card.dataset.id = asset.id;
+                
+                card.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <strong class="text-blue-400">${asset.type}: <span class="text-white">${asset.name}</span></strong>
+                        <div class="flex items-center space-x-2">
+                            <label for="include-${asset.id}" class="text-xs text-gray-400">Include</label>
+                            <input type="checkbox" id="include-${asset.id}" class="asset-include-checkbox w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500" data-id="${asset.id}" ${asset.includeInPrompt ? 'checked' : ''}>
+                            <button class="remove-asset-btn text-red-400 hover:text-red-300 text-xs font-bold pl-2">REMOVE</button>
                         </div>
                     </div>
+                    <div>
+                        <label class="text-xs text-gray-400">Label</label>
+                        <input type="text" class="asset-input asset-label" value="${asset.label}" placeholder="e.g., Protagonist, Main Villain">
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-400">Notes</label>
+                        <textarea class="asset-input asset-notes" rows="2" placeholder="How to use this asset...">${asset.notes}</textarea>
+                    </div>
+                `;
+                assetContainer.appendChild(card);
+            });
+        }
 
-                    <!-- NEW: Step 3: Dungeon Layout Generation -->
-                    <div class="control-panel">
-                        <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Step 3: Generate Dungeon Layout</h4>
-                        <label for="aiLayoutPrompt">Describe the dungeon or building layout</label>
-                        <textarea id="aiLayoutPrompt" placeholder="e.g., A small goblin hideout in a cave with a main chamber, a treasure room, and a barracks. Roughly 20x20." class="mb-2"></textarea>
-                        <button id="generateLayoutBtn" class="w-full">
-                            <span class="btn-text">Generate Layout</span>
-                            <span class="spinner hidden"></span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- Collapsed Panel Handle -->
-        <div id="collapsedBar" class="collapsed-bar hidden">MAP CONTROLS</div>
-        <!-- Top Right Controls -->
-        <div id="topRightControls">
-            <div>
-                <label for="projectNameInput">Project Name</label>
-                <input type="text" id="projectNameInput" placeholder="Untitled Campaign" class="text-lg w-48">
-            </div>
-        </div>
-    </div>
+        function getAssetContextForAI() {
+            const includedAssets = state.assets.filter(asset => asset.includeInPrompt);
 
-    <!-- Modals -->
-    <div id="newMapModal" class="modal-backdrop hidden">
-        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md text-white">
-            <h3 class="text-lg font-bold mb-4">Create New Map</h3>
-            <label for="newMapNameInput">Map Name</label>
-            <input type="text" id="newMapNameInput" class="w-full" placeholder="e.g., Kingdom of Eldoria">
-            <label for="newMapScaleSelect" class="mt-4">Map Scale</label>
-            <select id="newMapScaleSelect" class="w-full">
-                <option value="world">World</option>
-                <option value="region">Region</option>
-                <option value="area">Area</option>
-                <option value="encounter">Encounter</option>
-            </select>
-            <div class="grid grid-cols-2 gap-4 mt-4">
-                <div>
-                    <label for="newMapWidthInput">Width</label>
-                    <input type="number" id="newMapWidthInput" value="50" min="1">
-                </div>
-                <div>
-                    <label for="newMapHeightInput">Height</label>
-                    <input type="number" id="newMapHeightInput" value="50" min="1">
-                </div>
-            </div>
-            <div class="flex items-center mt-4">
-                <input type="checkbox" id="newMapAsChildCheckbox" class="h-4 w-4 rounded !mb-0">
-                <label for="newMapAsChildCheckbox" class="ml-2 !mb-0 text-sm">Set as child of current map</label>
-            </div>
-            <div class="flex justify-end gap-4 mt-6">
-                <button id="cancelNewMapBtn" class="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 transition">Cancel</button>
-                <button id="confirmNewMapBtn" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 transition">Create</button>
-            </div>
-        </div>
-    </div>
+            if (includedAssets.length === 0) {
+                return "";
+            }
 
-    <div id="apiKeyModal" class="modal-backdrop hidden">
-        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md text-white">
-            <h3 class="text-lg font-bold mb-4">AI Settings</h3>
-            <p class="mb-4 text-sm text-gray-400">Enter your generative AI API key below. Your key is stored locally and never shared.</p>
-            <div>
-                <label for="apiKeyInput" class="block text-sm font-medium text-gray-300">API Key</label>
-                <input type="password" id="apiKeyInput" class="w-full p-2 mt-1 rounded border border-gray-600 bg-gray-700 text-white">
-            </div>
-            <div class="flex justify-end gap-4 mt-6">
-                <button id="cancelApiKey" class="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 transition">Cancel</button>
-                <button id="saveApiKey" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 transition">Save</button>
-            </div>
-        </div>
-    </div>
-    
-    <div id="asset-editor-overlay" class="hidden">
-        <div class="asset-editor-main">
-            <div class="asset-editor-top-bar">
-                <h2 class="text-2xl font-bold text-gray-100">AI-Assisted Asset Editor</h2>
-                <button id="asset-editor-close-btn" title="Close Editor">&times;</button>
-            </div>
-            <div class="asset-editor-content">
-                <!-- LEFT PANEL -->
-                <div class="asset-editor-left-panel">
-                    <div class="control-panel">
-                        <label for="asset-type-select">Asset Type</label>
-                        <select id="asset-type-select">
-                            <option value="object">Object / Icon</option>
-                            <option value="terrain">Terrain Pattern</option>
-                        </select>
-                    </div>
-                    <div class="control-panel">
-                        <h3>AI Generation</h3>
-                        <label for="asset-prompt">Prompt</label>
-                        <textarea id="asset-prompt" rows="4" placeholder="e.g., A single, stylized fantasy oak tree icon, no background, watercolor style..."></textarea>
-                        <button id="asset-generate-btn">Generate</button>
-                    </div>
-                    <div class="control-panel">
-                        <h3>Manual Tools</h3>
-                        <div class="asset-tool-palette">
-                            <button class="asset-tool active" data-tool="pencil" title="Pencil"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg></button>
-                            <button class="asset-tool" data-tool="eraser" title="Eraser"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg></button>
-                            <input type="color" id="asset-color-picker" value="#FFFFFF" title="Color Picker">
-                        </div>
-                        <label for="asset-brush-size">Brush Size: <span id="asset-brush-size-value">5</span></label>
-                        <input type="range" id="asset-brush-size" min="1" max="50" value="5">
-                    </div>
-                </div>
-                <!-- CENTER PANEL -->
-                <div class="asset-editor-center-panel">
-                    <div id="loading-overlay" class="hidden">Generating...</div>
-                    <div id="asset-canvas-container">
-                        <canvas id="asset-canvas-main" width="512" height="512"></canvas>
-                        <canvas id="asset-canvas-draw" width="512" height="512"></canvas>
-                    </div>
-                </div>
-                <!-- RIGHT PANEL -->
-                <div class="asset-editor-right-panel">
-                    <div id="asset-preview-panel" class="control-panel hidden">
-                        <h3>Tiling Preview</h3>
-                        <canvas id="asset-preview-canvas" width="240" height="240"></canvas>
-                    </div>
-                     <div class="control-panel">
-                        <h3>Save to Library</h3>
-                        <label for="asset-name">Asset Name</label>
-                        <input type="text" id="asset-name" placeholder="e.g., Oak Tree">
-                        <label for="asset-tags">Tags (comma-separated)</label>
-                        <input type="text" id="asset-tags" placeholder="fantasy, world, vegetation">
-                        <button id="asset-export-btn">Save to Library</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+            let context = "\n\n--- STORY ASSETS CONTEXT ---\n";
+            includedAssets.forEach(asset => {
+                context += `\n[${asset.type.toUpperCase()}]\n`;
+                if (asset.label) context += `Label: ${asset.label}\n`;
+                if (asset.notes) context += `Notes: ${asset.notes}\n`;
+                
+                if (asset.type === 'Character' && asset.content) {
+                    context += `Name: ${asset.content.name || 'N/A'}\n`;
+                    context += `Description: ${asset.content['core-description'] || 'N/A'}\n`;
+                    context += `Personality: ${asset.content.personality || 'N/A'}\n`;
+                } else if (asset.type === 'Scene' && asset.content) {
+                    context += `Location: ${asset.content['location-name'] || 'N/A'}\n`;
+                    context += `Description: ${asset.content.overview || 'N/A'}\n`;
+                    context += `Atmosphere: ${asset.content.atmosphere || 'N/A'}\n`;
+                }
+            });
+            context += "--- END ASSETS CONTEXT ---\n\n";
+            return context;
+        }
+        
+        assetContainer.addEventListener('click', e => {
+            if (e.target.classList.contains('remove-asset-btn')) {
+                const card = e.target.closest('.asset-card');
+                const assetId = card.dataset.id;
+                state.assets = state.assets.filter(asset => asset.id !== assetId);
+                renderAssets();
+            }
+        });
 
-    <!-- NEW: Toast Notification Container -->
-    <div id="toast-container"></div>
+        assetContainer.addEventListener('input', e => {
+            const card = e.target.closest('.asset-card');
+            const assetId = card.dataset.id;
+            const asset = state.assets.find(a => a.id === assetId);
+            if (!asset) return;
 
-    <script type="module" src="state.js"></script>
-    <script type="module" src="mmtools-script.js"></script>
-    <script type="module" src="mmassist-script.js"></script>
-    <script type="module" src="asset-editor.js"></script>
+            if (e.target.classList.contains('asset-label')) {
+                asset.label = e.target.value;
+            } else if (e.target.classList.contains('asset-notes')) {
+                asset.notes = e.target.value;
+            }
+        });
+        
+        assetContainer.addEventListener('change', e => {
+            if (e.target.classList.contains('asset-include-checkbox')) {
+                const assetId = e.target.dataset.id;
+                const asset = state.assets.find(a => a.id === assetId);
+                if (asset) {
+                    asset.includeInPrompt = e.target.checked;
+                }
+            }
+        });
+
+        brainstormTypeSelect.addEventListener('change', (e) => {
+            if (e.target.value === 'Other') {
+                otherFormatContainer.classList.remove('hidden');
+            } else {
+                otherFormatContainer.classList.add('hidden');
+            }
+        });
+
+        generateIdeasBtn.addEventListener('click', async () => {
+            const assetContext = getAssetContextForAI();
+            ideasOutput.innerHTML = ''; 
+            let brainstormType = brainstormTypeSelect.value; 
+            const userInput = brainstormInput.value.trim(); 
+            if(!userInput) return; 
+            let prompt = ''; 
+            const base = `You are a creative assistant. Your output must ONLY be the generated concepts, with each concept separated by a line containing only '---'. Do not include any introductory phrases or conversational text.`; 
+            
+            const fullBase = `${assetContext}${base}`;
+
+            if (brainstormType === 'Other') {
+                const otherFormat = otherFormatInput.value.trim();
+                if (!otherFormat) {
+                    showStatus("Please define a custom format when using 'Other'.", true);
+                    return;
+                }
+                brainstormType = otherFormat;
+            }
+
+            switch (brainstormType) { 
+                case 'Characters': prompt = `${fullBase} Brainstorm 5 unique characters based on the theme: "${userInput}". For each character, provide a **Name:**, a **Description:**, and their **Motivation:**.`; break; 
+                case 'Settings': prompt = `${fullBase} Brainstorm 5 unique settings based on the theme: "${userInput}". For each setting, provide a **Name:**, a **Description:**, and the **Atmosphere:**.`; break; 
+                case 'Plot Twists': prompt = `${fullBase} Brainstorm 5 shocking plot twists related to the idea: "${userInput}". For each twist, provide a **Twist:** title and a **Description:** of how it unfolds.`; break; 
+                case 'Story Hooks': prompt = `${fullBase} Brainstorm 5 compelling story hooks based on the idea: "${userInput}". For each hook, provide a **Hook:** title and a **Description:** of the scenario.`; break; 
+                case 'Design Concept': prompt = `${fullBase} Brainstorm 5 design concepts for: "${userInput}". For each, provide a **Concept:** title, a **Description:** of the visual style, and a list of **Key Elements:**.`; break;
+                case 'Shopping List': prompt = `${fullBase} Create a detailed shopping list for: "${userInput}". For each item, provide the **Item:** name, **Quantity:**, and **Notes:**.`; break;
+                case 'Travel Ideas': prompt = `${fullBase} Brainstorm 5 travel ideas related to: "${userInput}". For each, provide a **Destination:**, a **Description:** of why to go, and a list of **Activities:**.`; break;
+                case 'Story Ideas': 
+                    prompt = `${fullBase} Brainstorm 5 unique story ideas based on the premise: "${userInput}". For each idea, you MUST provide a **Title:**, a **Logline:**, and a **Synopsis:**.`; 
+                    break;
+                default:
+                    prompt = `${fullBase} Brainstorm 5 concepts for "${brainstormType}" based on the theme: "${userInput}". For each concept, give it a bolded **Title:** and a detailed description.`;
+            } 
+            const rawResponse = await callGeminiAPI(prompt, loaders.ideas); 
+            if (rawResponse.startsWith("Error:")) { showStatus(rawResponse, true); return; }
+            const ideasArray = cleanAndParseBrainstorm(rawResponse); 
+            if (ideasArray.length === 0) { 
+                ideasOutput.innerHTML = `<p class="text-center text-gray-400 col-span-full">The AI couldn't generate concepts for that prompt. Please try again.</p>`; 
+                return; 
+            } 
+
+            if (state.projectTitle === 'Untitled Project' && brainstormTypeSelect.value === 'Story Ideas' && ideasArray.length > 0) {
+                const firstIdea = ideasArray[0];
+                const titleMatch = firstIdea.match(/\*\*Title:\*\*\s*(.*)/);
+                if (titleMatch && titleMatch[1]) {
+                    state.projectTitle = titleMatch[1].trim();
+                    projectTitleEl.textContent = state.projectTitle;
+                }
+            }
+
+            ideasOutput.innerHTML = ideasArray.map(ideaText => { 
+                const firstLine = ideaText.match(/\*\*(.*?):\*\*\s*(.*)/); 
+                const title = firstLine ? firstLine[2].trim() : "Untitled Concept"; 
+                const formattedContent = cleanAndFormat(ideaText); 
+                const fullIdeaContent = `<div class="prose prose-invert max-w-none text-gray-300">${formattedContent}</div>`; 
+                return `<div class="idea-card bg-gray-900 p-6 rounded-lg flex flex-col"><h3 class="text-xl font-bold text-blue-400 mb-3">${title}</h3><div class="space-y-4 flex-grow prose prose-invert max-w-none text-gray-300 text-sm">${formattedContent}</div><button class="select-idea-btn mt-6 py-2 px-4 w-full rounded-lg font-semibold btn-secondary" data-idea-content="${encodeURIComponent(fullIdeaContent)}" data-title="${encodeURIComponent(title)}">Develop this Concept →</button></div>`; 
+            }).join(''); 
+        });
+        
+        ideasOutput.addEventListener('click', e => { 
+            if (e.target.classList.contains('select-idea-btn')) { 
+                showStatus("New concept selected. Ready for outlining.");
+                state.brainstormConcept = decodeURIComponent(e.target.dataset.ideaContent); 
+                chosenIdeaDisplay.innerHTML = state.brainstormConcept; 
+                
+                const newTitle = decodeURIComponent(e.target.dataset.title);
+                if (brainstormTypeSelect.value === 'Story Ideas' && newTitle !== 'Untitled Concept') {
+                     state.projectTitle = newTitle;
+                     projectTitleEl.textContent = state.projectTitle;
+                }
+
+                document.querySelectorAll('.idea-card').forEach(c => c.classList.remove('selected-card')); 
+                e.target.closest('.idea-card').classList.add('selected-card'); 
+                state.storyOutline = '';
+                state.storyTreatment = '';
+                outlineOutput.innerHTML = '';
+                treatmentOutput.innerHTML = '';
+                chosenOutlineDisplay.innerHTML = `<span class="text-gray-500">Generate an outline or type/paste your own.</span>`;
+                setActiveStage('outline'); 
+            } 
+        });
+
+        outlineStructureSelect.addEventListener('change', (e) => {
+            if (e.target.value === 'Other') {
+                otherOutlineContainer.classList.remove('hidden');
+            } else {
+                otherOutlineContainer.classList.add('hidden');
+            }
+        });
+
+        generateOutlineBtn.addEventListener('click', async () => { 
+            const conceptText = htmlToText(chosenIdeaDisplay.innerHTML);
+            if (!conceptText.trim() || chosenIdeaDisplay.textContent.includes('Select a concept')) {
+                showStatus("Please provide a concept before generating an outline.", true);
+                return;
+            }
+
+            let outlineType = outlineStructureSelect.value;
+            if (outlineType === 'Other') {
+                const customType = otherOutlineInput.value.trim();
+                if (!customType) {
+                    showStatus("Please define a custom outline structure when using 'Other'.", true);
+                    return;
+                }
+                outlineType = customType;
+            }
+
+            const secondaryGuidance = outlineSecondaryGuidance.value.trim();
+            const guidanceText = secondaryGuidance ? `\n\n**Secondary Guidance:**\n${secondaryGuidance}` : '';
+
+            const assetContext = getAssetContextForAI();
+            const prompt = `${assetContext}You are a story outlining expert. Your output must ONLY be the story outline itself. Do not include any introductory phrases. Generate a detailed story outline for the following concept using the **${outlineType}**.${guidanceText}\n\n**Concept:**\n${conceptText}`; 
+            outlineOutput.innerHTML = ''; 
+            const generatedOutline = await callGeminiAPI(prompt, loaders.outline); 
+            if (generatedOutline.startsWith("Error:")) { showStatus(generatedOutline, true); return; } 
+            state.storyOutline = generatedOutline; 
+            const formattedOutline = cleanAndFormat(generatedOutline); 
+            outlineOutput.innerHTML = `<div class="bg-gray-900 p-6 rounded-lg shadow-inner"><div class="prose prose-invert max-w-none text-gray-300">${formattedOutline}</div></div><button id="use-outline-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Develop Treatment →</button>`; 
+        });
+
+        outlineOutput.addEventListener('click', e => { 
+            if (e.target.id === 'use-outline-btn') { 
+                chosenOutlineDisplay.innerHTML = `<div class="prose prose-invert max-w-none text-gray-300 text-sm">${cleanAndFormat(state.storyOutline)}</div>`; 
+                setActiveStage('treatment'); 
+            } 
+        });
+
+        treatmentFormatSelect.addEventListener('change', (e) => {
+            if (e.target.value === 'Other') {
+                otherTreatmentContainer.classList.remove('hidden');
+            } else {
+                otherTreatmentContainer.classList.add('hidden');
+            }
+        });
+
+        generateTreatmentBtn.addEventListener('click', async () => { 
+            state.storyOutline = htmlToText(chosenOutlineDisplay.innerHTML);
+            if (!state.storyOutline.trim() || chosenOutlineDisplay.textContent.includes('Generate an outline')) {
+                showStatus("Please provide an outline before generating a treatment.", true);
+                return;
+            }
+            
+            let writingFormat = treatmentFormatSelect.value;
+            if (writingFormat === 'Other') {
+                const customFormat = otherTreatmentInput.value.trim();
+                if (!customFormat) {
+                    showStatus("Please define a custom format when using 'Other'.", true);
+                    return;
+                }
+                writingFormat = customFormat;
+            }
+            state.writingFormat = writingFormat;
+
+            const secondaryGuidance = treatmentSecondaryGuidance.value.trim();
+            const guidanceText = secondaryGuidance ? `\n\n**Secondary Guidance:**\n${secondaryGuidance}` : '';
+
+            const assetContext = getAssetContextForAI();
+            const prompt = `${assetContext}Act as a professional writer. Expand the following story outline into a narrative treatment. The final work will be a **${state.writingFormat}**. The treatment should be written as present tense prose. Provide ONLY the treatment text.${guidanceText}\n\n**Outline:**\n${state.storyOutline}`; 
+            treatmentOutput.innerHTML = ''; 
+            const generatedTreatment = await callGeminiAPI(prompt, loaders.treatment); 
+            if (generatedTreatment.startsWith("Error:")) { showStatus(generatedTreatment, true); return; } 
+            state.storyTreatment = generatedTreatment; 
+            const formattedTreatment = cleanAndFormat(generatedTreatment); 
+            treatmentOutput.innerHTML = `<div class="bg-gray-900 p-6 rounded-lg shadow-inner"><div class="prose prose-invert max-w-none text-gray-300">${formattedTreatment}</div></div><button id="use-treatment-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Start Writing →</button>`; 
+        });
+
+        treatmentOutput.addEventListener('click', e => { 
+            if (e.target.id === 'use-treatment-btn') {
+                mainEditor.innerHTML = `<h1>${state.projectTitle}</h1><br>` + cleanAndFormat(state.storyTreatment);
+                setActiveStage('write'); 
+            } 
+        });
+        
+        generateWritingBtn.addEventListener('click', async () => {
+            if (!writingGuidanceInput.value.trim()) { showStatus("Please enter a writing prompt.", true); return; }
+            
+            const assetContext = getAssetContextForAI();
+            const format = state.writingFormat;
+            const role = format.includes("Screenplay") ? "screenwriter" : "novelist";
+            const currentText = mainEditor.innerText;
+            
+            const secondaryGuidance = writingSecondaryGuidance.value.trim();
+            const guidanceText = secondaryGuidance ? `\n\n**Secondary Guidance:**\n${secondaryGuidance}` : '';
+
+            const prompt = `${assetContext}You are a talented ${role}. Your task is to continue or expand upon the following text, which is for a **${format}**.
+            ---
+            CURRENT TEXT:
+            ${currentText}
+            ---
+            Now, fulfill this specific user request: "${writingGuidanceInput.value}"
+            ${guidanceText}
+            Write the requested text in a compelling way, ensuring it is correctly formatted for a ${format}. Do not repeat the prompt or the existing text. Provide only the new, generated text.`;
+            
+            const generatedText = await callGeminiAPI(prompt, loaders.writing);
+            if (generatedText.startsWith("Error:")) { showStatus(generatedText, true); return; }
+            const formattedText = cleanAndFormat(generatedText);
+            const selection = window.getSelection();
+            const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+            const contentNode = document.createElement('div');
+            contentNode.innerHTML = `<br>${formattedText}<br>`;
+            if (range && mainEditor.contains(range.commonAncestorContainer)) { 
+                range.deleteContents();
+                range.insertNode(contentNode);
+            } else { 
+                mainEditor.appendChild(contentNode);
+            }
+            writingGuidanceInput.value = '';
+            writingSecondaryGuidance.value = '';
+        });
+        
+        async function handleStoryboardGeneration() {
+            const description = storyboardDescription.value.trim();
+            if (!description) {
+                showStatus("Please enter a scene description.", true);
+                return;
+            }
+
+            const numPanels = parseInt(storyboardPanels.value, 10);
+            const style = storyboardStyle.value;
+
+            storyboardLoader.classList.remove('hidden');
+            storyboardOutput.innerHTML = '';
+            generateStoryboardBtn.disabled = true;
+
+            const panelPrompt = `You are a film director. Based on the following scene description, break it down into ${numPanels} distinct, chronological storyboard panels. For each panel, provide a concise, visual-only description suitable for an AI image generator. Focus on camera angles (e.g., wide shot, close-up), character actions, and key visual elements. Do not describe sounds or dialogue. Format the output with each panel description separated by a line containing only '---'.\n\n**Scene:**\n${description}`;
+
+            const panelDescriptionsText = await callGeminiAPI(panelPrompt, storyboardLoader.querySelector('.loader'));
+            
+            if (!panelDescriptionsText || panelDescriptionsText.startsWith("Error:")) {
+                showStatus(panelDescriptionsText || "Failed to generate panel descriptions.", true);
+                storyboardLoader.classList.add('hidden');
+                generateStoryboardBtn.disabled = false;
+                return;
+            }
+            
+            storyboardLoader.querySelector('p').textContent = 'Descriptions generated. Now creating images...';
+
+            const panelPrompts = panelDescriptionsText.split('---').map(p => p.trim()).filter(Boolean);
+
+            for (let i = 0; i < panelPrompts.length; i++) {
+                const panelDiv = document.createElement('div');
+                panelDiv.className = 'storyboard-panel';
+                panelDiv.innerHTML = `
+                    <div class="aspect-video bg-gray-900 flex items-center justify-center">
+                        <div class="loader panel-loader"></div>
+                    </div>
+                    <div class="p-3 text-xs text-gray-400">
+                        <p>${i + 1}. ${panelPrompts[i]}</p>
+                    </div>`;
+                storyboardOutput.appendChild(panelDiv);
+            }
+
+            let styleKeywords = "epic digital painting, detailed brushwork, dramatic lighting, fantasy art";
+            if (style === 'Photorealistic') styleKeywords = "photorealistic, hyperdetailed, 8k, cinematic, professional photography, sharp focus";
+            if (style === 'Anime') styleKeywords = "anime style, vibrant, cinematic, detailed background art, by Makoto Shinkai and Studio Ghibli";
+            if (style === 'Sketch') styleKeywords = "detailed pencil sketch, black and white, monochrome, architectural drawing, hand-drawn, graphite on textured paper";
+            if (style === 'Comic Book') styleKeywords = "comic book art style, bold lines, vibrant colors, halftone dots, dynamic action";
+            if (style === 'Cinematic') styleKeywords = "cinematic film still, anamorphic lens, high contrast, moody lighting, detailed";
+            
+            const imagePromises = panelPrompts.map(prompt => {
+                const fullPrompt = `${prompt}, ${styleKeywords}`;
+                return callImagen(fullPrompt, "text, watermark, signature, ugly, deformed");
+            });
+
+            const generatedImages = await Promise.all(imagePromises);
+
+            storyboardLoader.classList.add('hidden');
+            generateStoryboardBtn.disabled = false;
+            storyboardLoader.querySelector('p').textContent = 'Generating panel descriptions...';
+
+            const panelDivs = storyboardOutput.querySelectorAll('.storyboard-panel');
+            generatedImages.forEach((imageUrl, index) => {
+                if (panelDivs[index]) {
+                    const container = panelDivs[index].querySelector('.aspect-video');
+                    if (imageUrl) {
+                        container.innerHTML = `<img src="${imageUrl}" class="w-full h-full object-cover">`;
+                    } else {
+                        container.innerHTML = `<div class="p-4 text-center text-red-400 text-sm">Image failed to generate.</div>`;
+                    }
+                }
+            });
+        }
+        
+        loadTreatmentToStoryboardBtn.addEventListener('click', () => {
+            if (state.storyTreatment) {
+                storyboardDescription.value = htmlToText(state.storyTreatment);
+                showStatus("Loaded content from Treatment.");
+            } else {
+                showStatus("No Treatment content to load.", true);
+            }
+        });
+
+        loadStoryToStoryboardBtn.addEventListener('click', () => {
+            const storyText = mainEditor.innerText;
+            if (storyText.trim()) {
+                storyboardDescription.value = storyText;
+                showStatus("Loaded content from Story editor.");
+            } else {
+                showStatus("No content in the Story editor to load.", true);
+            }
+        });
+
+        projectOptionsBtn.addEventListener('click', () => openModal('project'));
+        closeModalBtn.addEventListener('click', () => closeModal('project'));
+        projectModal.addEventListener('click', (e) => { if (e.target === projectModal) { closeModal('project'); } });
+        
+        settingsBtn.addEventListener('click', () => openModal('settings'));
+        closeSettingsModalBtn.addEventListener('click', () => closeModal('settings'));
+        settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) { closeModal('settings'); } });
+        
+        loadJsonBtn.addEventListener('click', () => jsonFileInput.click());
+        jsonFileInput.addEventListener('change', handleJsonLoad);
+        exportJsonBtn.addEventListener('click', exportToJson);
+        exportTextBtn.addEventListener('click', exportAsText);
+        saveApiKeyBtn.addEventListener('click', saveApiKey);
+        loadAssetBtn.addEventListener('click', () => assetFileInput.click());
+        assetFileInput.addEventListener('change', handleAssetLoad);
+        generateStoryboardBtn.addEventListener('click', handleStoryboardGeneration);
+
+
+        projectTitleEl.addEventListener('input', (e) => {
+            state.projectTitle = e.target.textContent;
+        });
+
+        chosenIdeaDisplay.addEventListener('input', (e) => {
+            state.brainstormConcept = e.target.innerHTML;
+        });
+        chosenOutlineDisplay.addEventListener('input', (e) => {
+            state.storyOutline = e.target.innerText;
+        });
+        
+        loadApiKey();
+
+    </script>
 </body>
 </html>
+
