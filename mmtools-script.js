@@ -1,4 +1,4 @@
-// Version 8.9 - Corrected hex geometry for flat-top orientation
+// Version 8.10 - Corrected hex geometry for pointy-top orientation
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -273,8 +273,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function drawHexOutline(ctx, x, y, size) {
         ctx.beginPath();
         for (let i = 0; i < 6; i++) {
-            // *** BUG FIX: Use flat-top angle calculation (start at 0 degrees) ***
-            const angle_deg = 60 * i;
+            // Pointy-top angle calculation (starts at 30 degrees)
+            const angle_deg = 60 * i + 30;
             const angle_rad = Math.PI / 180 * angle_deg;
             const pointX = x + size * Math.cos(angle_rad);
             const pointY = y + size * Math.sin(angle_rad);
@@ -373,8 +373,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function drawHex(targetCtx, x, y, size, terrain) {
         targetCtx.beginPath();
         for (let i = 0; i < 6; i++) {
-            // *** BUG FIX: Use flat-top angle calculation (start at 0 degrees) ***
-            const angle_deg = 60 * i;
+            // Pointy-top angle calculation (starts at 30 degrees)
+            const angle_deg = 60 * i + 30;
             const angle_rad = Math.PI / 180 * angle_deg;
             const pointX = x + size * Math.cos(angle_rad);
             const pointY = y + size * Math.sin(angle_rad);
@@ -397,16 +397,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function hexToPixel(q, r, size) {
-        // *** BUG FIX: Use flat-top coordinate conversion ***
-        const x = size * (3 / 2 * q);
-        const y = size * (Math.sqrt(3) / 2 * q + Math.sqrt(3) * r);
+        // Pointy-top coordinate conversion
+        const x = size * (Math.sqrt(3) * q + Math.sqrt(3) / 2 * r);
+        const y = size * (3 / 2 * r);
         return { x, y };
     }
 
     function pixelToHex(x, y, size) {
-        // *** BUG FIX: Use flat-top coordinate conversion ***
-        const q = (2 / 3 * x) / size;
-        const r = (-1 / 3 * x + Math.sqrt(3) / 3 * y) / size;
+        // Pointy-top coordinate conversion
+        const q = (Math.sqrt(3) / 3 * x - 1 / 3 * y) / size;
+        const r = (2 / 3 * y) / size;
         return hexRound(q, r);
     }
 
@@ -798,3 +798,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initialize();
 });
+
