@@ -79,6 +79,12 @@
             <button id="project-options-btn" class="py-2 px-5 rounded-lg font-semibold btn-primary">
                 Project Options
             </button>
+            <!-- NEW: Settings Button -->
+            <button id="settings-btn" class="p-2 rounded-lg btn-secondary" title="Settings">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0l-.1.41a2 2 0 01-2.23 1.52l-.4-.1a2 2 0 00-2.2 2.2l.1.4a2 2 0 01-1.52 2.23l-.41.1c-1.56.38-1.56 2.6 0 2.98l.41.1a2 2 0 011.52 2.23l-.1.4a2 2 0 002.2 2.2l.4-.1a2 2 0 012.23 1.52l.1.41c.38 1.56 2.6 1.56 2.98 0l.1-.41a2 2 0 012.23-1.52l.4.1a2 2 0 002.2-2.2l-.1-.4a2 2 0 011.52-2.23l.41-.1c1.56-.38 1.56-2.6 0-2.98l-.41-.1a2 2 0 01-1.52-2.23l.1-.4a2 2 0 00-2.2-2.2l-.4.1a2 2 0 01-2.23-1.52l-.1-.41zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+                </svg>
+            </button>
             <span id="status-message" class="text-sm text-gray-400 opacity-0"></span>
         </div>
 
@@ -185,6 +191,22 @@
         </div>
     </div>
 
+    <!-- NEW: Settings Modal -->
+    <div id="settings-modal" class="modal fixed inset-0 bg-black/60 items-center justify-center hidden z-50 opacity-0">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md relative border border-gray-700">
+            <button id="close-settings-modal-btn" class="absolute top-3 right-3 text-gray-500 hover:text-white transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            <h2 class="text-2xl font-bold text-white mb-4">Settings</h2>
+            <p class="text-sm text-gray-400 mb-4">Your Gemini API key is stored locally in your browser and is never sent to our servers.</p>
+            <div class="space-y-2">
+                <label for="api-key-input" class="block text-sm font-medium text-gray-300">Gemini API Key</label>
+                <input type="password" id="api-key-input" class="w-full p-2 bg-gray-900 text-gray-300 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Enter your API key">
+            </div>
+            <button id="save-api-key-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Save Key</button>
+        </div>
+    </div>
+
     <script>
         const state = {
             brainstormConcept: '',
@@ -201,6 +223,11 @@
         const jsonFileInput = document.getElementById('json-file-input');
         const exportJsonBtn = document.getElementById('export-json-btn');
         const exportTextBtn = document.getElementById('export-text-btn');
+        const settingsBtn = document.getElementById('settings-btn');
+        const settingsModal = document.getElementById('settings-modal');
+        const closeSettingsModalBtn = document.getElementById('close-settings-modal-btn');
+        const apiKeyInput = document.getElementById('api-key-input');
+        const saveApiKeyBtn = document.getElementById('save-api-key-btn');
         const navButtons = document.querySelectorAll('.nav-btn');
         const stages = document.querySelectorAll('.stage');
         const loaders = { ideas: document.getElementById('ideas-loader'), outline: document.getElementById('outline-loader'), treatment: document.getElementById('treatment-loader'), writing: document.getElementById('writing-loader') };
@@ -241,8 +268,7 @@
             if (state.storyOutline) {
                 const formatted = cleanAndFormat(state.storyOutline);
                 chosenOutlineDisplay.innerHTML = `<div class="prose prose-invert max-w-none text-gray-300 text-sm">${formatted}</div>`;
-                outlineOutput.innerHTML = `<div class="bg-gray-900 p-6 rounded-lg shadow-inner"><div class="prose prose-invert max-w-none">${formatted}</div></div>
-                                           <button id="use-outline-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Develop this Outline into a Treatment →</button>`;
+                outlineOutput.innerHTML = `<div class="bg-gray-900 p-6 rounded-lg shadow-inner"><div class="prose prose-invert max-w-none">${formatted}</div></div><button id="use-outline-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Develop this Outline into a Treatment →</button>`;
             } else {
                  chosenOutlineDisplay.innerHTML = `<span class="text-gray-500">First, generate and select an outline...</span>`;
                  outlineOutput.innerHTML = '';
@@ -251,8 +277,7 @@
              if (state.storyTreatment) {
                 const formatted = cleanAndFormat(state.storyTreatment);
                 treatmentReference.innerHTML = `<div class="prose prose-invert max-w-none">${formatted}</div>`;
-                treatmentOutput.innerHTML = `<div class="bg-gray-900 p-6 rounded-lg shadow-inner"><div class="prose prose-invert max-w-none">${formatted}</div></div>
-                                             <button id="use-treatment-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Start Writing with this Treatment →</button>`;
+                treatmentOutput.innerHTML = `<div class="bg-gray-900 p-6 rounded-lg shadow-inner"><div class="prose prose-invert max-w-none">${formatted}</div></div><button id="use-treatment-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Start Writing with this Treatment →</button>`;
             } else {
                  treatmentReference.innerHTML = `<p class="text-gray-500">First, generate and select a treatment...</p>`;
                  treatmentOutput.innerHTML = '';
@@ -270,7 +295,7 @@
                     if (confirm("Loading this file will overwrite your current work in this session. Are you sure?")) {
                         updateUiFromState(data);
                         showStatus("Project loaded successfully.");
-                        closeModal();
+                        closeModal('project');
                     }
                 } catch (error) {
                     alert("Error: Invalid or corrupted JSON file.");
@@ -294,7 +319,7 @@
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
             showStatus("Project exported as JSON.");
-            closeModal();
+            closeModal('project');
         }
 
         function htmlToText(html) {
@@ -322,20 +347,43 @@
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
             showStatus("Project exported as Text.");
-            closeModal();
+            closeModal('project');
         }
         
-        function openModal() {
-            projectModal.classList.remove('hidden');
-            projectModal.classList.add('flex');
-            setTimeout(() => projectModal.style.opacity = 1, 10);
+        function openModal(type) {
+            const modal = (type === 'settings') ? settingsModal : projectModal;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => modal.style.opacity = 1, 10);
         }
-        function closeModal() {
-            projectModal.style.opacity = 0;
+
+        function closeModal(type) {
+            const modal = (type === 'settings') ? settingsModal : projectModal;
+            modal.style.opacity = 0;
             setTimeout(() => {
-                projectModal.classList.add('hidden');
-                projectModal.classList.remove('flex');
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
             }, 250);
+        }
+
+        function saveApiKey() {
+            const key = apiKeyInput.value.trim();
+            if (key) {
+                localStorage.setItem('geminiApiKey', key);
+                showStatus("API Key saved successfully.");
+                closeModal('settings');
+            } else {
+                localStorage.removeItem('geminiApiKey');
+                showStatus("API Key removed.", true);
+                closeModal('settings');
+            }
+        }
+
+        function loadApiKey() {
+            const key = localStorage.getItem('geminiApiKey');
+            if (key) {
+                apiKeyInput.value = key;
+            }
         }
 
         // --- Core Application Logic (Gemini calls, etc.) ---
@@ -347,10 +395,17 @@
                 b.classList.toggle('text-gray-400', b.dataset.stage !== stageName); 
             }); 
         }
+
         async function callGeminiAPI(prompt, loaderElement) {
+            const apiKey = localStorage.getItem('geminiApiKey');
+            if (!apiKey) {
+                showStatus("API Key is missing. Please add it in Settings.", true);
+                openModal('settings');
+                return "Error: API Key is missing. Please add it in the settings menu (gear icon).";
+            }
+
             loaderElement.style.display = 'block';
             try {
-                const apiKey = ""; 
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
                 const payload = { contents: [{ parts: [{ text: prompt }] }] };
                 const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -390,6 +445,7 @@
                 default: prompt = `${base} Brainstorm 5 unique story ideas based on the premise: "${userInput}". For each idea, you MUST provide a **Title:**, a **Logline:**, and a **Synopsis:**.`; 
             } 
             const rawResponse = await callGeminiAPI(prompt, loaders.ideas); 
+            if (rawResponse.startsWith("Error:")) { showStatus(rawResponse, true); return; }
             const ideasArray = cleanAndParseBrainstorm(rawResponse); 
             if (ideasArray.length === 0) { 
                 ideasOutput.innerHTML = `<p class="text-center text-gray-400 col-span-full">The AI couldn't generate concepts for that prompt. Please try again.</p>`; 
@@ -404,60 +460,44 @@
             }).join(''); 
         });
         ideasOutput.addEventListener('click', e => { if (e.target.classList.contains('select-idea-btn')) { state.brainstormConcept = decodeURIComponent(e.target.dataset.ideaContent); chosenIdeaDisplay.innerHTML = state.brainstormConcept; document.querySelectorAll('.idea-card').forEach(c => c.classList.remove('selected-card')); e.target.closest('.idea-card').classList.add('selected-card'); setActiveStage('outline'); } });
-        generateOutlineBtn.addEventListener('click', async () => { if (!state.brainstormConcept) return; const prompt = `You are a story outlining expert. Your output must ONLY be the story outline itself. Do not include any introductory phrases. Generate a detailed story outline for the following concept using the **${outlineStructureSelect.value}**:\n\n${state.brainstormConcept}`; outlineOutput.innerHTML = ''; const generatedOutline = await callGeminiAPI(prompt, loaders.outline); state.storyOutline = generatedOutline; const formattedOutline = cleanAndFormat(generatedOutline); outlineOutput.innerHTML = `<div class="bg-gray-900 p-6 rounded-lg shadow-inner"><div class="prose prose-invert max-w-none text-gray-300">${formattedOutline}</div></div><button id="use-outline-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Develop Treatment →</button>`; });
+        generateOutlineBtn.addEventListener('click', async () => { if (!state.brainstormConcept) return; const prompt = `You are a story outlining expert. Your output must ONLY be the story outline itself. Do not include any introductory phrases. Generate a detailed story outline for the following concept using the **${outlineStructureSelect.value}**:\n\n${state.brainstormConcept}`; outlineOutput.innerHTML = ''; const generatedOutline = await callGeminiAPI(prompt, loaders.outline); if (generatedOutline.startsWith("Error:")) { showStatus(generatedOutline, true); return; } state.storyOutline = generatedOutline; const formattedOutline = cleanAndFormat(generatedOutline); outlineOutput.innerHTML = `<div class="bg-gray-900 p-6 rounded-lg shadow-inner"><div class="prose prose-invert max-w-none text-gray-300">${formattedOutline}</div></div><button id="use-outline-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Develop Treatment →</button>`; });
         outlineOutput.addEventListener('click', e => { if (e.target.id === 'use-outline-btn') { chosenOutlineDisplay.innerHTML = `<div class="prose prose-invert max-w-none text-gray-300 text-sm">${cleanAndFormat(state.storyOutline)}</div>`; setActiveStage('treatment'); } });
-        generateTreatmentBtn.addEventListener('click', async () => { if (!state.storyOutline) return; const prompt = `Act as a professional writer. Expand the following story outline into a narrative treatment. Write in present tense prose. Provide ONLY the treatment text.\n\n**Outline:**\n${state.storyOutline}`; treatmentOutput.innerHTML = ''; const generatedTreatment = await callGeminiAPI(prompt, loaders.treatment); state.storyTreatment = generatedTreatment; const formattedTreatment = cleanAndFormat(generatedTreatment); treatmentOutput.innerHTML = `<div class="bg-gray-900 p-6 rounded-lg shadow-inner"><div class="prose prose-invert max-w-none text-gray-300">${formattedTreatment}</div></div><button id="use-treatment-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Start Writing →</button>`; });
+        generateTreatmentBtn.addEventListener('click', async () => { if (!state.storyOutline) return; const prompt = `Act as a professional writer. Expand the following story outline into a narrative treatment. Write in present tense prose. Provide ONLY the treatment text.\n\n**Outline:**\n${state.storyOutline}`; treatmentOutput.innerHTML = ''; const generatedTreatment = await callGeminiAPI(prompt, loaders.treatment); if (generatedTreatment.startsWith("Error:")) { showStatus(generatedTreatment, true); return; } state.storyTreatment = generatedTreatment; const formattedTreatment = cleanAndFormat(generatedTreatment); treatmentOutput.innerHTML = `<div class="bg-gray-900 p-6 rounded-lg shadow-inner"><div class="prose prose-invert max-w-none text-gray-300">${formattedTreatment}</div></div><button id="use-treatment-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Start Writing →</button>`; });
         treatmentOutput.addEventListener('click', e => { if (e.target.id === 'use-treatment-btn') { treatmentReference.innerHTML = `<div class="prose prose-invert max-w-none text-gray-300">${cleanAndFormat(state.storyTreatment)}</div>`; setActiveStage('write'); } });
-        
-        // **BUG FIX in generateWritingBtn listener**
         generateWritingBtn.addEventListener('click', async () => {
-            if (!writingPromptInput.value.trim()) {
-                showStatus("Please enter a writing prompt.", true);
-                return;
-            }
-            if (!state.storyTreatment) {
-                showStatus("Please generate a treatment before writing.", true);
-                setActiveStage('treatment'); // Guide user back
-                return;
-            }
+            if (!writingPromptInput.value.trim()) { showStatus("Please enter a writing prompt.", true); return; }
+            if (!state.storyTreatment) { showStatus("Please generate a treatment before writing.", true); setActiveStage('treatment'); return; }
             const format = writingFormatSelect.value;
             const role = format === "Screenplay Scene" ? "screenwriter" : "novelist";
-            
-            // CORRECTED: The prompt now correctly uses the state.storyTreatment variable
-            const prompt = `You are a talented ${role}. Your task is to write a piece in the format of a **${format}**. 
-            Use the following story treatment as your guide:
-            ---
-            TREATMENT START
-            ${state.storyTreatment}
-            TREATMENT END
-            ---
-            Now, fulfill this specific user request: "${writingPromptInput.value}"
-            
-            Write the requested text in a compelling way, ensuring it is correctly formatted for a ${format}. Do not repeat the prompt or the treatment. Provide only the generated text.`;
-            
+            const prompt = `You are a talented ${role}. Your task is to write a piece in the format of a **${format}**. Use the following story treatment as your guide:\n---\nTREATMENT START\n${state.storyTreatment}\nTREATMENT END\n---\nNow, fulfill this specific user request: "${writingPromptInput.value}"\n\nWrite the requested text in a compelling way, ensuring it is correctly formatted for a ${format}. Do not repeat the prompt or the treatment. Provide only the generated text.`;
             const generatedText = await callGeminiAPI(prompt, loaders.writing);
+            if (generatedText.startsWith("Error:")) { showStatus(generatedText, true); return; }
             const formattedText = cleanAndFormat(generatedText);
             const selection = window.getSelection();
             const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
             const contentNode = document.createElement('div');
             contentNode.innerHTML = `<br>${formattedText}<br>`;
-            if (range && mainEditor.contains(range.commonAncestorContainer)) {
-                range.deleteContents();
-                range.insertNode(contentNode);
-            } else {
-                mainEditor.appendChild(contentNode);
-            }
+            if (range && mainEditor.contains(range.commonAncestorContainer)) { range.deleteContents(); range.insertNode(contentNode); } else { mainEditor.appendChild(contentNode); }
             writingPromptInput.value = '';
         });
         
         // Modal Event Listeners
-        projectOptionsBtn.addEventListener('click', openModal);
-        closeModalBtn.addEventListener('click', closeModal);
-        projectModal.addEventListener('click', (e) => { if (e.target === projectModal) { closeModal(); } });
+        projectOptionsBtn.addEventListener('click', () => openModal('project'));
+        closeModalBtn.addEventListener('click', () => closeModal('project'));
+        projectModal.addEventListener('click', (e) => { if (e.target === projectModal) { closeModal('project'); } });
+        
+        settingsBtn.addEventListener('click', () => openModal('settings'));
+        closeSettingsModalBtn.addEventListener('click', () => closeModal('settings'));
+        settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) { closeModal('settings'); } });
+        
         loadJsonBtn.addEventListener('click', () => jsonFileInput.click());
         jsonFileInput.addEventListener('change', handleJsonLoad);
         exportJsonBtn.addEventListener('click', exportToJson);
         exportTextBtn.addEventListener('click', exportAsText);
+        saveApiKeyBtn.addEventListener('click', saveApiKey);
+        
+        // --- App Initialization ---
+        loadApiKey();
 
     </script>
 </body>
