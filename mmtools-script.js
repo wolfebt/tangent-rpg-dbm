@@ -1,4 +1,4 @@
-// Version 13.3 - Load API key on startup
+// Version 13.4 - Added diagnostic logging for background image rendering
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -142,22 +142,26 @@ document.addEventListener('DOMContentLoaded', () => {
             [...activeMap.layers].reverse().forEach(layer => {
                 if (!layer.visible) return;
 
-                // --- NEW: Draw Layer Background Image ---
+                // Draw Layer Background Image
                 if (layer.backgroundImage) {
                     const cacheKey = layer.backgroundImageCacheKey || layer.id;
                     if (assetCache[cacheKey]) {
+                        console.log(`Drawing cached background for layer: ${layer.name}`);
                         ctx.drawImage(assetCache[cacheKey], 0, 0, activeMap.width * squareSize, activeMap.height * squareSize);
-                    } else if (!assetCache[cacheKey]) {
-                        // Load and cache the image
+                    } else {
+                        console.log(`Loading background for layer: ${layer.name}`);
                         const img = new Image();
                         img.onload = () => {
                             assetCache[cacheKey] = img;
+                            console.log(`Background loaded and cached for layer: ${layer.name}`);
                             drawAll(); // Redraw once loaded
                         };
+                        img.onerror = () => {
+                             console.error(`Failed to load background image for layer: ${layer.name}`);
+                        }
                         img.src = layer.backgroundImage;
                     }
                 }
-                // --- END NEW ---
 
                 drawLayerTerrain(layer, ctx);
                 drawPlacedObjects(layer, ctx);

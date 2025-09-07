@@ -288,63 +288,63 @@
         <!-- Canvas Area -->
         <div id="canvas-container" class="relative">
             <div id="breadcrumb-nav" class="absolute top-2 left-2 z-20 bg-gray-900 bg-opacity-70 p-2 rounded-md text-sm"></div>
-            <canvas id="mapCanvas"></canvas>
-            <canvas id="wallCanvas"></canvas>
-            <canvas id="lightCanvas"></canvas>
-            <canvas id="drawingCanvas"></canvas>
-            <canvas id="fogCanvas"></canvas>
-            
-            <div id="asset-context-menu" class="asset-context-menu hidden">
-                <button id="asset-rotate-left-btn" title="Rotate Left (r)">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.9-6.7"/><path d="M21 2v6h-6"/></svg>
-                </button>
-                <button id="asset-rotate-right-btn" title="Rotate Right (R)">
-                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.9-6.7"/><path d="M3 2v6h6"/></svg>
-                </button>
-                <button id="asset-scale-up-btn" title="Scale Up (+)">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-                </button>
-                <button id="asset-scale-down-btn" title="Scale Down (-)">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-                </button>
-            </div>
-
-            <!-- AI Assist Panel -->
+            <!-- AI Bottom Panel -->
             <div id="aiBottomPanel" class="closed">
                 <div id="aiBottomPanelHeader">
                     <span>AI Assist</span>
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
                 </div>
-                <div id="aiBottomPanelContent" class="p-4 grid grid-cols-3 gap-4">
-                    <!-- Generation Controls -->
-                    <div class="control-panel col-span-1 flex flex-col">
-                        <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Step 1: Generate Image</h4>
+                <div id="aiBottomPanelContent">
+                    <!-- Step 1: Landform Generation -->
+                    <div class="control-panel">
+                        <h4 class="text-md font-bold text-gray-200 mb-2 border-b border-gray-600 pb-2">Step 1: Generate Initial Image</h4>
+                        <div class="grid grid-cols-2 gap-4 mb-3">
+                            <div>
+                                <label for="ai-drawing-style">Style</label>
+                                <select id="ai-drawing-style">
+                                    <option value="detailed sketch style">Sketch</option>
+                                    <option value="watercolor painting style">Watercolor</option>
+                                    <option value="pixel art style">Pixel Art</option>
+                                    <option value="fantasy map style">Fantasy Map</option>
+                                    <option value="blueprint style">Blueprint</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="ai-color-style">Color</label>
+                                <select id="ai-color-style">
+                                    <option value="monochrome">Monochrome</option>
+                                    <option value="vibrant color">Vibrant Color</option>
+                                    <option value="pastel color">Pastel Color</option>
+                                    <option value="sepia tone">Sepia Tone</option>
+                                </select>
+                            </div>
+                        </div>
                         <label for="ai-prompt-initial">Describe the landscape or building</label>
-                        <textarea id="ai-prompt-initial" rows="5" placeholder="e.g., A birds-eye view of a ruined castle on a clifftop. A detailed battlemap of a tavern's common room."></textarea>
-                        <button id="ai-generate-btn" class="w-full mt-2">
+                        <textarea id="ai-prompt-initial" placeholder="e.g., A rugged mountain range with a central volcano. A small goblin hideout in a cave..." class="mb-2"></textarea>
+                        <button id="ai-generate-btn" class="w-full">
                             <span class="btn-text">Generate</span>
                             <span class="spinner hidden"></span>
                         </button>
-                        
-                        <div class="border-t border-gray-700 my-4"></div>
-
-                        <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Step 2: Refine Image</h4>
-                        <label for="ai-prompt-refine">Describe changes or additions</label>
-                        <textarea id="ai-prompt-refine" rows="5" placeholder="e.g., Add a path leading to the castle gate. Make the tavern floor dirtier. Add a river flowing past the cliff."></textarea>
-                        <button id="ai-update-btn" class="w-full mt-2" disabled>
-                            <span class="btn-text">Update Image</span>
-                            <span class="spinner hidden"></span>
-                        </button>
-
-                        <div class="flex-grow"></div> <!-- Spacer -->
-
-                        <button id="ai-transfer-btn" class="w-full mt-4" disabled>Transfer to New Layer</button>
                     </div>
 
-                    <!-- Image Render Area -->
-                    <div id="ai-render-area" class="col-span-2 bg-gray-900 rounded-md flex items-center justify-center p-2 border-2 border-dashed border-gray-600">
-                        <span class="text-gray-500">AI image will be rendered here</span>
-                        <img id="ai-image-output" class="hidden max-w-full max-h-full object-contain"/>
+                    <!-- Rendering Area -->
+                    <div id="ai-render-area" class="control-panel">
+                         <img id="ai-image-output" class="hidden" alt="AI Generated Image">
+                         <span class="text-gray-400">Your generated image will appear here</span>
+                    </div>
+
+                    <!-- Step 2: Refine and Transfer -->
+                    <div class="control-panel">
+                        <h4 class="text-md font-bold text-gray-200 mb-2 border-b border-gray-600 pb-2">Step 2: Refine & Transfer</h4>
+                        <label for="ai-prompt-refine">Describe changes or additions</label>
+                        <textarea id="ai-prompt-refine" placeholder="e.g., Add a large river flowing from the mountains. Make the cave entrance larger." class="mb-2"></textarea>
+                        <div class="grid grid-cols-2 gap-2 mt-2">
+                             <button id="ai-update-btn" class="w-full" disabled>
+                                <span class="btn-text">Update Image</span>
+                                <span class="spinner hidden"></span>
+                            </button>
+                            <button id="ai-transfer-btn" class="w-full" disabled>Transfer to New Layer</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -478,4 +478,5 @@
     <script type="module" src="asset-editor.js"></script>
 </body>
 </html>
+
 

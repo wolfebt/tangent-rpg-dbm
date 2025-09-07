@@ -1,4 +1,4 @@
-// Version 6.2 - Correctly reference the live API key from the state module
+// Version 6.3 - Added style controls and fixed transfer-to-layer bug
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -6,6 +6,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const aiBottomPanelHeader = document.getElementById('aiBottomPanelHeader');
     const initialPromptInput = document.getElementById('ai-prompt-initial');
     const refinePromptInput = document.getElementById('ai-prompt-refine');
+    const drawingStyleSelect = document.getElementById('ai-drawing-style');
+    const colorStyleSelect = document.getElementById('ai-color-style');
     const generateBtn = document.getElementById('ai-generate-btn');
     const updateBtn = document.getElementById('ai-update-btn');
     const transferBtn = document.getElementById('ai-transfer-btn');
@@ -30,11 +32,19 @@ document.addEventListener('DOMContentLoaded', () => {
         if (button.id === 'ai-update-btn') buttonText.textContent = isLoading ? 'Updating...' : 'Update Image';
     }
 
+    // Constructs the full prompt including style options
+    function buildFullPrompt(userPrompt) {
+        const drawingStyle = drawingStyleSelect.value;
+        const colorStyle = colorStyleSelect.value;
+        // Combine styles and user prompt for a more descriptive request
+        return `A ${colorStyle} ${drawingStyle} of the following scene: ${userPrompt}`;
+    }
+
     // Handles the initial image generation
     async function handleInitialGeneration() {
         if (isGenerating) return;
-        const prompt = initialPromptInput.value;
-        if (!prompt) {
+        const userPrompt = initialPromptInput.value;
+        if (!userPrompt) {
             state.showToast("Please enter a prompt for the initial generation.", "error");
             return;
         }
@@ -46,9 +56,11 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleButtonLoading(generateBtn, true);
         currentAiImageBase64 = null; // Clear previous image
 
+        const fullPrompt = buildFullPrompt(userPrompt);
+        console.log("Generating with prompt:", fullPrompt);
+
         try {
-            const payload = { instances: [{ prompt: prompt }], parameters: { "sampleCount": 1 } };
-            // CORRECTED: Always use state.apiKey to get the current value
+            const payload = { instances: [{ prompt: fullPrompt }], parameters: { "sampleCount": 1 } };
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${state.apiKey}`;
             
             const response = await fetch(apiUrl, {
@@ -87,8 +99,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Handles iterative image updates
     async function handleIterativeUpdate() {
         if (isGenerating || !currentAiImageBase64) return;
-        const prompt = refinePromptInput.value;
-        if (!prompt) {
+        const userPrompt = refinePromptInput.value;
+        if (!userPrompt) {
             state.showToast("Please enter a prompt to refine the image.", "error");
             return;
         }
@@ -98,12 +110,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         toggleButtonLoading(updateBtn, true);
+        const fullPrompt = buildFullPrompt(userPrompt); // Also apply styles to refinement
+        console.log("Updating with prompt:", fullPrompt);
         
         try {
             const payload = {
                 contents: [{
                     parts: [
-                        { text: prompt },
+                        { text: fullPrompt },
                         { inlineData: { mimeType: "image/png", data: currentAiImageBase64 } }
                     ]
                 }],
@@ -111,7 +125,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     responseModalities: ['IMAGE']
                 },
             };
-            // CORRECTED: Always use state.apiKey to get the current value
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${state.apiKey}`;
 
             const response = await fetch(apiUrl, {
@@ -152,10 +165,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const activeMap = state.getActiveMap();
         if (!activeMap) {
-            state.showToast("Please select a map first.", "error");
+            state.showToast("Please select or create a map first.", "error");
             return;
         }
 
+        console.log("Transferring image to new layer...");
         state.saveStateForUndo();
         const layerName = `AI Layer - ${new Date().toLocaleTimeString()}`;
         const newLayer = {
@@ -164,15 +178,21 @@ document.addEventListener('DOMContentLoaded', () => {
             visible: true,
             objects: [],
             terrainPatches: [],
-            backgroundImage: `data:image/png;base64,${currentAiImageBase64}`, // Add the new property
-            backgroundImageCacheKey: `ai_bg_${Date.now()}` // Unique key for caching
+            backgroundImage: `data:image/png;base64,${currentAiImageBase64}`,
+            backgroundImageCacheKey: `ai_bg_${Date.now()}`
         };
 
-        activeMap.layers.unshift(newLayer); // Add to the top (drawn first, so it's in the back)
+        activeMap.layers.unshift(newLayer); 
         
-        // Dispatch event to notify other modules (like mmtools-script)
+        // Dispatch event to notify other modules to update their state/UI
         document.dispatchEvent(new CustomEvent('mapStateUpdated'));
         state.showToast(`Image transferred to new layer "${layerName}"`, "success");
+
+        // BUG FIX: Force an immediate redraw. Sometimes the event listener can be slow or miss the update.
+        // This ensures the canvas reflects the new layer instantly.
+        if (window.drawAll) {
+            window.drawAll();
+        }
     }
 
 
