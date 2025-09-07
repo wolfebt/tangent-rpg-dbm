@@ -1,9 +1,13 @@
-// Version 13.6 - Wrapped in DOMContentLoaded to fix critical initialization race condition
+// Version 13.7 - Fixed canvas initialization error
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- UI Elements ---
     const canvas = document.getElementById('mapCanvas');
+    if (!canvas) {
+        console.error("Fatal Error: mapCanvas element not found!");
+        return; // Stop execution if canvas is not found
+    }
     const ctx = canvas.getContext('2d');
     const wallCanvas = document.getElementById('wallCanvas');
     const wallCtx = wallCanvas.getContext('2d');
