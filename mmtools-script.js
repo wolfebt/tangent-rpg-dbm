@@ -1,4 +1,4 @@
-// Version 13.5 - Fixed critical initialization error for new projects
+// Version 13.6 - Wrapped in DOMContentLoaded to fix critical initialization race condition
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
