@@ -1,4 +1,4 @@
-// Version 11.0 - Decoupled Grid and Terrain Rendering
+// Version 12.0 - Implemented Free-form Circular Brush for Terrain
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -164,35 +164,35 @@ document.addEventListener('DOMContentLoaded', () => {
     window.drawAll = drawAll;
 
     function drawLayerTerrain(layer, targetCtx) {
-        for (const key in layer.data) {
-            const cellData = layer.data[key];
-            if (cellData && cellData.terrain) {
-                const terrain = state.terrains[cellData.terrain];
-                if (terrain) {
-                    const [x, y] = key.split(',').map(Number);
-                    const { px, py } = gridToPixel(x, y);
-                    
-                    if (terrain.canvasPatternObject) {
-                        targetCtx.fillStyle = terrain.canvasPatternObject;
-                    } else if (terrain.color) {
-                        targetCtx.fillStyle = terrain.color;
-                    } else {
-                        continue; // Skip if no valid fill
-                    }
-                    targetCtx.fillRect(px, py, squareSize, squareSize);
+        // This function now iterates through terrain placements, which are independent of the grid
+        if (!layer.terrainPatches) return;
+    
+        for (const patch of layer.terrainPatches) {
+            const terrain = state.terrains[patch.terrain];
+            if (terrain) {
+                if (terrain.canvasPatternObject) {
+                    targetCtx.fillStyle = terrain.canvasPatternObject;
+                } else if (terrain.color) {
+                    targetCtx.fillStyle = terrain.color;
+                } else {
+                    continue;
                 }
+    
+                targetCtx.beginPath();
+                targetCtx.arc(patch.x, patch.y, patch.radius, 0, 2 * Math.PI);
+                targetCtx.fill();
             }
         }
     }
+    
 
     function drawGrid(targetCtx) {
         const activeMap = state.getActiveMap();
         if (!activeMap) return;
         
         targetCtx.strokeStyle = gridColorPicker.value;
-        targetCtx.lineWidth = 1; // Grid lines are drawn on a static canvas, so no need to scale by zoom
+        targetCtx.lineWidth = 1;
 
-        // Calculate visible grid boundaries to optimize drawing
         const startX = Math.floor((-view.offsetX / view.zoom) / squareSize);
         const startY = Math.floor((-view.offsetY / view.zoom) / squareSize);
         const endX = Math.ceil((canvas.width - view.offsetX) / view.zoom / squareSize);
@@ -388,7 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (asset.src && !assetCache[key]) {
                     const img = new Image();
                     img.onload = () => { assetCache[key] = img; resolve(); };
-                    img.onerror = () => resolve(); // Don't block on failed assets
+                    img.onerror = () => resolve(); 
                     img.src = asset.src;
                 } else {
                     resolve();
@@ -432,33 +432,28 @@ document.addEventListener('DOMContentLoaded', () => {
     function applyTool(coords) {
         const activeMap = state.getActiveMap();
         if (!activeMap || !activeLayerId) return;
-
+    
         const worldCoords = {
             x: (coords.x - view.offsetX) / view.zoom,
             y: (coords.y - view.offsetY) / view.zoom
         };
-
+    
+        const activeLayer = activeMap.layers.find(l => l.id === activeLayerId);
+        if (!activeLayer) return;
+    
         if (currentTool === 'terrain') {
-            const gridCoords = pixelToGrid(worldCoords.x, worldCoords.y);
-            const brush = parseInt(brushSizeSlider.value);
-            const halfBrush = Math.floor(brush / 2);
-            const activeLayer = activeMap.layers.find(l => l.id === activeLayerId);
-            if (!activeLayer) return;
-
-            for (let i = 0; i < brush; i++) {
-                for (let j = 0; j < brush; j++) {
-                    const targetX = gridCoords.x - halfBrush + i;
-                    const targetY = gridCoords.y - halfBrush + j;
-                    const key = `${targetX},${targetY}`;
-                    if (activeMap.grid[key]) { // Check if the square exists on the map
-                        activeLayer.data[key] = { terrain: selectedTerrain };
-                    }
-                }
+            if (!activeLayer.terrainPatches) {
+                activeLayer.terrainPatches = [];
             }
+            const brushRadius = parseInt(brushSizeSlider.value) * 5; // Scale brush size for better feel
+            activeLayer.terrainPatches.push({
+                x: worldCoords.x,
+                y: worldCoords.y,
+                radius: brushRadius,
+                terrain: selectedTerrain
+            });
         } else if (currentTool === 'object' && selectedObject) {
-            let targetLayer = activeMap.layers.find(l => l.id === activeLayerId);
-            if (!targetLayer) return;
-            if (!targetLayer.objects) targetLayer.objects = [];
+            if (!activeLayer.objects) activeLayer.objects = [];
             const newObject = {
                 id: `obj_${Date.now()}`,
                 assetId: selectedObject,
@@ -471,7 +466,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 isContainer: false,
                 inventory: []
             };
-            targetLayer.objects.push(newObject);
+            activeLayer.objects.push(newObject);
         } else if (currentTool === 'token') {
             if (!activeMap.tokens) activeMap.tokens = [];
             activeMap.tokens.push({
@@ -499,6 +494,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         drawAll();
     }
+    
     
     async function initialize() {
         try {
@@ -604,8 +600,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const layerItem = document.createElement('div');
             layerItem.className = `layer-item ${layer.id === activeLayerId ? 'active' : ''}`;
             layerItem.innerHTML = `
-                <span class="layer-label">${layer.name}</span>
-                <div class="layer-controls">
+                <span class.layer-label">${layer.name}</span>
+                <div class.layer-controls">
                     <button class="layer-visible-btn">${layer.visible ? '👁️' : '🙈'}</button>
                 </div>
             `;
@@ -699,7 +695,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const layerName = prompt("Enter new layer name:", `Layer ${activeMap.layers.length + 1}`);
             if (layerName) {
                 const newLayer = { id: `layer_${Date.now()}`, name: layerName, visible: true, data: {}, objects: [] };
-                activeMap.layers.unshift(newLayer); // Add to the top
+                activeMap.layers.unshift(newLayer); 
                 activeLayerId = newLayer.id;
                 updateLayerList();
             }
@@ -713,7 +709,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (confirm(`Are you sure you want to delete layer "${activeMap.layers.find(l => l.id === activeLayerId).name}"?`)) {
                 activeMap.layers = activeMap.layers.filter(l => l.id !== activeLayerId);
-                activeLayerId = activeMap.layers[0].id; // Select the top-most layer
+                activeLayerId = activeMap.layers[0].id;
                 updateLayerList();
                 drawAll();
             }
@@ -809,7 +805,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function createNewMapData(name, width, height) {
         const newMap = {
             id: `map_${Date.now()}`, name, width, height, grid: {},
-            layers: [{ id: `layer_${Date.now()}`, name: 'Ground', visible: true, data: {}, objects: [] }],
+            layers: [{ id: `layer_${Date.now()}`, name: 'Ground', visible: true, data: {}, objects: [], terrainPatches: [] }],
             walls: [], tokens: [], labels: [], drawings: [],
             fog: { revealedRects: [] }, parentId: null, children: []
         };
