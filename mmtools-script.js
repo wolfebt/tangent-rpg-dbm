@@ -1,4 +1,4 @@
-// Version 10.0 - Unified Square Grid Rendering
+// Version 11.0 - Decoupled Grid and Terrain Rendering
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -109,7 +109,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!container) return;
         const { width, height } = container.getBoundingClientRect();
         
-        // Set all canvases to the same size
         [canvas, wallCanvas, lightCanvas, drawingCanvas, fogCanvas].forEach(c => {
             c.width = width;
             c.height = height;
@@ -122,23 +121,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const activeMap = state.getActiveMap();
         if (!activeMap) return;
 
-        // Clear all canvases
+        // Clear canvases
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
         wallCtx.clearRect(0, 0, wallCanvas.width, wallCanvas.height);
-        lightCtx.clearRect(0, 0, lightCanvas.width, lightCanvas.height);
-        fogCtx.clearRect(0, 0, fogCanvas.width, fogCanvas.height);
 
-        // --- Main Rendering on Primary Canvas ---
+        // --- Main Map Canvas (Terrain, Objects, Tokens) ---
         ctx.save();
         ctx.translate(view.offsetX, view.offsetY);
         ctx.scale(view.zoom, view.zoom);
 
-        // Draw layers in reverse for correct stacking
         if(activeMap.layers) {
             [...activeMap.layers].reverse().forEach(layer => {
                 if (!layer.visible) return;
-                drawLayerTerrainAndGrid(layer, ctx); // Unified function
+                drawLayerTerrain(layer, ctx);
                 drawPlacedObjects(layer, ctx);
             });
         }
@@ -148,47 +144,70 @@ document.addEventListener('DOMContentLoaded', () => {
         
         ctx.restore();
 
-        // --- Overlay Rendering (for things that don't need to be part of the main map texture) ---
+        // --- Drawing Canvas (Grid, Pencil Strokes) ---
         drawingCtx.save();
         drawingCtx.translate(view.offsetX, view.offsetY);
         drawingCtx.scale(view.zoom, view.zoom);
+        
+        if (gridVisibleCheckbox.checked) {
+            drawGrid(drawingCtx);
+        }
         drawPencilStrokes(drawingCtx);
+        
         drawingCtx.restore();
 
-        // Other overlays remain as they were
+        // --- Other Overlay Canvases ---
         drawWalls();
         drawLightMask();
         updateFogOfWar();
     }
     window.drawAll = drawAll;
 
-    function drawLayerTerrainAndGrid(layer, targetCtx) {
-        // This function now handles both terrain fill and grid outline for perfect alignment.
+    function drawLayerTerrain(layer, targetCtx) {
         for (const key in layer.data) {
             const cellData = layer.data[key];
-            const [x, y] = key.split(',').map(Number);
-            const { px, py } = gridToPixel(x, y);
-
-            // Draw Terrain Fill
             if (cellData && cellData.terrain) {
                 const terrain = state.terrains[cellData.terrain];
                 if (terrain) {
+                    const [x, y] = key.split(',').map(Number);
+                    const { px, py } = gridToPixel(x, y);
+                    
                     if (terrain.canvasPatternObject) {
                         targetCtx.fillStyle = terrain.canvasPatternObject;
-                        targetCtx.fillRect(px, py, squareSize, squareSize);
                     } else if (terrain.color) {
                         targetCtx.fillStyle = terrain.color;
-                        targetCtx.fillRect(px, py, squareSize, squareSize);
+                    } else {
+                        continue; // Skip if no valid fill
                     }
+                    targetCtx.fillRect(px, py, squareSize, squareSize);
                 }
             }
-             // Draw Grid Outline for this cell
-            if (gridVisibleCheckbox.checked) {
-                targetCtx.strokeStyle = gridColorPicker.value;
-                targetCtx.lineWidth = 1 / view.zoom; // Keep grid lines thin when zoomed
-                targetCtx.strokeRect(px, py, squareSize, squareSize);
-            }
         }
+    }
+
+    function drawGrid(targetCtx) {
+        const activeMap = state.getActiveMap();
+        if (!activeMap) return;
+        
+        targetCtx.strokeStyle = gridColorPicker.value;
+        targetCtx.lineWidth = 1; // Grid lines are drawn on a static canvas, so no need to scale by zoom
+
+        // Calculate visible grid boundaries to optimize drawing
+        const startX = Math.floor((-view.offsetX / view.zoom) / squareSize);
+        const startY = Math.floor((-view.offsetY / view.zoom) / squareSize);
+        const endX = Math.ceil((canvas.width - view.offsetX) / view.zoom / squareSize);
+        const endY = Math.ceil((canvas.height - view.offsetY) / view.zoom / squareSize);
+        
+        targetCtx.beginPath();
+        for (let x = startX; x <= endX; x++) {
+            targetCtx.moveTo(x * squareSize, startY * squareSize);
+            targetCtx.lineTo(x * squareSize, endY * squareSize);
+        }
+        for (let y = startY; y <= endY; y++) {
+            targetCtx.moveTo(startX * squareSize, y * squareSize);
+            targetCtx.lineTo(endX * squareSize, y * squareSize);
+        }
+        targetCtx.stroke();
     }
 
 
@@ -412,7 +431,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function applyTool(coords) {
         const activeMap = state.getActiveMap();
-        if (!activeMap) return;
+        if (!activeMap || !activeLayerId) return;
 
         const worldCoords = {
             x: (coords.x - view.offsetX) / view.zoom,
@@ -423,20 +442,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const gridCoords = pixelToGrid(worldCoords.x, worldCoords.y);
             const brush = parseInt(brushSizeSlider.value);
             const halfBrush = Math.floor(brush / 2);
+            const activeLayer = activeMap.layers.find(l => l.id === activeLayerId);
+            if (!activeLayer) return;
 
             for (let i = 0; i < brush; i++) {
                 for (let j = 0; j < brush; j++) {
                     const targetX = gridCoords.x - halfBrush + i;
                     const targetY = gridCoords.y - halfBrush + j;
                     const key = `${targetX},${targetY}`;
-                    const activeLayer = activeMap.layers.find(l => l.id === activeLayerId);
-                    if (activeLayer && activeMap.grid[key]) {
+                    if (activeMap.grid[key]) { // Check if the square exists on the map
                         activeLayer.data[key] = { terrain: selectedTerrain };
                     }
                 }
             }
         } else if (currentTool === 'object' && selectedObject) {
-            if (!activeLayerId) return;
             let targetLayer = activeMap.layers.find(l => l.id === activeLayerId);
             if (!targetLayer) return;
             if (!targetLayer.objects) targetLayer.objects = [];
@@ -505,11 +524,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (Object.keys(state.project.maps).length === 0) {
                 handleAddNewMap(true); 
             } else {
-                state.setActiveMapId(Object.keys(state.project.maps)[0]);
+                const firstMapId = Object.keys(state.project.maps)[0];
+                state.setActiveMapId(firstMapId);
+                activeLayerId = state.project.maps[firstMapId].layers[0].id;
             }
             
             setupUI();
-            resizeCanvas(); // This will trigger the first drawAll
+            updateLayerList();
+            resizeCanvas();
             
         } catch (error) {
             console.error("Initialization failed:", error);
@@ -518,13 +540,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function createTerrainPatterns() {
-        // This function is crucial and needs to complete before drawing.
         return new Promise(resolve => {
             const terrainKeys = Object.keys(state.terrains);
-            if (terrainKeys.length === 0) {
-                resolve();
-                return;
-            }
+            if (terrainKeys.length === 0) return resolve();
             let patternsLoaded = 0;
             
             terrainKeys.forEach(key => {
@@ -539,7 +557,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (patternsLoaded === terrainKeys.length) resolve();
                     };
                     img.onerror = () => {
-                        console.warn(`Failed to load pattern image for ${key}`);
                         patternsLoaded++;
                         if (patternsLoaded === terrainKeys.length) resolve();
                     }
@@ -574,6 +591,41 @@ document.addEventListener('DOMContentLoaded', () => {
             fogPanel.classList.remove('hidden');
         }
     }
+    
+    function updateLayerList() {
+        const activeMap = state.getActiveMap();
+        if (!activeMap) {
+            layerList.innerHTML = '';
+            return;
+        }
+        
+        layerList.innerHTML = '';
+        activeMap.layers.forEach(layer => {
+            const layerItem = document.createElement('div');
+            layerItem.className = `layer-item ${layer.id === activeLayerId ? 'active' : ''}`;
+            layerItem.innerHTML = `
+                <span class="layer-label">${layer.name}</span>
+                <div class="layer-controls">
+                    <button class="layer-visible-btn">${layer.visible ? '👁️' : '🙈'}</button>
+                </div>
+            `;
+            
+            layerItem.addEventListener('click', () => {
+                activeLayerId = layer.id;
+                updateLayerList();
+            });
+
+            layerItem.querySelector('.layer-visible-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                layer.visible = !layer.visible;
+                drawAll();
+                updateLayerList();
+            });
+
+            layerList.appendChild(layerItem);
+        });
+    }
+
 
     function setupUI() {
         populateSelectors();
@@ -581,13 +633,13 @@ document.addEventListener('DOMContentLoaded', () => {
         window.addEventListener('resize', resizeCanvas);
 
         canvas.addEventListener('mousedown', (e) => {
-            if (e.button === 1) { // Middle mouse for panning
+            if (e.button === 1) { 
                 isPanning = true;
                 panStart.x = e.clientX - view.offsetX;
                 panStart.y = e.clientY - view.offsetY;
                 canvas.classList.add('panning');
                 e.preventDefault();
-            } else if (e.button === 0) { // Left mouse for painting/tools
+            } else if (e.button === 0) {
                  isPainting = true;
                  applyTool({x: e.offsetX, y: e.offsetY});
             }
@@ -603,7 +655,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
-        canvas.addEventListener('mouseup', (e) => {
+        canvas.addEventListener('mouseup', () => {
             isPanning = false;
             isPainting = false;
             canvas.classList.remove('panning');
@@ -631,13 +683,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
         resetViewBtn.addEventListener('click', () => {
             view.zoom = 1;
-            view.offsetX = (canvas.width / 2) - ((state.getActiveMap().width * squareSize) / 2);
-            view.offsetY = (canvas.height / 2) - ((state.getActiveMap().height * squareSize) / 2);
+            view.offsetX = 0;
+            view.offsetY = 0;
             drawAll();
         });
 
         undoBtn.addEventListener('click', undo);
         redoBtn.addEventListener('click', redo);
+        gridVisibleCheckbox.addEventListener('change', drawAll);
+        gridColorPicker.addEventListener('input', drawAll);
+
+        addLayerBtn.addEventListener('click', () => {
+            const activeMap = state.getActiveMap();
+            if (!activeMap) return;
+            const layerName = prompt("Enter new layer name:", `Layer ${activeMap.layers.length + 1}`);
+            if (layerName) {
+                const newLayer = { id: `layer_${Date.now()}`, name: layerName, visible: true, data: {}, objects: [] };
+                activeMap.layers.unshift(newLayer); // Add to the top
+                activeLayerId = newLayer.id;
+                updateLayerList();
+            }
+        });
+        
+        deleteLayerBtn.addEventListener('click', () => {
+            const activeMap = state.getActiveMap();
+            if (!activeMap || activeMap.layers.length <= 1) {
+                state.showModal("Cannot delete the last layer.");
+                return;
+            }
+            if (confirm(`Are you sure you want to delete layer "${activeMap.layers.find(l => l.id === activeLayerId).name}"?`)) {
+                activeMap.layers = activeMap.layers.filter(l => l.id !== activeLayerId);
+                activeLayerId = activeMap.layers[0].id; // Select the top-most layer
+                updateLayerList();
+                drawAll();
+            }
+        });
+
 
         // Tool selection
         toolTerrainBtn.addEventListener('click', () => switchTool('terrain'));
@@ -666,7 +747,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 div.className = 'item-container';
                 div.dataset.terrain = key;
 
-                // Create a swatch using the actual canvas pattern
                 const swatchCanvas = document.createElement('canvas');
                 swatchCanvas.width = 32;
                 swatchCanvas.height = 32;
@@ -695,7 +775,7 @@ document.addEventListener('DOMContentLoaded', () => {
             objectSelector.innerHTML = '';
             Object.keys(state.assetManifest).forEach(key => {
                 const asset = state.assetManifest[key];
-                if (asset.type !== 'terrain' && asset.src) { // Ensure asset has a source
+                if (asset.type !== 'terrain' && asset.src) {
                     const div = document.createElement('div');
                     div.className = 'item-container';
                     div.dataset.object = key;
@@ -733,7 +813,6 @@ document.addEventListener('DOMContentLoaded', () => {
             walls: [], tokens: [], labels: [], drawings: [],
             fog: { revealedRects: [] }, parentId: null, children: []
         };
-        // Populate the grid data structure
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
                 newMap.grid[`${x},${y}`] = {};
@@ -749,7 +828,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const newMapId = `map_${Date.now()}`;
         state.project.maps[newMapId] = createNewMapData(name, width, height);
         state.setActiveMapId(newMapId);
+        activeLayerId = state.project.maps[newMapId].layers[0].id;
         newMapModal.classList.add('hidden');
+        updateLayerList();
         drawAll();
     });
 
@@ -759,7 +840,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if(addNewMapBtn) addNewMapBtn.addEventListener('click', () => handleAddNewMap());
 
-    document.addEventListener('mapStateUpdated', drawAll);
+    document.addEventListener('mapStateUpdated', () => {
+        updateLayerList();
+        drawAll();
+    });
 
     initialize();
 });
