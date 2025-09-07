@@ -1,4 +1,4 @@
-// Version 4.35 - AI Handler Function Fix
+// Version 4.36 - Switched to Square Grid
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -26,12 +26,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const activeMap = state.getActiveMap();
         if (!activeMap) return "";
 
-        let preamble = `You are an expert TTRPG map designer and game master. Your task is to interpret a user's request and provide a structured JSON response. `;
+        let preamble = `You are an expert TTRPG map designer and game master. Your task is to interpret a user's request and provide a structured JSON response for a square grid map. `;
         preamble += `The current map scale is '${activeMap.scale}'. `;
 
         switch (actionType) {
             case 'layout':
-                preamble += `You are generating a new map layout. The grid type is '${activeMap.gridType}'. `;
+                preamble += `You are generating a new map layout. The grid is a standard square grid. `;
                 break;
             case 'dressing':
                 preamble += `You are dressing an existing area with objects. The user has selected a specific region on the map. You must only place objects within the provided coordinates. `;
@@ -39,22 +39,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     .filter(id => state.assetManifest[id].tags.includes(activeMap.scale))
                     .map(id => ({ id, name: state.assetManifest[id].name, tags: state.assetManifest[id].tags }));
                 preamble += `Available assets for this scale are: ${JSON.stringify(availableAssets)}. `;
-                preamble += `The selected coordinates are: ${JSON.stringify(additionalContext.selectedHexes)}. `;
+                preamble += `The selected coordinates are: ${JSON.stringify(additionalContext.selectedSquares)}. `;
                 break;
             case 'dataEdit':
                  preamble += `You are editing the terrain data of a selected area. You must only affect the provided coordinates. `;
                  preamble += `Available terrain types are: ${JSON.stringify(Object.keys(state.terrains))}. `;
-                 preamble += `The selected coordinates are: ${JSON.stringify(additionalContext.selectedHexes)}. `;
+                 preamble += `The selected coordinates are: ${JSON.stringify(additionalContext.selectedSquares)}. `;
                 break;
-            case 'hexcrawl':
-                const mapWidth = Object.keys(activeMap.mapGrid).length > 0 ? Math.max(...Object.keys(activeMap.mapGrid).map(k => parseInt(k.split(',')[0]))) : 50;
-                const mapHeight = Object.keys(activeMap.mapGrid).length > 0 ? Math.max(...Object.keys(activeMap.mapGrid).map(k => parseInt(k.split(',')[1]))) : 50;
-                preamble += `You are generating content for a hexcrawl-style regional map. The user has requested details for ${additionalContext.hexCount} hexes. Generate a list of points of interest, brief descriptions, and suggest an appropriate terrain type for each. The map grid is ${mapWidth}x${mapHeight}. Choose random, valid coordinates within these bounds.`;
+            case 'hexcrawl': // Note: Keeping name for consistency, but it's now a square-crawl
+                preamble += `You are generating content for a square-crawl-style regional map. The user has requested details for ${additionalContext.squareCount} squares. Generate a list of points of interest, brief descriptions, and suggest an appropriate terrain type for each. The map grid is ${activeMap.width}x${activeMap.height}. Choose random, valid coordinates within these bounds.`;
                 break;
             case 'pointcrawl':
-                const p_mapWidth = Object.keys(activeMap.mapGrid).length > 0 ? Math.max(...Object.keys(activeMap.mapGrid).map(k => parseInt(k.split(',')[0]))) : 50;
-                const p_mapHeight = Object.keys(activeMap.mapGrid).length > 0 ? Math.max(...Object.keys(activeMap.mapGrid).map(k => parseInt(k.split(',')[1]))) : 50;
-                preamble += `You are generating content for a pointcrawl-style map (like a city or region). Create a series of named locations (nodes) and the connections (edges) between them. Provide a brief description for each node and suggest logical coordinates on a ${p_mapWidth}x${p_mapHeight} grid.`;
+                preamble += `You are generating content for a pointcrawl-style map (like a city or region). Create a series of named locations (nodes) and the connections (edges) between them. Provide a brief description for each node and suggest logical coordinates on a ${activeMap.width}x${activeMap.height} grid.`;
                 break;
             case 'keyGeneration':
                 preamble += `You are an adventure writer creating a descriptive key for a dungeon map. Based on the provided room data (which includes room numbers, terrain types, and a list of objects in each room), write an evocative, sensory-rich description for each room. The descriptions should be suitable for a GM to read aloud.`;
@@ -123,29 +119,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const groundLayer = activeMap.layers.find(l => l.name === 'Ground');
         if (!groundLayer) return [];
 
-        const doorHexes = new Set();
-        activeMap.placedAssets.forEach(asset => {
-            if (asset.assetId.includes('door')) {
-                doorHexes.add(`${asset.q},${asset.r}`);
-            }
-        });
+        const doorSquares = new Set();
+        // This needs to be adapted if door placement logic changes with square grids
+        // For now, assuming doors are objects placed on squares
+        // activeMap.placedAssets.forEach(asset => {
+        //     if (asset.assetId.includes('door')) {
+        //         doorSquares.add(`${asset.x},${asset.y}`); // Assuming x,y grid coords
+        //     }
+        // });
 
         const rooms = [];
         const visited = new Set();
         let roomCounter = 1;
 
-        const hexDirections = [
-            { q: +1, r: 0 }, { q: +1, r: -1 }, { q: 0, r: -1 },
-            { q: -1, r: 0 }, { q: -1, r: +1 }, { q: 0, r: +1 }
-        ];
-
         const squareDirections = [
-            { q: 0, r: 1 }, { q: 0, r: -1 }, { q: 1, r: 0 }, { q: -1, r: 0 }
+            { x: 0, y: 1 }, { x: 0, y: -1 }, { x: 1, y: 0 }, { x: -1, y: 0 }
         ];
 
-        const directions = activeMap.gridType === 'hex' ? hexDirections : squareDirections;
-
-        for (const key in activeMap.mapGrid) {
+        for (const key in activeMap.grid) {
             if (visited.has(key)) continue;
 
             const groundData = groundLayer.data[key];
@@ -163,15 +154,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 while (queue.length > 0) {
                     const currentKey = queue.shift();
-                    const [q, r] = currentKey.split(',').map(Number);
-                    currentRoom.coordinates.push({ q, r });
+                    const [x, y] = currentKey.split(',').map(Number);
+                    currentRoom.coordinates.push({ x, y });
 
-                    for (const dir of directions) {
-                        const neighborQ = q + dir.q;
-                        const neighborR = r + dir.r;
-                        const neighborKey = `${neighborQ},${neighborR}`;
+                    for (const dir of squareDirections) {
+                        const neighborX = x + dir.x;
+                        const neighborY = y + dir.y;
+                        const neighborKey = `${neighborX},${neighborY}`;
 
-                        if (activeMap.mapGrid[neighborKey] && !visited.has(neighborKey) && !doorHexes.has(neighborKey)) {
+                        if (activeMap.grid[neighborKey] && !visited.has(neighborKey) && !doorSquares.has(neighborKey)) {
                             const neighborTerrain = groundLayer.data[neighborKey] ? groundLayer.data[neighborKey].terrain : null;
                             if (neighborTerrain === terrainType) {
                                 visited.add(neighborKey);
@@ -212,10 +203,10 @@ document.addEventListener('DOMContentLoaded', () => {
                                 items: {
                                     type: "OBJECT",
                                     properties: {
-                                        q: { type: "NUMBER" },
-                                        r: { type: "NUMBER" }
+                                        x: { type: "NUMBER" },
+                                        y: { type: "NUMBER" }
                                     },
-                                    required: ["q", "r"]
+                                    required: ["x", "y"]
                                 }
                             }
                         },
@@ -230,10 +221,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             coordinates: {
                                 type: "OBJECT",
                                 properties: {
-                                    q: { type: "NUMBER" },
-                                    r: { type: "NUMBER" }
+                                    x: { type: "NUMBER" },
+                                    y: { type: "NUMBER" }
                                 },
-                                required: ["q", "r"]
+                                required: ["x", "y"]
                             }
                         },
                         required: ["coordinates"]
@@ -290,3 +281,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     addAiEventListeners();
 });
+

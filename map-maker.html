@@ -140,13 +140,6 @@
                                      <!-- Grid Options -->
                                      <div class="control-panel mb-4">
                                          <h3 class="!border-b-0 !pb-2 text-base font-semibold">Grid Options</h3>
-                                         <div class="mb-4">
-                                             <label for="gridTypeSelect">Grid Type</label>
-                                             <select id="gridTypeSelect">
-                                                 <option value="hex">Hex</option>
-                                                 <option value="square">Square</option>
-                                             </select>
-                                         </div>
                                          <div class="grid grid-cols-2 gap-4 items-center">
                                              <div>
                                                  <label for="gridColorPicker" class="text-sm">Color</label>
@@ -160,26 +153,6 @@
                                      </div>
                                  </div>
                             </div>
-                        </div>
-                    </div>
-
-                    <div id="terrainOptionsPanel" class="control-panel mb-4">
-                         <div class="collapsible-header">
-                            <h3>Brush Options</h3>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                        </div>
-                        <div class="collapsible-content">
-                            <label for="terrainBrushMode">Terrain Brush</label>
-                            <select id="terrainBrushMode">
-                                <option value="hex">Hex</option>
-                                <option value="spray">Spray</option>
-                                <option value="line">Line</option>
-                                <option value="rectangle">Rectangle</option>
-                                <option value="ellipse">Ellipse</option>
-                                <option value="polygon">Polygon</option>
-                            </select>
-                            <label for="brushSize">Brush/Object Size: <span id="brushSizeValue">1</span></label>
-                            <input type="range" id="brushSize" min="1" max="10" value="1" class="mb-3">
                         </div>
                     </div>
 
@@ -219,7 +192,7 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </div>
                         <div class="collapsible-content">
-                            <label for="tokenLightRadius">Light Radius (in hexes): <span id="tokenLightRadiusValue">5</span></label>
+                            <label for="tokenLightRadius">Light Radius (in squares): <span id="tokenLightRadiusValue">5</span></label>
                             <input type="range" id="tokenLightRadius" min="0" max="30" value="5" class="mb-2">
                              <div class="grid grid-cols-2 gap-4 items-center">
                                  <div>
@@ -251,10 +224,12 @@
                                         
                     <div id="terrainContentPanel" class="control-panel mb-4">
                          <div id="terrainHeader" class="collapsible-header">
-                            <h3>Terrain Type</h3>
+                            <h3>Terrain & Brush</h3>
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </div>
                         <div id="terrainContent" class="collapsible-content">
+                            <label for="brushSize">Brush Size: <span id="brushSizeValue">1</span></label>
+                            <input type="range" id="brushSize" min="1" max="10" value="1" class="mb-3">
                             <div id="terrainSelector" class="flex flex-col gap-2"></div>
                         </div>
                     </div>
@@ -512,3 +487,4 @@
     <script type="module" src="asset-editor.js"></script>
 </body>
 </html>
+

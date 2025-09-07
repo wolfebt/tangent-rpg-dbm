@@ -1,4 +1,4 @@
-// Version 8.11 - Finalized hex geometry for correct flat-top orientation
+// Version 9.0 - Switched to Square Grid
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -46,7 +46,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const toolFogBtn = document.getElementById('toolFogBtn');
 
     // Options Panels
-    const terrainOptionsPanel = document.getElementById('terrainOptionsPanel');
     const terrainContentPanel = document.getElementById('terrainContentPanel');
     const objectOptionsPanel = document.getElementById('objectOptionsPanel');
     const pencilOptionsPanel = document.getElementById('pencilOptionsPanel');
@@ -101,6 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let undoStack = [];
     let redoStack = [];
     let visibilityPolygons = [];
+    const squareSize = 30; // Define the size of our grid squares
 
     // --- Core Drawing & Rendering ---
 
@@ -161,15 +161,25 @@ document.addEventListener('DOMContentLoaded', () => {
     window.drawAll = drawAll;
 
     function drawLayerTerrain(layer, targetCtx) {
-        const hexSize = 30;
         for (const key in layer.data) {
             const cellData = layer.data[key];
             if (cellData && cellData.terrain) {
                 const terrain = state.terrains[cellData.terrain];
                 if (terrain) {
-                    const [q, r] = key.split(',').map(Number);
-                    const { x, y } = hexToPixel(q, r, hexSize);
-                    drawHex(targetCtx, x, y, hexSize, terrain);
+                    const [x, y] = key.split(',').map(Number);
+                    const { px, py } = gridToPixel(x, y);
+                    
+                    targetCtx.beginPath();
+                    targetCtx.rect(px, py, squareSize, squareSize);
+
+                    if (terrain && terrain.canvasPatternObject) {
+                        targetCtx.fillStyle = terrain.canvasPatternObject;
+                    } else if (terrain && terrain.color) {
+                        targetCtx.fillStyle = terrain.color;
+                    } else {
+                        targetCtx.fillStyle = '#888';
+                    }
+                    targetCtx.fill();
                 }
             }
         }
@@ -242,12 +252,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function drawTokens(targetCtx) {
         const activeMap = state.getActiveMap();
         if (!activeMap || !activeMap.tokens) return;
-        const hexSize = 30;
-
+        
         activeMap.tokens.forEach(token => {
             targetCtx.fillStyle = token.color;
             targetCtx.beginPath();
-            targetCtx.arc(token.x, token.y, hexSize / 2, 0, 2 * Math.PI);
+            targetCtx.arc(token.x, token.y, squareSize / 2, 0, 2 * Math.PI);
             targetCtx.fill();
             targetCtx.strokeStyle = 'black';
             targetCtx.lineWidth = 2;
@@ -260,32 +269,26 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!activeMap || !activeMap.grid) return;
         
         targetCtx.strokeStyle = gridColorPicker.value;
-        targetCtx.lineWidth = 1; 
+        targetCtx.lineWidth = 1 / view.zoom;
 
-        const hexSize = 30;
-        for (const key in activeMap.grid) {
-            const coords = key.split(',').map(Number);
-            const { x, y } = hexToPixel(coords[0], coords[1], hexSize);
-            drawHexOutline(targetCtx, x, y, hexSize);
-        }
-    }
+        const startX = -view.offsetX / view.zoom;
+        const startY = -view.offsetY / view.zoom;
+        const endX = startX + canvas.width / view.zoom;
+        const endY = startY + canvas.height / view.zoom;
 
-    function drawHexOutline(ctx, x, y, size) {
-        ctx.beginPath();
-        for (let i = 0; i < 6; i++) {
-            // Flat-top angle calculation (starts at 0 degrees)
-            const angle_deg = 60 * i;
-            const angle_rad = Math.PI / 180 * angle_deg;
-            const pointX = x + size * Math.cos(angle_rad);
-            const pointY = y + size * Math.sin(angle_rad);
-            if (i === 0) {
-                ctx.moveTo(pointX, pointY);
-            } else {
-                ctx.lineTo(pointX, pointY);
-            }
+        for(let x = Math.floor(startX / squareSize) * squareSize; x < endX; x += squareSize) {
+            targetCtx.beginPath();
+            targetCtx.moveTo(x, startY);
+            targetCtx.lineTo(x, endY);
+            targetCtx.stroke();
         }
-        ctx.closePath();
-        ctx.stroke();
+
+        for(let y = Math.floor(startY / squareSize) * squareSize; y < endY; y += squareSize) {
+            targetCtx.beginPath();
+            targetCtx.moveTo(startX, y);
+            targetCtx.lineTo(endX, y);
+            targetCtx.stroke();
+        }
     }
 
     function drawWalls() {
@@ -370,66 +373,12 @@ document.addEventListener('DOMContentLoaded', () => {
         fogCtx.restore();
     }
 
-    function drawHex(targetCtx, x, y, size, terrain) {
-        targetCtx.beginPath();
-        for (let i = 0; i < 6; i++) {
-            // Flat-top angle calculation (starts at 0 degrees)
-            const angle_deg = 60 * i;
-            const angle_rad = Math.PI / 180 * angle_deg;
-            const pointX = x + size * Math.cos(angle_rad);
-            const pointY = y + size * Math.sin(angle_rad);
-            if (i === 0) {
-                targetCtx.moveTo(pointX, pointY);
-            } else {
-                targetCtx.lineTo(pointX, pointY);
-            }
-        }
-        targetCtx.closePath();
-        
-        if (terrain && terrain.canvasPatternObject) {
-            targetCtx.fillStyle = terrain.canvasPatternObject;
-        } else if (terrain && terrain.color) {
-            targetCtx.fillStyle = terrain.color;
-        } else {
-            targetCtx.fillStyle = '#888';
-        }
-        targetCtx.fill();
+    function gridToPixel(x, y) {
+        return { px: x * squareSize, py: y * squareSize };
     }
 
-    function hexToPixel(q, r, size) {
-        // Flat-top coordinate conversion
-        const x = size * (3 / 2 * q);
-        const y = size * (Math.sqrt(3) / 2 * q + Math.sqrt(3) * r);
-        return { x, y };
-    }
-
-    function pixelToHex(x, y, size) {
-        // Flat-top coordinate conversion
-        const q = (2 / 3 * x) / size;
-        const r = (-1 / 3 * x + Math.sqrt(3) / 3 * y) / size;
-        return hexRound(q, r);
-    }
-
-    function hexRound(q, r) {
-        const s = -q - r;
-
-        let rq = Math.round(q);
-        let rr = Math.round(r);
-        let rs = Math.round(s);
-
-        const q_diff = Math.abs(rq - q);
-        const r_diff = Math.abs(rr - r);
-        const s_diff = Math.abs(rs - s);
-
-        if (q_diff > r_diff && q_diff > s_diff) {
-            rq = -rr - rs;
-        } else if (r_diff > s_diff) {
-            rr = -rq - rs;
-        } else {
-            rs = -rq - rr;
-        }
-        
-        return { q: rq, r: rr };
+    function pixelToGrid(px, py) {
+        return { x: Math.floor(px / squareSize), y: Math.floor(py / squareSize) };
     }
 
     async function loadAssets() {
@@ -490,11 +439,20 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         if (currentTool === 'terrain') {
-            const hexCoords = pixelToHex(worldCoords.x, worldCoords.y, 30);
-            const key = `${hexCoords.q},${hexCoords.r}`;
-            const activeLayer = activeMap.layers.find(l => l.id === activeLayerId);
-            if (activeLayer && activeMap.grid[key]) {
-                activeLayer.data[key] = { terrain: selectedTerrain };
+            const gridCoords = pixelToGrid(worldCoords.x, worldCoords.y);
+            const brush = parseInt(brushSizeSlider.value);
+            const halfBrush = Math.floor(brush / 2);
+
+            for (let i = 0; i < brush; i++) {
+                for (let j = 0; j < brush; j++) {
+                    const targetX = gridCoords.x - halfBrush + i;
+                    const targetY = gridCoords.y - halfBrush + j;
+                    const key = `${targetX},${targetY}`;
+                    const activeLayer = activeMap.layers.find(l => l.id === activeLayerId);
+                    if (activeLayer && activeMap.grid[key]) {
+                        activeLayer.data[key] = { terrain: selectedTerrain };
+                    }
+                }
             }
         } else if (currentTool === 'object' && selectedObject) {
             if (!activeLayerId) return;
@@ -612,11 +570,10 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
         document.getElementById(`tool${tool.charAt(0).toUpperCase() + tool.slice(1)}Btn`)?.classList.add('active');
 
-        const toolPanels = [terrainOptionsPanel, terrainContentPanel, objectOptionsPanel, pencilOptionsPanel, tokenOptionsPanel, textToolPanel, fogPanel];
+        const toolPanels = [terrainContentPanel, objectOptionsPanel, pencilOptionsPanel, tokenOptionsPanel, textToolPanel, fogPanel];
         toolPanels.forEach(p => p.classList.add('hidden'));
 
         if (tool === 'terrain') {
-            terrainOptionsPanel.classList.remove('hidden');
             terrainContentPanel.classList.remove('hidden');
         } else if (tool === 'object') {
             objectOptionsPanel.classList.remove('hidden');
@@ -703,6 +660,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 content.classList.toggle('hidden');
             });
         });
+
+        brushSizeSlider.addEventListener('input', (e) => {
+            brushSizeValue.textContent = e.target.value;
+        });
     }
     
     function populateSelectors() {
@@ -768,10 +729,9 @@ document.addEventListener('DOMContentLoaded', () => {
             walls: [], tokens: [], labels: [], drawings: [],
             fog: { revealedRects: [] }, parentId: null, children: []
         };
-        const size = Math.max(width, height);
-        for (let q = -size; q <= size; q++) {
-            for (let r = -size; r <= size; r++) {
-                if (Math.abs(q + r) <= size) newMap.grid[`${q},${r}`] = {};
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                newMap.grid[`${x},${y}`] = {};
             }
         }
         return newMap;
