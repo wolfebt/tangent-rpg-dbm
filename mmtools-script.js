@@ -1,4 +1,4 @@
-// Version 13.1 - Fixed event propagation for menus and verified all action buttons
+// Version 13.2 - Activated all header menu buttons and implemented their functionality
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -65,6 +65,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const collapseBtn = document.getElementById('collapseBtn');
     const collapsedBar = document.getElementById('collapsedBar');
     const userGuideBtn = document.getElementById('userGuideBtn');
+    const settingsBtn = document.getElementById('settingsBtn');
+    const apiKeyModal = document.getElementById('apiKeyModal');
+    const saveApiKeyBtn = document.getElementById('saveApiKey');
+    const cancelApiKeyBtn = document.getElementById('cancelApiKey');
+    const apiKeyInput = document.getElementById('apiKeyInput');
+    const mapKeyBtn = document.getElementById('mapKeyBtn');
+    const mapKeyWindow = document.getElementById('mapKeyWindow');
     const gmViewToggleBtn = document.getElementById('gmViewToggleBtn');
     const gmViewIconOn = document.getElementById('gmViewIconOn');
     const gmViewIconOff = document.getElementById('gmViewIconOff');
@@ -776,6 +783,59 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         document.getElementById('eraseDrawingsBtn').addEventListener('click', () => {
             state.showModal("Erasing drawings is not yet implemented.");
+        });
+
+        // --- Header Icon Button Listeners ---
+        userGuideBtn.addEventListener('click', () => {
+            const guideContent = `
+                <div class="space-y-4 text-gray-300">
+                    <div>
+                        <h4 class="font-bold text-lg text-white">Basic Controls</h4>
+                        <p><strong>Pan:</strong> Middle-click and drag.</p>
+                        <p><strong>Zoom:</strong> Mouse wheel.</p>
+                        <p><strong>Paint/Place:</strong> Left-click and drag.</p>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-lg text-white">Tools Panel</h4>
+                        <p>Select tools like Terrain, Object, or Pencil. Each tool has its own set of options that will appear below.</p>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-lg text-white">Layers</h4>
+                        <p>Add new layers to organize your map. You can only draw on the currently active layer (highlighted in blue). You can toggle layer visibility with the eye icon.</p>
+                    </div>
+                     <div>
+                        <h4 class="font-bold text-lg text-white">GM View</h4>
+                        <p>Click the eye icon in the top menu to toggle GM View. When off (Player View), all elements marked as "GM-Only" will be hidden.</p>
+                    </div>
+                </div>
+            `;
+            state.showContentModal("User Guide", guideContent);
+        });
+
+        settingsBtn.addEventListener('click', () => {
+            apiKeyInput.value = state.apiKey;
+            apiKeyModal.classList.remove('hidden');
+        });
+        saveApiKeyBtn.addEventListener('click', () => {
+            state.setState({ apiKey: apiKeyInput.value });
+            localStorage.setItem('mapMakerApiKey', apiKeyInput.value);
+            apiKeyModal.classList.add('hidden');
+            state.showToast("API Key saved!", "success");
+        });
+        cancelApiKeyBtn.addEventListener('click', () => {
+            apiKeyModal.classList.add('hidden');
+        });
+
+        mapKeyBtn.addEventListener('click', () => {
+            mapKeyWindow.classList.toggle('hidden');
+        });
+        
+        gmViewToggleBtn.addEventListener('click', () => {
+            isGmViewActive = !isGmViewActive;
+            gmViewIconOn.classList.toggle('hidden', !isGmViewActive);
+            gmViewIconOff.classList.toggle('hidden', isGmViewActive);
+            gmViewToggleBtn.classList.toggle('gm-active', isGmViewActive);
+            drawAll();
         });
 
 
