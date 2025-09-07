@@ -53,129 +53,211 @@
             opacity: 0.6;
             cursor: not-allowed;
         }
-        /* Custom scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #1f2937; }
-        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
-        
         #status-message {
             transition: opacity 0.5s ease-in-out;
         }
         .modal {
             transition: opacity 0.25s ease;
         }
+        #project-title {
+            outline: none;
+            border-bottom: 2px solid transparent;
+            transition: border-color 0.3s;
+        }
+        #project-title:focus {
+            border-bottom-color: #3b82f6;
+        }
+        .editable-area {
+            outline: none;
+            transition: box-shadow 0.2s;
+        }
+        .editable-area:focus {
+            box-shadow: 0 0 0 2px #2563eb;
+        }
+        .asset-card {
+            background-color: #1f2937;
+            border: 1px solid #374151;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+        }
+        .asset-input {
+            width: 100%;
+            background-color: #374151;
+            border: 1px solid #4b5563;
+            border-radius: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            color: #d1d5db;
+        }
+        .asset-input:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
     </style>
 </head>
 <body class="antialiased">
 
-    <div class="container mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
+    <div class="container mx-auto max-w-screen-xl p-4 sm:p-6 lg:p-8">
         <header class="text-center mb-4">
             <h1 class="text-4xl font-bold text-white">Story Weaver AI</h1>
             <p class="text-lg text-gray-400 mt-2">Your AI-powered partner for literary creation.</p>
+            <div class="mt-4">
+                <h2 id="project-title" contenteditable="true" title="Click to edit project title" class="text-2xl font-semibold text-gray-300 inline-block p-1 rounded-md hover:bg-gray-700/50 cursor-pointer">Untitled Project</h2>
+            </div>
         </header>
         
         <div class="text-center mb-6 flex items-center justify-center gap-4">
             <button id="project-options-btn" class="py-2 px-5 rounded-lg font-semibold btn-primary">
                 Project Options
             </button>
-            <!-- NEW: Settings Button -->
             <button id="settings-btn" class="p-2 rounded-lg btn-secondary" title="Settings">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0l-.1.41a2 2 0 01-2.23 1.52l-.4-.1a2 2 0 00-2.2 2.2l.1.4a2 2 0 01-1.52 2.23l-.41.1c-1.56.38-1.56 2.6 0 2.98l.41.1a2 2 0 011.52 2.23l-.1.4a2 2 0 002.2 2.2l.4-.1a2 2 0 012.23 1.52l.1.41c.38 1.56 2.6 1.56 2.98 0l.1-.41a2 2 0 012.23-1.52l.4.1a2 2 0 002.2-2.2l-.1-.4a2 2 0 011.52-2.23l.41-.1c1.56-.38 1.56-2.6 0-2.98l-.41-.1a2 2 0 01-1.52-2.23l.1-.4a2 2 0 00-2.2-2.2l-.4.1a2 2 0 01-2.23-1.52l-.1-.41zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+                    <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0l-.1.41a2 2 0 01-2.23 1.52l-.4-.1a2 2 0 00-2.2 2.2l.1.4a2 2 0 01-1.52 2.23l-.41.1c-1.56.38-1.56 2.6 0 2.98l.41.1a2 2 0 011.52 2.23l-.1.4a2 2 0 002.2 2.2l.4-.1a2 2 0 012.23 1.52l.1.41c.38 1.56 2.6 1.56 2.98 0l.1-.41a2 2 0 012.23-1.52l.4.1a2 2 0 002.2-2.2l-.1-.4a2 2 0 011.52-2.23l.41-.1c-1.56-.38-1.56-2.6 0-2.98l-.41-.1a2 2 0 01-1.52-2.23l.1-.4a2 2 0 00-2.2-2.2l-.4.1a2 2 0 01-2.23-1.52l-.1-.41zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
                 </svg>
             </button>
             <span id="status-message" class="text-sm text-gray-400 opacity-0"></span>
         </div>
 
-        <nav class="flex justify-center border border-gray-700 rounded-lg p-1 mb-8 max-w-xl mx-auto bg-gray-800">
-            <button data-stage="brainstorm" class="nav-btn flex-1 text-center py-2 px-4 rounded-md transition-colors duration-300 font-semibold bg-blue-600 text-white">1. Brainstorm</button>
-            <button data-stage="outline" class="nav-btn flex-1 text-center py-2 px-4 rounded-md transition-colors duration-300 font-semibold text-gray-400">2. Outline</button>
-            <button data-stage="treatment" class="nav-btn flex-1 text-center py-2 px-4 rounded-md transition-colors duration-300 font-semibold text-gray-400">3. Treatment</button>
-            <button data-stage="write" class="nav-btn flex-1 text-center py-2 px-4 rounded-md transition-colors duration-300 font-semibold text-gray-400">4. Write</button>
-        </nav>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <main class="lg:col-span-8">
+                <nav class="flex justify-center border border-gray-700 rounded-lg p-1 mb-8 w-full mx-auto bg-gray-800">
+                    <button data-stage="brainstorm" class="nav-btn flex-1 text-center py-2 px-4 rounded-md transition-colors duration-300 font-semibold bg-blue-600 text-white">1. Brainstorm</button>
+                    <button data-stage="outline" class="nav-btn flex-1 text-center py-2 px-4 rounded-md transition-colors duration-300 font-semibold text-gray-400">2. Outline</button>
+                    <button data-stage="treatment" class="nav-btn flex-1 text-center py-2 px-4 rounded-md transition-colors duration-300 font-semibold text-gray-400">3. Treatment</button>
+                    <button data-stage="write" class="nav-btn flex-1 text-center py-2 px-4 rounded-md transition-colors duration-300 font-semibold text-gray-400">4. Write</button>
+                </nav>
 
-        <main>
-            <!-- Stage 1: Brainstorm -->
-            <div id="brainstorm" class="stage active">
-                <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-                    <h2 class="text-2xl font-semibold mb-4 text-white">Creative Brainstorming</h2>
-                    <label for="brainstorm-type-select" class="block text-sm font-medium text-gray-400 mb-2">I want to brainstorm...</label>
-                    <select id="brainstorm-type-select" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 mb-4">
-                        <option value="Story Ideas">Story Ideas</option>
-                        <option value="Characters">Characters</option>
-                        <option value="Settings">Settings</option>
-                        <option value="Plot Twists">Plot Twists</option>
-                        <option value="Story Hooks">Story Hooks</option>
-                    </select>
-                    <textarea id="brainstorm-input" class="w-full h-32 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Enter a genre, theme, or concept... e.g., 'cyberpunk noir', 'a haunted lighthouse', 'a character who can talk to ghosts'"></textarea>
-                    <button id="generate-ideas-btn" class="mt-4 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Concepts</button>
-                </div>
-                <div id="ideas-output" class="mt-8 grid gap-6 md:grid-cols-1 lg:grid-cols-2"></div>
-                <div id="ideas-loader" class="hidden"><div class="loader"></div></div>
-            </div>
-
-            <!-- Stage 2: Outline -->
-            <div id="outline" class="stage">
-                 <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-                    <h2 class="text-2xl font-semibold mb-4 text-white">Create a Story Outline</h2>
-                    <div id="chosen-idea-display" class="p-4 mb-4 bg-gray-900 border-2 border-gray-700 rounded-lg text-gray-300 min-h-[5rem]"><span class="text-gray-500">First, choose a concept from the Brainstorm tab.</span></div>
-                    <label for="outline-structure" class="block text-sm font-medium text-gray-400 mb-2">Select an outline structure:</label>
-                    <select id="outline-structure" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500">
-                        <option>Three-Act Structure</option>
-                        <option>The Hero's Journey</option>
-                        <option>Save the Cat Beat Sheet</option>
-                        <option>Five-Act Structure</option>
-                    </select>
-                    <button id="generate-outline-btn" class="mt-4 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Outline</button>
-                </div>
-                <div id="outline-output" class="mt-8"></div>
-                <div id="outline-loader" class="hidden"><div class="loader"></div></div>
-            </div>
-
-            <!-- Stage 3: Treatment -->
-            <div id="treatment" class="stage">
-                <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-                    <h2 class="text-2xl font-semibold mb-4 text-white">Develop a Story Treatment</h2>
-                    <p class="text-gray-400 mb-2">Your chosen outline:</p>
-                    <div id="chosen-outline-display" class="p-4 mb-4 bg-gray-900 border-2 border-gray-700 rounded-lg text-gray-300 min-h-[5rem] max-h-48 overflow-y-auto"><span class="text-gray-500">First, generate and select an outline from the Outline tab.</span></div>
-                    <button id="generate-treatment-btn" class="w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Treatment from Outline</button>
-                </div>
-                <div id="treatment-output" class="mt-8"></div>
-                <div id="treatment-loader" class="hidden"><div class="loader"></div></div>
-            </div>
-
-            <!-- Stage 4: Write -->
-            <div id="write" class="stage">
-                <div class="flex flex-col lg:flex-row gap-8">
-                    <aside class="w-full lg:w-1/3 bg-gray-800 p-4 rounded-lg shadow-lg h-full lg:max-h-[80vh] overflow-y-auto">
-                        <h3 class="text-xl font-semibold mb-4 text-white">Story Treatment</h3>
-                        <div id="treatment-reference" class="text-sm prose prose-invert max-w-none text-gray-300"><p class="text-gray-500">First, generate and select a treatment from the Treatment tab.</p></div>
-                    </aside>
-                    <div class="w-full lg:w-2/3">
-                        <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-6">
-                             <h3 class="text-xl font-semibold mb-4 text-white">AI Writing Assistant</h3>
-                             <label for="writing-format-select" class="block text-sm font-medium text-gray-400 mb-2">What are you writing?</label>
-                             <select id="writing-format-select" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 mb-4">
-                                <option value="Novel / Book Chapter">Novel / Book Chapter</option>
-                                <option value="Screenplay Scene">Screenplay Scene</option>
-                                <option value="Short Story Excerpt">Short Story Excerpt</option>
-                                <option value="Dialogue Only">Dialogue Only</option>
-                             </select>
-                             <label for="writing-prompt-input" class="block text-sm font-medium text-gray-400 mb-2">Writing Prompt</label>
-                             <textarea id="writing-prompt-input" class="w-full h-24 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., 'Write the opening scene at the docks', 'Describe the main villain, Kaelen', 'Write dialogue between the hero and the mentor about the quest'"></textarea>
-                             <button id="generate-writing-btn" class="mt-4 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Text</button>
-                             <div id="writing-loader" class="hidden mt-4"><div class="loader"></div></div>
+                <div id="brainstorm" class="stage active">
+                    <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                        <h2 class="text-2xl font-semibold mb-4 text-white">Creative Brainstorming</h2>
+                        <label for="brainstorm-type-select" class="block text-sm font-medium text-gray-400 mb-2">I want to brainstorm...</label>
+                        <select id="brainstorm-type-select" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 mb-4">
+                            <optgroup label="Story Writing">
+                                <option value="Story Ideas">Story Ideas</option>
+                                <option value="Characters">Characters</option>
+                                <option value="Settings">Settings</option>
+                                <option value="Plot Twists">Plot Twists</option>
+                                <option value="Story Hooks">Story Hooks</option>
+                            </optgroup>
+                            <optgroup label="General Purpose">
+                                <option value="Design Concept">Design Concepts</option>
+                                <option value="Shopping List">Shopping Lists</option>
+                                <option value="Travel Ideas">Travel Ideas</option>
+                            </optgroup>
+                            <optgroup label="Custom">
+                                <option value="Other">Other...</option>
+                            </optgroup>
+                        </select>
+                        <div id="other-format-container" class="hidden mb-4">
+                            <label for="other-format-input" class="block text-sm font-medium text-gray-400 mb-2">Define custom format</label>
+                            <input type="text" id="other-format-input" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., Recipe, Workout Plan, Blog Post Ideas">
                         </div>
+                        <textarea id="brainstorm-input" class="w-full h-32 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Enter a theme or concept..."></textarea>
+                        <button id="generate-ideas-btn" class="mt-4 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Concepts</button>
+                    </div>
+                    <div id="ideas-output" class="mt-8 grid gap-6 md:grid-cols-1"></div>
+                    <div id="ideas-loader" class="hidden"><div class="loader"></div></div>
+                </div>
+
+                <div id="outline" class="stage">
+                     <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                        <h2 class="text-2xl font-semibold mb-4 text-white">Create a Story Outline</h2>
+                        <label for="outline-structure" class="block text-sm font-medium text-gray-400 mb-2">Select an outline structure:</label>
+                        <select id="outline-structure" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 mb-4">
+                            <optgroup label="Classic Structures">
+                                <option>Three-Act Structure</option>
+                                <option>The Hero's Journey</option>
+                                <option>Five-Act Structure</option>
+                            </optgroup>
+                            <optgroup label="Novel Writing">
+                                <option>Save the Cat Beat Sheet</option>
+                                <option>Snowflake Method</option>
+                                <option>Fichtean Curve</option>
+                            </optgroup>
+                            <optgroup label="Custom">
+                                <option value="Other">Other...</option>
+                            </optgroup>
+                        </select>
+                        <div id="other-outline-container" class="hidden mb-4">
+                            <label for="other-outline-input" class="block text-sm font-medium text-gray-400 mb-2">Define custom outline structure</label>
+                            <input type="text" id="other-outline-input" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., Episodic TV format, 10-step plan">
+                        </div>
+                        <label class="block text-sm font-medium text-gray-400 mb-2">Your Concept</label>
+                        <div id="chosen-idea-display" contenteditable="true" class="editable-area p-4 mb-4 bg-gray-900 border-2 border-gray-700 rounded-lg text-gray-300 min-h-[5rem]"><span class="text-gray-500">Select a concept from the Brainstorm tab, or type/paste your own concept here.</span></div>
+                        <label for="outline-secondary-guidance" class="block text-sm font-medium text-gray-400 mb-2 mt-4">Secondary Guidance (Optional)</label>
+                        <textarea id="outline-secondary-guidance" class="w-full h-24 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., Make the second act focus on a betrayal, ensure the ending is a cliffhanger..."></textarea>
+                        <button id="generate-outline-btn" class="mt-4 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Outline</button>
+                    </div>
+                    <div id="outline-output" class="mt-8"></div>
+                    <div id="outline-loader" class="hidden"><div class="loader"></div></div>
+                </div>
+
+                <div id="treatment" class="stage">
+                    <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                        <h2 class="text-2xl font-semibold mb-4 text-white">Develop a Story Treatment</h2>
+                        <label for="treatment-format-select" class="block text-sm font-medium text-gray-400 mb-2">What is the final format of this story?</label>
+                         <select id="treatment-format-select" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 mb-4">
+                            <optgroup label="Prose & Narrative">
+                                <option>Novel / Book Chapter</option>
+                                <option>Short Story</option>
+                                <option>Flash Fiction</option>
+                            </optgroup>
+                            <optgroup label="Scripts & Performance">
+                                <option>Screenplay Scene</option>
+                                <option>Dialogue Only</option>
+                                <option>Stage Play Scene</option>
+                                <option>Comic Book Script</option>
+                            </optgroup>
+                            <optgroup label="Custom">
+                                <option value="Other">Other...</option>
+                            </optgroup>
+                         </select>
+                         <div id="other-treatment-container" class="hidden mb-4">
+                            <label for="other-treatment-input" class="block text-sm font-medium text-gray-400 mb-2">Define custom format</label>
+                            <input type="text" id="other-treatment-input" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., Video Game Quest, Podcast Episode">
+                        </div>
+                        <label class="block text-sm font-medium text-gray-400 mb-2">Your Outline</label>
+                        <div id="chosen-outline-display" contenteditable="true" class="editable-area p-4 mb-4 bg-gray-900 border-2 border-gray-700 rounded-lg text-gray-300 min-h-[5rem] max-h-48 overflow-y-auto"><span class="text-gray-500">Generate an outline in the previous step, or type/paste your own outline here.</span></div>
+                        <label for="treatment-secondary-guidance" class="block text-sm font-medium text-gray-400 mb-2 mt-4">Secondary Guidance (Optional)</label>
+                        <textarea id="treatment-secondary-guidance" class="w-full h-24 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., Emphasize the romantic subplot, write in a gritty, noir style..."></textarea>
+                        <button id="generate-treatment-btn" class="w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Treatment from Outline</button>
+                    </div>
+                    <div id="treatment-output" class="mt-8"></div>
+                    <div id="treatment-loader" class="hidden"><div class="loader"></div></div>
+                </div>
+
+                <div id="write" class="stage">
+                    <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-6">
+                         <h3 class="text-xl font-semibold mb-4 text-white">AI Writing Assistant</h3>
+                         
+                         <label for="writing-guidance-input" class="block text-sm font-medium text-gray-400 mb-2">Primary Prompt / Request</label>
+                         <textarea id="writing-guidance-input" class="w-full h-24 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., 'Write the opening scene...', 'Expand on the confrontation...'"></textarea>
+                         
+                         <label for="writing-secondary-guidance" class="block text-sm font-medium text-gray-400 mb-2 mt-4">Secondary Guidance (Optional)</label>
+                         <textarea id="writing-secondary-guidance" class="w-full h-24 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., 'Make the tone more suspenseful', 'Keep the sentences short and punchy'"></textarea>
+
+                         <button id="generate-writing-btn" class="mt-4 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Text</button>
+                         <div id="writing-loader" class="hidden mt-4"><div class="loader"></div></div>
+                    </div>
+                    <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
                         <h2 class="text-2xl font-semibold mb-4 text-white">Your Story</h2>
-                        <div id="main-editor" contenteditable="true" class="w-full h-96 p-4 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 overflow-y-auto" aria-label="Main story editor"></div>
+                        <div id="main-editor" contenteditable="true" class="w-full min-h-[50vh] p-4 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 overflow-y-auto" aria-label="Main story editor"></div>
                     </div>
                 </div>
-            </div>
-        </main>
+            </main>
+
+            <aside class="lg:col-span-4 bg-gray-900/50 border border-gray-700 rounded-lg p-4 h-fit sticky top-8">
+                <h2 class="text-xl font-bold mb-4 text-blue-400">Story Assets</h2>
+                <p class="text-sm text-gray-400 mb-4">Load JSON files from the Character and Scene builders to provide context for the AI.</p>
+                <button id="load-asset-btn" class="w-full py-2 px-4 rounded-lg font-semibold btn-secondary mb-4">Load Asset File (.json)</button>
+                <input type="file" id="asset-file-input" class="hidden" accept=".json" multiple>
+                
+                <div id="asset-container" class="space-y-4 max-h-[60vh] overflow-y-auto">
+                    <!-- Loaded assets will be dynamically inserted here -->
+                </div>
+            </aside>
+        </div>
     </div>
 
-    <!-- Project Options Modal -->
     <div id="project-modal" class="modal fixed inset-0 bg-black/60 items-center justify-center hidden z-50 opacity-0">
         <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md relative border border-gray-700">
             <button id="close-modal-btn" class="absolute top-3 right-3 text-gray-500 hover:text-white transition-colors">
@@ -191,7 +273,6 @@
         </div>
     </div>
 
-    <!-- NEW: Settings Modal -->
     <div id="settings-modal" class="modal fixed inset-0 bg-black/60 items-center justify-center hidden z-50 opacity-0">
         <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md relative border border-gray-700">
             <button id="close-settings-modal-btn" class="absolute top-3 right-3 text-gray-500 hover:text-white transition-colors">
@@ -209,12 +290,15 @@
 
     <script>
         const state = {
+            projectTitle: 'Untitled Project',
             brainstormConcept: '',
             storyOutline: '',
             storyTreatment: '',
+            writingFormat: 'Novel / Book Chapter',
+            assets: []
         };
 
-        // DOM Elements
+        const projectTitleEl = document.getElementById('project-title');
         const statusMessage = document.getElementById('status-message');
         const projectOptionsBtn = document.getElementById('project-options-btn');
         const projectModal = document.getElementById('project-modal');
@@ -242,14 +326,23 @@
         const chosenOutlineDisplay = document.getElementById('chosen-outline-display');
         const generateTreatmentBtn = document.getElementById('generate-treatment-btn');
         const treatmentOutput = document.getElementById('treatment-output');
-        const treatmentReference = document.getElementById('treatment-reference');
-        const writingFormatSelect = document.getElementById('writing-format-select');
-        const writingPromptInput = document.getElementById('writing-prompt-input');
-        const generateWritingBtn = document.getElementById('generate-writing-btn');
+        const treatmentFormatSelect = document.getElementById('treatment-format-select');
         const mainEditor = document.getElementById('main-editor');
+        const loadAssetBtn = document.getElementById('load-asset-btn');
+        const assetFileInput = document.getElementById('asset-file-input');
+        const assetContainer = document.getElementById('asset-container');
+        const otherFormatContainer = document.getElementById('other-format-container');
+        const otherFormatInput = document.getElementById('other-format-input');
+        const otherOutlineContainer = document.getElementById('other-outline-container');
+        const otherOutlineInput = document.getElementById('other-outline-input');
+        const otherTreatmentContainer = document.getElementById('other-treatment-container');
+        const otherTreatmentInput = document.getElementById('other-treatment-input');
+        const outlineSecondaryGuidance = document.getElementById('outline-secondary-guidance');
+        const treatmentSecondaryGuidance = document.getElementById('treatment-secondary-guidance');
+        const writingGuidanceInput = document.getElementById('writing-guidance-input');
+        const writingSecondaryGuidance = document.getElementById('writing-secondary-guidance');
+        const generateWritingBtn = document.getElementById('generate-writing-btn');
         
-        // --- Local Save/Load, Export, and Modal Logic ---
-
         function showStatus(message, isError = false) {
             statusMessage.textContent = message;
             statusMessage.style.color = isError ? '#ef4444' : '#9ca3af';
@@ -258,52 +351,69 @@
         }
         
         function updateUiFromState(data) {
+            state.projectTitle = data.projectTitle || 'Untitled Project';
             state.brainstormConcept = data.brainstormConcept || '';
             state.storyOutline = data.storyOutline || '';
             state.storyTreatment = data.storyTreatment || '';
+            state.writingFormat = data.writingFormat || 'Novel / Book Chapter';
+            state.assets = data.assets || [];
+            
+            projectTitleEl.textContent = state.projectTitle;
             mainEditor.innerHTML = data.editorContent || '';
             
-            chosenIdeaDisplay.innerHTML = state.brainstormConcept || `<span class="text-gray-500">First, choose a concept from the Brainstorm tab.</span>`;
+            const isStandardFormat = [...treatmentFormatSelect.options].some(opt => opt.value === state.writingFormat);
+            if(isStandardFormat) {
+                treatmentFormatSelect.value = state.writingFormat;
+                otherTreatmentContainer.classList.add('hidden');
+            } else {
+                treatmentFormatSelect.value = 'Other';
+                otherTreatmentInput.value = state.writingFormat;
+                otherTreatmentContainer.classList.remove('hidden');
+            }
+            
+            chosenIdeaDisplay.innerHTML = state.brainstormConcept || `<span class="text-gray-500">Select a concept, or type/paste your own.</span>`;
             
             if (state.storyOutline) {
                 const formatted = cleanAndFormat(state.storyOutline);
                 chosenOutlineDisplay.innerHTML = `<div class="prose prose-invert max-w-none text-gray-300 text-sm">${formatted}</div>`;
-                outlineOutput.innerHTML = `<div class="bg-gray-900 p-6 rounded-lg shadow-inner"><div class="prose prose-invert max-w-none">${formatted}</div></div><button id="use-outline-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Develop this Outline into a Treatment →</button>`;
+                outlineOutput.innerHTML = `<div class="bg-gray-900 p-6 rounded-lg shadow-inner"><div class="prose prose-invert max-w-none">${formatted}</div></div><button id="use-outline-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Develop Treatment →</button>`;
             } else {
-                 chosenOutlineDisplay.innerHTML = `<span class="text-gray-500">First, generate and select an outline...</span>`;
+                 chosenOutlineDisplay.innerHTML = `<span class="text-gray-500">Generate or type/paste an outline.</span>`;
                  outlineOutput.innerHTML = '';
             }
 
              if (state.storyTreatment) {
                 const formatted = cleanAndFormat(state.storyTreatment);
-                treatmentReference.innerHTML = `<div class="prose prose-invert max-w-none">${formatted}</div>`;
-                treatmentOutput.innerHTML = `<div class="bg-gray-900 p-6 rounded-lg shadow-inner"><div class="prose prose-invert max-w-none">${formatted}</div></div><button id="use-treatment-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Start Writing with this Treatment →</button>`;
+                treatmentOutput.innerHTML = `<div class="bg-gray-900 p-6 rounded-lg shadow-inner"><div class="prose prose-invert max-w-none">${formatted}</div></div><button id="use-treatment-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Start Writing →</button>`;
             } else {
-                 treatmentReference.innerHTML = `<p class="text-gray-500">First, generate and select a treatment...</p>`;
                  treatmentOutput.innerHTML = '';
             }
+            renderAssets();
         }
         
         function handleJsonLoad(event) {
             const file = event.target.files[0];
             if (!file) return;
-
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
                     const data = JSON.parse(e.target.result);
-                    if (confirm("Loading this file will overwrite your current work in this session. Are you sure?")) {
+                    if (confirm("Loading this file will overwrite your current project. Are you sure?")) {
                         updateUiFromState(data);
                         showStatus("Project loaded successfully.");
                         closeModal('project');
                     }
                 } catch (error) {
                     alert("Error: Invalid or corrupted JSON file.");
-                    console.error("JSON Parse Error:", error);
                 }
             };
             reader.readAsText(file);
             event.target.value = null; 
+        }
+
+        function sanitizeFilename(name) {
+            if (!name) return 'untitled-project';
+            return name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
         }
 
         function exportToJson() {
@@ -313,7 +423,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = "story-weaver-project.json";
+            a.download = `${sanitizeFilename(state.projectTitle)}.json`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -330,7 +440,7 @@
 
         function exportAsText() {
             const separator = "\n\n========================================\n\n";
-            let textContent = `STORY WEAVER PROJECT EXPORT\n${new Date().toLocaleString()}\n`;
+            let textContent = `PROJECT TITLE: ${state.projectTitle}\nWRITING FORMAT: ${state.writingFormat}\nEXPORTED ON: ${new Date().toLocaleString()}\n`;
             
             textContent += separator + "BRAINSTORM CONCEPT:\n\n" + htmlToText(state.brainstormConcept);
             textContent += separator + "STORY OUTLINE:\n\n" + state.storyOutline;
@@ -341,7 +451,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = "story-weaver-export.txt";
+            a.download = `${sanitizeFilename(state.projectTitle)}.txt`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -386,7 +496,6 @@
             }
         }
 
-        // --- Core Application Logic (Gemini calls, etc.) ---
         function setActiveStage(stageName) {
             stages.forEach(s => s.classList.toggle('active', s.id === stageName)); 
             navButtons.forEach(b => { 
@@ -429,20 +538,179 @@
         }
         navButtons.forEach(btn => btn.addEventListener('click', () => setActiveStage(btn.dataset.stage)));
 
-        // --- Event Listeners ---
+        function handleAssetLoad(event) {
+            const files = event.target.files;
+            if (!files.length) return;
+
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        addAssetToState(data);
+                    } catch (error) {
+                        alert(`Error parsing ${file.name}: Invalid JSON format.`);
+                    }
+                };
+                reader.readAsText(file);
+            });
+            event.target.value = null;
+        }
+
+        function addAssetToState(jsonData) {
+            const asset = {
+                id: `asset-${Date.now()}-${Math.random()}`,
+                label: '',
+                notes: '',
+                content: jsonData,
+                includeInPrompt: true
+            };
+
+            if (jsonData.name && jsonData.personality) {
+                asset.type = 'Character';
+                asset.name = jsonData.name;
+            } else if (jsonData['location-name'] && jsonData.atmosphere) {
+                asset.type = 'Scene';
+                asset.name = jsonData['location-name'];
+            } else {
+                asset.type = 'Unknown';
+                asset.name = 'Unnamed Asset';
+            }
+            
+            state.assets.push(asset);
+            renderAssets();
+            showStatus(`${asset.type} "${asset.name}" loaded.`);
+        }
+
+        function renderAssets() {
+            assetContainer.innerHTML = '';
+            state.assets.forEach(asset => {
+                const card = document.createElement('div');
+                card.className = 'asset-card space-y-2';
+                card.dataset.id = asset.id;
+                
+                card.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <strong class="text-blue-400">${asset.type}: <span class="text-white">${asset.name}</span></strong>
+                        <div class="flex items-center space-x-2">
+                            <label for="include-${asset.id}" class="text-xs text-gray-400">Include</label>
+                            <input type="checkbox" id="include-${asset.id}" class="asset-include-checkbox w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500" data-id="${asset.id}" ${asset.includeInPrompt ? 'checked' : ''}>
+                            <button class="remove-asset-btn text-red-400 hover:text-red-300 text-xs font-bold pl-2">REMOVE</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-400">Label</label>
+                        <input type="text" class="asset-input asset-label" value="${asset.label}" placeholder="e.g., Protagonist, Main Villain">
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-400">Notes</label>
+                        <textarea class="asset-input asset-notes" rows="2" placeholder="How to use this asset...">${asset.notes}</textarea>
+                    </div>
+                `;
+                assetContainer.appendChild(card);
+            });
+        }
+
+        function getAssetContextForAI() {
+            const includedAssets = state.assets.filter(asset => asset.includeInPrompt);
+
+            if (includedAssets.length === 0) {
+                return "";
+            }
+
+            let context = "\n\n--- STORY ASSETS CONTEXT ---\n";
+            includedAssets.forEach(asset => {
+                context += `\n[${asset.type.toUpperCase()}]\n`;
+                if (asset.label) context += `Label: ${asset.label}\n`;
+                if (asset.notes) context += `Notes: ${asset.notes}\n`;
+                
+                if (asset.type === 'Character' && asset.content) {
+                    context += `Name: ${asset.content.name || 'N/A'}\n`;
+                    context += `Description: ${asset.content['core-description'] || 'N/A'}\n`;
+                    context += `Personality: ${asset.content.personality || 'N/A'}\n`;
+                } else if (asset.type === 'Scene' && asset.content) {
+                    context += `Location: ${asset.content['location-name'] || 'N/A'}\n`;
+                    context += `Description: ${asset.content.overview || 'N/A'}\n`;
+                    context += `Atmosphere: ${asset.content.atmosphere || 'N/A'}\n`;
+                }
+            });
+            context += "--- END ASSETS CONTEXT ---\n\n";
+            return context;
+        }
+        
+        assetContainer.addEventListener('click', e => {
+            if (e.target.classList.contains('remove-asset-btn')) {
+                const card = e.target.closest('.asset-card');
+                const assetId = card.dataset.id;
+                state.assets = state.assets.filter(asset => asset.id !== assetId);
+                renderAssets();
+            }
+        });
+
+        assetContainer.addEventListener('input', e => {
+            const card = e.target.closest('.asset-card');
+            const assetId = card.dataset.id;
+            const asset = state.assets.find(a => a.id === assetId);
+            if (!asset) return;
+
+            if (e.target.classList.contains('asset-label')) {
+                asset.label = e.target.value;
+            } else if (e.target.classList.contains('asset-notes')) {
+                asset.notes = e.target.value;
+            }
+        });
+        
+        assetContainer.addEventListener('change', e => {
+            if (e.target.classList.contains('asset-include-checkbox')) {
+                const assetId = e.target.dataset.id;
+                const asset = state.assets.find(a => a.id === assetId);
+                if (asset) {
+                    asset.includeInPrompt = e.target.checked;
+                }
+            }
+        });
+
+        brainstormTypeSelect.addEventListener('change', (e) => {
+            if (e.target.value === 'Other') {
+                otherFormatContainer.classList.remove('hidden');
+            } else {
+                otherFormatContainer.classList.add('hidden');
+            }
+        });
+
         generateIdeasBtn.addEventListener('click', async () => {
+            const assetContext = getAssetContextForAI();
             ideasOutput.innerHTML = ''; 
-            const brainstormType = brainstormTypeSelect.value; 
+            let brainstormType = brainstormTypeSelect.value; 
             const userInput = brainstormInput.value.trim(); 
             if(!userInput) return; 
             let prompt = ''; 
-            const base = `You are a creative assistant for a writer. Your output must ONLY be the generated concepts, with each concept separated by a line containing only '---'. Do not include any introductory phrases or conversational text.`; 
+            const base = `You are a creative assistant. Your output must ONLY be the generated concepts, with each concept separated by a line containing only '---'. Do not include any introductory phrases or conversational text.`; 
+            
+            const fullBase = `${assetContext}${base}`;
+
+            if (brainstormType === 'Other') {
+                const otherFormat = otherFormatInput.value.trim();
+                if (!otherFormat) {
+                    showStatus("Please define a custom format when using 'Other'.", true);
+                    return;
+                }
+                brainstormType = otherFormat;
+            }
+
             switch (brainstormType) { 
-                case 'Characters': prompt = `${base} Brainstorm 5 unique characters based on the theme: "${userInput}". For each character, provide a **Name:**, a **Description:**, and their **Motivation:**.`; break; 
-                case 'Settings': prompt = `${base} Brainstorm 5 unique settings based on the theme: "${userInput}". For each setting, provide a **Name:**, a **Description:**, and the **Atmosphere:**.`; break; 
-                case 'Plot Twists': prompt = `${base} Brainstorm 5 shocking plot twists related to the idea: "${userInput}". For each twist, provide a **Twist:** title and a **Description:** of how it unfolds.`; break; 
-                case 'Story Hooks': prompt = `${base} Brainstorm 5 compelling story hooks (opening lines or scenarios) based on the idea: "${userInput}". For each hook, provide a **Hook:** title and a **Description:** of the scenario.`; break; 
-                default: prompt = `${base} Brainstorm 5 unique story ideas based on the premise: "${userInput}". For each idea, you MUST provide a **Title:**, a **Logline:**, and a **Synopsis:**.`; 
+                case 'Characters': prompt = `${fullBase} Brainstorm 8 unique characters based on the theme: "${userInput}". For each character, provide a **Name:**, a **Description:**, and their **Motivation:**.`; break; 
+                case 'Settings': prompt = `${fullBase} Brainstorm 8 unique settings based on the theme: "${userInput}". For each setting, provide a **Name:**, a **Description:**, and the **Atmosphere:**.`; break; 
+                case 'Plot Twists': prompt = `${fullBase} Brainstorm 8 shocking plot twists related to the idea: "${userInput}". For each twist, provide a **Twist:** title and a **Description:** of how it unfolds.`; break; 
+                case 'Story Hooks': prompt = `${fullBase} Brainstorm 8 compelling story hooks based on the idea: "${userInput}". For each hook, provide a **Hook:** title and a **Description:** of the scenario.`; break; 
+                case 'Design Concept': prompt = `${fullBase} Brainstorm 8 design concepts for: "${userInput}". For each, provide a **Concept:** title, a **Description:** of the visual style, and a list of **Key Elements:**.`; break;
+                case 'Shopping List': prompt = `${fullBase} Create a detailed shopping list for: "${userInput}". For each item, provide the **Item:** name, **Quantity:**, and **Notes:**.`; break;
+                case 'Travel Ideas': prompt = `${fullBase} Brainstorm 8 travel ideas related to: "${userInput}". For each, provide a **Destination:**, a **Description:** of why to go, and a list of **Activities:**.`; break;
+                case 'Story Ideas': 
+                    prompt = `${fullBase} Brainstorm 8 unique story ideas based on the premise: "${userInput}". For each idea, you MUST provide a **Title:**, a **Logline:**, and a **Synopsis:**.`; 
+                    break;
+                default:
+                    prompt = `${fullBase} Brainstorm 8 concepts for "${brainstormType}" based on the theme: "${userInput}". For each concept, give it a bolded **Title:** and a detailed description.`;
             } 
             const rawResponse = await callGeminiAPI(prompt, loaders.ideas); 
             if (rawResponse.startsWith("Error:")) { showStatus(rawResponse, true); return; }
@@ -451,25 +719,159 @@
                 ideasOutput.innerHTML = `<p class="text-center text-gray-400 col-span-full">The AI couldn't generate concepts for that prompt. Please try again.</p>`; 
                 return; 
             } 
+
+            if (state.projectTitle === 'Untitled Project' && brainstormTypeSelect.value === 'Story Ideas' && ideasArray.length > 0) {
+                const firstIdea = ideasArray[0];
+                const titleMatch = firstIdea.match(/\*\*Title:\*\*\s*(.*)/);
+                if (titleMatch && titleMatch[1]) {
+                    state.projectTitle = titleMatch[1].trim();
+                    projectTitleEl.textContent = state.projectTitle;
+                }
+            }
+
             ideasOutput.innerHTML = ideasArray.map(ideaText => { 
                 const firstLine = ideaText.match(/\*\*(.*?):\*\*\s*(.*)/); 
                 const title = firstLine ? firstLine[2].trim() : "Untitled Concept"; 
                 const formattedContent = cleanAndFormat(ideaText); 
                 const fullIdeaContent = `<div class="prose prose-invert max-w-none text-gray-300">${formattedContent}</div>`; 
-                return `<div class="idea-card bg-gray-900 p-6 rounded-lg flex flex-col"><h3 class="text-xl font-bold text-blue-400 mb-3">${title}</h3><div class="space-y-4 flex-grow prose prose-invert max-w-none text-gray-300 text-sm">${formattedContent}</div><button class="select-idea-btn mt-6 py-2 px-4 w-full rounded-lg font-semibold btn-secondary" data-idea-content="${encodeURIComponent(fullIdeaContent)}">Develop this Concept →</button></div>`; 
+                return `<div class="idea-card bg-gray-900 p-6 rounded-lg flex flex-col"><h3 class="text-xl font-bold text-blue-400 mb-3">${title}</h3><div class="space-y-4 flex-grow prose prose-invert max-w-none text-gray-300 text-sm">${formattedContent}</div><button class="select-idea-btn mt-6 py-2 px-4 w-full rounded-lg font-semibold btn-secondary" data-idea-content="${encodeURIComponent(fullIdeaContent)}" data-title="${encodeURIComponent(title)}">Develop this Concept →</button></div>`; 
             }).join(''); 
         });
-        ideasOutput.addEventListener('click', e => { if (e.target.classList.contains('select-idea-btn')) { state.brainstormConcept = decodeURIComponent(e.target.dataset.ideaContent); chosenIdeaDisplay.innerHTML = state.brainstormConcept; document.querySelectorAll('.idea-card').forEach(c => c.classList.remove('selected-card')); e.target.closest('.idea-card').classList.add('selected-card'); setActiveStage('outline'); } });
-        generateOutlineBtn.addEventListener('click', async () => { if (!state.brainstormConcept) return; const prompt = `You are a story outlining expert. Your output must ONLY be the story outline itself. Do not include any introductory phrases. Generate a detailed story outline for the following concept using the **${outlineStructureSelect.value}**:\n\n${state.brainstormConcept}`; outlineOutput.innerHTML = ''; const generatedOutline = await callGeminiAPI(prompt, loaders.outline); if (generatedOutline.startsWith("Error:")) { showStatus(generatedOutline, true); return; } state.storyOutline = generatedOutline; const formattedOutline = cleanAndFormat(generatedOutline); outlineOutput.innerHTML = `<div class="bg-gray-900 p-6 rounded-lg shadow-inner"><div class="prose prose-invert max-w-none text-gray-300">${formattedOutline}</div></div><button id="use-outline-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Develop Treatment →</button>`; });
-        outlineOutput.addEventListener('click', e => { if (e.target.id === 'use-outline-btn') { chosenOutlineDisplay.innerHTML = `<div class="prose prose-invert max-w-none text-gray-300 text-sm">${cleanAndFormat(state.storyOutline)}</div>`; setActiveStage('treatment'); } });
-        generateTreatmentBtn.addEventListener('click', async () => { if (!state.storyOutline) return; const prompt = `Act as a professional writer. Expand the following story outline into a narrative treatment. Write in present tense prose. Provide ONLY the treatment text.\n\n**Outline:**\n${state.storyOutline}`; treatmentOutput.innerHTML = ''; const generatedTreatment = await callGeminiAPI(prompt, loaders.treatment); if (generatedTreatment.startsWith("Error:")) { showStatus(generatedTreatment, true); return; } state.storyTreatment = generatedTreatment; const formattedTreatment = cleanAndFormat(generatedTreatment); treatmentOutput.innerHTML = `<div class="bg-gray-900 p-6 rounded-lg shadow-inner"><div class="prose prose-invert max-w-none text-gray-300">${formattedTreatment}</div></div><button id="use-treatment-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Start Writing →</button>`; });
-        treatmentOutput.addEventListener('click', e => { if (e.target.id === 'use-treatment-btn') { treatmentReference.innerHTML = `<div class="prose prose-invert max-w-none text-gray-300">${cleanAndFormat(state.storyTreatment)}</div>`; setActiveStage('write'); } });
+        
+        ideasOutput.addEventListener('click', e => { 
+            if (e.target.classList.contains('select-idea-btn')) { 
+                showStatus("New concept selected. Ready for outlining.");
+                state.brainstormConcept = decodeURIComponent(e.target.dataset.ideaContent); 
+                chosenIdeaDisplay.innerHTML = state.brainstormConcept; 
+                
+                const newTitle = decodeURIComponent(e.target.dataset.title);
+                if (brainstormTypeSelect.value === 'Story Ideas' && newTitle !== 'Untitled Concept') {
+                     state.projectTitle = newTitle;
+                     projectTitleEl.textContent = state.projectTitle;
+                }
+
+                document.querySelectorAll('.idea-card').forEach(c => c.classList.remove('selected-card')); 
+                e.target.closest('.idea-card').classList.add('selected-card'); 
+                state.storyOutline = '';
+                state.storyTreatment = '';
+                outlineOutput.innerHTML = '';
+                treatmentOutput.innerHTML = '';
+                chosenOutlineDisplay.innerHTML = `<span class="text-gray-500">Generate an outline or type/paste your own.</span>`;
+                setActiveStage('outline'); 
+            } 
+        });
+
+        outlineStructureSelect.addEventListener('change', (e) => {
+            if (e.target.value === 'Other') {
+                otherOutlineContainer.classList.remove('hidden');
+            } else {
+                otherOutlineContainer.classList.add('hidden');
+            }
+        });
+
+        generateOutlineBtn.addEventListener('click', async () => { 
+            const conceptText = htmlToText(chosenIdeaDisplay.innerHTML);
+            if (!conceptText.trim() || chosenIdeaDisplay.textContent.includes('Select a concept')) {
+                showStatus("Please provide a concept before generating an outline.", true);
+                return;
+            }
+
+            let outlineType = outlineStructureSelect.value;
+            if (outlineType === 'Other') {
+                const customType = otherOutlineInput.value.trim();
+                if (!customType) {
+                    showStatus("Please define a custom outline structure when using 'Other'.", true);
+                    return;
+                }
+                outlineType = customType;
+            }
+
+            const secondaryGuidance = outlineSecondaryGuidance.value.trim();
+            const guidanceText = secondaryGuidance ? `\n\n**Secondary Guidance:**\n${secondaryGuidance}` : '';
+
+            const assetContext = getAssetContextForAI();
+            const prompt = `${assetContext}You are a story outlining expert. Your output must ONLY be the story outline itself. Do not include any introductory phrases. Generate a detailed story outline for the following concept using the **${outlineType}**.${guidanceText}\n\n**Concept:**\n${conceptText}`; 
+            outlineOutput.innerHTML = ''; 
+            const generatedOutline = await callGeminiAPI(prompt, loaders.outline); 
+            if (generatedOutline.startsWith("Error:")) { showStatus(generatedOutline, true); return; } 
+            state.storyOutline = generatedOutline; 
+            const formattedOutline = cleanAndFormat(generatedOutline); 
+            outlineOutput.innerHTML = `<div class="bg-gray-900 p-6 rounded-lg shadow-inner"><div class="prose prose-invert max-w-none text-gray-300">${formattedOutline}</div></div><button id="use-outline-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Develop Treatment →</button>`; 
+        });
+
+        outlineOutput.addEventListener('click', e => { 
+            if (e.target.id === 'use-outline-btn') { 
+                chosenOutlineDisplay.innerHTML = `<div class="prose prose-invert max-w-none text-gray-300 text-sm">${cleanAndFormat(state.storyOutline)}</div>`; 
+                setActiveStage('treatment'); 
+            } 
+        });
+
+        treatmentFormatSelect.addEventListener('change', (e) => {
+            if (e.target.value === 'Other') {
+                otherTreatmentContainer.classList.remove('hidden');
+            } else {
+                otherTreatmentContainer.classList.add('hidden');
+            }
+        });
+
+        generateTreatmentBtn.addEventListener('click', async () => { 
+            state.storyOutline = htmlToText(chosenOutlineDisplay.innerHTML);
+            if (!state.storyOutline.trim() || chosenOutlineDisplay.textContent.includes('Generate an outline')) {
+                showStatus("Please provide an outline before generating a treatment.", true);
+                return;
+            }
+            
+            let writingFormat = treatmentFormatSelect.value;
+            if (writingFormat === 'Other') {
+                const customFormat = otherTreatmentInput.value.trim();
+                if (!customFormat) {
+                    showStatus("Please define a custom format when using 'Other'.", true);
+                    return;
+                }
+                writingFormat = customFormat;
+            }
+            state.writingFormat = writingFormat;
+
+            const secondaryGuidance = treatmentSecondaryGuidance.value.trim();
+            const guidanceText = secondaryGuidance ? `\n\n**Secondary Guidance:**\n${secondaryGuidance}` : '';
+
+            const assetContext = getAssetContextForAI();
+            const prompt = `${assetContext}Act as a professional writer. Expand the following story outline into a narrative treatment. The final work will be a **${state.writingFormat}**. The treatment should be written as present tense prose. Provide ONLY the treatment text.${guidanceText}\n\n**Outline:**\n${state.storyOutline}`; 
+            treatmentOutput.innerHTML = ''; 
+            const generatedTreatment = await callGeminiAPI(prompt, loaders.treatment); 
+            if (generatedTreatment.startsWith("Error:")) { showStatus(generatedTreatment, true); return; } 
+            state.storyTreatment = generatedTreatment; 
+            const formattedTreatment = cleanAndFormat(generatedTreatment); 
+            treatmentOutput.innerHTML = `<div class="bg-gray-900 p-6 rounded-lg shadow-inner"><div class="prose prose-invert max-w-none text-gray-300">${formattedTreatment}</div></div><button id="use-treatment-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Start Writing →</button>`; 
+        });
+
+        treatmentOutput.addEventListener('click', e => { 
+            if (e.target.id === 'use-treatment-btn') {
+                mainEditor.innerHTML = `<h1>${state.projectTitle}</h1><br>` + cleanAndFormat(state.storyTreatment);
+                setActiveStage('write'); 
+            } 
+        });
+        
         generateWritingBtn.addEventListener('click', async () => {
-            if (!writingPromptInput.value.trim()) { showStatus("Please enter a writing prompt.", true); return; }
-            if (!state.storyTreatment) { showStatus("Please generate a treatment before writing.", true); setActiveStage('treatment'); return; }
-            const format = writingFormatSelect.value;
-            const role = format === "Screenplay Scene" ? "screenwriter" : "novelist";
-            const prompt = `You are a talented ${role}. Your task is to write a piece in the format of a **${format}**. Use the following story treatment as your guide:\n---\nTREATMENT START\n${state.storyTreatment}\nTREATMENT END\n---\nNow, fulfill this specific user request: "${writingPromptInput.value}"\n\nWrite the requested text in a compelling way, ensuring it is correctly formatted for a ${format}. Do not repeat the prompt or the treatment. Provide only the generated text.`;
+            if (!writingGuidanceInput.value.trim()) { showStatus("Please enter a writing prompt.", true); return; }
+            
+            const assetContext = getAssetContextForAI();
+            const format = state.writingFormat;
+            const role = format.includes("Screenplay") ? "screenwriter" : "novelist";
+            const currentText = mainEditor.innerText;
+            
+            const secondaryGuidance = writingSecondaryGuidance.value.trim();
+            const guidanceText = secondaryGuidance ? `\n\n**Secondary Guidance:**\n${secondaryGuidance}` : '';
+
+            const prompt = `${assetContext}You are a talented ${role}. Your task is to continue or expand upon the following text, which is for a **${format}**.
+            ---
+            CURRENT TEXT:
+            ${currentText}
+            ---
+            Now, fulfill this specific user request: "${writingGuidanceInput.value}"
+            ${guidanceText}
+            Write the requested text in a compelling way, ensuring it is correctly formatted for a ${format}. Do not repeat the prompt or the existing text. Provide only the new, generated text.`;
+            
             const generatedText = await callGeminiAPI(prompt, loaders.writing);
             if (generatedText.startsWith("Error:")) { showStatus(generatedText, true); return; }
             const formattedText = cleanAndFormat(generatedText);
@@ -477,11 +879,16 @@
             const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
             const contentNode = document.createElement('div');
             contentNode.innerHTML = `<br>${formattedText}<br>`;
-            if (range && mainEditor.contains(range.commonAncestorContainer)) { range.deleteContents(); range.insertNode(contentNode); } else { mainEditor.appendChild(contentNode); }
-            writingPromptInput.value = '';
+            if (range && mainEditor.contains(range.commonAncestorContainer)) { 
+                range.deleteContents();
+                range.insertNode(contentNode);
+            } else { 
+                mainEditor.appendChild(contentNode);
+            }
+            writingGuidanceInput.value = '';
+            writingSecondaryGuidance.value = '';
         });
         
-        // Modal Event Listeners
         projectOptionsBtn.addEventListener('click', () => openModal('project'));
         closeModalBtn.addEventListener('click', () => closeModal('project'));
         projectModal.addEventListener('click', (e) => { if (e.target === projectModal) { closeModal('project'); } });
@@ -495,8 +902,20 @@
         exportJsonBtn.addEventListener('click', exportToJson);
         exportTextBtn.addEventListener('click', exportAsText);
         saveApiKeyBtn.addEventListener('click', saveApiKey);
+        loadAssetBtn.addEventListener('click', () => assetFileInput.click());
+        assetFileInput.addEventListener('change', handleAssetLoad);
+
+        projectTitleEl.addEventListener('input', (e) => {
+            state.projectTitle = e.target.textContent;
+        });
+
+        chosenIdeaDisplay.addEventListener('input', (e) => {
+            state.brainstormConcept = e.target.innerHTML;
+        });
+        chosenOutlineDisplay.addEventListener('input', (e) => {
+            state.storyOutline = e.target.innerText;
+        });
         
-        // --- App Initialization ---
         loadApiKey();
 
     </script>
