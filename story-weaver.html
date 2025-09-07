@@ -102,12 +102,30 @@
             width: 3rem;
             height: 3rem;
         }
+        .nav-btn-side {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 0.75rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            transition: background-color 0.2s, color 0.2s;
+            color: #9ca3af;
+        }
+        .nav-btn-side.active {
+            background-color: #2563eb;
+            color: white;
+        }
+        .nav-btn-side:not(.active):hover {
+            background-color: #374151;
+            color: white;
+        }
     </style>
 </head>
 <body class="antialiased">
 
     <div class="container mx-auto max-w-screen-xl p-4 sm:p-6 lg:p-8">
-        <header class="text-center mb-4">
+        <header class="text-center mb-8">
             <h1 class="text-4xl font-bold text-white">Story Weaver AI</h1>
             <p class="text-lg text-gray-400 mt-2">Your AI-powered partner for literary creation.</p>
             <div class="mt-4">
@@ -115,28 +133,41 @@
             </div>
         </header>
         
-        <div class="text-center mb-6 flex items-center justify-center gap-4">
-            <button id="project-options-btn" class="py-2 px-5 rounded-lg font-semibold btn-primary">
-                Project Options
-            </button>
-            <button id="settings-btn" class="p-2 rounded-lg btn-secondary" title="Settings">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0l-.1.41a2 2 0 01-2.23 1.52l-.4-.1a2 2 0 00-2.2 2.2l.1.4a2 2 0 01-1.52 2.23l-.41.1c-1.56.38-1.56 2.6 0 2.98l.41.1a2 2 0 011.52 2.23l-.1.4a2 2 0 002.2 2.2l.4-.1a2 2 0 012.23 1.52l.1.41c.38 1.56 2.6 1.56 2.98 0l.1-.41a2 2 0 012.23-1.52l.4.1a2 2 0 002.2-2.2l-.1-.4a2 2 0 011.52-2.23l.41-.1c-1.56-.38-1.56-2.6 0-2.98l-.41-.1a2 2 0 01-1.52-2.23l.1-.4a2 2 0 00-2.2-2.2l-.4.1a2 2 0 01-2.23-1.52l-.1-.41zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
-                </svg>
-            </button>
-            <span id="status-message" class="text-sm text-gray-400 opacity-0"></span>
-        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:items-start">
+            <aside class="lg:col-span-3 h-fit sticky top-8 space-y-6">
+                <div class="bg-gray-900/50 border border-gray-700 rounded-lg p-4">
+                     <div class="flex items-center justify-between gap-4 mb-4">
+                        <button id="project-options-btn" class="flex-1 py-2 px-3 text-sm rounded-lg font-semibold btn-primary">
+                            Project
+                        </button>
+                        <button id="settings-btn" class="p-2 rounded-lg btn-secondary" title="Settings">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0l-.1.41a2 2 0 01-2.23 1.52l-.4-.1a2 2 0 00-2.2 2.2l.1.4a2 2 0 01-1.52 2.23l-.41.1c-1.56.38-1.56 2.6 0 2.98l.41.1a2 2 0 011.52 2.23l-.1.4a2 2 0 002.2 2.2l.4-.1a2 2 0 012.23 1.52l.1.41c.38 1.56 2.6 1.56 2.98 0l.1-.41a2 2 0 012.23-1.52l.4.1a2 2 0 002.2-2.2l-.1-.4a2 2 0 011.52-2.23l.41-.1c-1.56-.38-1.56-2.6 0-2.98l-.41-.1a2 2 0 01-1.52-2.23l.1-.4a2 2 0 00-2.2-2.2l-.4.1a2 2 0 01-2.23-1.52l-.1-.41zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>
+                        </button>
+                    </div>
+                     <span id="status-message" class="text-sm text-gray-400 opacity-0 h-4 block text-center"></span>
+                </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <main class="lg:col-span-8">
-                <nav class="flex justify-center border border-gray-700 rounded-lg p-1 mb-8 w-full mx-auto bg-gray-800">
-                    <button data-stage="brainstorm" class="nav-btn flex-1 text-center py-2 px-4 rounded-md transition-colors duration-300 font-semibold bg-blue-600 text-white">1. Brainstorm</button>
-                    <button data-stage="outline" class="nav-btn flex-1 text-center py-2 px-4 rounded-md transition-colors duration-300 font-semibold text-gray-400">2. Outline</button>
-                    <button data-stage="treatment" class="nav-btn flex-1 text-center py-2 px-4 rounded-md transition-colors duration-300 font-semibold text-gray-400">3. Treatment</button>
-                    <button data-stage="write" class="nav-btn flex-1 text-center py-2 px-4 rounded-md transition-colors duration-300 font-semibold text-gray-400">4. Write</button>
-                    <button data-stage="storyboard" class="nav-btn flex-1 text-center py-2 px-4 rounded-md transition-colors duration-300 font-semibold text-gray-400">5. Storyboard</button>
+                <nav class="bg-gray-900/50 border border-gray-700 rounded-lg p-4 space-y-2">
+                    <button data-stage="brainstorm" class="nav-btn-side active">1. Brainstorm</button>
+                    <button data-stage="outline" class="nav-btn-side">2. Outline</button>
+                    <button data-stage="treatment" class="nav-btn-side">3. Treatment</button>
+                    <button data-stage="write" class="nav-btn-side">4. Write</button>
+                    <button data-stage="storyboard" class="nav-btn-side">5. Storyboard</button>
                 </nav>
 
+                <div class="bg-gray-900/50 border border-gray-700 rounded-lg p-4">
+                    <h2 class="text-xl font-bold mb-4 text-blue-400">Story Assets</h2>
+                    <p class="text-sm text-gray-400 mb-4">Load JSON files from the Character and Scene builders to provide context for the AI.</p>
+                    <button id="load-asset-btn" class="w-full py-2 px-4 rounded-lg font-semibold btn-secondary mb-4">Load Asset File (.json)</button>
+                    <input type="file" id="asset-file-input" class="hidden" accept=".json" multiple>
+                    
+                    <div id="asset-container" class="space-y-4 max-h-[40vh] overflow-y-auto">
+                        <!-- Loaded assets will be dynamically inserted here -->
+                    </div>
+                </div>
+            </aside>
+
+            <main class="lg:col-span-9">
                 <div id="brainstorm" class="stage active">
                     <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
                         <h2 class="text-2xl font-semibold mb-4 text-white">Creative Brainstorming</h2>
@@ -295,17 +326,6 @@
                 </div>
 
             </main>
-
-            <aside class="lg:col-span-4 bg-gray-900/50 border border-gray-700 rounded-lg p-4 h-fit sticky top-8">
-                <h2 class="text-xl font-bold mb-4 text-blue-400">Story Assets</h2>
-                <p class="text-sm text-gray-400 mb-4">Load JSON files from the Character and Scene builders to provide context for the AI.</p>
-                <button id="load-asset-btn" class="w-full py-2 px-4 rounded-lg font-semibold btn-secondary mb-4">Load Asset File (.json)</button>
-                <input type="file" id="asset-file-input" class="hidden" accept=".json" multiple>
-                
-                <div id="asset-container" class="space-y-4 max-h-[60vh] overflow-y-auto">
-                    <!-- Loaded assets will be dynamically inserted here -->
-                </div>
-            </aside>
         </div>
     </div>
 
@@ -363,7 +383,7 @@
         const closeSettingsModalBtn = document.getElementById('close-settings-modal-btn');
         const apiKeyInput = document.getElementById('api-key-input');
         const saveApiKeyBtn = document.getElementById('save-api-key-btn');
-        const navButtons = document.querySelectorAll('.nav-btn');
+        const navButtons = document.querySelectorAll('.nav-btn-side');
         const stages = document.querySelectorAll('.stage');
         const loaders = { ideas: document.getElementById('ideas-loader'), outline: document.getElementById('outline-loader'), treatment: document.getElementById('treatment-loader'), writing: document.getElementById('writing-loader') };
         const brainstormTypeSelect = document.getElementById('brainstorm-type-select');
@@ -556,11 +576,11 @@
         }
 
         function setActiveStage(stageName) {
-            stages.forEach(s => s.classList.toggle('active', s.id === stageName)); 
+            stages.forEach(s => {
+                s.classList.toggle('active', s.id === stageName);
+            }); 
             navButtons.forEach(b => { 
-                b.classList.toggle('bg-blue-600', b.dataset.stage === stageName); 
-                b.classList.toggle('text-white', b.dataset.stage === stageName); 
-                b.classList.toggle('text-gray-400', b.dataset.stage !== stageName); 
+                b.classList.toggle('active', b.dataset.stage === stageName);
             }); 
         }
 
@@ -630,8 +650,7 @@
             const delimiter = /^\s*---+\s*$/m; 
             return rawResponse.split(delimiter).map(s => s.trim()).filter(Boolean); 
         }
-        navButtons.forEach(btn => btn.addEventListener('click', () => setActiveStage(btn.dataset.stage)));
-
+        
         function handleAssetLoad(event) {
             const files = event.target.files;
             if (!files.length) return;
@@ -732,6 +751,83 @@
             return context;
         }
         
+        async function handleStoryboardGeneration() {
+            const description = storyboardDescription.value.trim();
+            if (!description) {
+                showStatus("Please enter a scene description.", true);
+                return;
+            }
+
+            const numPanels = parseInt(storyboardPanels.value, 10);
+            const style = storyboardStyle.value;
+
+            storyboardLoader.classList.remove('hidden');
+            storyboardOutput.innerHTML = '';
+            generateStoryboardBtn.disabled = true;
+
+            const panelPrompt = `You are a film director. Based on the following scene description, break it down into ${numPanels} distinct, chronological storyboard panels. For each panel, provide a concise, visual-only description suitable for an AI image generator. Focus on camera angles (e.g., wide shot, close-up), character actions, and key visual elements. Do not describe sounds or dialogue. Format the output with each panel description separated by a line containing only '---'.\n\n**Scene:**\n${description}`;
+
+            const panelDescriptionsText = await callGeminiAPI(panelPrompt, storyboardLoader.querySelector('.loader'));
+            
+            if (!panelDescriptionsText || panelDescriptionsText.startsWith("Error:")) {
+                showStatus(panelDescriptionsText || "Failed to generate panel descriptions.", true);
+                storyboardLoader.classList.add('hidden');
+                generateStoryboardBtn.disabled = false;
+                return;
+            }
+            
+            storyboardLoader.querySelector('p').textContent = 'Descriptions generated. Now creating images...';
+
+            const panelPrompts = panelDescriptionsText.split('---').map(p => p.trim()).filter(Boolean);
+
+            for (let i = 0; i < panelPrompts.length; i++) {
+                const panelDiv = document.createElement('div');
+                panelDiv.className = 'storyboard-panel';
+                panelDiv.innerHTML = `
+                    <div class="aspect-video bg-gray-900 flex items-center justify-center">
+                        <div class="loader panel-loader"></div>
+                    </div>
+                    <div class="p-3 text-xs text-gray-400">
+                        <p>${i + 1}. ${panelPrompts[i]}</p>
+                    </div>`;
+                storyboardOutput.appendChild(panelDiv);
+            }
+
+            let styleKeywords = "epic digital painting, detailed brushwork, dramatic lighting, fantasy art";
+            if (style === 'Photorealistic') styleKeywords = "photorealistic, hyperdetailed, 8k, cinematic, professional photography, sharp focus";
+            if (style === 'Anime') styleKeywords = "anime style, vibrant, cinematic, detailed background art, by Makoto Shinkai and Studio Ghibli";
+            if (style === 'Sketch') styleKeywords = "detailed pencil sketch, black and white, monochrome, architectural drawing, hand-drawn, graphite on textured paper";
+            if (style === 'Comic Book') styleKeywords = "comic book art style, bold lines, vibrant colors, halftone dots, dynamic action";
+            if (style === 'Cinematic') styleKeywords = "cinematic film still, anamorphic lens, high contrast, moody lighting, detailed";
+            
+            const imagePromises = panelPrompts.map(prompt => {
+                const fullPrompt = `${prompt}, ${styleKeywords}`;
+                return callImagen(fullPrompt, "text, watermark, signature, ugly, deformed");
+            });
+
+            const generatedImages = await Promise.all(imagePromises);
+
+            storyboardLoader.classList.add('hidden');
+            generateStoryboardBtn.disabled = false;
+            storyboardLoader.querySelector('p').textContent = 'Generating panel descriptions...';
+
+            const panelDivs = storyboardOutput.querySelectorAll('.storyboard-panel');
+            generatedImages.forEach((imageUrl, index) => {
+                if (panelDivs[index]) {
+                    const container = panelDivs[index].querySelector('.aspect-video');
+                    if (imageUrl) {
+                        container.innerHTML = `<img src="${imageUrl}" class="w-full h-full object-cover">`;
+                    } else {
+                        container.innerHTML = `<div class="p-4 text-center text-red-400 text-sm">Image failed to generate.</div>`;
+                    }
+                }
+            });
+        }
+        
+        // --- Event Listeners ---
+        
+        navButtons.forEach(btn => btn.addEventListener('click', () => setActiveStage(btn.dataset.stage)));
+
         assetContainer.addEventListener('click', e => {
             if (e.target.classList.contains('remove-asset-btn')) {
                 const card = e.target.closest('.asset-card');
@@ -982,79 +1078,6 @@
             writingGuidanceInput.value = '';
             writingSecondaryGuidance.value = '';
         });
-        
-        async function handleStoryboardGeneration() {
-            const description = storyboardDescription.value.trim();
-            if (!description) {
-                showStatus("Please enter a scene description.", true);
-                return;
-            }
-
-            const numPanels = parseInt(storyboardPanels.value, 10);
-            const style = storyboardStyle.value;
-
-            storyboardLoader.classList.remove('hidden');
-            storyboardOutput.innerHTML = '';
-            generateStoryboardBtn.disabled = true;
-
-            const panelPrompt = `You are a film director. Based on the following scene description, break it down into ${numPanels} distinct, chronological storyboard panels. For each panel, provide a concise, visual-only description suitable for an AI image generator. Focus on camera angles (e.g., wide shot, close-up), character actions, and key visual elements. Do not describe sounds or dialogue. Format the output with each panel description separated by a line containing only '---'.\n\n**Scene:**\n${description}`;
-
-            const panelDescriptionsText = await callGeminiAPI(panelPrompt, storyboardLoader.querySelector('.loader'));
-            
-            if (!panelDescriptionsText || panelDescriptionsText.startsWith("Error:")) {
-                showStatus(panelDescriptionsText || "Failed to generate panel descriptions.", true);
-                storyboardLoader.classList.add('hidden');
-                generateStoryboardBtn.disabled = false;
-                return;
-            }
-            
-            storyboardLoader.querySelector('p').textContent = 'Descriptions generated. Now creating images...';
-
-            const panelPrompts = panelDescriptionsText.split('---').map(p => p.trim()).filter(Boolean);
-
-            for (let i = 0; i < panelPrompts.length; i++) {
-                const panelDiv = document.createElement('div');
-                panelDiv.className = 'storyboard-panel';
-                panelDiv.innerHTML = `
-                    <div class="aspect-video bg-gray-900 flex items-center justify-center">
-                        <div class="loader panel-loader"></div>
-                    </div>
-                    <div class="p-3 text-xs text-gray-400">
-                        <p>${i + 1}. ${panelPrompts[i]}</p>
-                    </div>`;
-                storyboardOutput.appendChild(panelDiv);
-            }
-
-            let styleKeywords = "epic digital painting, detailed brushwork, dramatic lighting, fantasy art";
-            if (style === 'Photorealistic') styleKeywords = "photorealistic, hyperdetailed, 8k, cinematic, professional photography, sharp focus";
-            if (style === 'Anime') styleKeywords = "anime style, vibrant, cinematic, detailed background art, by Makoto Shinkai and Studio Ghibli";
-            if (style === 'Sketch') styleKeywords = "detailed pencil sketch, black and white, monochrome, architectural drawing, hand-drawn, graphite on textured paper";
-            if (style === 'Comic Book') styleKeywords = "comic book art style, bold lines, vibrant colors, halftone dots, dynamic action";
-            if (style === 'Cinematic') styleKeywords = "cinematic film still, anamorphic lens, high contrast, moody lighting, detailed";
-            
-            const imagePromises = panelPrompts.map(prompt => {
-                const fullPrompt = `${prompt}, ${styleKeywords}`;
-                return callImagen(fullPrompt, "text, watermark, signature, ugly, deformed");
-            });
-
-            const generatedImages = await Promise.all(imagePromises);
-
-            storyboardLoader.classList.add('hidden');
-            generateStoryboardBtn.disabled = false;
-            storyboardLoader.querySelector('p').textContent = 'Generating panel descriptions...';
-
-            const panelDivs = storyboardOutput.querySelectorAll('.storyboard-panel');
-            generatedImages.forEach((imageUrl, index) => {
-                if (panelDivs[index]) {
-                    const container = panelDivs[index].querySelector('.aspect-video');
-                    if (imageUrl) {
-                        container.innerHTML = `<img src="${imageUrl}" class="w-full h-full object-cover">`;
-                    } else {
-                        container.innerHTML = `<div class="p-4 text-center text-red-400 text-sm">Image failed to generate.</div>`;
-                    }
-                }
-            });
-        }
         
         loadTreatmentToStoryboardBtn.addEventListener('click', () => {
             if (state.storyTreatment) {
