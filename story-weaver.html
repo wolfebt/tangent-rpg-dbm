@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Story Weaver</title>
+    <title>Story Weaver AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -126,7 +126,7 @@
 
     <div class="container mx-auto max-w-screen-xl p-4 sm:p-6 lg:p-8">
         <header class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-white">AI Story Weaver</h1>
+            <h1 class="text-4xl font-bold text-white">Story Weaver AI</h1>
             <p class="text-lg text-gray-400 mt-2">Your AI-powered partner for literary creation.</p>
             <div class="mt-4">
                 <h2 id="project-title" contenteditable="true" title="Click to edit project title" class="text-2xl font-semibold text-gray-300 inline-block p-1 rounded-md hover:bg-gray-700/50 cursor-pointer">Untitled Project</h2>
@@ -271,21 +271,39 @@
                 </div>
 
                 <div id="write" class="stage">
-                    <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-6">
-                         <h3 class="text-2xl font-semibold mb-2 text-white">AI Writing Assistant</h3>
-                         <p class="text-gray-400 mb-6">Use the main editor below to write your story. Use this panel to get AI assistance for expanding, rewriting, or adding to your text.</p>
-                         <label for="writing-guidance-input" class="block text-sm font-medium text-gray-400 mb-2">Primary Prompt / Request</label>
-                         <textarea id="writing-guidance-input" class="w-full h-24 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., 'Write the opening scene...', 'Expand on the confrontation...'"></textarea>
-                         
-                         <label for="writing-secondary-guidance" class="block text-sm font-medium text-gray-400 mb-2 mt-4">Secondary Guidance (Optional)</label>
-                         <textarea id="writing-secondary-guidance" class="w-full h-24 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., 'Make the tone more suspenseful', 'Keep the sentences short and punchy'"></textarea>
-
-                         <button id="generate-writing-btn" class="mt-4 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Text</button>
-                         <div id="writing-loader" class="hidden mt-4"><div class="loader"></div></div>
-                    </div>
-                    <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-                        <h2 class="text-2xl font-semibold mb-4 text-white">Your Story</h2>
-                        <div id="main-editor" contenteditable="true" class="w-full min-h-[50vh] p-4 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 overflow-y-auto" aria-label="Main story editor"></div>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div class="lg:col-span-1 bg-gray-800 p-4 rounded-lg shadow-lg h-fit sticky top-8">
+                            <h3 class="text-xl font-semibold mb-2 text-white">Treatment Reference</h3>
+                            <p class="text-sm text-gray-400 mb-4">Select text from your treatment below to use it as a basis for generation in the AI Assistant.</p>
+                            <div id="write-treatment-reference" class="p-4 bg-gray-900 border border-gray-700 rounded-lg text-gray-300 max-h-[70vh] overflow-y-auto prose prose-invert max-w-none text-sm">
+                                <span class="text-gray-500">Your generated treatment will appear here once created.</span>
+                            </div>
+                        </div>
+                
+                        <div class="lg:col-span-2 space-y-8">
+                            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                                <h3 class="text-xl font-semibold mb-2 text-white">AI Writing Assistant</h3>
+                                <p class="text-gray-400 mb-6">Use the tools below to expand upon your treatment and write your story in the editor.</p>
+                                
+                                <label class="block text-sm font-medium text-gray-400 mb-2">Selected Treatment Text</label>
+                                <div id="selected-treatment-text" class="p-3 mb-4 bg-gray-900 border border-gray-700 rounded-lg text-gray-400 min-h-[4rem] max-h-32 overflow-y-auto text-sm italic">
+                                    (Select text from the Treatment Reference panel)
+                                </div>
+                
+                                <label for="writing-guidance-input" class="block text-sm font-medium text-gray-400 mb-2">Primary Prompt / Request</label>
+                                <textarea id="writing-guidance-input" class="w-full h-24 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., 'Expand this into a full scene with dialogue.', 'Rewrite this from the villain's perspective.'"></textarea>
+                                
+                                <label for="writing-secondary-guidance" class="block text-sm font-medium text-gray-400 mb-2 mt-4">Secondary Guidance (Optional)</label>
+                                <textarea id="writing-secondary-guidance" class="w-full h-24 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., 'Make the tone more suspenseful', 'Keep the sentences short and punchy'"></textarea>
+                
+                                <button id="generate-writing-btn" class="mt-4 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Text</button>
+                                <div id="writing-loader" class="hidden mt-4"><div class="loader"></div></div>
+                            </div>
+                            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                                <h2 class="text-2xl font-semibold mb-4 text-white">Your Story</h2>
+                                <div id="main-editor" contenteditable="true" class="w-full min-h-[50vh] p-4 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 overflow-y-auto" aria-label="Main story editor"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
@@ -362,7 +380,7 @@
             <button id="save-api-key-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Save Key</button>
         </div>
     </div>
-
+    
     <script>
         const state = {
             projectTitle: 'Untitled Project',
@@ -370,7 +388,8 @@
             storyOutline: '',
             storyTreatment: '',
             writingFormat: 'Novel / Book Chapter',
-            assets: []
+            assets: [],
+            selectedTreatmentSnippet: ''
         };
 
         const projectTitleEl = document.getElementById('project-title');
@@ -426,6 +445,8 @@
         const loadTreatmentToStoryboardBtn = document.getElementById('load-treatment-to-storyboard');
         const loadStoryToStoryboardBtn = document.getElementById('load-story-to-storyboard');
         const storyboardSecondaryGuidance = document.getElementById('storyboard-secondary-guidance');
+        const writeTreatmentReference = document.getElementById('write-treatment-reference');
+        const selectedTreatmentText = document.getElementById('selected-treatment-text');
         
         function showStatus(message, isError = false) {
             statusMessage.textContent = message;
@@ -469,8 +490,10 @@
              if (state.storyTreatment) {
                 const formatted = cleanAndFormat(state.storyTreatment);
                 treatmentOutput.innerHTML = `<div class="bg-gray-900 p-6 rounded-lg shadow-inner"><div class="prose prose-invert max-w-none">${formatted}</div></div><button id="use-treatment-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Start Writing →</button>`;
+                writeTreatmentReference.innerHTML = formatted;
             } else {
                  treatmentOutput.innerHTML = '';
+                 writeTreatmentReference.innerHTML = `<span class="text-gray-500">Your generated treatment will appear here once created.</span>`;
             }
             renderAssets();
         }
@@ -795,7 +818,6 @@
             const secondaryGuidance = storyboardSecondaryGuidance.value.trim();
             const guidanceText = secondaryGuidance ? `\n\n**Secondary Guidance:**\n${secondaryGuidance}` : '';
 
-            // First Gemini call for the visual seed
             storyboardLoader.querySelector('p').textContent = 'Generating visual consistency seed...';
             const seedPrompt = `Based on the following scene description, assets, and guidance, create a concise "Visual Style Guide" for an AI image generator. This guide should be a comma-separated list of key visual descriptors to ensure consistency across multiple images. Include defining features of characters, clothing, setting, and overall mood.\n\n**CONTEXT:**\n${assetContext}\n${description}\n${guidanceText}`;
             const visualSeed = await callGeminiAPI(seedPrompt, storyboardLoader.querySelector('.loader'));
@@ -1081,45 +1103,66 @@
         treatmentOutput.addEventListener('click', e => { 
             if (e.target.id === 'use-treatment-btn') {
                 mainEditor.innerHTML = `<h1>${state.projectTitle}</h1><br>` + cleanAndFormat(state.storyTreatment);
+                writeTreatmentReference.innerHTML = cleanAndFormat(state.storyTreatment);
                 setActiveStage('write'); 
             } 
         });
         
+        writeTreatmentReference.addEventListener('mouseup', () => {
+            const selection = window.getSelection().toString().trim();
+            if (selection) {
+                state.selectedTreatmentSnippet = selection;
+                selectedTreatmentText.textContent = selection;
+            }
+        });
+
         generateWritingBtn.addEventListener('click', async () => {
-            if (!writingGuidanceInput.value.trim()) { showStatus("Please enter a writing prompt.", true); return; }
+            const primaryPrompt = writingGuidanceInput.value.trim();
+            if (!primaryPrompt) { 
+                showStatus("Please enter a primary prompt.", true); 
+                return; 
+            }
+            if (!state.selectedTreatmentSnippet) {
+                showStatus("Please select a section from the Treatment to expand upon.", true);
+                return;
+            }
             
             const assetContext = getAssetContextForAI();
             const format = state.writingFormat;
             const role = format.includes("Screenplay") ? "screenwriter" : "novelist";
-            const currentText = mainEditor.innerText;
+            const currentStoryText = mainEditor.innerText;
             
             const secondaryGuidance = writingSecondaryGuidance.value.trim();
             const guidanceText = secondaryGuidance ? `\n\n**Secondary Guidance:**\n${secondaryGuidance}` : '';
 
-            const prompt = `${assetContext}You are a talented ${role}. Your task is to continue or expand upon the following text, which is for a **${format}**.
-            ---
-            CURRENT TEXT:
-            ${currentText}
-            ---
-            Now, fulfill this specific user request: "${writingGuidanceInput.value}"
+            const prompt = `${assetContext}You are a talented ${role}. 
+            Your main task is to write a scene or section for a **${format}**.
+            
+            **Primary Source Text (from the Treatment):** "${state.selectedTreatmentSnippet}"
+
+            **User Request:**
+            "${primaryPrompt}"
             ${guidanceText}
-            Write the requested text in a compelling way, ensuring it is correctly formatted for a ${format}. Do not repeat the prompt or the existing text. Provide only the new, generated text.`;
+
+            **Overall Story Context (what has been written so far):**
+            ${currentStoryText}
+            ---
+            Based on all the above information, generate the requested text. Ensure it is correctly formatted for a ${format}. Do not repeat the prompts or context. Provide only the new, generated text.`;
             
             const generatedText = await callGeminiAPI(prompt, loaders.writing);
             if (generatedText.startsWith("Error:")) { showStatus(generatedText, true); return; }
             const formattedText = cleanAndFormat(generatedText);
-            const selection = window.getSelection();
-            const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+            
             const contentNode = document.createElement('div');
-            contentNode.innerHTML = `<br>${formattedText}<br>`;
-            if (range && mainEditor.contains(range.commonAncestorContainer)) { 
-                range.deleteContents();
-                range.insertNode(contentNode);
-            } else { 
-                mainEditor.appendChild(contentNode);
-            }
+            contentNode.innerHTML = `<br><hr class="border-gray-600 my-4"><br>${formattedText}<br>`;
+            mainEditor.appendChild(contentNode);
+
+            mainEditor.scrollTop = mainEditor.scrollHeight;
+
             writingGuidanceInput.value = '';
             writingSecondaryGuidance.value = '';
+            state.selectedTreatmentSnippet = '';
+            selectedTreatmentText.innerHTML = '(Select text from the Treatment Reference panel)';
         });
         
         loadTreatmentToStoryboardBtn.addEventListener('click', () => {
