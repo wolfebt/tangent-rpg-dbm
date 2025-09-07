@@ -57,7 +57,6 @@ document.addEventListener('DOMContentLoaded', () => {
         currentAiImageBase64 = null; // Clear previous image
 
         const fullPrompt = buildFullPrompt(userPrompt);
-        console.log("Generating with prompt:", fullPrompt);
 
         try {
             const payload = { instances: [{ prompt: fullPrompt }], parameters: { "sampleCount": 1 } };
@@ -111,7 +110,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         toggleButtonLoading(updateBtn, true);
         const fullPrompt = buildFullPrompt(userPrompt); // Also apply styles to refinement
-        console.log("Updating with prompt:", fullPrompt);
         
         try {
             const payload = {
@@ -169,7 +167,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        console.log("Transferring image to new layer...");
         state.saveStateForUndo();
         const layerName = `AI Layer - ${new Date().toLocaleTimeString()}`;
         const newLayer = {
@@ -184,12 +181,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         activeMap.layers.unshift(newLayer); 
         
-        // Dispatch event to notify other modules to update their state/UI
         document.dispatchEvent(new CustomEvent('mapStateUpdated'));
         state.showToast(`Image transferred to new layer "${layerName}"`, "success");
 
-        // BUG FIX: Force an immediate redraw. Sometimes the event listener can be slow or miss the update.
-        // This ensures the canvas reflects the new layer instantly.
         if (window.drawAll) {
             window.drawAll();
         }

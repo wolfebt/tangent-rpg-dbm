@@ -1,4 +1,4 @@
-// Version 13.4 - Added diagnostic logging for background image rendering
+// Version 13.5 - Fixed critical initialization error for new projects
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -117,8 +117,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const { width, height } = container.getBoundingClientRect();
         
         [canvas, wallCanvas, lightCanvas, drawingCanvas, fogCanvas].forEach(c => {
-            c.width = width;
-            c.height = height;
+            if (c) {
+                c.width = width;
+                c.height = height;
+            }
         });
 
         drawAll();
@@ -146,14 +148,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (layer.backgroundImage) {
                     const cacheKey = layer.backgroundImageCacheKey || layer.id;
                     if (assetCache[cacheKey]) {
-                        console.log(`Drawing cached background for layer: ${layer.name}`);
                         ctx.drawImage(assetCache[cacheKey], 0, 0, activeMap.width * squareSize, activeMap.height * squareSize);
                     } else {
-                        console.log(`Loading background for layer: ${layer.name}`);
                         const img = new Image();
                         img.onload = () => {
                             assetCache[cacheKey] = img;
-                            console.log(`Background loaded and cached for layer: ${layer.name}`);
                             drawAll(); // Redraw once loaded
                         };
                         img.onerror = () => {
@@ -553,8 +552,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     async function initialize() {
         try {
-            state.loadApiKey(); // Load API key from local storage on startup
-            
+            // FIX: Load key and data assets first
+            state.loadApiKey(); 
             const [terrainsRes, assetsRes] = await Promise.all([
                 fetch('terrains.json'),
                 fetch('assets.json')
@@ -574,14 +573,17 @@ document.addEventListener('DOMContentLoaded', () => {
             state.loadCustomAssets();
             await loadAssets();
             
+            // FIX: Robust map handling
             if (Object.keys(state.project.maps).length === 0) {
-                handleAddNewMap(true); 
+                handleAddNewMap(true); // Create a default map if none exist
             } else {
+                // If maps do exist, just select the first one
                 const firstMapId = Object.keys(state.project.maps)[0];
                 state.setActiveMapId(firstMapId);
                 activeLayerId = state.project.maps[firstMapId].layers[0].id;
             }
             
+            // Now that we're sure a map exists, we can proceed
             setupUI();
             updateLayerList();
             resizeCanvas();
@@ -589,7 +591,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
         } catch (error) {
             console.error("Initialization failed:", error);
-            state.showModal("Failed to load essential map data. Please refresh the page.");
+            state.showModal("A critical error occurred during startup. Please refresh the page.");
         }
     }
 
@@ -938,16 +940,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleAddNewMap(isDefault = false) {
-        if (isDefault) {
-            const defaultMapId = `map_${Date.now()}`;
-            const newMap = createNewMapData("Default Map", 50, 50);
-            state.project.maps[defaultMapId] = newMap;
-            state.setActiveMapId(defaultMapId);
-            activeLayerId = newMap.layers[0].id;
-            return;
+        const name = isDefault ? "Default Map" : newMapNameInput.value || 'Untitled Map';
+        const width = isDefault ? 50 : parseInt(document.getElementById('newMapWidthInput').value) || 50;
+        const height = isDefault ? 50 : parseInt(document.getElementById('newMapHeightInput').value) || 50;
+        
+        const newMapId = `map_${Date.now()}`;
+        const newMap = createNewMapData(name, width, height);
+        
+        state.project.maps[newMapId] = newMap;
+        state.setActiveMapId(newMapId);
+        activeLayerId = newMap.layers[0].id;
+
+        if (!isDefault) {
+            newMapModal.classList.add('hidden');
+            saveStateForUndo();
+            updateLayerList();
+            drawAll();
         }
-        newMapNameInput.value = Math.random().toString(36).substring(2, 10).toUpperCase();
-        newMapModal.classList.remove('hidden');
     }
 
     function createNewMapData(name, width, height) {
@@ -960,25 +969,16 @@ document.addEventListener('DOMContentLoaded', () => {
         return newMap;
     }
 
-    if(confirmNewMapBtn) confirmNewMapBtn.addEventListener('click', () => {
-        saveStateForUndo();
-        const name = newMapNameInput.value || 'Untitled Map';
-        const width = parseInt(document.getElementById('newMapWidthInput').value) || 50;
-        const height = parseInt(document.getElementById('newMapHeightInput').value) || 50;
-        const newMapId = `map_${Date.now()}`;
-        state.project.maps[newMapId] = createNewMapData(name, width, height);
-        state.setActiveMapId(newMapId);
-        activeLayerId = state.project.maps[newMapId].layers[0].id;
-        newMapModal.classList.add('hidden');
-        updateLayerList();
-        drawAll();
-    });
+    if(confirmNewMapBtn) confirmNewMapBtn.addEventListener('click', () => handleAddNewMap(false));
 
     if(cancelNewMapBtn) cancelNewMapBtn.addEventListener('click', () => {
         newMapModal.classList.add('hidden');
     });
 
-    if(addNewMapBtn) addNewMapBtn.addEventListener('click', () => handleAddNewMap());
+    if(addNewMapBtn) addNewMapBtn.addEventListener('click', () => {
+        newMapNameInput.value = `Map ${Object.keys(state.project.maps).length + 1}`;
+        newMapModal.classList.remove('hidden');
+    });
 
     document.addEventListener('mapStateUpdated', () => {
         updateLayerList();
