@@ -1,5 +1,5 @@
-// Version 13.1 - Use central API key from state
-import { addNewAsset, showToast, apiKey } from './state.js';
+// Version 13.2 - Correctly reference the live API key from the state module
+import { addNewAsset, showToast } from './state.js';
 import * as state from './state.js';
 
 
@@ -122,6 +122,7 @@ async function generateAIAsset() {
 
     try {
         const payload = { instances: [{ prompt: userPrompt }], parameters: { "sampleCount": 1} };
+        // CORRECTED: Always use state.apiKey to get the current value
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${state.apiKey}`;
         
         const response = await fetch(apiUrl, {

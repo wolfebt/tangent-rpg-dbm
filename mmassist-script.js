@@ -1,4 +1,4 @@
-// Version 6.1 - Use central API key from state
+// Version 6.2 - Correctly reference the live API key from the state module
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -48,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const payload = { instances: [{ prompt: prompt }], parameters: { "sampleCount": 1 } };
+            // CORRECTED: Always use state.apiKey to get the current value
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${state.apiKey}`;
             
             const response = await fetch(apiUrl, {
@@ -110,6 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     responseModalities: ['IMAGE']
                 },
             };
+            // CORRECTED: Always use state.apiKey to get the current value
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${state.apiKey}`;
 
             const response = await fetch(apiUrl, {
