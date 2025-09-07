@@ -1,4 +1,4 @@
-// Version 9.0 - Switched to Square Grid
+// Version 10.0 - Unified Square Grid Rendering
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let undoStack = [];
     let redoStack = [];
     let visibilityPolygons = [];
-    const squareSize = 30; // Define the size of our grid squares
+    const squareSize = 50; 
 
     // --- Core Drawing & Rendering ---
 
@@ -108,12 +108,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('canvas-container');
         if (!container) return;
         const { width, height } = container.getBoundingClientRect();
-        canvas.width = width;
-        canvas.height = height;
-        drawingCanvas.width = width;
-        wallCanvas.width = width;
-        lightCanvas.width = width;
-        fogCanvas.width = width;
+        
+        // Set all canvases to the same size
+        [canvas, wallCanvas, lightCanvas, drawingCanvas, fogCanvas].forEach(c => {
+            c.width = width;
+            c.height = height;
+        });
+
         drawAll();
     }
 
@@ -121,19 +122,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const activeMap = state.getActiveMap();
         if (!activeMap) return;
 
+        // Clear all canvases
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
         wallCtx.clearRect(0, 0, wallCanvas.width, wallCanvas.height);
+        lightCtx.clearRect(0, 0, lightCanvas.width, lightCanvas.height);
         fogCtx.clearRect(0, 0, fogCanvas.width, fogCanvas.height);
 
+        // --- Main Rendering on Primary Canvas ---
         ctx.save();
         ctx.translate(view.offsetX, view.offsetY);
         ctx.scale(view.zoom, view.zoom);
 
+        // Draw layers in reverse for correct stacking
         if(activeMap.layers) {
             [...activeMap.layers].reverse().forEach(layer => {
                 if (!layer.visible) return;
-                drawLayerTerrain(layer, ctx);
+                drawLayerTerrainAndGrid(layer, ctx); // Unified function
                 drawPlacedObjects(layer, ctx);
             });
         }
@@ -143,47 +148,49 @@ document.addEventListener('DOMContentLoaded', () => {
         
         ctx.restore();
 
+        // --- Overlay Rendering (for things that don't need to be part of the main map texture) ---
         drawingCtx.save();
         drawingCtx.translate(view.offsetX, view.offsetY);
         drawingCtx.scale(view.zoom, view.zoom);
-        
-        if (gridVisibleCheckbox.checked) {
-            drawGrid(drawingCtx);
-        }
         drawPencilStrokes(drawingCtx);
-        
         drawingCtx.restore();
 
+        // Other overlays remain as they were
         drawWalls();
         drawLightMask();
         updateFogOfWar();
     }
     window.drawAll = drawAll;
 
-    function drawLayerTerrain(layer, targetCtx) {
+    function drawLayerTerrainAndGrid(layer, targetCtx) {
+        // This function now handles both terrain fill and grid outline for perfect alignment.
         for (const key in layer.data) {
             const cellData = layer.data[key];
+            const [x, y] = key.split(',').map(Number);
+            const { px, py } = gridToPixel(x, y);
+
+            // Draw Terrain Fill
             if (cellData && cellData.terrain) {
                 const terrain = state.terrains[cellData.terrain];
                 if (terrain) {
-                    const [x, y] = key.split(',').map(Number);
-                    const { px, py } = gridToPixel(x, y);
-                    
-                    targetCtx.beginPath();
-                    targetCtx.rect(px, py, squareSize, squareSize);
-
-                    if (terrain && terrain.canvasPatternObject) {
+                    if (terrain.canvasPatternObject) {
                         targetCtx.fillStyle = terrain.canvasPatternObject;
-                    } else if (terrain && terrain.color) {
+                        targetCtx.fillRect(px, py, squareSize, squareSize);
+                    } else if (terrain.color) {
                         targetCtx.fillStyle = terrain.color;
-                    } else {
-                        targetCtx.fillStyle = '#888';
+                        targetCtx.fillRect(px, py, squareSize, squareSize);
                     }
-                    targetCtx.fill();
                 }
+            }
+             // Draw Grid Outline for this cell
+            if (gridVisibleCheckbox.checked) {
+                targetCtx.strokeStyle = gridColorPicker.value;
+                targetCtx.lineWidth = 1 / view.zoom; // Keep grid lines thin when zoomed
+                targetCtx.strokeRect(px, py, squareSize, squareSize);
             }
         }
     }
+
 
     function drawPlacedObjects(layer, targetCtx) {
         if (!layer.objects) return;
@@ -262,33 +269,6 @@ document.addEventListener('DOMContentLoaded', () => {
             targetCtx.lineWidth = 2;
             targetCtx.stroke();
         });
-    }
-
-    function drawGrid(targetCtx) {
-        const activeMap = state.getActiveMap();
-        if (!activeMap || !activeMap.grid) return;
-        
-        targetCtx.strokeStyle = gridColorPicker.value;
-        targetCtx.lineWidth = 1 / view.zoom;
-
-        const startX = -view.offsetX / view.zoom;
-        const startY = -view.offsetY / view.zoom;
-        const endX = startX + canvas.width / view.zoom;
-        const endY = startY + canvas.height / view.zoom;
-
-        for(let x = Math.floor(startX / squareSize) * squareSize; x < endX; x += squareSize) {
-            targetCtx.beginPath();
-            targetCtx.moveTo(x, startY);
-            targetCtx.lineTo(x, endY);
-            targetCtx.stroke();
-        }
-
-        for(let y = Math.floor(startY / squareSize) * squareSize; y < endY; y += squareSize) {
-            targetCtx.beginPath();
-            targetCtx.moveTo(startX, y);
-            targetCtx.lineTo(endX, y);
-            targetCtx.stroke();
-        }
     }
 
     function drawWalls() {
@@ -381,6 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return { x: Math.floor(px / squareSize), y: Math.floor(py / squareSize) };
     }
 
+
     async function loadAssets() {
         const promises = Object.keys(state.assetManifest).map(key => {
             return new Promise((resolve) => {
@@ -388,7 +369,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (asset.src && !assetCache[key]) {
                     const img = new Image();
                     img.onload = () => { assetCache[key] = img; resolve(); };
-                    img.onerror = () => resolve();
+                    img.onerror = () => resolve(); // Don't block on failed assets
                     img.src = asset.src;
                 } else {
                     resolve();
@@ -528,7 +509,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             setupUI();
-            resizeCanvas();
+            resizeCanvas(); // This will trigger the first drawAll
             
         } catch (error) {
             console.error("Initialization failed:", error);
@@ -537,8 +518,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function createTerrainPatterns() {
+        // This function is crucial and needs to complete before drawing.
         return new Promise(resolve => {
             const terrainKeys = Object.keys(state.terrains);
+            if (terrainKeys.length === 0) {
+                resolve();
+                return;
+            }
             let patternsLoaded = 0;
             
             terrainKeys.forEach(key => {
@@ -553,6 +539,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (patternsLoaded === terrainKeys.length) resolve();
                     };
                     img.onerror = () => {
+                        console.warn(`Failed to load pattern image for ${key}`);
                         patternsLoaded++;
                         if (patternsLoaded === terrainKeys.length) resolve();
                     }
@@ -594,13 +581,13 @@ document.addEventListener('DOMContentLoaded', () => {
         window.addEventListener('resize', resizeCanvas);
 
         canvas.addEventListener('mousedown', (e) => {
-            if (e.button === 1) { // Middle mouse
+            if (e.button === 1) { // Middle mouse for panning
                 isPanning = true;
                 panStart.x = e.clientX - view.offsetX;
                 panStart.y = e.clientY - view.offsetY;
                 canvas.classList.add('panning');
                 e.preventDefault();
-            } else if (e.button === 0) { // Left mouse
+            } else if (e.button === 0) { // Left mouse for painting/tools
                  isPainting = true;
                  applyTool({x: e.offsetX, y: e.offsetY});
             }
@@ -628,17 +615,24 @@ document.addEventListener('DOMContentLoaded', () => {
             const wheel = e.deltaY < 0 ? 1 : -1;
             const zoom = Math.exp(wheel * zoomIntensity);
             
-            view.offsetX = (view.offsetX - e.offsetX) * zoom + e.offsetX;
-            view.offsetY = (view.offsetY - e.offsetY) * zoom + e.offsetY;
+            const mouseX = e.offsetX;
+            const mouseY = e.offsetY;
+
+            const worldX = (mouseX - view.offsetX) / view.zoom;
+            const worldY = (mouseY - view.offsetY) / view.zoom;
+
             view.zoom *= zoom;
+            
+            view.offsetX = mouseX - worldX * view.zoom;
+            view.offsetY = mouseY - worldY * view.zoom;
 
             drawAll();
         });
 
         resetViewBtn.addEventListener('click', () => {
             view.zoom = 1;
-            view.offsetX = 0;
-            view.offsetY = 0;
+            view.offsetX = (canvas.width / 2) - ((state.getActiveMap().width * squareSize) / 2);
+            view.offsetY = (canvas.height / 2) - ((state.getActiveMap().height * squareSize) / 2);
             drawAll();
         });
 
@@ -658,11 +652,8 @@ document.addEventListener('DOMContentLoaded', () => {
             header.addEventListener('click', () => {
                 const content = header.nextElementSibling;
                 content.classList.toggle('hidden');
+                header.classList.toggle('collapsed');
             });
-        });
-
-        brushSizeSlider.addEventListener('input', (e) => {
-            brushSizeValue.textContent = e.target.value;
         });
     }
     
@@ -674,8 +665,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 const div = document.createElement('div');
                 div.className = 'item-container';
                 div.dataset.terrain = key;
+
+                // Create a swatch using the actual canvas pattern
+                const swatchCanvas = document.createElement('canvas');
+                swatchCanvas.width = 32;
+                swatchCanvas.height = 32;
+                const swatchCtx = swatchCanvas.getContext('2d');
+                if (terrain.canvasPatternObject) {
+                    swatchCtx.fillStyle = terrain.canvasPatternObject;
+                } else {
+                    swatchCtx.fillStyle = terrain.color;
+                }
+                swatchCtx.fillRect(0,0,32,32);
+                
                 div.innerHTML = `
-                    <div class="texture-swatch" style="background-color: ${terrain.color};"></div>
+                    <div class="texture-swatch" style="background-image: url(${swatchCanvas.toDataURL()});"></div>
                     <span class="item-label">${terrain.name}</span>
                 `;
                 div.addEventListener('click', () => {
@@ -691,7 +695,7 @@ document.addEventListener('DOMContentLoaded', () => {
             objectSelector.innerHTML = '';
             Object.keys(state.assetManifest).forEach(key => {
                 const asset = state.assetManifest[key];
-                if (asset.type !== 'terrain') {
+                if (asset.type !== 'terrain' && asset.src) { // Ensure asset has a source
                     const div = document.createElement('div');
                     div.className = 'item-container';
                     div.dataset.object = key;
@@ -729,6 +733,7 @@ document.addEventListener('DOMContentLoaded', () => {
             walls: [], tokens: [], labels: [], drawings: [],
             fog: { revealedRects: [] }, parentId: null, children: []
         };
+        // Populate the grid data structure
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
                 newMap.grid[`${x},${y}`] = {};
