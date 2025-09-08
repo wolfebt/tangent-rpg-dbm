@@ -846,19 +846,43 @@
             }
             if(loaderElement) loaderElement.style.display = 'block';
 
-            try {
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-                const payload = { contents: [{ parts: [{ text: prompt }] }] };
-                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const result = await response.json();
-                return result.candidates?.[0]?.content?.parts?.[0]?.text;
-            } catch(e) {
-                console.error(e);
-                return `Error: ${e.message}`;
-            } finally {
-                if(loaderElement) loaderElement.style.display = 'none';
+            const maxRetries = 3;
+            let delay = 1000; // 1 second
+
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                    const payload = { contents: [{ parts: [{ text: prompt }] }] };
+                    const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        return result.candidates?.[0]?.content?.parts?.[0]?.text;
+                    }
+
+                    // Check for retryable server errors
+                    if (response.status === 503 || response.status === 429) {
+                         if (i < maxRetries - 1) {
+                            console.warn(`API call failed with status ${response.status}. Retrying in ${delay / 1000}s...`);
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                            delay *= 2; // Double the delay for the next attempt
+                            continue;
+                        }
+                    }
+                    
+                    throw new Error(`HTTP error! status: ${response.status}`);
+
+                } catch (e) {
+                    // This will catch network errors or the final thrown error
+                    if (i === maxRetries - 1) {
+                        console.error(e);
+                        return `Error: ${e.message}`;
+                    }
+                }
             }
+            
+            if(loaderElement) loaderElement.style.display = 'none';
+            return `Error: AI service is unavailable after ${maxRetries} attempts. Please try again later.`;
         }
 
         async function callImagen(positivePrompt, negativePrompt) {
@@ -1570,4 +1594,5 @@
     </script>
 </body>
 </html>
+
 
