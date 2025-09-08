@@ -55,7 +55,7 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4a6.5 6.5 0 1 0-4-4Z"/><circle cx="16.5" cy="7.5" r=".5"/></svg>
                         </button>
                         <!-- GM View Toggle Button -->
-                        <button id="gmViewToggleBtn" class="ml-1 p-1 rounded-md hover:bg-gray-700" title="Toggle GM View">
+                        <button id="gmViewToggleBtn" class="ml-1 p-1 rounded-md hover:bg-gray-700 gm-active" title="Toggle GM View">
                             <svg id="gmViewIconOn" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                             <svg id="gmViewIconOff" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
                         </button>
@@ -289,10 +289,10 @@
         <div id="canvas-container" class="relative">
             <div id="breadcrumb-nav" class="absolute top-2 left-2 z-20 bg-gray-900 bg-opacity-70 p-2 rounded-md text-sm"></div>
             <canvas id="mapCanvas"></canvas>
-            <canvas id="wallCanvas"></canvas>
-            <canvas id="lightCanvas"></canvas>
-            <canvas id="drawingCanvas"></canvas>
-            <canvas id="fogCanvas"></canvas>
+            <canvas id="wallCanvas" style="pointer-events:none;"></canvas>
+            <canvas id="lightCanvas" style="pointer-events:none;"></canvas>
+            <canvas id="drawingCanvas" style="pointer-events:none;"></canvas>
+            <canvas id="fogCanvas" style="pointer-events:none;"></canvas>
             
             <div id="asset-context-menu" class="asset-context-menu hidden">
                 <button id="asset-rotate-left-btn" title="Rotate Left (r)">
@@ -510,4 +510,3 @@
     <script type="module" src="asset-editor.js"></script>
 </body>
 </html>
-

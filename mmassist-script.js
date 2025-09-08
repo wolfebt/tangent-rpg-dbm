@@ -1,4 +1,4 @@
-// Version 6.3 - Added style controls and fixed transfer-to-layer bug
+// Version 6.4 - Fixed transfer-to-layer logic to create a renderable object.
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -21,26 +21,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Core AI Functions ---
 
-    // Toggles the loading state for a button
     function toggleButtonLoading(button, isLoading) {
         const buttonText = button.querySelector('.btn-text');
         const spinner = button.querySelector('.spinner');
         isGenerating = isLoading;
         button.disabled = isLoading;
+        
+        if (buttonText) buttonText.classList.toggle('hidden', isLoading);
         if (spinner) spinner.classList.toggle('hidden', !isLoading);
-        if (button.id === 'ai-generate-btn') buttonText.textContent = isLoading ? 'Generating...' : 'Generate';
-        if (button.id === 'ai-update-btn') buttonText.textContent = isLoading ? 'Updating...' : 'Update Image';
     }
 
-    // Constructs the full prompt including style options
     function buildFullPrompt(userPrompt) {
         const drawingStyle = drawingStyleSelect.value;
         const colorStyle = colorStyleSelect.value;
-        // Combine styles and user prompt for a more descriptive request
-        return `A ${colorStyle} ${drawingStyle} of the following scene: ${userPrompt}`;
+        return `A ${colorStyle} ${drawingStyle} of the following scene, suitable for a tabletop RPG map: ${userPrompt}`;
     }
 
-    // Handles the initial image generation
     async function handleInitialGeneration() {
         if (isGenerating) return;
         const userPrompt = initialPromptInput.value;
@@ -54,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         toggleButtonLoading(generateBtn, true);
-        currentAiImageBase64 = null; // Clear previous image
+        currentAiImageBase64 = null;
 
         const fullPrompt = buildFullPrompt(userPrompt);
 
@@ -95,7 +91,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // Handles iterative image updates
     async function handleIterativeUpdate() {
         if (isGenerating || !currentAiImageBase64) return;
         const userPrompt = refinePromptInput.value;
@@ -109,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         toggleButtonLoading(updateBtn, true);
-        const fullPrompt = buildFullPrompt(userPrompt); // Also apply styles to refinement
+        const fullPrompt = buildFullPrompt(userPrompt); 
         
         try {
             const payload = {
@@ -119,9 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         { inlineData: { mimeType: "image/png", data: currentAiImageBase64 } }
                     ]
                 }],
-                generationConfig: {
-                    responseModalities: ['IMAGE']
-                },
+                generationConfig: { responseModalities: ['IMAGE'] },
             };
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${state.apiKey}`;
 
@@ -143,7 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentAiImageBase64 = base64Data;
                 imageOutput.src = `data:image/png;base64,${currentAiImageBase64}`;
                 state.showToast("Image updated successfully!", "success");
-                refinePromptInput.value = ""; // Clear prompt after use
+                refinePromptInput.value = "";
             } else {
                 throw new Error("No updated image data found in API response.");
             }
@@ -155,7 +148,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Handles transferring the image to a new map layer
     function handleTransferToLayer() {
         if (!currentAiImageBase64) {
             state.showToast("No image to transfer.", "error");
@@ -167,28 +159,46 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        state.saveStateForUndo();
+        // Create a new asset in the manifest from the generated image
+        const assetId = `ai_bg_${Date.now()}`;
+        const assetData = {
+            [assetId]: {
+                name: `AI BG - ${new Date().toLocaleTimeString()}`,
+                src: `data:image/png;base64,${currentAiImageBase64}`,
+                tags: ['ai-generated']
+            }
+        };
+        state.addNewAsset(assetData);
+        
+        // Create an image object to place on the new layer
+        const mapWidthPixels = activeMap.width * 50;
+        const mapHeightPixels = activeMap.height * 50;
+        const newImageObject = {
+             id: `obj_${Date.now()}`,
+             assetId: assetId,
+             x: mapWidthPixels / 2, // Center it
+             y: mapHeightPixels / 2,
+             rotation: 0,
+             scale: 1, 
+             isGmOnly: false
+        };
+        
+        // Create a new layer and add the image object to it
         const layerName = `AI Layer - ${new Date().toLocaleTimeString()}`;
         const newLayer = {
             id: `layer_${Date.now()}`,
             name: layerName,
             visible: true,
-            objects: [],
-            terrainPatches: [],
-            backgroundImage: `data:image/png;base64,${currentAiImageBase64}`,
-            backgroundImageCacheKey: `ai_bg_${Date.now()}`
+            objects: [newImageObject],
+            terrainPatches: []
         };
 
+        // Add the new layer to the map and trigger updates
         activeMap.layers.unshift(newLayer); 
-        
+        document.dispatchEvent(new CustomEvent('assetLibraryUpdated')); // To load the new image into cache
         document.dispatchEvent(new CustomEvent('mapStateUpdated'));
         state.showToast(`Image transferred to new layer "${layerName}"`, "success");
-
-        if (window.drawAll) {
-            window.drawAll();
-        }
     }
-
 
     // --- Event Listeners Setup ---
     function addAiEventListeners() {
@@ -203,4 +213,3 @@ document.addEventListener('DOMContentLoaded', () => {
 
     addAiEventListeners();
 });
-

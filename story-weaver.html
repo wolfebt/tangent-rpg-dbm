@@ -286,9 +286,9 @@
                                 <h3 class="text-xl font-semibold mb-2 text-white">AI Writing Assistant</h3>
                                 <p class="text-gray-400 mb-6">Use the tools below to expand upon your treatment and write your story in the editor.</p>
                                 
-                                <label class="block text-sm font-medium text-gray-400 mb-2">Selected Treatment Text</label>
-                                <div id="selected-treatment-text" class="p-3 mb-4 bg-gray-900 border border-gray-700 rounded-lg text-gray-400 min-h-[4rem] max-h-32 overflow-y-auto text-sm italic">
-                                    (Select text from the Treatment Reference panel)
+                                <label class="block text-sm font-medium text-gray-400 mb-2">Source Text for AI</label>
+                                <div id="selected-treatment-text" contenteditable="true" class="editable-area p-3 mb-4 bg-gray-900 border-2 border-gray-700 rounded-lg text-gray-300 min-h-[4rem] max-h-32 overflow-y-auto text-sm">
+                                    <span class="text-gray-500">(Select text from Treatment Reference, or type/paste your own source text here)</span>
                                 </div>
                 
                                 <label for="writing-guidance-input" class="block text-sm font-medium text-gray-400 mb-2">Primary Prompt / Request</label>
@@ -363,6 +363,7 @@
             </button>
             <h2 class="text-2xl font-bold text-white mb-6">Project Options</h2>
             <div class="space-y-4">
+                <button id="new-project-btn" class="w-full py-3 px-4 rounded-lg font-semibold btn-secondary bg-red-600/50 hover:bg-red-600/80">New Project (Clear All)</button>
                 <button id="load-json-btn" class="w-full py-3 px-4 rounded-lg font-semibold btn-secondary">Load Project from JSON File</button>
                 <input type="file" id="json-file-input" class="hidden" accept=".json">
                 <button id="export-json-btn" class="w-full py-3 px-4 rounded-lg font-semibold btn-secondary">Export Project to JSON File</button>
@@ -423,8 +424,7 @@
             storyOutline: '',
             storyTreatment: '',
             writingFormat: 'Novel / Book Chapter',
-            assets: [],
-            selectedTreatmentSnippet: ''
+            assets: []
         };
 
         const projectTitleEl = document.getElementById('project-title');
@@ -439,6 +439,7 @@
         const printProjectBtn = document.getElementById('print-project-btn');
         const printSelectAllBtn = document.getElementById('print-select-all-btn');
         const printDeselectAllBtn = document.getElementById('print-deselect-all-btn');
+        const newProjectBtn = document.getElementById('new-project-btn');
         const settingsBtn = document.getElementById('settings-btn');
         const settingsModal = document.getElementById('settings-modal');
         const closeSettingsModalBtn = document.getElementById('close-settings-modal-btn');
@@ -604,6 +605,55 @@
             URL.revokeObjectURL(url);
             showStatus("Project exported as Text.");
             closeModal('project');
+        }
+        
+        function saveStateToLocalStorage() {
+            try {
+                const projectData = { ...state, editorContent: mainEditor.innerHTML };
+                localStorage.setItem('storyWeaverProject', JSON.stringify(projectData));
+            } catch (error) {
+                console.error("Could not save project to local storage:", error);
+                showStatus("Could not save project data.", true);
+            }
+        }
+
+        function loadStateFromLocalStorage() {
+            try {
+                const savedData = localStorage.getItem('storyWeaverProject');
+                if (savedData) {
+                    const projectData = JSON.parse(savedData);
+                    updateUiFromState(projectData);
+                    showStatus("Project restored from last session.");
+                }
+            } catch (error) {
+                console.error("Could not load project from local storage:", error);
+                showStatus("Failed to load saved project.", true);
+                localStorage.removeItem('storyWeaverProject'); // Clear corrupted data
+            }
+        }
+
+        function clearProject() {
+            if (confirm("Are you sure you want to clear your entire project? This action cannot be undone.")) {
+                localStorage.removeItem('storyWeaverProject');
+                // Reset state to initial values
+                const initialState = {
+                    projectTitle: 'Untitled Project',
+                    brainstormConcept: '',
+                    storyOutline: '',
+                    storyTreatment: '',
+                    writingFormat: 'Novel / Book Chapter',
+                    assets: [],
+                    editorContent: ''
+                };
+                updateUiFromState(initialState);
+                // Clear all outputs
+                ideasOutput.innerHTML = '';
+                outlineOutput.innerHTML = '';
+                treatmentOutput.innerHTML = '';
+                storyboardOutput.innerHTML = '';
+                showStatus("New project started.");
+                closeModal('project');
+            }
         }
         
         function printProject() {
@@ -1013,7 +1063,7 @@
                 renderAssets();
             }
         });
-
+        
         assetContainer.addEventListener('input', e => {
             const card = e.target.closest('.asset-card');
             const assetId = card.dataset.id;
@@ -1025,6 +1075,7 @@
             } else if (e.target.classList.contains('asset-notes')) {
                 asset.notes = e.target.value;
             }
+            saveStateToLocalStorage();
         });
         
         assetContainer.addEventListener('change', e => {
@@ -1033,6 +1084,7 @@
                 const asset = state.assets.find(a => a.id === assetId);
                 if (asset) {
                     asset.includeInPrompt = e.target.checked;
+                    saveStateToLocalStorage();
                 }
             }
         });
@@ -1125,6 +1177,7 @@
                 treatmentOutput.innerHTML = '';
                 chosenOutlineDisplay.innerHTML = `<span class="text-gray-500">Generate an outline or type/paste your own.</span>`;
                 setActiveStage('outline'); 
+                saveStateToLocalStorage();
             } 
         });
 
@@ -1164,6 +1217,7 @@
             state.storyOutline = generatedOutline; 
             const formattedOutline = cleanAndFormat(generatedOutline); 
             outlineOutput.innerHTML = `<div class="bg-gray-900 p-6 rounded-lg shadow-inner"><div class="prose prose-invert max-w-none text-gray-300">${formattedOutline}</div></div><button id="use-outline-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Develop Treatment →</button>`; 
+            saveStateToLocalStorage();
         });
 
         outlineOutput.addEventListener('click', e => { 
@@ -1210,6 +1264,7 @@
             state.storyTreatment = generatedTreatment; 
             const formattedTreatment = cleanAndFormat(generatedTreatment); 
             treatmentOutput.innerHTML = `<div class="bg-gray-900 p-6 rounded-lg shadow-inner"><div class="prose prose-invert max-w-none text-gray-300">${formattedTreatment}</div></div><button id="use-treatment-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Start Writing →</button>`; 
+            saveStateToLocalStorage();
         });
 
         treatmentOutput.addEventListener('click', e => { 
@@ -1217,25 +1272,27 @@
                 mainEditor.innerHTML = `<h1>${state.projectTitle}</h1><br>` + cleanAndFormat(state.storyTreatment);
                 writeTreatmentReference.innerHTML = cleanAndFormat(state.storyTreatment);
                 setActiveStage('write'); 
+                saveStateToLocalStorage();
             } 
         });
         
         writeTreatmentReference.addEventListener('mouseup', () => {
             const selection = window.getSelection().toString().trim();
             if (selection) {
-                state.selectedTreatmentSnippet = selection;
                 selectedTreatmentText.textContent = selection;
             }
         });
 
         generateWritingBtn.addEventListener('click', async () => {
             const primaryPrompt = writingGuidanceInput.value.trim();
+            const sourceText = htmlToText(selectedTreatmentText.innerHTML).trim();
+
             if (!primaryPrompt) { 
                 showStatus("Please enter a primary prompt.", true); 
                 return; 
             }
-            if (!state.selectedTreatmentSnippet) {
-                showStatus("Please select a section from the Treatment to expand upon.", true);
+            if (!sourceText || sourceText === '(Select text from Treatment Reference, or type/paste your own source text here)') {
+                showStatus("Please provide source text in the box before generating.", true);
                 return;
             }
             
@@ -1250,7 +1307,7 @@
             const prompt = `${assetContext}You are a talented ${role}. 
             Your main task is to write a scene or section for a **${format}**.
             
-            **Primary Source Text (from the Treatment):** "${state.selectedTreatmentSnippet}"
+            **Primary Source Text:** "${sourceText}"
 
             **User Request:**
             "${primaryPrompt}"
@@ -1273,8 +1330,8 @@
 
             writingGuidanceInput.value = '';
             writingSecondaryGuidance.value = '';
-            state.selectedTreatmentSnippet = '';
-            selectedTreatmentText.innerHTML = '(Select text from the Treatment Reference panel)';
+            selectedTreatmentText.innerHTML = '<span class="text-gray-500">(Select text from Treatment Reference, or type/paste your own source text here)</span>';
+            saveStateToLocalStorage();
         });
         
         loadTreatmentToStoryboardBtn.addEventListener('click', () => {
@@ -1309,6 +1366,7 @@
         exportJsonBtn.addEventListener('click', exportToJson);
         exportTextBtn.addEventListener('click', exportAsText);
         printProjectBtn.addEventListener('click', printProject);
+        newProjectBtn.addEventListener('click', clearProject);
         
         printSelectAllBtn.addEventListener('click', () => {
             document.querySelectorAll('#print-options input[type="checkbox"]').forEach(cb => cb.checked = true);
@@ -1326,21 +1384,24 @@
 
         projectTitleEl.addEventListener('input', (e) => {
             state.projectTitle = e.target.textContent;
+            saveStateToLocalStorage();
         });
 
         chosenIdeaDisplay.addEventListener('input', (e) => {
             state.brainstormConcept = e.target.innerHTML;
+            saveStateToLocalStorage();
         });
         chosenOutlineDisplay.addEventListener('input', (e) => {
             state.storyOutline = e.target.innerText;
+            saveStateToLocalStorage();
         });
+        mainEditor.addEventListener('input', saveStateToLocalStorage);
         
         loadApiKey();
+        loadStateFromLocalStorage();
 
     </script>
 </body>
 </html>
-
-
 
 

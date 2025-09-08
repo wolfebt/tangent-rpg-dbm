@@ -178,7 +178,7 @@ body {
     z-index: 25; transition: transform 0.3s, height 0.3s;
     transform: translateY(calc(100% - 40px));
 }
-#aiBottomPanel:not(.closed) { transform: translateY(0); height: 100%; }
+#aiBottomPanel:not(.closed) { transform: translateY(0); height: auto; }
 #aiBottomPanelHeader {
     height: 40px; background-color: #1f2937; cursor: pointer;
     display: flex; align-items: center; justify-content: space-between;
@@ -188,7 +188,7 @@ body {
 #aiBottomPanel:not(.closed) #aiBottomPanelHeader svg { transform: rotate(180deg); }
 #aiBottomPanelContent {
     display: grid; grid-template-columns: 400px 1fr;
-    gap: 1rem; padding: 1rem; height: calc(100% - 40px); overflow: hidden;
+    gap: 1rem; padding: 1rem; max-height: 40vh; overflow: hidden;
 }
 .ai-controls-column {
     display: flex; flex-direction: column; gap: 1rem; overflow-y: auto;
@@ -200,6 +200,19 @@ body {
     border-radius: 0.5rem;
 }
 #ai-image-output { max-width: 100%; max-height: 100%; object-fit: contain; }
+.spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255,255,255,.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 
 /* Modals & Toasts */
 .hidden { display: none !important; }
@@ -261,4 +274,3 @@ body {
 }
 .asset-tool-palette { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
 .asset-tool, #asset-color-picker { height: 40px; }
-

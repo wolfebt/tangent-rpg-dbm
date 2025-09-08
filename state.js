@@ -1,4 +1,4 @@
-// Version 15.0 - Added API Key loading from local storage.
+// Version 15.1 - No changes needed. Code is sound.
 // This module acts as the single source of truth for the application's data.
 
 // --- State Variables ---
@@ -31,7 +31,7 @@ export const setState = (newState) => {
     if (newState.activeMapId !== undefined) activeMapId = newState.activeMapId;
 };
 
-// CRITICAL FIX: This function loads the API key from browser storage.
+// This function loads the API key from browser storage.
 export function loadApiKey() {
     const savedKey = localStorage.getItem('mapMakerApiKey');
     if (savedKey) {
@@ -99,6 +99,7 @@ export function showContentModal(title, content) {
 export function showToast(message, type = 'info', duration = 3000) {
     // Displays a small, temporary notification at the bottom-right of the screen.
     const container = document.getElementById('toast-container');
+    if (!container) return;
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
     toast.textContent = message;
@@ -109,4 +110,3 @@ export function showToast(message, type = 'info', duration = 3000) {
         toast.addEventListener('animationend', () => toast.remove());
     }, duration);
 }
-
