@@ -122,16 +122,13 @@
             color: white;
         }
         #ai-toolbar {
-            position: absolute;
-            z-index: 10;
             background-color: #1f2937;
-            border: 1px solid #4b5563;
             border-radius: 0.5rem;
             padding: 0.25rem;
             display: flex;
             gap: 0.25rem;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: opacity 0.2s, transform 0.2s;
+            transition: opacity 0.2s;
         }
         .ai-toolbar-btn {
             background-color: transparent;
@@ -162,22 +159,6 @@
     </style>
 </head>
 <body class="antialiased">
-
-    <div id="ai-toolbar" class="hidden items-center" style="opacity: 0; transform: translateY(10px);">
-        <div id="ai-toolbar-loader" class="hidden">
-            <div class="loader" style="width: 24px; height: 24px; border-width: 2px; margin: 0.5rem;"></div>
-        </div>
-        <div id="ai-toolbar-buttons" class="flex items-center gap-1">
-            <button class="ai-toolbar-btn" id="ai-expand-btn">Expand</button>
-            <button class="ai-toolbar-btn" id="ai-rewrite-btn">Rewrite</button>
-            <div id="ai-custom-prompt-container" class="hidden items-center gap-2">
-                <input type="text" id="ai-toolbar-prompt" placeholder="Your prompt...">
-                <button class="ai-toolbar-btn" id="ai-custom-submit-btn">Submit</button>
-            </div>
-            <button class="ai-toolbar-btn" id="ai-ask-btn">Ask AI...</button>
-        </div>
-    </div>
-
 
     <div class="container mx-auto max-w-screen-xl p-4 sm:p-6 lg:p-8">
         <header class="text-center mb-8">
@@ -328,9 +309,26 @@
                 <div id="write" class="stage">
                     <div class="bg-gray-800 rounded-lg shadow-lg">
                         <!-- Tab Buttons -->
-                        <div class="flex border-b border-gray-700">
-                            <button id="work-tab" class="py-3 px-6 font-semibold border-b-2 border-blue-500 text-white">Work</button>
-                            <button id="reference-tab" class="py-3 px-6 font-semibold border-b-2 border-transparent text-gray-400 hover:text-white transition-colors">Reference</button>
+                        <div class="flex border-b border-gray-700 justify-between items-center">
+                            <div class="flex">
+                                <button id="work-tab" class="py-3 px-6 font-semibold border-b-2 border-blue-500 text-white">Work</button>
+                                <button id="reference-tab" class="py-3 px-6 font-semibold border-b-2 border-transparent text-gray-400 hover:text-white transition-colors">Reference</button>
+                            </div>
+                            
+                            <div id="ai-toolbar" class="hidden items-center pr-6 gap-1" style="opacity: 0;">
+                                <div id="ai-toolbar-loader" class="hidden">
+                                    <div class="loader" style="width: 24px; height: 24px; border-width: 2px; margin: 0.5rem;"></div>
+                                </div>
+                                <div id="ai-toolbar-buttons" class="flex items-center gap-1">
+                                    <button class="ai-toolbar-btn" id="ai-expand-btn">Expand</button>
+                                    <button class="ai-toolbar-btn" id="ai-rewrite-btn">Rewrite</button>
+                                    <div id="ai-custom-prompt-container" class="hidden items-center gap-2">
+                                        <input type="text" id="ai-toolbar-prompt" placeholder="Your prompt...">
+                                        <button class="ai-toolbar-btn" id="ai-custom-submit-btn">Submit</button>
+                                    </div>
+                                    <button class="ai-toolbar-btn" id="ai-ask-btn">Ask AI...</button>
+                                </div>
+                            </div>
                         </div>
                 
                         <!-- Tab Content -->
@@ -1424,8 +1422,6 @@
 
             if (selectedText.length > 0 && mainEditor.contains(selection.anchorNode)) {
                 userSelection = selection.getRangeAt(0).cloneRange();
-                const rect = userSelection.getBoundingClientRect();
-                positionAiToolbar(rect);
                 showAiToolbar();
             } else {
                 if (!aiToolbar.contains(document.activeElement)) {
@@ -1434,37 +1430,16 @@
             }
         }
         
-        function positionAiToolbar(rect) {
-            const containerRect = mainEditor.parentElement.getBoundingClientRect();
-            let top = rect.top - containerRect.top + mainEditor.scrollTop - aiToolbar.offsetHeight - 8;
-            let left = rect.left - containerRect.left + mainEditor.scrollLeft + (rect.width / 2) - (aiToolbar.offsetWidth / 2);
-
-            if (top < mainEditor.scrollTop) {
-                top = rect.bottom - containerRect.top + mainEditor.scrollTop + 8;
-            }
-             if (left < mainEditor.scrollLeft) {
-                left = mainEditor.scrollLeft + 4;
-            }
-            if (left + aiToolbar.offsetWidth > mainEditor.scrollLeft + mainEditor.clientWidth) {
-                left = mainEditor.scrollLeft + mainEditor.clientWidth - aiToolbar.offsetWidth - 4;
-            }
-            
-            aiToolbar.style.top = `${top}px`;
-            aiToolbar.style.left = `${left}px`;
-        }
-        
         function showAiToolbar() {
             aiToolbar.classList.remove('hidden');
             setTimeout(() => {
                 aiToolbar.style.opacity = '1';
-                aiToolbar.style.transform = 'translateY(0)';
             }, 10);
         }
 
         function hideAiToolbar() {
             userSelection = null;
             aiToolbar.style.opacity = '0';
-            aiToolbar.style.transform = 'translateY(10px)';
             setTimeout(() => {
                 aiToolbar.classList.add('hidden');
                 aiCustomPromptContainer.classList.add('hidden');
@@ -1519,17 +1494,20 @@
             if (generatedText && !generatedText.startsWith("Error:")) {
                 const formattedText = cleanAndFormat(generatedText.trim());
                 
+                // This is the new, more robust insertion logic
                 userSelection.deleteContents();
                 const span = document.createElement('span');
                 span.className = 'ai-enhanced';
                 span.innerHTML = formattedText;
                 userSelection.insertNode(span);
                 
-                userSelection.setStartAfter(span);
-                userSelection.collapse(true);
+                const newRange = document.createRange();
+                newRange.setStartAfter(span);
+                newRange.collapse(true);
+                
                 const selection = window.getSelection();
                 selection.removeAllRanges();
-                selection.addRange(userSelection);
+                selection.addRange(newRange);
 
                 showStatus("Text updated by AI.");
             } else {
@@ -1592,4 +1570,5 @@
     </script>
 </body>
 </html>
+
 
