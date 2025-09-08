@@ -163,15 +163,21 @@
 </head>
 <body class="antialiased">
 
-    <div id="ai-toolbar" class="hidden" style="opacity: 0; transform: translateY(10px);">
-        <button class="ai-toolbar-btn" id="ai-expand-btn">Expand</button>
-        <button class="ai-toolbar-btn" id="ai-rewrite-btn">Rewrite</button>
-        <div id="ai-custom-prompt-container" class="hidden items-center gap-2">
-            <input type="text" id="ai-toolbar-prompt" placeholder="Your prompt...">
-            <button class="ai-toolbar-btn" id="ai-custom-submit-btn">Submit</button>
+    <div id="ai-toolbar" class="hidden items-center" style="opacity: 0; transform: translateY(10px);">
+        <div id="ai-toolbar-loader" class="hidden">
+            <div class="loader" style="width: 24px; height: 24px; border-width: 2px; margin: 0.5rem;"></div>
         </div>
-        <button class="ai-toolbar-btn" id="ai-ask-btn">Ask AI...</button>
+        <div id="ai-toolbar-buttons" class="flex items-center gap-1">
+            <button class="ai-toolbar-btn" id="ai-expand-btn">Expand</button>
+            <button class="ai-toolbar-btn" id="ai-rewrite-btn">Rewrite</button>
+            <div id="ai-custom-prompt-container" class="hidden items-center gap-2">
+                <input type="text" id="ai-toolbar-prompt" placeholder="Your prompt...">
+                <button class="ai-toolbar-btn" id="ai-custom-submit-btn">Submit</button>
+            </div>
+            <button class="ai-toolbar-btn" id="ai-ask-btn">Ask AI...</button>
+        </div>
     </div>
+
 
     <div class="container mx-auto max-w-screen-xl p-4 sm:p-6 lg:p-8">
         <header class="text-center mb-8">
@@ -518,8 +524,10 @@
         const storyboardSecondaryGuidance = document.getElementById('storyboard-secondary-guidance');
         const writeTreatmentReference = document.getElementById('write-treatment-reference');
         
-        // New AI Toolbar elements
+        // AI Toolbar elements
         const aiToolbar = document.getElementById('ai-toolbar');
+        const aiToolbarLoader = document.getElementById('ai-toolbar-loader');
+        const aiToolbarButtons = document.getElementById('ai-toolbar-buttons');
         const aiExpandBtn = document.getElementById('ai-expand-btn');
         const aiRewriteBtn = document.getElementById('ai-rewrite-btn');
         const aiAskBtn = document.getElementById('ai-ask-btn');
@@ -823,13 +831,14 @@
             }); 
         }
 
-        async function callGeminiAPI(prompt) {
+        async function callGeminiAPI(prompt, loaderElement) {
             const apiKey = localStorage.getItem('geminiApiKey');
             if (!apiKey) {
                 showStatus("API Key is missing. Please add it in Settings.", true);
                 openModal('settings');
                 return "Error: API Key is missing. Please add it in the settings menu (gear icon).";
             }
+            if(loaderElement) loaderElement.style.display = 'block';
 
             try {
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
@@ -840,7 +849,9 @@
                 return result.candidates?.[0]?.content?.parts?.[0]?.text;
             } catch(e) {
                 console.error(e);
-                return "Error: Could not generate content. Please try again.";
+                return `Error: ${e.message}`;
+            } finally {
+                if(loaderElement) loaderElement.style.display = 'none';
             }
         }
 
@@ -1040,7 +1051,7 @@
 
             storyboardLoader.querySelector('p').textContent = 'Generating visual consistency seed...';
             const seedPrompt = `Based on the following scene description, assets, and guidance, create a concise "Visual Style Guide" for an AI image generator. This guide should be a comma-separated list of key visual descriptors to ensure consistency across multiple images. Include defining features of characters, clothing, setting, and overall mood.\n\n**CONTEXT:**\n${assetContext}\n${description}\n${guidanceText}`;
-            const visualSeed = await callGeminiAPI(seedPrompt);
+            const visualSeed = await callGeminiAPI(seedPrompt, storyboardLoader.querySelector('.loader'));
             
             if (!visualSeed || visualSeed.startsWith("Error:")) {
                 showStatus(visualSeed || "Failed to generate visual seed.", true);
@@ -1052,7 +1063,7 @@
             storyboardLoader.querySelector('p').textContent = 'Generating panel descriptions...';
             const panelPrompt = `You are a film director. Based on the following scene description, break it down into ${numPanels} distinct, chronological storyboard panels. For each panel, provide a concise, visual-only description suitable for an AI image generator. Focus on camera angles (e.g., wide shot, close-up), character actions, and key visual elements. Do not describe sounds or dialogue. Format the output with each panel description separated by a line containing only '---'.\n\n**Scene:**\n${description}`;
 
-            const panelDescriptionsText = await callGeminiAPI(panelPrompt);
+            const panelDescriptionsText = await callGeminiAPI(panelPrompt, storyboardLoader.querySelector('.loader'));
             
             if (!panelDescriptionsText || panelDescriptionsText.startsWith("Error:")) {
                 showStatus(panelDescriptionsText || "Failed to generate panel descriptions.", true);
@@ -1402,13 +1413,8 @@
         mainEditor.addEventListener('mouseup', handleTextSelection);
         mainEditor.addEventListener('keyup', handleTextSelection);
         document.addEventListener('mousedown', (e) => {
-            // Check if the click is outside both the editor and the toolbar
-            const editorRect = mainEditor.getBoundingClientRect();
-            const toolbarRect = aiToolbar.getBoundingClientRect();
-            if (e.clientX < editorRect.left || e.clientX > editorRect.right || e.clientY < editorRect.top || e.clientY > editorRect.bottom) {
-                 if (e.clientX < toolbarRect.left || e.clientX > toolbarRect.right || e.clientY < toolbarRect.top || e.clientY > toolbarRect.bottom) {
-                    hideAiToolbar();
-                 }
+            if (!aiToolbar.contains(e.target) && !mainEditor.contains(e.target)) {
+                hideAiToolbar();
             }
         });
 
@@ -1422,8 +1428,7 @@
                 positionAiToolbar(rect);
                 showAiToolbar();
             } else {
-                // This condition hides the toolbar if you click inside the editor but don't select text
-                if (mainEditor.contains(document.activeElement)) {
+                if (!aiToolbar.contains(document.activeElement)) {
                    hideAiToolbar();
                 }
             }
@@ -1434,7 +1439,6 @@
             let top = rect.top - containerRect.top + mainEditor.scrollTop - aiToolbar.offsetHeight - 8;
             let left = rect.left - containerRect.left + mainEditor.scrollLeft + (rect.width / 2) - (aiToolbar.offsetWidth / 2);
 
-            // Boundary checks
             if (top < mainEditor.scrollTop) {
                 top = rect.bottom - containerRect.top + mainEditor.scrollTop + 8;
             }
@@ -1463,8 +1467,8 @@
             aiToolbar.style.transform = 'translateY(10px)';
             setTimeout(() => {
                 aiToolbar.classList.add('hidden');
-                // Reset custom prompt UI
                 aiCustomPromptContainer.classList.add('hidden');
+                aiToolbarButtons.classList.remove('hidden');
                 aiAskBtn.classList.remove('hidden');
                 aiExpandBtn.classList.remove('hidden');
                 aiRewriteBtn.classList.remove('hidden');
@@ -1475,7 +1479,9 @@
             if (!userSelection) return;
 
             const selectedText = userSelection.toString();
-            showStatus(`AI is working...`);
+            
+            aiToolbarButtons.classList.add('hidden');
+            aiToolbarLoader.classList.remove('hidden');
 
             const assetContext = getAssetContextForAI();
             const fullStoryContext = mainEditor.innerText;
@@ -1505,15 +1511,26 @@
             }
 
             const generatedText = await callGeminiAPI(prompt);
+            
+            aiToolbarLoader.classList.add('hidden');
+            aiToolbarButtons.classList.remove('hidden');
             hideAiToolbar();
 
             if (generatedText && !generatedText.startsWith("Error:")) {
                 const formattedText = cleanAndFormat(generatedText.trim());
-                window.getSelection().removeAllRanges();
-                window.getSelection().addRange(userSelection);
                 
-                const finalHtml = `<span class="ai-enhanced">${formattedText}</span>`;
-                document.execCommand('insertHTML', false, finalHtml);
+                userSelection.deleteContents();
+                const span = document.createElement('span');
+                span.className = 'ai-enhanced';
+                span.innerHTML = formattedText;
+                userSelection.insertNode(span);
+                
+                userSelection.setStartAfter(span);
+                userSelection.collapse(true);
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(userSelection);
+
                 showStatus("Text updated by AI.");
             } else {
                 showStatus(generatedText || "AI failed to generate text.", true);
@@ -1575,6 +1592,4 @@
     </script>
 </body>
 </html>
-
-
 
