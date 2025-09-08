@@ -1,5 +1,4 @@
-// Version 13.4 - Wrapped in DOMContentLoaded to prevent race conditions
-import { addNewAsset, showToast } from './state.js';
+// Version 13.6 - Corrected module import syntax
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -108,7 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function generateAIAsset() {
         const userPrompt = promptInput.value;
         if (!userPrompt) {
-            showToast("Please enter a prompt.", "error");
+            state.showToast("Please enter a prompt.", "error");
             return;
         }
         if (!state.apiKey) {
@@ -121,7 +120,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const payload = { instances: [{ prompt: userPrompt }], parameters: { "sampleCount": 1} };
-            // CORRECTED: Always use state.apiKey to get the current value
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${state.apiKey}`;
             
             const response = await fetch(apiUrl, {
@@ -153,7 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error("AI Generation Error:", error);
-            showToast(`An error occurred: ${error.message}`, "error");
+            state.showToast(`An error occurred: ${error.message}`, "error");
         } finally {
             loadingOverlay.classList.add('hidden');
             generateBtn.disabled = false;
@@ -163,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function saveAssetToLibrary() {
         const name = assetNameInput.value.trim();
         if (!name) {
-            showToast("Please provide a name for your asset.", "error");
+            state.showToast("Please provide a name for your asset.", "error");
             return;
         }
 
@@ -188,22 +186,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     tags: tags
                 }
             };
-        } else { 
-            const patternId = `pattern-${assetId}`;
-            newAssetObject = {
-                [assetId]: {
-                    name: name,
-                    color: "#ffffff",
-                    pattern: patternId,
-                    tags: tags,
-                    isCustom: true,
-                    src: dataUri
-                }
-            };
         }
         
-        addNewAsset(newAssetObject);
-        showToast(`Asset "${name}" saved to your library!`, 'success');
+        state.addNewAsset(newAssetObject);
+        state.showToast(`Asset "${name}" saved to your library!`, 'success');
         document.dispatchEvent(new CustomEvent('assetLibraryUpdated'));
         assetEditorOverlay.classList.add('hidden');
     }
@@ -253,4 +239,5 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- INITIALIZATION ---
     switchMode('object');
 });
+
 
