@@ -121,20 +121,11 @@
             background-color: #374151;
             color: white;
         }
-        #ai-toolbar {
-            background-color: #1f2937;
-            border-radius: 0.5rem;
-            padding: 0.25rem;
-            display: flex;
-            gap: 0.25rem;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: opacity 0.2s;
-        }
         .ai-toolbar-btn {
-            background-color: transparent;
+            background-color: #374151;
             border: none;
             color: #d1d5db;
-            padding: 0.5rem;
+            padding: 0.5rem 1rem;
             border-radius: 0.375rem;
             cursor: pointer;
             font-weight: 500;
@@ -142,7 +133,7 @@
             transition: background-color 0.2s;
         }
         .ai-toolbar-btn:hover {
-            background-color: #374151;
+            background-color: #4b5563;
         }
         #ai-toolbar-prompt {
             background-color: #374151;
@@ -314,12 +305,13 @@
                                 <button id="work-tab" class="py-3 px-6 font-semibold border-b-2 border-blue-500 text-white">Work</button>
                                 <button id="reference-tab" class="py-3 px-6 font-semibold border-b-2 border-transparent text-gray-400 hover:text-white transition-colors">Reference</button>
                             </div>
-                            
-                            <div id="ai-toolbar" class="hidden items-center pr-6 gap-1" style="opacity: 0;">
-                                <div id="ai-toolbar-loader" class="hidden">
-                                    <div class="loader" style="width: 24px; height: 24px; border-width: 2px; margin: 0.5rem;"></div>
-                                </div>
-                                <div id="ai-toolbar-buttons" class="flex items-center gap-1">
+                        </div>
+                
+                        <!-- Tab Content -->
+                        <div id="work-panel" class="p-6">
+                            <div id="ai-action-bar" class="hidden bg-gray-700/50 p-2 rounded-lg flex items-center gap-4 mb-4">
+                                <span class="text-sm font-semibold text-gray-300">AI Toolkit:</span>
+                                <div id="ai-toolbar-buttons" class="flex items-center gap-2">
                                     <button class="ai-toolbar-btn" id="ai-expand-btn">Expand</button>
                                     <button class="ai-toolbar-btn" id="ai-rewrite-btn">Rewrite</button>
                                     <div id="ai-custom-prompt-container" class="hidden items-center gap-2">
@@ -328,13 +320,22 @@
                                     </div>
                                     <button class="ai-toolbar-btn" id="ai-ask-btn">Ask AI...</button>
                                 </div>
+                                <div id="ai-toolbar-loader" class="hidden">
+                                    <div class="loader" style="width: 24px; height: 24px; border-width: 2px; margin: 0.5rem;"></div>
+                                </div>
                             </div>
-                        </div>
-                
-                        <!-- Tab Content -->
-                        <div id="work-panel" class="p-6">
+
+                             <div id="ai-response-panel" class="hidden bg-gray-900/50 border-2 border-dashed border-blue-500/50 p-4 rounded-lg mb-6">
+                                <h3 class="text-lg font-semibold text-blue-400 mb-2">AI Suggestion</h3>
+                                <div id="ai-response-content" contenteditable="true" class="w-full min-h-[150px] p-4 bg-gray-800 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 overflow-y-auto"></div>
+                                <div class="flex gap-2 mt-3 justify-end">
+                                    <button id="copy-ai-response-btn" class="py-2 px-4 rounded-lg font-semibold btn-primary">Copy</button>
+                                    <button id="dismiss-ai-response-btn" class="py-2 px-4 rounded-lg font-semibold btn-secondary">Close</button>
+                                </div>
+                            </div>
+
                             <h2 class="text-2xl font-semibold mb-4 text-white">Your Story</h2>
-                            <p class="text-sm text-gray-400 mb-4">Write your story below. Select any text to activate the in-line AI assistant.</p>
+                            <p class="text-sm text-gray-400 mb-4">Write your story below. Select any text to activate the AI toolkit.</p>
                             <div id="main-editor" contenteditable="true" class="relative w-full min-h-[70vh] p-4 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 overflow-y-auto" aria-label="Main story editor"></div>
                         </div>
                         <div id="reference-panel" class="p-6 hidden">
@@ -523,7 +524,7 @@
         const writeTreatmentReference = document.getElementById('write-treatment-reference');
         
         // AI Toolbar elements
-        const aiToolbar = document.getElementById('ai-toolbar');
+        const aiActionBar = document.getElementById('ai-action-bar');
         const aiToolbarLoader = document.getElementById('ai-toolbar-loader');
         const aiToolbarButtons = document.getElementById('ai-toolbar-buttons');
         const aiExpandBtn = document.getElementById('ai-expand-btn');
@@ -532,7 +533,14 @@
         const aiCustomPromptContainer = document.getElementById('ai-custom-prompt-container');
         const aiToolbarPrompt = document.getElementById('ai-toolbar-prompt');
         const aiCustomSubmitBtn = document.getElementById('ai-custom-submit-btn');
-        let userSelection = null;
+        let selectedTextForAI = '';
+
+        // AI Response Panel
+        const aiResponsePanel = document.getElementById('ai-response-panel');
+        const aiResponseContent = document.getElementById('ai-response-content');
+        const copyAiResponseBtn = document.getElementById('copy-ai-response-btn');
+        const dismissAiResponseBtn = document.getElementById('dismiss-ai-response-btn');
+
 
         // Write Stage Tabs
         const workTab = document.getElementById('work-tab');
@@ -1411,7 +1419,7 @@
         mainEditor.addEventListener('mouseup', handleTextSelection);
         mainEditor.addEventListener('keyup', handleTextSelection);
         document.addEventListener('mousedown', (e) => {
-            if (!aiToolbar.contains(e.target) && !mainEditor.contains(e.target)) {
+            if (!aiActionBar.contains(e.target) && !mainEditor.contains(e.target)) {
                 hideAiToolbar();
             }
         });
@@ -1421,40 +1429,27 @@
             const selectedText = selection.toString().trim();
 
             if (selectedText.length > 0 && mainEditor.contains(selection.anchorNode)) {
-                userSelection = selection.getRangeAt(0).cloneRange();
+                selectedTextForAI = selectedText;
                 showAiToolbar();
             } else {
-                if (!aiToolbar.contains(document.activeElement)) {
-                   hideAiToolbar();
-                }
+                hideAiToolbar();
             }
         }
         
         function showAiToolbar() {
-            aiToolbar.classList.remove('hidden');
-            setTimeout(() => {
-                aiToolbar.style.opacity = '1';
-            }, 10);
+            aiActionBar.classList.remove('hidden');
         }
 
         function hideAiToolbar() {
-            userSelection = null;
-            aiToolbar.style.opacity = '0';
-            setTimeout(() => {
-                aiToolbar.classList.add('hidden');
-                aiCustomPromptContainer.classList.add('hidden');
-                aiToolbarButtons.classList.remove('hidden');
-                aiAskBtn.classList.remove('hidden');
-                aiExpandBtn.classList.remove('hidden');
-                aiRewriteBtn.classList.remove('hidden');
-            }, 200);
+            aiActionBar.classList.add('hidden');
+            aiCustomPromptContainer.classList.add('hidden');
+            aiAskBtn.classList.remove('hidden');
         }
 
         async function performAiAction(action, customPrompt = '') {
-            if (!userSelection) return;
+            const selectedText = selectedTextForAI;
+            if (!selectedText) return;
 
-            const selectedText = userSelection.toString();
-            
             aiToolbarButtons.classList.add('hidden');
             aiToolbarLoader.classList.remove('hidden');
 
@@ -1485,7 +1480,7 @@
                 Generate only the resulting text based on the request.`;
             }
 
-            const generatedText = await callGeminiAPI(prompt);
+            const generatedText = await callGeminiAPI(prompt, aiToolbarLoader);
             
             aiToolbarLoader.classList.add('hidden');
             aiToolbarButtons.classList.remove('hidden');
@@ -1493,27 +1488,11 @@
 
             if (generatedText && !generatedText.startsWith("Error:")) {
                 const formattedText = cleanAndFormat(generatedText.trim());
-                
-                // This is the new, more robust insertion logic
-                userSelection.deleteContents();
-                const span = document.createElement('span');
-                span.className = 'ai-enhanced';
-                span.innerHTML = formattedText;
-                userSelection.insertNode(span);
-                
-                const newRange = document.createRange();
-                newRange.setStartAfter(span);
-                newRange.collapse(true);
-                
-                const selection = window.getSelection();
-                selection.removeAllRanges();
-                selection.addRange(newRange);
-
-                showStatus("Text updated by AI.");
+                aiResponseContent.innerHTML = formattedText;
+                aiResponsePanel.classList.remove('hidden');
             } else {
                 showStatus(generatedText || "AI failed to generate text.", true);
             }
-            saveStateToLocalStorage();
         }
 
         aiExpandBtn.addEventListener('click', () => performAiAction('expand'));
@@ -1523,8 +1502,6 @@
             aiCustomPromptContainer.classList.remove('hidden');
             aiCustomPromptContainer.style.display = 'flex';
             aiAskBtn.classList.add('hidden');
-            aiExpandBtn.classList.add('hidden');
-            aiRewriteBtn.classList.add('hidden');
             aiToolbarPrompt.focus();
         });
         
@@ -1542,6 +1519,29 @@
                 aiCustomSubmitBtn.click();
             }
         });
+
+        dismissAiResponseBtn.addEventListener('click', () => {
+            aiResponsePanel.classList.add('hidden');
+            aiResponseContent.innerHTML = '';
+        });
+
+        copyAiResponseBtn.addEventListener('click', () => {
+            const textToCopy = htmlToText(aiResponseContent.innerHTML);
+             // Create a temporary textarea element to hold the text
+            const textArea = document.createElement('textarea');
+            textArea.value = textToCopy;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showStatus("Suggestion copied to clipboard.");
+            } catch (err) {
+                showStatus("Failed to copy text.", true);
+                console.error('Fallback: Oops, unable to copy', err);
+            }
+            document.body.removeChild(textArea);
+        });
+
 
         // --- Write Stage Tab Logic ---
         workTab.addEventListener('click', () => {
@@ -1570,5 +1570,4 @@
     </script>
 </body>
 </html>
-
 
