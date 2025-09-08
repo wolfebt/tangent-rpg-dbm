@@ -25,6 +25,14 @@
             <pattern id="pattern-crags" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="#5a5a5a"/><path d="M0 10 L5 0 L10 10" stroke="#303030" stroke-width="1.5" fill="none"/><path d="M0 5 L10 5" stroke="#303030" stroke-width="1" fill="none"/></pattern>
             <pattern id="pattern-swamp" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#4d6642"/><path d="M-2,6 Q1,3 4,6 T10,6" stroke="#2c3e23" stroke-width="1.5" fill="none"/><circle cx="9" cy="3" r="1" fill="#526d1a"/></pattern>
             <pattern id="pattern-tundra" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="#cdd3d6"/><path d="M0 0 L10 10 M10 0 L0 10" stroke="#90989a" stroke-width="0.5"/></pattern>
+            <pattern id="pattern-dungeon-floor" width="16" height="16" patternUnits="userSpaceOnUse"><rect width="16" height="16" fill="#4a5568"/><path d="M0 8 H16 M8 0 V16" stroke="#2d3748" stroke-width="1"/></pattern>
+            <pattern id="pattern-dungeon-wall" width="16" height="16" patternUnits="userSpaceOnUse"><rect width="16" height="16" fill="#2d3748"/><path d="M0 0 L16 16 M16 0 L0 16" stroke="#1a202c" stroke-width="1.5"/></pattern>
+            <pattern id="pattern-pavement" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#6b7280"/><rect x="0" y="0" width="6" height="6" fill="#718096"/><rect x="6" y="6" width="6" height="6" fill="#718096"/></pattern>
+            <pattern id="pattern-metal-plating" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="#71717a"/><path d="M0 0 L10 10" stroke="#4a5568" stroke-width="1.5"/><circle cx="1" cy="1" r="1" fill="#4a5568"/><circle cx="9" cy="9" r="1" fill="#4a5568"/></pattern>
+            <pattern id="pattern-wasteland" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#a16207"/><path d="M0 5 L5 0 L7 8 L12 3" stroke="#78350f" stroke-width="1" fill="none"/></pattern>
+            <pattern id="pattern-cobblestone" width="16" height="16" patternUnits="userSpaceOnUse"><rect width="16" height="16" fill="#718096"/><path d="M0 8 a8 8 0 0 1 8 -8 a8 8 0 0 1 8 8 M-8 8 a8 8 0 0 1 8 8 a8 8 0 0 1 8 -8" stroke="#4a5568" stroke-width="1" fill="none"/></pattern>
+            <pattern id="pattern-wooden-planks" width="20" height="20" patternUnits="userSpaceOnUse"><rect width="20" height="20" fill="#854d0e"/><path d="M0 0 H20 M0 10 H20" stroke="#522c04" stroke-width="2"/><path d="M5 0 V10 M15 10 V20" stroke="#522c04" stroke-width="1"/></pattern>
+            <pattern id="pattern-cavern-floor" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#78716c"/><circle cx="3" cy="3" r="2" fill="#57534e" opacity="0.5"/><circle cx="8" cy="9" r="1.5" fill="#57534e" opacity="0.5"/></pattern>
         </defs>
     </svg>
 
@@ -46,6 +54,11 @@
                         <button id="mapKeyBtn" class="ml-1 p-1 rounded-md hover:bg-gray-700" title="Toggle Map Key">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4a6.5 6.5 0 1 0-4-4Z"/><circle cx="16.5" cy="7.5" r=".5"/></svg>
                         </button>
+                        <!-- GM View Toggle Button -->
+                        <button id="gmViewToggleBtn" class="ml-1 p-1 rounded-md hover:bg-gray-700 gm-active" title="Toggle GM View">
+                            <svg id="gmViewIconOn" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            <svg id="gmViewIconOff" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                        </button>
                     </div>
                     <div class="flex items-center">
                         <button id="fileMenuBtn" class="p-2 rounded-md hover:bg-gray-700">
@@ -56,53 +69,97 @@
                         </button>
                     </div>
                     <div id="fileDropdownMenu" class="file-dropdown hidden mt-2 right-0 top-full">
-                        <button id="savePngBtn" class="file-dropdown-item">Save as PNG</button>
-                        <button id="saveJsonBtn" class="file-dropdown-item">Save Map (.json)</button>
-                        <button id="loadJsonBtn" class="file-dropdown-item">Load Map (.json)</button>
+                        <button id="saveProjectBtn" class="file-dropdown-item">Save Project (.json)</button>
+                        <button id="loadProjectBtn" class="file-dropdown-item">Load Project (.json)</button>
+                        <button id="savePngBtn" class="file-dropdown-item">Save Current Map as PNG</button>
                     </div>
                     <input type="file" id="loadJsonInput" class="hidden" accept=".json">
                 </div>
                 
                 <!-- Scrollable Controls Area -->
                 <div class="flex-grow overflow-y-auto pr-2">
-                     <div class="control-panel mb-4">
-                        <div class="collapsible-header collapsed">
-                            <h3>Tools</h3>
+                    <div class="control-panel mb-4">
+                        <div id="actionsHeader" class="collapsible-header">
+                            <h3>Actions</h3>
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </div>
-                        <div class="collapsible-content hidden">
-                            <div class="grid grid-cols-2 gap-2">
-                                <button id="toolTerrainBtn" class="active">Terrain</button>
-                                <button id="toolPencilBtn">Pencil</button>
+                        <div id="actionsContent" class="collapsible-content">
+                            <button id="addNewMapBtn" class="w-full mb-2">Add New Map</button>
+                            <button id="assetEditorBtn" class="w-full mb-2">Create New Asset</button>
+                            <div class="grid grid-cols-4 gap-2 my-2">
+                                <button id="undoBtn" title="Undo" disabled>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.9-6.7"/><path d="M21 2v6h-6"/></svg>
+                                </button>
+                                <button id="redoBtn" title="Redo" disabled>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.9-6.7"/><path d="M3 2v6h6"/></svg>
+                                </button>
+                                <div class="relative">
+                                    <button id="eraserToolBtn" title="Eraser">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>
+                                    </button>
+                                    <div id="eraserDropdownMenu" class="file-dropdown hidden -left-1/2 top-full mt-2 !w-48">
+                                        <button id="eraseTerrainBtn" class="file-dropdown-item">Erase Terrain</button>
+                                        <button id="eraseObjectsBtn" class="file-dropdown-item">Erase Objects</button>
+                                        <button id="eraseDrawingsBtn" class="file-dropdown-item">Erase Drawings</button>
+                                    </div>
+                                </div>
+                                <button id="resetViewBtn" title="Reset View & Zoom">Center</button>
+                            </div>
+                            <!-- TOOLS -->
+                            <div class="control-panel !p-0 !border-0 mt-4">
+                                <h3 class="!border-b-0 !pb-2 text-base font-semibold">Tools</h3>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <button id="toolTerrainBtn" class="tool-btn active">Terrain</button>
+                                    <button id="toolObjectBtn" class="tool-btn">Object</button>
+                                    <button id="toolPencilBtn" class="tool-btn">Pencil</button>
+                                    <button id="toolSelectBtn" class="tool-btn">Select</button>
+                                    <button id="toolTokenBtn" class="tool-btn">Token</button>
+                                    <button id="toolTextBtn" class="tool-btn">Text</button>
+                                    <button id="toolFogBtn" class="tool-btn">Fog</button>
+                                </div>
+                            </div>
+                            <div id="graphicsDropdown" class="mt-4 control-panel !p-0 !border-0">
+                                 <div id="graphicsBtn" class="collapsible-header collapsed !border-t !pt-4">
+                                     <h3>Graphics Options</h3>
+                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                 </div>
+                                 <div id="graphicsContent" class="collapsible-content hidden">
+                                     <!-- Layers -->
+                                     <div class="control-panel mb-4">
+                                         <h3 class="!border-b-0 !pb-2 text-base font-semibold">Layers</h3>
+                                         <div id="layerContent" class="collapsible-content">
+                                             <div id="layerList" class="flex flex-col gap-2 mb-4"></div>
+                                             <div class="grid grid-cols-2 gap-2">
+                                                 <button id="addLayerBtn">Add Layer</button>
+                                                 <button id="deleteLayerBtn">Delete Layer</button>
+                                             </div>
+                                         </div>
+                                     </div>
+                                     <!-- Grid Options -->
+                                     <div class="control-panel mb-4">
+                                         <h3 class="!border-b-0 !pb-2 text-base font-semibold">Grid Options</h3>
+                                         <div class="grid grid-cols-2 gap-4 items-center">
+                                             <div>
+                                                 <label for="gridColorPicker" class="text-sm">Color</label>
+                                                 <input type="color" id="gridColorPicker" value="#111827" class="!p-1 !h-9 !mb-0">
+                                             </div>
+                                             <div class="flex items-center justify-end pt-5">
+                                                 <input type="checkbox" id="gridVisibleCheckbox" class="h-4 w-4 rounded !mb-0" checked>
+                                                 <label for="gridVisibleCheckbox" class="ml-2 !mb-0">Visible</label>
+                                             </div>
+                                         </div>
+                                     </div>
+                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div id="terrainOptionsPanel" class="control-panel mb-4">
-                         <div class="collapsible-header collapsed">
-                            <h3>Brush Options</h3>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                        </div>
-                        <div class="collapsible-content hidden">
-                            <label for="terrainBrushMode">Terrain Brush</label>
-                            <select id="terrainBrushMode">
-                                <option value="hex">Hex</option>
-                                <option value="spray">Spray</option>
-                                <option value="line">Line</option>
-                                <option value="rectangle">Rectangle</option>
-                                <option value="ellipse">Ellipse</option>
-                            </select>
-                            <label for="brushSize">Brush/Object Size: <span id="brushSizeValue">1</span></label>
-                            <input type="range" id="brushSize" min="1" max="10" value="1" class="mb-3">
-                        </div>
-                    </div>
-
                     <div id="pencilOptionsPanel" class="control-panel mb-4 hidden">
-                        <div class="collapsible-header collapsed">
+                        <div class="collapsible-header">
                             <h3>Pencil Options</h3>
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </div>
-                        <div class="collapsible-content hidden">
+                        <div class="collapsible-content">
                             <label for="pencilBrushMode">Pencil Mode</label>
                             <select id="pencilBrushMode">
                                 <option value="freestyle">Freestyle</option>
@@ -120,88 +177,91 @@
                                     <input type="range" id="pencilWidth" min="1" max="50" value="5" class="!mb-0">
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Genre Selection -->
-                    <div class="control-panel mb-4">
-                        <div class="collapsible-header collapsed">
-                            <h3>Genre</h3>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                        </div>
-                        <div class="collapsible-content hidden">
-                            <div id="genreSelector" class="grid grid-cols-3 gap-2">
-                                <button data-genre="fantasy" class="control-btn bg-gray-700 p-2 rounded-md text-sm font-medium hover:bg-gray-600 active">Fantasy</button>
-                                <button data-genre="modern" class="control-btn bg-gray-700 p-2 rounded-md text-sm font-medium hover:bg-gray-600">Modern</button>
-                                <button data-genre="scifi" class="control-btn bg-gray-700 p-2 rounded-md text-sm font-medium hover:bg-gray-600">Sci-Fi</button>
+                            <div class="flex items-center mt-4">
+                                <input type="checkbox" id="pencilGmOnlyCheckbox" class="h-4 w-4 rounded !mb-0">
+                                <label for="pencilGmOnlyCheckbox" class="ml-2 !mb-0 text-sm">Draw as GM-Only (Secret)</label>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Map Scale Selection -->
-                    <div class="control-panel mb-4">
-                        <div class="collapsible-header collapsed">
-                            <h3>Map Scale</h3>
+                    <div id="tokenOptionsPanel" class="control-panel mb-4 hidden">
+                        <div class="collapsible-header">
+                            <h3>Token Options</h3>
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </div>
-                        <div class="collapsible-content hidden">
-                            <div id="scaleSelector" class="grid grid-cols-2 gap-2">
-                                <button data-scale="world" class="control-btn bg-gray-700 p-2 rounded-md text-sm font-medium hover:bg-gray-600 active">World</button>
-                                <button data-scale="city" class="control-btn bg-gray-700 p-2 rounded-md text-sm font-medium hover:bg-gray-600">City</button>
-                                <button data-scale="location" class="control-btn bg-gray-700 p-2 rounded-md text-sm font-medium hover:bg-gray-600">Location</button>
-                                <button data-scale="battle" class="control-btn bg-gray-700 p-2 rounded-md text-sm font-medium hover:bg-gray-600">Battle</button>
-                            </div>
+                        <div class="collapsible-content">
+                            <label for="tokenLightRadius">Light Radius (in squares): <span id="tokenLightRadiusValue">5</span></label>
+                            <input type="range" id="tokenLightRadius" min="0" max="30" value="5" class="mb-2">
+                             <div class="grid grid-cols-2 gap-4 items-center">
+                                 <div>
+                                     <label for="tokenColor" class="text-sm">Color</label>
+                                     <input type="color" id="tokenColor" value="#facc15" class="!p-1 !h-9 !mb-0">
+                                 </div>
+                                 <div class="flex items-center justify-end pt-5">
+                                     <button id="deleteTokenBtn" class="w-full">Delete Token</button>
+                                 </div>
+                             </div>
                         </div>
                     </div>
 
-
-                    <div class="control-panel mb-4">
-                        <div id="actionsHeader" class="collapsible-header collapsed">
-                            <h3>Actions</h3>
+                    <div id="fogPanel" class="control-panel mb-4 hidden">
+                        <div class="collapsible-header">
+                            <h3>Fog of War</h3>
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </div>
-                        <div id="actionsContent" class="collapsible-content hidden">
-                            <div class="grid grid-cols-4 gap-2 my-2">
-                                <button id="undoBtn" title="Undo" disabled>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.9-6.7"/><path d="M21 2v6h-6"/></svg>
-                                </button>
-                                <button id="redoBtn" title="Redo" disabled>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.9-6.7"/><path d="M3 2v6h6"/></svg>
-                                </button>
-                                <button id="eraserBtn" title="Eraser">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2='12' y2='15'></line><line x1='12' y1='9' x2='18' y2='15'></line></svg>
-                                </button>
-                                <button id="resetViewBtn" title="Reset View & Zoom">Center</button>
+                        <div class="collapsible-content">
+                            <div class="grid grid-cols-2 gap-2">
+                                <button id="toolFogRevealBtn">Reveal</button>
+                                <button id="toolFogHideBtn">Hide</button>
                             </div>
+                            <label for="fogBrushSize" class="mt-4">Brush Size: <span id="fogBrushSizeValue">5</span></label>
+                            <input type="range" id="fogBrushSize" min="1" max="20" value="5" class="mb-2">
+                            <button id="resetFogBtn" class="w-full">Reset Fog (Cover All)</button>
                         </div>
                     </div>
-                                    
-                    <div class="control-panel mb-4">
-                         <div id="terrainHeader" class="collapsible-header collapsed">
-                            <h3>Terrain Type</h3>
+                                        
+                    <div id="terrainContentPanel" class="control-panel mb-4">
+                         <div id="terrainHeader" class="collapsible-header">
+                            <h3>Terrain & Brush</h3>
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </div>
-                        <div id="terrainContent" class="collapsible-content hidden">
+                        <div id="terrainContent" class="collapsible-content">
+                            <label for="brushSize">Brush Size: <span id="brushSizeValue">1</span></label>
+                            <input type="range" id="brushSize" min="1" max="10" value="1" class="mb-3">
                             <div id="terrainSelector" class="flex flex-col gap-2"></div>
                         </div>
                     </div>
 
-                    <div class="control-panel mb-4">
-                        <div id="objectHeader" class="collapsible-header collapsed">
+                    <div id="objectOptionsPanel" class="control-panel mb-4 hidden">
+                        <div id="objectHeader" class="collapsible-header">
                             <h3>Objects</h3>
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </div>
-                         <div id="objectContent" class="collapsible-content hidden">
+                         <div id="objectContent" class="collapsible-content">
+                            <div class="flex items-center mb-2">
+                                <input type="checkbox" id="objectGmOnlyCheckbox" class="h-4 w-4 rounded !mb-0">
+                                <label for="objectGmOnlyCheckbox" class="ml-2 !mb-0 text-sm">Place as GM-Only (Secret)</label>
+                            </div>
                             <div id="objectSelector" class="flex flex-col gap-2"></div>
                          </div>
                     </div>
 
-                    <div id="textToolPanel" class="control-panel mb-4">
-                        <div id="textHeader" class="collapsible-header collapsed">
-                            <h3>Text</h3>
+                    <div id="selectedObjectPanel" class="control-panel mb-4 hidden">
+                        <div class="collapsible-header">
+                           <h3 id="selection-panel-header">Selected Item</h3>
+                           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </div>
+                        <div id="selection-panel-content" class="collapsible-content">
+                           <!-- Content is now dynamically inserted by JS -->
+                        </div>
+                    </div>
+
+                    <div id="textToolPanel" class="control-panel mb-4 hidden">
+                        <div id="textHeader" class="collapsible-header">
+                            <h3>Text & GM Notes</h3>
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </div>
-                         <div id="textContent" class="collapsible-content hidden">
+                         <div id="textContent" class="collapsible-content">
                             <label for="textInput">Text</label>
                             <input type="text" id="textInput" value="Label">
                             <div class="grid grid-cols-2 gap-4">
@@ -214,68 +274,10 @@
                                      <input type="color" id="fontColorInput" value="#FFFFFF">
                                 </div>
                             </div>
-                         </div>
-                    </div>
-
-                    <div id="graphicsDropdown" class="mt-4 control-panel">
-                         <div id="graphicsBtn" class="collapsible-header collapsed">
-                             <h3>Graphics Options</h3>
-                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                         </div>
-                         <div id="graphicsContent" class="collapsible-content hidden">
-                             <!-- Layers -->
-                             <div class="control-panel mb-4">
-                                 <h3 class="!border-b-0 !pb-2 text-base font-semibold">Layers</h3>
-                                 <div id="layerContent" class="collapsible-content">
-                                     <div id="layerList" class="flex flex-col gap-2 mb-4"></div>
-                                     <div class="grid grid-cols-2 gap-2">
-                                         <button id="addLayerBtn">Add Layer</button>
-                                         <button id="deleteLayerBtn">Delete Layer</button>
-                                     </div>
-                                 </div>
-                             </div>
-                             <!-- Grid Options -->
-                             <div class="control-panel mb-4">
-                                 <h3 class="!border-b-0 !pb-2 text-base font-semibold">Grid Options</h3>
-                                 <div class="mb-4">
-                                     <label for="gridTypeSelect">Grid Type</label>
-                                     <select id="gridTypeSelect">
-                                         <option value="hex">Hex</option>
-                                         <option value="square">Square</option>
-                                     </select>
-                                 </div>
-                                 <div class="grid grid-cols-2 gap-4 items-center">
-                                     <div>
-                                         <label for="gridColorPicker" class="text-sm">Color</label>
-                                         <input type="color" id="gridColorPicker" value="#111827" class="!p-1 !h-9 !mb-0">
-                                     </div>
-                                     <div class="flex items-center justify-end pt-5">
-                                         <input type="checkbox" id="gridVisibleCheckbox" class="h-4 w-4 rounded !mb-0" checked>
-                                         <label for="gridVisibleCheckbox" class="ml-2 !mb-0">Visible</label>
-                                     </div>
-                                 </div>
-                             </div>
-                             <!-- Map Generation -->
-                             <div class="control-panel">
-                                 <h3 class="!border-b-0 !pb-2 text-base font-semibold">Map Generation</h3>
-                                 <div id="mapGenerationContent" class="collapsible-content">
-                                     <div class="mb-4">
-                                         <div id="dimensionInputs">
-                                             <div class="grid grid-cols-2 gap-2">
-                                                 <div>
-                                                     <label for="mapWidth">Width</label>
-                                                     <input type="number" id="mapWidth" value="50" min="1">
-                                                 </div>
-                                                 <div>
-                                                     <label for="mapHeight">Height</label>
-                                                     <input type="number" id="mapHeight" value="50" min="1">
-                                                 </div>
-                                             </div>
-                                         </div>
-                                         <button id="generateBaseMapBtn" class="mt-2">Generate Blank Map</button>
-                                     </div>
-                                 </div>
-                             </div>
+                            <div class="flex items-center mt-2">
+                                <input type="checkbox" id="textGmOnlyCheckbox" class="h-4 w-4 rounded !mb-0">
+                                <label for="textGmOnlyCheckbox" class="ml-2 !mb-0 text-sm">Place as GM-Only (Secret)</label>
+                            </div>
                          </div>
                     </div>
                 </div>
@@ -284,220 +286,97 @@
         <!-- Resizer Handle -->
         <div id="resizer" class="resizer"></div>
         <!-- Canvas Area -->
-        <div id="canvas-container">
+        <div id="canvas-container" class="relative">
+            <div id="breadcrumb-nav" class="absolute top-2 left-2 z-20 bg-gray-900 bg-opacity-70 p-2 rounded-md text-sm"></div>
             <canvas id="mapCanvas"></canvas>
-            <canvas id="maskCanvas"></canvas>
-            <canvas id="drawingCanvas"></canvas>
+            <canvas id="wallCanvas" style="pointer-events:none;"></canvas>
+            <canvas id="lightCanvas" style="pointer-events:none;"></canvas>
+            <canvas id="drawingCanvas" style="pointer-events:none;"></canvas>
+            <canvas id="fogCanvas" style="pointer-events:none;"></canvas>
             
+            <div id="asset-context-menu" class="asset-context-menu hidden">
+                <button id="asset-rotate-left-btn" title="Rotate Left (r)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.9-6.7"/><path d="M21 2v6h-6"/></svg>
+                </button>
+                <button id="asset-rotate-right-btn" title="Rotate Right (R)">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.9-6.7"/><path d="M3 2v6h6"/></svg>
+                </button>
+                <button id="asset-scale-up-btn" title="Scale Up (+)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                </button>
+                <button id="asset-scale-down-btn" title="Scale Down (-)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                </button>
+            </div>
+            
+            <!-- MAP KEY WINDOW -->
+            <div id="mapKeyWindow" class="hidden">
+                <div id="mapKeyHeader">
+                    <h4>Map Key</h4>
+                    <button id="mapKeyCloseBtn">&times;</button>
+                </div>
+                <div id="mapKeyContent">
+                    <!-- Key content will be populated by JS -->
+                </div>
+            </div>
+
             <!-- AI Bottom Panel -->
             <div id="aiBottomPanel" class="closed">
                 <div id="aiBottomPanelHeader">
-                    <span>AI Assistant & Prompt Editor</span>
+                    <span>AI Assist</span>
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
                 </div>
                 <div id="aiBottomPanelContent">
-                    <div id="aiAssistantPanel" class="control-panel">
-                        <!-- Step 1: Landform -->
-                        <div id="aiStep1" class="ai-step active-step">
-                            <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Step 1: Generate Landform</h4>
-                            <label for="aiLandformPrompt">Describe the land's structure (e.g., mountains, valleys, plains)</label>
-                            <textarea id="aiLandformPrompt" placeholder="e.g., A rugged mountain range with a deep central canyon and rolling foothills to the east." class="mb-2"></textarea>
-                            <label for="artStyle">Art Style</label>
-                            <select id="artStyle" class="mb-2">
-                                <option value="photorealistic">Photorealistic</option>
-                                <option value="painting">Digital Painting</option>
-                                <option value="watercolor">Watercolor</option>
-                                <option value="vintage">Vintage Cartography</option>
-                                <option value="handdrawn">Hand Drawn</option>
-                            </select>
-                            <button id="generateLandformBtn">Generate Landform</button>
-                        </div>
-
-                        <!-- Step 2: Water -->
-                        <div id="aiStep2" class="ai-step">
-                            <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Step 2: Add Water</h4>
-                            <label for="aiWaterPrompt">Describe the water features (e.g., rivers, lakes, coast)</label>
-                            <textarea id="aiWaterPrompt" placeholder="e.g., A single, mighty river flowing from the highest peak down into the canyon, feeding a large lake in the lowlands." class="mb-2"></textarea>
-                            <button id="addWaterBtn">Add Water</button>
-                        </div>
-
-                        <!-- Step 3: Biome -->
-                        <div id="aiStep3" class="ai-step">
-                            <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Step 3: Apply Biome</h4>
-                            <label for="aiBiomePrompt">Describe the terrain and vegetation</label>
-                            <textarea id="aiBiomePrompt" placeholder="e.g., A lush, temperate forest with rocky peaks and snow at the highest elevations. The foothills are grassy plains." class="mb-2"></textarea>
-                            <button id="applyBiomeBtn">Apply Biome</button>
-                        </div>
-                        
-                        <hr class="my-4 border-gray-600">
-
-                        <!-- Manual Edit -->
-                        <div id="aiEditSection">
-                            <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Manual Edit & Stylize</h4>
-                            <label for="aiEditPrompt">Edit Instruction</label>
-                            <textarea id="aiEditPrompt" placeholder="e.g., Make the forest more dense. Or, leave blank and click Apply to stylize your drawings." class="mb-2"></textarea>
-                            <p class="text-xs text-gray-400 -mt-2 mb-3">Use the Mask Tool to apply edits to a specific area.</p>
-                            <div class="grid grid-cols-2 gap-2">
-                                <button id="applyAiEditBtn">Apply AI Edit</button>
-                                <button id="toolMaskBtn">Activate Mask Tool</button>
+                    <div class="ai-controls-column">
+                        <!-- Step 1 -->
+                        <div class="control-panel">
+                            <h4 class="text-md font-bold text-gray-200 mb-2 border-b border-gray-600 pb-2">Step 1: Generate Initial Image</h4>
+                            <div class="grid grid-cols-2 gap-4 mb-3">
+                                <div>
+                                    <label for="ai-drawing-style">Style</label>
+                                    <select id="ai-drawing-style">
+                                        <option value="detailed sketch style">Sketch</option>
+                                        <option value="watercolor painting style">Watercolor</option>
+                                        <option value="pixel art style">Pixel Art</option>
+                                        <option value="fantasy map style">Fantasy Map</option>
+                                        <option value="blueprint style">Blueprint</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="ai-color-style">Color</label>
+                                    <select id="ai-color-style">
+                                        <option value="monochrome">Monochrome</option>
+                                        <option value="vibrant color">Vibrant Color</option>
+                                        <option value="pastel color">Pastel Color</option>
+                                        <option value="sepia tone">Sepia Tone</option>
+                                    </select>
+                                </div>
                             </div>
-                            <div class="mt-2">
-                                <button id="clearMaskBtn" class="w-full">Clear Mask</button>
+                            <label for="ai-prompt-initial">Describe the landscape or building</label>
+                            <textarea id="ai-prompt-initial" placeholder="e.g., A rugged mountain range with a central volcano. A small goblin hideout in a cave..." class="mb-2"></textarea>
+                            <button id="ai-generate-btn" class="w-full">
+                                <span class="btn-text">Generate</span>
+                                <span class="spinner hidden"></span>
+                            </button>
+                        </div>
+                        <!-- Step 2 -->
+                        <div class="control-panel">
+                            <h4 class="text-md font-bold text-gray-200 mb-2 border-b border-gray-600 pb-2">Step 2: Refine & Transfer</h4>
+                            <label for="ai-prompt-refine">Describe changes or additions</label>
+                            <textarea id="ai-prompt-refine" placeholder="e.g., Add a large river flowing from the mountains. Make the cave entrance larger." class="mb-2"></textarea>
+                            <div class="grid grid-cols-2 gap-2 mt-2">
+                                 <button id="ai-update-btn" class="w-full" disabled>
+                                     <span class="btn-text">Update Image</span>
+                                     <span class="spinner hidden"></span>
+                                 </button>
+                                <button id="ai-transfer-btn" class="w-full" disabled>Transfer to New Layer</button>
                             </div>
                         </div>
                     </div>
-                    <!-- NEW: Advanced AI Controls -->
-                    <div id="advancedControlsPanel" class="control-panel">
-                        <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Advanced Generation Controls</h4>
-                        
-                        <div class="grid grid-cols-2 gap-4 mb-4">
-                            <div>
-                                <label for="advGenre">Genre</label>
-                                <select id="advGenre">
-                                    <option value="fantasy">Fantasy</option>
-                                    <option value="modern">Modern</option>
-                                    <option value="scifi">Sci-Fi</option>
-                                </select>
-                            </div>
-                             <div>
-                                <label for="advEnvironment">Environment</label>
-                                <select id="advEnvironment">
-                                    <option value="rural">Rural/Wilderness</option>
-                                    <option value="urban">Urban/City</option>
-                                    <option value="interior">Interior/Dungeon</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- Dynamic Control Sections -->
-                        <div id="adv-fantasy-rural" class="adv-control-group">
-                             <h5 class="text-sm font-bold text-gray-400 mb-2">Fantasy Rural Details</h5>
-                             <label for="fr-territoryStyle">Territory Style</label>
-                             <select id="fr-territoryStyle">
-                                 <option value="">None</option>
-                                 <option value="with clearly defined kingdom borders">Hard Borders</option>
-                                 <option value="with dashed, disputed borderlands">Dashed/Disputed Borders</option>
-                                 <option value="showing the territories as subtle colored overlays">Colored Overlays</option>
-                             </select>
-                             <label for="fr-routeNetwork">Route Network</label>
-                             <select id="fr-routeNetwork">
-                                 <option value="">None</option>
-                                 <option value="featuring a sparse network of ancient roads">Sparse Roads</option>
-                                 <option value="criss-crossed by well-maintained roads and navigable rivers">Developed Roads & Rivers</option>
-                             </select>
-                             <label for="fr-poiDensity">Landmark Density: <span id="fr-poiDensityValue">Medium</span></label>
-                             <input type="range" id="fr-poiDensity" min="0" max="2" value="1" class="!mb-0">
-                        </div>
-                        
-                        <div id="adv-fantasy-urban" class="adv-control-group hidden">
-                            <h5 class="text-sm font-bold text-gray-400 mb-2">Fantasy Urban Details</h5>
-                            <label>District Styles</label>
-                            <div id="fu-districtStyle" class="grid grid-cols-2 gap-2 text-sm mb-2">
-                                <div><input type="checkbox" value="a crowded merchant quarter"> Merchant</div>
-                                <div><input type="checkbox" value="a wealthy noble district"> Noble</div>
-                                <div><input type="checkbox" value="sprawling slums"> Slums</div>
-                                <div><input type="checkbox" value="a busy docks area"> Docks</div>
-                                <div><input type="checkbox" value="a serene temple district"> Temple</div>
-                                <div><input type="checkbox" value="a fortified castle district"> Castle</div>
-                            </div>
-                        </div>
-
-                        <div id="adv-fantasy-interior" class="adv-control-group hidden">
-                            <h5 class="text-sm font-bold text-gray-400 mb-2">Fantasy Interior Details</h5>
-                            <label for="fi-furnishings">Furnishings: <span id="fi-furnishingsValue">Moderate</span></label>
-                            <input type="range" id="fi-furnishings" min="0" max="2" value="1" class="mb-2">
-                            <label for="fi-cover">Tactical Cover: <span id="fi-coverValue">Medium</span></label>
-                            <input type="range" id="fi-cover" min="0" max="2" value="1" class="mb-2">
-                            <label for="fi-hazards">Hazards: <span id="fi-hazardsValue">Low</span></label>
-                            <input type="range" id="fi-hazards" min="0" max="2" value="1" class="mb-2">
-                             <label for="fi-verticality">Elevation</label>
-                            <select id="fi-verticality">
-                                <option value="the area is mostly flat">Flat</option>
-                                <option value="with some ledges and stairs">Ledges/Stairs</option>
-                                <option value="featuring multiple floors and balconies">Multiple Floors</option>
-                            </select>
-                        </div>
-
-                        <div id="adv-modern-rural" class="adv-control-group hidden">
-                             <h5 class="text-sm font-bold text-gray-400 mb-2">Modern Rural Details</h5>
-                             <label for="mr-routeNetwork">Route Network</label>
-                             <select id="mr-routeNetwork">
-                                 <option value="">None</option>
-                                 <option value="with dirt county roads">County Roads</option>
-                                 <option value="with paved highways">Highways</option>
-                                 <option value="with railway lines">Railway</option>
-                             </select>
-                             <label for="mr-poiDensity">Building Density: <span id="mr-poiDensityValue">Medium</span></label>
-                             <input type="range" id="mr-poiDensity" min="0" max="2" value="1" class="!mb-0">
-                        </div>
-
-                        <div id="adv-modern-urban" class="adv-control-group hidden">
-                            <h5 class="text-sm font-bold text-gray-400 mb-2">Modern Urban Details</h5>
-                            <label>District Styles</label>
-                            <div id="mu-districtStyle" class="grid grid-cols-2 gap-2 text-sm mb-2">
-                                <div><input type="checkbox" value="a downtown area with skyscrapers"> Downtown</div>
-                                <div><input type="checkbox" value="a suburban area with houses"> Suburban</div>
-                                <div><input type="checkbox" value="an industrial zone with warehouses"> Industrial</div>
-                                <div><input type="checkbox" value="a commercial strip with storefronts"> Commercial</div>
-                            </div>
-                        </div>
-
-                        <div id="adv-modern-interior" class="adv-control-group hidden">
-                            <h5 class="text-sm font-bold text-gray-400 mb-2">Modern Interior Details</h5>
-                            <label for="mi-furnishings">Furnishings: <span id="mi-furnishingsValue">Moderate</span></label>
-                            <input type="range" id="mi-furnishings" min="0" max="2" value="1" class="mb-2">
-                            <label for="mi-cover">Tactical Cover: <span id="mi-coverValue">Medium</span></label>
-                            <input type="range" id="mi-cover" min="0" max="2" value="1" class="mb-2">
-                        </div>
-
-                        <div id="adv-scifi-rural" class="adv-control-group hidden">
-                             <h5 class="text-sm font-bold text-gray-400 mb-2">Sci-Fi Rural Details</h5>
-                             <label for="sr-flora">Alien Flora</label>
-                             <select id="sr-flora">
-                                 <option value="">None</option>
-                                 <option value="with bioluminescent mushrooms">Bioluminescent Flora</option>
-                                 <option value="with crystalline trees">Crystalline Trees</option>
-                                 <option value="with bizarre, non-terrestrial plants">General Alien Plants</option>
-                             </select>
-                             <label for="sr-poiDensity">Structure Density: <span id="sr-poiDensityValue">Medium</span></label>
-                             <input type="range" id="sr-poiDensity" min="0" max="2" value="1" class="!mb-0">
-                        </div>
-
-                        <div id="adv-scifi-urban" class="adv-control-group hidden">
-                            <h5 class="text-sm font-bold text-gray-400 mb-2">Sci-Fi Urban Details</h5>
-                            <label>Cityscape Features</label>
-                            <div id="su-districtStyle" class="grid grid-cols-2 gap-2 text-sm mb-2">
-                                <div><input type="checkbox" value="a cyberpunk city with neon signs"> Cyberpunk</div>
-                                <div><input type="checkbox" value="a clean, utopian city with sleek towers"> Utopian</div>
-                                <div><input type="checkbox" value="a sprawling, domed habitat"> Domed City</div>
-                                <div><input type="checkbox" value="a massive arcology"> Arcology</div>
-                            </div>
-                        </div>
-                        
-                        <div id="adv-scifi-interior" class="adv-control-group hidden">
-                            <h5 class="text-sm font-bold text-gray-400 mb-2">Sci-Fi Interior Details</h5>
-                            <label>Key Rooms</label>
-                            <div id="si-rooms" class="grid grid-cols-2 gap-2 text-sm mb-2">
-                                <div><input type="checkbox" value="a command bridge"> Bridge</div>
-                                <div><input type="checkbox" value="a medbay"> Medbay</div>
-                                <div><input type="checkbox" value="an engine room"> Engineering</div>
-                                <div><input type="checkbox" value="a cargo bay"> Cargo Bay</div>
-                                <div><input type="checkbox" value="crew quarters"> Quarters</div>
-                                <div><input type="checkbox" value="a science lab"> Science Lab</div>
-                            </div>
-                             <label for="si-verticality">Elevation</label>
-                            <select id="si-verticality">
-                                <option value="the area is mostly flat">Flat</option>
-                                <option value="with some service ladders and catwalks">Ladders/Catwalks</option>
-                                <option value="featuring multiple decks and elevators">Multiple Decks</option>
-                            </select>
-                        </div>
-                        <button id="imageEnhanceBtn" class="mt-4 w-full">Generate / Enhance Image</button>
-                    </div>
-                    <div id="promptEditorPanel" class="control-panel">
-                        <h4 class="text-md font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Last Used AI Prompt</h4>
-                        <textarea id="lastPromptInput" class="w-full h-24 p-2 rounded border border-gray-600 bg-gray-900 text-gray-300 text-sm" readonly></textarea>
-                        <button id="regenerateBtn" class="mt-2 w-full">Edit & Regenerate</button>
+                    <!-- Rendering Area -->
+                    <div id="ai-render-area" class="control-panel flex-grow">
+                         <img id="ai-image-output" class="hidden" alt="AI Generated Image">
+                         <span class="text-gray-400">Your generated image will appear here</span>
                     </div>
                 </div>
             </div>
@@ -507,24 +386,46 @@
         <!-- Top Right Controls -->
         <div id="topRightControls">
             <div>
-                <label for="mapNameInput">Map Name</label>
-                <input type="text" id="mapNameInput" placeholder="Untitled Map" class="text-lg w-48">
+                <label for="projectNameInput">Project Name</label>
+                <input type="text" id="projectNameInput" placeholder="Untitled Campaign" class="text-lg w-48">
             </div>
         </div>
     </div>
 
-    <!-- Map Key Window -->
-    <div id="mapKeyWindow" class="hidden">
-        <div id="mapKeyHeader">
-            <h4>Map Key</h4>
-            <button id="mapKeyCloseBtn">&times;</button>
-        </div>
-        <div id="mapKeyContent">
-            <!-- Content will be dynamically generated here -->
+    <!-- Modals -->
+    <div id="newMapModal" class="modal-backdrop hidden">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md text-white">
+            <h3 class="text-lg font-bold mb-4">Create New Map</h3>
+            <label for="newMapNameInput">Map Name</label>
+            <input type="text" id="newMapNameInput" class="w-full" placeholder="e.g., Kingdom of Eldoria">
+            <label for="newMapScaleSelect" class="mt-4">Map Scale</label>
+            <select id="newMapScaleSelect" class="w-full">
+                <option value="world">World</option>
+                <option value="region">Region</option>
+                <option value="area">Area</option>
+                <option value="encounter">Encounter</option>
+            </select>
+            <div class="grid grid-cols-2 gap-4 mt-4">
+                <div>
+                    <label for="newMapWidthInput">Width</label>
+                    <input type="number" id="newMapWidthInput" value="50" min="1">
+                </div>
+                <div>
+                    <label for="newMapHeightInput">Height</label>
+                    <input type="number" id="newMapHeightInput" value="50" min="1">
+                </div>
+            </div>
+            <div class="flex items-center mt-4">
+                <input type="checkbox" id="newMapAsChildCheckbox" class="h-4 w-4 rounded !mb-0">
+                <label for="newMapAsChildCheckbox" class="ml-2 !mb-0 text-sm">Set as child of current map</label>
+            </div>
+            <div class="flex justify-end gap-4 mt-6">
+                <button id="cancelNewMapBtn" class="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500 transition">Cancel</button>
+                <button id="confirmNewMapBtn" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 transition">Create</button>
+            </div>
         </div>
     </div>
 
-    <!-- API Key Modal -->
     <div id="apiKeyModal" class="modal-backdrop hidden">
         <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md text-white">
             <h3 class="text-lg font-bold mb-4">AI Settings</h3>
@@ -539,7 +440,73 @@
             </div>
         </div>
     </div>
+    
+    <div id="asset-editor-overlay" class="hidden">
+        <div class="asset-editor-main">
+            <div class="asset-editor-top-bar">
+                <h2 class="text-2xl font-bold text-gray-100">AI-Assisted Asset Editor</h2>
+                <button id="asset-editor-close-btn" title="Close Editor">&times;</button>
+            </div>
+            <div class="asset-editor-content">
+                <!-- LEFT PANEL -->
+                <div class="asset-editor-left-panel">
+                    <div class="control-panel">
+                        <label for="asset-type-select">Asset Type</label>
+                        <select id="asset-type-select">
+                            <option value="object">Object / Icon</option>
+                            <option value="terrain">Terrain Pattern</option>
+                        </select>
+                    </div>
+                    <div class="control-panel">
+                        <h3>AI Generation</h3>
+                        <label for="asset-prompt">Prompt</label>
+                        <textarea id="asset-prompt" rows="4" placeholder="e.g., A single, stylized fantasy oak tree icon, no background, watercolor style..."></textarea>
+                        <button id="asset-generate-btn">Generate</button>
+                    </div>
+                    <div class="control-panel">
+                        <h3>Manual Tools</h3>
+                        <div class="asset-tool-palette">
+                            <button class="asset-tool active" data-tool="pencil" title="Pencil"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg></button>
+                            <button class="asset-tool" data-tool="eraser" title="Eraser"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg></button>
+                            <input type="color" id="asset-color-picker" value="#FFFFFF" title="Color Picker">
+                        </div>
+                        <label for="asset-brush-size">Brush Size: <span id="asset-brush-size-value">5</span></label>
+                        <input type="range" id="asset-brush-size" min="1" max="50" value="5">
+                    </div>
+                </div>
+                <!-- CENTER PANEL -->
+                <div class="asset-editor-center-panel">
+                    <div id="loading-overlay" class="hidden">Generating...</div>
+                    <div id="asset-canvas-container">
+                        <canvas id="asset-canvas-main" width="512" height="512"></canvas>
+                        <canvas id="asset-canvas-draw" width="512" height="512"></canvas>
+                    </div>
+                </div>
+                <!-- RIGHT PANEL -->
+                <div class="asset-editor-right-panel">
+                    <div id="asset-preview-panel" class="control-panel hidden">
+                        <h3>Tiling Preview</h3>
+                        <canvas id="asset-preview-canvas" width="240" height="240"></canvas>
+                    </div>
+                     <div class="control-panel">
+                        <h3>Save to Library</h3>
+                        <label for="asset-name">Asset Name</label>
+                        <input type="text" id="asset-name" placeholder="e.g., Oak Tree">
+                        <label for="asset-tags">Tags (comma-separated)</label>
+                        <input type="text" id="asset-tags" placeholder="fantasy, world, vegetation">
+                        <button id="asset-export-btn">Save to Library</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <script type="module" src="mmscript.js"></script>
+    <!-- Toast Notification Container -->
+    <div id="toast-container"></div>
+
+    <script type="module" src="state.js"></script>
+    <script type="module" src="mmtools-script.js"></script>
+    <script type="module" src="mmassist-script.js"></script>
+    <script type="module" src="asset-editor.js"></script>
 </body>
 </html>
