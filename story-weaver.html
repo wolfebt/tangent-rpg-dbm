@@ -155,6 +155,10 @@
             padding: 0.5rem;
             outline: none;
         }
+        .ai-enhanced {
+            background-color: rgba(59, 130, 246, 0.15);
+            border-radius: 3px;
+        }
     </style>
 </head>
 <body class="antialiased">
@@ -316,20 +320,24 @@
                 </div>
 
                 <div id="write" class="stage">
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        <div class="lg:col-span-1 bg-gray-800 p-4 rounded-lg shadow-lg h-fit sticky top-8">
+                    <div class="bg-gray-800 rounded-lg shadow-lg">
+                        <!-- Tab Buttons -->
+                        <div class="flex border-b border-gray-700">
+                            <button id="work-tab" class="py-3 px-6 font-semibold border-b-2 border-blue-500 text-white">Work</button>
+                            <button id="reference-tab" class="py-3 px-6 font-semibold border-b-2 border-transparent text-gray-400 hover:text-white transition-colors">Reference</button>
+                        </div>
+                
+                        <!-- Tab Content -->
+                        <div id="work-panel" class="p-6">
+                            <h2 class="text-2xl font-semibold mb-4 text-white">Your Story</h2>
+                            <p class="text-sm text-gray-400 mb-4">Write your story below. Select any text to activate the in-line AI assistant.</p>
+                            <div id="main-editor" contenteditable="true" class="relative w-full min-h-[70vh] p-4 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 overflow-y-auto" aria-label="Main story editor"></div>
+                        </div>
+                        <div id="reference-panel" class="p-6 hidden">
                             <h3 class="text-xl font-semibold mb-2 text-white">Reference Panel</h3>
-                             <p class="text-sm text-gray-400 mb-4">You can use this area to see your Treatment or other reference material while you write.</p>
+                            <p class="text-sm text-gray-400 mb-4">You can use this area to see your Treatment or other reference material while you write.</p>
                             <div id="write-treatment-reference" class="p-4 bg-gray-900 border border-gray-700 rounded-lg text-gray-300 max-h-[70vh] overflow-y-auto prose prose-invert max-w-none text-sm">
                                 <span class="text-gray-500">Your generated treatment will appear here once created.</span>
-                            </div>
-                        </div>
-                        
-                        <div class="lg:col-span-2 space-y-8">
-                            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-                                <h2 class="text-2xl font-semibold mb-4 text-white">Your Story</h2>
-                                <p class="text-sm text-gray-400 mb-4">Write your story below. Select any text to activate the in-line AI assistant.</p>
-                                <div id="main-editor" contenteditable="true" class="w-full min-h-[70vh] p-4 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 overflow-y-auto" aria-label="Main story editor"></div>
                             </div>
                         </div>
                     </div>
@@ -519,6 +527,12 @@
         const aiToolbarPrompt = document.getElementById('ai-toolbar-prompt');
         const aiCustomSubmitBtn = document.getElementById('ai-custom-submit-btn');
         let userSelection = null;
+
+        // Write Stage Tabs
+        const workTab = document.getElementById('work-tab');
+        const referenceTab = document.getElementById('reference-tab');
+        const workPanel = document.getElementById('work-panel');
+        const referencePanel = document.getElementById('reference-panel');
 
 
         function showStatus(message, isError = false) {
@@ -742,6 +756,7 @@
                         .storyboard-print-container .storyboard-panel { border: 1px solid #dee2e6; border-radius: 4px; overflow: hidden; }
                         .storyboard-print-container img { max-width: 100%; height: auto; display: block; }
                         .storyboard-print-container .p-3 { padding: 10px; font-size: 11px; color: #495057; background-color: #f8f9fa; }
+                        .ai-enhanced { background-color: #e7f1ff; border-radius: 3px; }
                     </style>
                 </head>
                 <body>
@@ -1387,8 +1402,13 @@
         mainEditor.addEventListener('mouseup', handleTextSelection);
         mainEditor.addEventListener('keyup', handleTextSelection);
         document.addEventListener('mousedown', (e) => {
-            if (!mainEditor.contains(e.target) && !aiToolbar.contains(e.target)) {
-                hideAiToolbar();
+            // Check if the click is outside both the editor and the toolbar
+            const editorRect = mainEditor.getBoundingClientRect();
+            const toolbarRect = aiToolbar.getBoundingClientRect();
+            if (e.clientX < editorRect.left || e.clientX > editorRect.right || e.clientY < editorRect.top || e.clientY > editorRect.bottom) {
+                 if (e.clientX < toolbarRect.left || e.clientX > toolbarRect.right || e.clientY < toolbarRect.top || e.clientY > toolbarRect.bottom) {
+                    hideAiToolbar();
+                 }
             }
         });
 
@@ -1402,20 +1422,23 @@
                 positionAiToolbar(rect);
                 showAiToolbar();
             } else {
-                hideAiToolbar();
+                // This condition hides the toolbar if you click inside the editor but don't select text
+                if (mainEditor.contains(document.activeElement)) {
+                   hideAiToolbar();
+                }
             }
         }
         
         function positionAiToolbar(rect) {
-            const editorRect = mainEditor.getBoundingClientRect();
-            let top = rect.top - editorRect.top + mainEditor.scrollTop - aiToolbar.offsetHeight - 8;
-            let left = rect.left - editorRect.left + mainEditor.scrollLeft + (rect.width / 2) - (aiToolbar.offsetWidth / 2);
+            const containerRect = mainEditor.parentElement.getBoundingClientRect();
+            let top = rect.top - containerRect.top + mainEditor.scrollTop - aiToolbar.offsetHeight - 8;
+            let left = rect.left - containerRect.left + mainEditor.scrollLeft + (rect.width / 2) - (aiToolbar.offsetWidth / 2);
 
             // Boundary checks
             if (top < mainEditor.scrollTop) {
-                top = rect.bottom - editorRect.top + mainEditor.scrollTop + 8;
+                top = rect.bottom - containerRect.top + mainEditor.scrollTop + 8;
             }
-            if (left < mainEditor.scrollLeft) {
+             if (left < mainEditor.scrollLeft) {
                 left = mainEditor.scrollLeft + 4;
             }
             if (left + aiToolbar.offsetWidth > mainEditor.scrollLeft + mainEditor.clientWidth) {
@@ -1465,7 +1488,7 @@
                 **Original Text:** "${selectedText}"
                 **Full Story Context (for reference):** "${fullStoryContext}"
                 ---
-                Generate only the new, expanded version of the text.`;
+                Generate only the new, expanded version of the text. Do not repeat the original text in your response.`;
             } else if (action === 'rewrite') {
                  prompt = `${assetContext}You are a talented ${role}. Your task is to rewrite the following text for a **${format}**.
                 **Original Text:** "${selectedText}"
@@ -1489,11 +1512,14 @@
                 window.getSelection().removeAllRanges();
                 window.getSelection().addRange(userSelection);
                 
+                let finalHtml;
                 if (action === 'expand') {
-                     document.execCommand('insertHTML', false, selectedText + ' ' + formattedText);
-                } else { // Rewrite and Custom
-                    document.execCommand('insertHTML', false, formattedText);
+                    // Re-insert original text, plus the highlighted new text
+                    finalHtml = selectedText + ` <span class="ai-enhanced">${formattedText}</span>`;
+                } else { // Rewrite and Custom replace the original text entirely
+                    finalHtml = `<span class="ai-enhanced">${formattedText}</span>`;
                 }
+                document.execCommand('insertHTML', false, finalHtml);
                 showStatus("Text updated by AI.");
             } else {
                 showStatus(generatedText || "AI failed to generate text.", true);
@@ -1527,6 +1553,27 @@
                 aiCustomSubmitBtn.click();
             }
         });
+
+        // --- Write Stage Tab Logic ---
+        workTab.addEventListener('click', () => {
+            workTab.classList.add('border-blue-500', 'text-white');
+            workTab.classList.remove('border-transparent', 'text-gray-400');
+            referenceTab.classList.add('border-transparent', 'text-gray-400');
+            referenceTab.classList.remove('border-blue-500', 'text-white');
+
+            workPanel.classList.remove('hidden');
+            referencePanel.classList.add('hidden');
+        });
+        referenceTab.addEventListener('click', () => {
+            referenceTab.classList.add('border-blue-500', 'text-white');
+            referenceTab.classList.remove('border-transparent', 'text-gray-400');
+            workTab.classList.add('border-transparent', 'text-gray-400');
+            workTab.classList.remove('border-blue-500', 'text-white');
+
+            referencePanel.classList.remove('hidden');
+            workPanel.classList.add('hidden');
+        });
+
 
         loadApiKey();
         loadStateFromLocalStorage();
