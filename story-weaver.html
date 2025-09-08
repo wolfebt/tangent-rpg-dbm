@@ -160,7 +160,7 @@
                     <h2 class="text-xl font-bold mb-4 text-blue-400">Story Assets</h2>
                     <p class="text-sm text-gray-400 mb-4">Load JSON and Image files to provide context for the AI.</p>
                     <button id="load-asset-btn" class="w-full py-2 px-4 rounded-lg font-semibold btn-secondary mb-4">Load Asset(s)</button>
-                    <input type="file" id="asset-file-input" class="hidden" accept=".json,image/*" multiple>
+                    <input type="file" id="asset-file-input" class="hidden" accept=".json,.txt,image/*" multiple>
                     
                     <div id="asset-container" class="space-y-4 max-h-[40vh] overflow-y-auto">
                         <!-- Loaded assets will be dynamically inserted here -->
@@ -854,6 +854,8 @@
                             addAssetToState({ type: 'json', content: data, fileName: file.name });
                         } else if (file.type.startsWith('image/')) {
                             addAssetToState({ type: 'image', content: e.target.result, fileName: file.name });
+                        } else if (file.type === 'text/plain') {
+                            addAssetToState({ type: 'text', content: e.target.result, fileName: file.name });
                         }
                     } catch (error) {
                         alert(`Error parsing ${file.name}.`);
@@ -861,7 +863,7 @@
                     }
                 };
 
-                if (file.type === 'application/json') {
+                if (file.type === 'application/json' || file.type === 'text/plain') {
                     reader.readAsText(file);
                 } else if (file.type.startsWith('image/')) {
                     reader.readAsDataURL(file);
@@ -894,6 +896,10 @@
                 asset.content = assetData.content; // Base64 data URL
                 asset.type = 'Image';
                 asset.name = assetData.fileName;
+            } else if (assetData.type === 'text') {
+                asset.content = assetData.content;
+                asset.type = 'Text Data';
+                asset.name = assetData.fileName;
             }
             
             state.assets.push(asset);
@@ -912,10 +918,14 @@
                 if (asset.type === 'Image') {
                     contentPreview = `<img src="${asset.content}" class="rounded w-full h-auto object-cover mt-2">`;
                 }
+                
+                let colorClass = 'blue';
+                if (asset.type === 'Image') colorClass = 'green';
+                if (asset.type === 'Text Data') colorClass = 'cyan';
 
                 card.innerHTML = `
                     <div class="flex justify-between items-center">
-                        <strong class="text-${asset.type === 'Image' ? 'green' : 'blue'}-400">${asset.type}: <span class="text-white truncate" style="max-width: 120px;">${asset.name}</span></strong>
+                        <strong class="text-${colorClass}-400">${asset.type}: <span class="text-white truncate" style="max-width: 120px;">${asset.name}</span></strong>
                         <div class="flex items-center space-x-2">
                             <label for="include-${asset.id}" class="text-xs text-gray-400">Include</label>
                             <input type="checkbox" id="include-${asset.id}" class="asset-include-checkbox w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500" data-id="${asset.id}" ${asset.includeInPrompt ? 'checked' : ''}>
@@ -956,6 +966,8 @@
                     context += `Atmosphere: ${asset.content.atmosphere || 'N/A'}\n`;
                 } else if (asset.type === 'Image') {
                     context += `Visual Reference Name: ${asset.name}\n`;
+                } else if (asset.type === 'Text Data' && asset.content) {
+                    context += `Content from file "${asset.name}":\n${asset.content}\n`;
                 }
             });
             context += "--- END ASSETS CONTEXT ---\n\n";
@@ -1403,5 +1415,6 @@
     </script>
 </body>
 </html>
+
 
 
