@@ -298,6 +298,31 @@
                 </div>
 
                 <div id="write" class="stage">
+                    <div id="ai-action-bar" class="hidden sticky top-8 z-10 bg-gray-800/95 backdrop-blur-sm border border-gray-700 p-2 rounded-lg flex items-center gap-4 mb-4">
+                        <span class="text-sm font-semibold text-gray-300">AI Toolkit:</span>
+                        <div id="ai-toolbar-buttons" class="flex items-center gap-2">
+                            <button class="ai-toolbar-btn" id="ai-expand-btn">Expand</button>
+                            <button class="ai-toolbar-btn" id="ai-rewrite-btn">Rewrite</button>
+                            <div id="ai-custom-prompt-container" class="hidden items-center gap-2">
+                                <input type="text" id="ai-toolbar-prompt" placeholder="Your prompt...">
+                                <button class="ai-toolbar-btn" id="ai-custom-submit-btn">Submit</button>
+                            </div>
+                            <button class="ai-toolbar-btn" id="ai-ask-btn">Ask AI...</button>
+                        </div>
+                        <div id="ai-toolbar-loader" class="hidden">
+                            <div class="loader" style="width: 24px; height: 24px; border-width: 2px; margin: 0.5rem;"></div>
+                        </div>
+                    </div>
+
+                     <div id="ai-response-panel" class="hidden bg-gray-900/50 border-2 border-dashed border-blue-500/50 p-4 rounded-lg mb-6">
+                        <h3 class="text-lg font-semibold text-blue-400 mb-2">AI Suggestion</h3>
+                        <div id="ai-response-content" contenteditable="true" class="w-full min-h-[150px] p-4 bg-gray-800 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 overflow-y-auto"></div>
+                        <div class="flex gap-2 mt-3 justify-end">
+                            <button id="copy-ai-response-btn" class="py-2 px-4 rounded-lg font-semibold btn-primary">Copy</button>
+                            <button id="dismiss-ai-response-btn" class="py-2 px-4 rounded-lg font-semibold btn-secondary">Close</button>
+                        </div>
+                    </div>
+
                     <div class="bg-gray-800 rounded-lg shadow-lg">
                         <!-- Tab Buttons -->
                         <div class="flex border-b border-gray-700 justify-between items-center">
@@ -309,31 +334,6 @@
                 
                         <!-- Tab Content -->
                         <div id="work-panel" class="p-6">
-                            <div id="ai-action-bar" class="hidden bg-gray-700/50 p-2 rounded-lg flex items-center gap-4 mb-4">
-                                <span class="text-sm font-semibold text-gray-300">AI Toolkit:</span>
-                                <div id="ai-toolbar-buttons" class="flex items-center gap-2">
-                                    <button class="ai-toolbar-btn" id="ai-expand-btn">Expand</button>
-                                    <button class="ai-toolbar-btn" id="ai-rewrite-btn">Rewrite</button>
-                                    <div id="ai-custom-prompt-container" class="hidden items-center gap-2">
-                                        <input type="text" id="ai-toolbar-prompt" placeholder="Your prompt...">
-                                        <button class="ai-toolbar-btn" id="ai-custom-submit-btn">Submit</button>
-                                    </div>
-                                    <button class="ai-toolbar-btn" id="ai-ask-btn">Ask AI...</button>
-                                </div>
-                                <div id="ai-toolbar-loader" class="hidden">
-                                    <div class="loader" style="width: 24px; height: 24px; border-width: 2px; margin: 0.5rem;"></div>
-                                </div>
-                            </div>
-
-                             <div id="ai-response-panel" class="hidden bg-gray-900/50 border-2 border-dashed border-blue-500/50 p-4 rounded-lg mb-6">
-                                <h3 class="text-lg font-semibold text-blue-400 mb-2">AI Suggestion</h3>
-                                <div id="ai-response-content" contenteditable="true" class="w-full min-h-[150px] p-4 bg-gray-800 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 overflow-y-auto"></div>
-                                <div class="flex gap-2 mt-3 justify-end">
-                                    <button id="copy-ai-response-btn" class="py-2 px-4 rounded-lg font-semibold btn-primary">Copy</button>
-                                    <button id="dismiss-ai-response-btn" class="py-2 px-4 rounded-lg font-semibold btn-secondary">Close</button>
-                                </div>
-                            </div>
-
                             <h2 class="text-2xl font-semibold mb-4 text-white">Your Story</h2>
                             <p class="text-sm text-gray-400 mb-4">Write your story below. Select any text to activate the AI toolkit.</p>
                             <div id="main-editor" contenteditable="true" class="relative w-full min-h-[70vh] p-4 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 overflow-y-auto" aria-label="Main story editor"></div>
@@ -1419,7 +1419,7 @@
         mainEditor.addEventListener('mouseup', handleTextSelection);
         mainEditor.addEventListener('keyup', handleTextSelection);
         document.addEventListener('mousedown', (e) => {
-            if (!aiActionBar.contains(e.target) && !mainEditor.contains(e.target)) {
+            if (!aiActionBar.contains(e.target) && !mainEditor.contains(e.target) && !aiResponsePanel.contains(e.target)) {
                 hideAiToolbar();
             }
         });
