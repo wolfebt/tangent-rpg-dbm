@@ -121,9 +121,53 @@
             background-color: #374151;
             color: white;
         }
+        #ai-toolbar {
+            position: absolute;
+            z-index: 10;
+            background-color: #1f2937;
+            border: 1px solid #4b5563;
+            border-radius: 0.5rem;
+            padding: 0.25rem;
+            display: flex;
+            gap: 0.25rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: opacity 0.2s, transform 0.2s;
+        }
+        .ai-toolbar-btn {
+            background-color: transparent;
+            border: none;
+            color: #d1d5db;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: background-color 0.2s;
+        }
+        .ai-toolbar-btn:hover {
+            background-color: #374151;
+        }
+        #ai-toolbar-prompt {
+            background-color: #374151;
+            border: 1px solid #4b5563;
+            color: white;
+            border-radius: 0.375rem;
+            padding: 0.5rem;
+            outline: none;
+        }
     </style>
 </head>
 <body class="antialiased">
+
+    <div id="ai-toolbar" class="hidden" style="opacity: 0; transform: translateY(10px);">
+        <button class="ai-toolbar-btn" id="ai-expand-btn">Expand</button>
+        <button class="ai-toolbar-btn" id="ai-rewrite-btn">Rewrite</button>
+        <div id="ai-custom-prompt-container" class="hidden items-center gap-2">
+            <input type="text" id="ai-toolbar-prompt" placeholder="Your prompt...">
+            <button class="ai-toolbar-btn" id="ai-custom-submit-btn">Submit</button>
+        </div>
+        <button class="ai-toolbar-btn" id="ai-ask-btn">Ask AI...</button>
+    </div>
 
     <div class="container mx-auto max-w-screen-xl p-4 sm:p-6 lg:p-8">
         <header class="text-center mb-8">
@@ -158,7 +202,7 @@
 
                 <div class="bg-gray-900/50 border border-gray-700 rounded-lg p-4">
                     <h2 class="text-xl font-bold mb-4 text-blue-400">Story Assets</h2>
-                    <p class="text-sm text-gray-400 mb-4">Load JSON and Image files to provide context for the AI.</p>
+                    <p class="text-sm text-gray-400 mb-4">Load JSON, Text, and Image files to provide context for the AI.</p>
                     <button id="load-asset-btn" class="w-full py-2 px-4 rounded-lg font-semibold btn-secondary mb-4">Load Asset(s)</button>
                     <input type="file" id="asset-file-input" class="hidden" accept=".json,.txt,image/*" multiple>
                     
@@ -274,8 +318,8 @@
                 <div id="write" class="stage">
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <div class="lg:col-span-1 bg-gray-800 p-4 rounded-lg shadow-lg h-fit sticky top-8">
-                            <h3 class="text-xl font-semibold mb-2 text-white">Treatment Reference</h3>
-                            <p class="text-sm text-gray-400 mb-4">Select text from your treatment below to use it as a basis for generation in the AI Assistant.</p>
+                            <h3 class="text-xl font-semibold mb-2 text-white">Reference Panel</h3>
+                             <p class="text-sm text-gray-400 mb-4">You can use this area to see your Treatment or other reference material while you write.</p>
                             <div id="write-treatment-reference" class="p-4 bg-gray-900 border border-gray-700 rounded-lg text-gray-300 max-h-[70vh] overflow-y-auto prose prose-invert max-w-none text-sm">
                                 <span class="text-gray-500">Your generated treatment will appear here once created.</span>
                             </div>
@@ -283,26 +327,9 @@
                         
                         <div class="lg:col-span-2 space-y-8">
                             <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-                                <h3 class="text-xl font-semibold mb-2 text-white">AI Writing Assistant</h3>
-                                <p class="text-gray-400 mb-6">Use the tools below to expand upon your treatment and write your story in the editor.</p>
-                                
-                                <label class="block text-sm font-medium text-gray-400 mb-2">Source Text for AI</label>
-                                <div id="selected-treatment-text" contenteditable="true" class="editable-area p-3 mb-4 bg-gray-900 border-2 border-gray-700 rounded-lg text-gray-300 min-h-[4rem] max-h-32 overflow-y-auto text-sm">
-                                    <span class="text-gray-500">(Select text from Treatment Reference, or type/paste your own source text here)</span>
-                                </div>
-                
-                                <label for="writing-guidance-input" class="block text-sm font-medium text-gray-400 mb-2">Primary Prompt / Request</label>
-                                <textarea id="writing-guidance-input" class="w-full h-24 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., 'Expand this into a full scene with dialogue.', 'Rewrite this from the villain's perspective.'"></textarea>
-                                
-                                <label for="writing-secondary-guidance" class="block text-sm font-medium text-gray-400 mb-2 mt-4">Secondary Guidance (Optional)</label>
-                                <textarea id="writing-secondary-guidance" class="w-full h-24 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., 'Make the tone more suspenseful', 'Keep the sentences short and punchy'"></textarea>
-        
-                                <button id="generate-writing-btn" class="mt-4 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Text</button>
-                                <div id="writing-loader" class="hidden mt-4"><div class="loader"></div></div>
-                            </div>
-                            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
                                 <h2 class="text-2xl font-semibold mb-4 text-white">Your Story</h2>
-                                <div id="main-editor" contenteditable="true" class="w-full min-h-[50vh] p-4 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 overflow-y-auto" aria-label="Main story editor"></div>
+                                <p class="text-sm text-gray-400 mb-4">Write your story below. Select any text to activate the in-line AI assistant.</p>
+                                <div id="main-editor" contenteditable="true" class="w-full min-h-[70vh] p-4 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 overflow-y-auto" aria-label="Main story editor"></div>
                             </div>
                         </div>
                     </div>
@@ -424,7 +451,7 @@
             storyOutline: '',
             storyTreatment: '',
             writingFormat: 'Novel / Book Chapter',
-            assets: []
+            assets: [],
         };
 
         const projectTitleEl = document.getElementById('project-title');
@@ -447,7 +474,7 @@
         const saveApiKeyBtn = document.getElementById('save-api-key-btn');
         const navButtons = document.querySelectorAll('.nav-btn-side');
         const stages = document.querySelectorAll('.stage');
-        const loaders = { ideas: document.getElementById('ideas-loader'), outline: document.getElementById('outline-loader'), treatment: document.getElementById('treatment-loader'), writing: document.getElementById('writing-loader') };
+        const loaders = { ideas: document.getElementById('ideas-loader'), outline: document.getElementById('outline-loader'), treatment: document.getElementById('treatment-loader') };
         const brainstormTypeSelect = document.getElementById('brainstorm-type-select');
         const brainstormInput = document.getElementById('brainstorm-input');
         const generateIdeasBtn = document.getElementById('generate-ideas-btn');
@@ -472,9 +499,6 @@
         const otherTreatmentInput = document.getElementById('other-treatment-input');
         const outlineSecondaryGuidance = document.getElementById('outline-secondary-guidance');
         const treatmentSecondaryGuidance = document.getElementById('treatment-secondary-guidance');
-        const writingGuidanceInput = document.getElementById('writing-guidance-input');
-        const writingSecondaryGuidance = document.getElementById('writing-secondary-guidance');
-        const generateWritingBtn = document.getElementById('generate-writing-btn');
         const generateStoryboardBtn = document.getElementById('generate-storyboard-btn');
         const storyboardDescription = document.getElementById('storyboard-description');
         const storyboardPanels = document.getElementById('storyboard-panels');
@@ -485,8 +509,18 @@
         const loadStoryToStoryboardBtn = document.getElementById('load-story-to-storyboard');
         const storyboardSecondaryGuidance = document.getElementById('storyboard-secondary-guidance');
         const writeTreatmentReference = document.getElementById('write-treatment-reference');
-        const selectedTreatmentText = document.getElementById('selected-treatment-text');
         
+        // New AI Toolbar elements
+        const aiToolbar = document.getElementById('ai-toolbar');
+        const aiExpandBtn = document.getElementById('ai-expand-btn');
+        const aiRewriteBtn = document.getElementById('ai-rewrite-btn');
+        const aiAskBtn = document.getElementById('ai-ask-btn');
+        const aiCustomPromptContainer = document.getElementById('ai-custom-prompt-container');
+        const aiToolbarPrompt = document.getElementById('ai-toolbar-prompt');
+        const aiCustomSubmitBtn = document.getElementById('ai-custom-submit-btn');
+        let userSelection = null;
+
+
         function showStatus(message, isError = false) {
             statusMessage.textContent = message;
             statusMessage.style.color = isError ? '#ef4444' : '#9ca3af';
@@ -526,7 +560,7 @@
                  outlineOutput.innerHTML = '';
             }
 
-                if (state.storyTreatment) {
+            if (state.storyTreatment) {
                 const formatted = cleanAndFormat(state.storyTreatment);
                 treatmentOutput.innerHTML = `<div class="bg-gray-900 p-6 rounded-lg shadow-inner"><div class="prose prose-invert max-w-none">${formatted}</div></div><button id="use-treatment-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Start Writing →</button>`;
                 writeTreatmentReference.innerHTML = formatted;
@@ -774,7 +808,7 @@
             }); 
         }
 
-        async function callGeminiAPI(prompt, loaderElement) {
+        async function callGeminiAPI(prompt) {
             const apiKey = localStorage.getItem('geminiApiKey');
             if (!apiKey) {
                 showStatus("API Key is missing. Please add it in Settings.", true);
@@ -782,7 +816,6 @@
                 return "Error: API Key is missing. Please add it in the settings menu (gear icon).";
             }
 
-            loaderElement.style.display = 'block';
             try {
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
                 const payload = { contents: [{ parts: [{ text: prompt }] }] };
@@ -793,8 +826,6 @@
             } catch(e) {
                 console.error(e);
                 return "Error: Could not generate content. Please try again.";
-            } finally {
-                loaderElement.style.display = 'none';
             }
         }
 
@@ -994,7 +1025,7 @@
 
             storyboardLoader.querySelector('p').textContent = 'Generating visual consistency seed...';
             const seedPrompt = `Based on the following scene description, assets, and guidance, create a concise "Visual Style Guide" for an AI image generator. This guide should be a comma-separated list of key visual descriptors to ensure consistency across multiple images. Include defining features of characters, clothing, setting, and overall mood.\n\n**CONTEXT:**\n${assetContext}\n${description}\n${guidanceText}`;
-            const visualSeed = await callGeminiAPI(seedPrompt, storyboardLoader.querySelector('.loader'));
+            const visualSeed = await callGeminiAPI(seedPrompt);
             
             if (!visualSeed || visualSeed.startsWith("Error:")) {
                 showStatus(visualSeed || "Failed to generate visual seed.", true);
@@ -1006,7 +1037,7 @@
             storyboardLoader.querySelector('p').textContent = 'Generating panel descriptions...';
             const panelPrompt = `You are a film director. Based on the following scene description, break it down into ${numPanels} distinct, chronological storyboard panels. For each panel, provide a concise, visual-only description suitable for an AI image generator. Focus on camera angles (e.g., wide shot, close-up), character actions, and key visual elements. Do not describe sounds or dialogue. Format the output with each panel description separated by a line containing only '---'.\n\n**Scene:**\n${description}`;
 
-            const panelDescriptionsText = await callGeminiAPI(panelPrompt, storyboardLoader.querySelector('.loader'));
+            const panelDescriptionsText = await callGeminiAPI(panelPrompt);
             
             if (!panelDescriptionsText || panelDescriptionsText.startsWith("Error:")) {
                 showStatus(panelDescriptionsText || "Failed to generate panel descriptions.", true);
@@ -1288,64 +1319,6 @@
             } 
         });
         
-        writeTreatmentReference.addEventListener('mouseup', () => {
-            const selection = window.getSelection().toString().trim();
-            if (selection) {
-                selectedTreatmentText.textContent = selection;
-            }
-        });
-
-        generateWritingBtn.addEventListener('click', async () => {
-            const primaryPrompt = writingGuidanceInput.value.trim();
-            const sourceText = htmlToText(selectedTreatmentText.innerHTML).trim();
-
-            if (!primaryPrompt) { 
-                showStatus("Please enter a primary prompt.", true); 
-                return; 
-            }
-            if (!sourceText || sourceText === '(Select text from Treatment Reference, or type/paste your own source text here)') {
-                showStatus("Please provide source text in the box before generating.", true);
-                return;
-            }
-            
-            const assetContext = getAssetContextForAI();
-            const format = state.writingFormat;
-            const role = format.includes("Screenplay") ? "screenwriter" : "novelist";
-            const currentStoryText = mainEditor.innerText;
-            
-            const secondaryGuidance = writingSecondaryGuidance.value.trim();
-            const guidanceText = secondaryGuidance ? `\n\n**Secondary Guidance:**\n${secondaryGuidance}` : '';
-
-            const prompt = `${assetContext}You are a talented ${role}. 
-            Your main task is to write a scene or section for a **${format}**.
-            
-            **Primary Source Text:** "${sourceText}"
-
-            **User Request:**
-            "${primaryPrompt}"
-            ${guidanceText}
-
-            **Overall Story Context (what has been written so far):**
-            ${currentStoryText}
-            ---
-            Based on all the above information, generate the requested text. Ensure it is correctly formatted for a ${format}. Do not repeat the prompts or context. Provide only the new, generated text.`;
-            
-            const generatedText = await callGeminiAPI(prompt, loaders.writing);
-            if (generatedText.startsWith("Error:")) { showStatus(generatedText, true); return; }
-            const formattedText = cleanAndFormat(generatedText);
-            
-            const contentNode = document.createElement('div');
-            contentNode.innerHTML = `<br><hr class="border-gray-600 my-4"><br>${formattedText}<br>`;
-            mainEditor.appendChild(contentNode);
-
-            mainEditor.scrollTop = mainEditor.scrollHeight;
-
-            writingGuidanceInput.value = '';
-            writingSecondaryGuidance.value = '';
-            selectedTreatmentText.innerHTML = '<span class="text-gray-500">(Select text from Treatment Reference, or type/paste your own source text here)</span>';
-            saveStateToLocalStorage();
-        });
-        
         loadTreatmentToStoryboardBtn.addEventListener('click', () => {
             if (state.storyTreatment) {
                 storyboardDescription.value = htmlToText(state.storyTreatment);
@@ -1408,13 +1381,157 @@
             saveStateToLocalStorage();
         });
         mainEditor.addEventListener('input', saveStateToLocalStorage);
+
+        // --- New AI Toolbar Logic ---
+
+        mainEditor.addEventListener('mouseup', handleTextSelection);
+        mainEditor.addEventListener('keyup', handleTextSelection);
+        document.addEventListener('mousedown', (e) => {
+            if (!mainEditor.contains(e.target) && !aiToolbar.contains(e.target)) {
+                hideAiToolbar();
+            }
+        });
+
+        function handleTextSelection() {
+            const selection = window.getSelection();
+            const selectedText = selection.toString().trim();
+
+            if (selectedText.length > 0 && mainEditor.contains(selection.anchorNode)) {
+                userSelection = selection.getRangeAt(0).cloneRange();
+                const rect = userSelection.getBoundingClientRect();
+                positionAiToolbar(rect);
+                showAiToolbar();
+            } else {
+                hideAiToolbar();
+            }
+        }
         
+        function positionAiToolbar(rect) {
+            const editorRect = mainEditor.getBoundingClientRect();
+            let top = rect.top - editorRect.top + mainEditor.scrollTop - aiToolbar.offsetHeight - 8;
+            let left = rect.left - editorRect.left + mainEditor.scrollLeft + (rect.width / 2) - (aiToolbar.offsetWidth / 2);
+
+            // Boundary checks
+            if (top < mainEditor.scrollTop) {
+                top = rect.bottom - editorRect.top + mainEditor.scrollTop + 8;
+            }
+            if (left < mainEditor.scrollLeft) {
+                left = mainEditor.scrollLeft + 4;
+            }
+            if (left + aiToolbar.offsetWidth > mainEditor.scrollLeft + mainEditor.clientWidth) {
+                left = mainEditor.scrollLeft + mainEditor.clientWidth - aiToolbar.offsetWidth - 4;
+            }
+            
+            aiToolbar.style.top = `${top}px`;
+            aiToolbar.style.left = `${left}px`;
+        }
+        
+        function showAiToolbar() {
+            aiToolbar.classList.remove('hidden');
+            setTimeout(() => {
+                aiToolbar.style.opacity = '1';
+                aiToolbar.style.transform = 'translateY(0)';
+            }, 10);
+        }
+
+        function hideAiToolbar() {
+            userSelection = null;
+            aiToolbar.style.opacity = '0';
+            aiToolbar.style.transform = 'translateY(10px)';
+            setTimeout(() => {
+                aiToolbar.classList.add('hidden');
+                // Reset custom prompt UI
+                aiCustomPromptContainer.classList.add('hidden');
+                aiAskBtn.classList.remove('hidden');
+                aiExpandBtn.classList.remove('hidden');
+                aiRewriteBtn.classList.remove('hidden');
+            }, 200);
+        }
+
+        async function performAiAction(action, customPrompt = '') {
+            if (!userSelection) return;
+
+            const selectedText = userSelection.toString();
+            showStatus(`AI is working...`);
+
+            const assetContext = getAssetContextForAI();
+            const fullStoryContext = mainEditor.innerText;
+            const format = state.writingFormat;
+            const role = format.includes("Screenplay") ? "screenwriter" : "novelist";
+
+            let prompt;
+            if (action === 'expand') {
+                prompt = `${assetContext}You are a talented ${role}. Your task is to expand upon the following text, adding more detail, description, or dialogue as appropriate for a **${format}**.
+                **Original Text:** "${selectedText}"
+                **Full Story Context (for reference):** "${fullStoryContext}"
+                ---
+                Generate only the new, expanded version of the text.`;
+            } else if (action === 'rewrite') {
+                 prompt = `${assetContext}You are a talented ${role}. Your task is to rewrite the following text for a **${format}**.
+                **Original Text:** "${selectedText}"
+                **Full Story Context (for reference):** "${fullStoryContext}"
+                ---
+                Generate only the new, rewritten version of the text.`;
+            } else if (action === 'custom') {
+                prompt = `${assetContext}You are a talented ${role}. Your task is to modify the following text based on the user's request, for a **${format}**.
+                **User Request:** "${customPrompt}"
+                **Original Text:** "${selectedText}"
+                **Full Story Context (for reference):** "${fullStoryContext}"
+                ---
+                Generate only the resulting text based on the request.`;
+            }
+
+            const generatedText = await callGeminiAPI(prompt);
+            hideAiToolbar();
+
+            if (generatedText && !generatedText.startsWith("Error:")) {
+                const formattedText = cleanAndFormat(generatedText.trim());
+                window.getSelection().removeAllRanges();
+                window.getSelection().addRange(userSelection);
+                
+                if (action === 'expand') {
+                     document.execCommand('insertHTML', false, selectedText + ' ' + formattedText);
+                } else { // Rewrite and Custom
+                    document.execCommand('insertHTML', false, formattedText);
+                }
+                showStatus("Text updated by AI.");
+            } else {
+                showStatus(generatedText || "AI failed to generate text.", true);
+            }
+            saveStateToLocalStorage();
+        }
+
+        aiExpandBtn.addEventListener('click', () => performAiAction('expand'));
+        aiRewriteBtn.addEventListener('click', () => performAiAction('rewrite'));
+
+        aiAskBtn.addEventListener('click', () => {
+            aiCustomPromptContainer.classList.remove('hidden');
+            aiCustomPromptContainer.style.display = 'flex';
+            aiAskBtn.classList.add('hidden');
+            aiExpandBtn.classList.add('hidden');
+            aiRewriteBtn.classList.add('hidden');
+            aiToolbarPrompt.focus();
+        });
+        
+        aiCustomSubmitBtn.addEventListener('click', () => {
+            const prompt = aiToolbarPrompt.value.trim();
+            if (prompt) {
+                performAiAction('custom', prompt);
+                aiToolbarPrompt.value = '';
+            }
+        });
+        
+        aiToolbarPrompt.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                aiCustomSubmitBtn.click();
+            }
+        });
+
         loadApiKey();
         loadStateFromLocalStorage();
 
     </script>
 </body>
 </html>
-
-
 
