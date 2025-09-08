@@ -198,7 +198,7 @@
                 <div id="brainstorm" class="stage active">
                     <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
                         <h2 class="text-2xl font-semibold mb-2 text-white">Creative Brainstorming</h2>
-                        <p class="text-gray-400 mb-6">Start your creative process here. Choose a concept type, provide a theme or idea, and let the AI generate a list of unique concepts to spark your imagination.</p>
+                        <p class="text-gray-400 mb-6">Kickstart your creativity. Select what you want to brainstorm (like 'Characters' or 'Plot Twists'), give the AI a theme (e.g., 'a detective in a cyberpunk city'), and it will generate unique, detailed concepts to build upon.</p>
                         <label for="brainstorm-type-select" class="block text-sm font-medium text-gray-400 mb-2">I want to brainstorm...</label>
                         <select id="brainstorm-type-select" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 mb-4">
                             <optgroup label="Story Writing">
@@ -231,7 +231,7 @@
                 <div id="outline" class="stage">
                         <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
                             <h2 class="text-2xl font-semibold mb-2 text-white">Create a Story Outline</h2>
-                            <p class="text-gray-400 mb-6">Structure your narrative. Bring in a concept from the previous stage or paste your own, then select a narrative framework to build a detailed, actionable outline.</p>
+                            <p class="text-gray-400 mb-6">Give your story a backbone. Your chosen concept from the Brainstorm stage will appear below, but you can also type or paste your own. Choose a classic narrative structure (like the 'Three-Act Structure') and the AI will build a detailed roadmap for your story. Use 'Secondary Guidance' to add specific instructions, like 'make sure the protagonist has a secret'.</p>
                             <label for="outline-structure" class="block text-sm font-medium text-gray-400 mb-2">Select an outline structure:</label>
                             <select id="outline-structure" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 mb-4">
                                 <optgroup label="Classic Structures">
@@ -265,7 +265,7 @@
                 <div id="treatment" class="stage">
                     <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
                         <h2 class="text-2xl font-semibold mb-2 text-white">Develop a Story Treatment</h2>
-                        <p class="text-gray-400 mb-6">Flesh out your story. Use your outline to generate a prose summary of the narrative, describing key scenes, character actions, and emotional arcs.</p>
+                        <p class="text-gray-400 mb-6">Bring your outline to life. A 'treatment' is a prose summary of your entire story, like a detailed short story. It helps you understand the flow and key moments before you start writing scenes. Your outline will be loaded automatically. Tell the AI the final format (e.g., 'Novel Chapter', 'Screenplay') to get a treatment tailored to your goal.</p>
                         <label for="treatment-format-select" class="block text-sm font-medium text-gray-400 mb-2">What is the final format of this story?</label>
                             <select id="treatment-format-select" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 mb-4">
                                 <optgroup label="Prose & Narrative">
@@ -335,7 +335,7 @@
                         <!-- Tab Content -->
                         <div id="work-panel" class="p-6">
                             <h2 class="text-2xl font-semibold mb-4 text-white">Your Story</h2>
-                            <p class="text-sm text-gray-400 mb-4">Write your story below. Select any text to activate the AI toolkit.</p>
+                            <p class="text-sm text-gray-400 mb-4">This is your main writing space. Write freely, and when you need assistance, simply highlight any text. The AI Toolkit will appear at the top, allowing you to expand, rewrite, or give custom instructions for the selected passage. AI suggestions will appear in a separate panel for you to review, edit, and copy.</p>
                             <div id="main-editor" contenteditable="true" class="relative w-full min-h-[70vh] p-4 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 overflow-y-auto" aria-label="Main story editor"></div>
                         </div>
                         <div id="reference-panel" class="p-6 hidden">
@@ -351,7 +351,7 @@
                 <div id="storyboard" class="stage">
                     <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
                         <h2 class="text-2xl font-semibold mb-2 text-white">Create a Storyboard</h2>
-                        <p class="text-gray-400 mb-6">Visualize your scenes. Load content from your treatment or story, and the AI will break it down into key visual moments and generate storyboard panels.</p>
+                        <p class="text-gray-400 mb-6">Turn your words into images. Paste a scene description from your story or treatment into the box below. The AI will first act as a director, breaking your scene into key shots. Then, it will generate a unique image for each shot, creating a visual storyboard to help you picture the action.</p>
                         <div class="flex space-x-2 mb-4">
                             <button id="load-treatment-to-storyboard" class="flex-1 py-2 px-4 text-sm rounded-lg font-semibold btn-secondary">Load from Treatment</button>
                             <button id="load-story-to-storyboard" class="flex-1 py-2 px-4 text-sm rounded-lg font-semibold btn-secondary">Load from Story</button>
@@ -1594,5 +1594,6 @@
     </script>
 </body>
 </html>
+
 
 
