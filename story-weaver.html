@@ -1484,11 +1484,11 @@
 
             let prompt;
             if (action === 'expand') {
-                prompt = `${assetContext}You are a talented ${role}. Your task is to expand upon the following text, adding more detail, description, or dialogue as appropriate for a **${format}**.
+                prompt = `${assetContext}You are a talented ${role}. Your task is to expand upon the following text, adding more detail, description, or dialogue as appropriate for a **${format}**. Seamlessly integrate the original ideas into a new, more detailed version.
                 **Original Text:** "${selectedText}"
                 **Full Story Context (for reference):** "${fullStoryContext}"
                 ---
-                Generate only the new, expanded version of the text. Do not repeat the original text in your response.`;
+                Generate only the new, complete, expanded version of the text.`;
             } else if (action === 'rewrite') {
                  prompt = `${assetContext}You are a talented ${role}. Your task is to rewrite the following text for a **${format}**.
                 **Original Text:** "${selectedText}"
@@ -1512,13 +1512,7 @@
                 window.getSelection().removeAllRanges();
                 window.getSelection().addRange(userSelection);
                 
-                let finalHtml;
-                if (action === 'expand') {
-                    // Re-insert original text, plus the highlighted new text
-                    finalHtml = selectedText + ` <span class="ai-enhanced">${formattedText}</span>`;
-                } else { // Rewrite and Custom replace the original text entirely
-                    finalHtml = `<span class="ai-enhanced">${formattedText}</span>`;
-                }
+                const finalHtml = `<span class="ai-enhanced">${formattedText}</span>`;
                 document.execCommand('insertHTML', false, finalHtml);
                 showStatus("Text updated by AI.");
             } else {
@@ -1581,4 +1575,5 @@
     </script>
 </body>
 </html>
+
 
