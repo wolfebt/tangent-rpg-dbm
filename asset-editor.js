@@ -1,707 +1,256 @@
-/* General Styles */
-body {
-    font-family: 'Trebuchet MS', sans-serif;
-    overflow: hidden;
-    background-color: #1f2937; /* bg-gray-800 */
-    color: #d1d5db; /* text-gray-300 */
-    display: flex;
-}
+// Version 13.4 - Wrapped in DOMContentLoaded to prevent race conditions
+import { addNewAsset, showToast } from './state.js';
+import * as state from './state.js';
 
-#main-container {
-    display: flex;
-    width: 100vw;
-    height: 100vh;
-    position: relative;
-}
+document.addEventListener('DOMContentLoaded', () => {
+    // --- DOM ELEMENTS ---
+    const assetEditorOverlay = document.getElementById('asset-editor-overlay');
+    const assetTypeSelect = document.getElementById('asset-type-select');
+    const previewPanel = document.getElementById('asset-preview-panel');
+    const mainCanvas = document.getElementById('asset-canvas-main');
+    const drawCanvas = document.getElementById('asset-canvas-draw');
+    const previewCanvas = document.getElementById('asset-preview-canvas');
+    const generateBtn = document.getElementById('asset-generate-btn');
+    const promptInput = document.getElementById('asset-prompt');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const exportBtn = document.getElementById('asset-export-btn');
+    const assetNameInput = document.getElementById('asset-name');
+    const assetTagsInput = document.getElementById('asset-tags');
+    const toolBtns = document.querySelectorAll('.asset-tool');
+    const colorPicker = document.getElementById('asset-color-picker');
+    const brushSizeSlider = document.getElementById('asset-brush-size');
+    const brushSizeValue = document.getElementById('asset-brush-size-value');
+    const closeBtn = document.getElementById('asset-editor-close-btn');
 
-/* --- Custom Scrollbar Styles --- */
-::-webkit-scrollbar {
-    width: 12px;
-}
+    // --- STATE ---
+    let mainCtx = mainCanvas.getContext('2d');
+    let drawCtx = drawCanvas.getContext('2d');
+    let previewCtx = previewCanvas.getContext('2d');
+    let currentTool = 'pencil';
+    let brushSize = 5;
+    let brushColor = '#FFFFFF';
+    let isDrawing = false;
+    let lastPos = { x: 0, y: 0 };
 
-::-webkit-scrollbar-track {
-    background: #1f2937; /* bg-gray-800 */
-}
+    // --- FUNCTIONS ---
 
-::-webkit-scrollbar-thumb {
-    background-color: #4b5563; /* bg-gray-600 */
-    border-radius: 20px;
-    border: 3px solid #1f2937; /* bg-gray-800 */
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background-color: #6b7280; /* bg-gray-500 */
-}
-
-
-/* Top Right Controls */
-#topRightControls {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    z-index: 20;
-    background-color: rgba(17, 24, 39, 0.8); /* bg-gray-900 with opacity */
-    backdrop-filter: blur(4px);
-    padding: 0.75rem;
-    border-radius: 0.5rem;
-    border: 1px solid #374151;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-#topRightControls input {
-    background-color: transparent;
-    border: none;
-    border-bottom: 2px solid #4b5563; /* border-gray-600 */
-    padding: 0.25rem 0.1rem;
-    color: #f9fafb; /* text-gray-50 */
-    transition: border-color 0.2s;
-}
- #topRightControls input:focus {
-    outline: none;
-    border-bottom-color: #3b82f6; /* border-blue-500 */
-}
- #topRightControls label {
-     font-size: 0.75rem;
-     color: #9ca3af; /* text-gray-400 */
-     margin-bottom: 0.1rem;
-     display: block;
- }
-
-
-/* Canvas Styles */
-#canvas-container {
-    flex-grow: 1;
-    position: relative;
-    height: 100%;
-    overflow: hidden; /* Keep bottom panel contained */
-}
-#mapCanvas, #wallCanvas, #fogCanvas, #drawingCanvas, #maskCanvas, #lightCanvas {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-}
-#wallCanvas {
-    z-index: 2;
-    pointer-events: none;
-}
-#lightCanvas {
-    z-index: 4;
-    pointer-events: none;
-    mix-blend-mode: screen; /* Or other blend modes for cool effects */
-}
-#fogCanvas {
-    z-index: 15;
-    pointer-events: none;
-}
-#maskCanvas {
-    z-index: 5;
-    pointer-events: none;
-}
-#drawingCanvas {
-     z-index: 10; 
-     pointer-events: none;
-}
-#mapCanvas {
-    cursor: crosshair;
-    background-color: #374151; /* bg-gray-700 */
-}
-#mapCanvas.panning {
-    cursor: grab;
-}
-#mapCanvas.pencil {
-    cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 20h9'/><path d='M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z'/></svg>") 0 24, auto;
-}
-#mapCanvas.wall-drawing {
-    cursor: crosshair;
-}
-#mapCanvas.token-placement {
-    cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10' /><circle cx='12' cy='12' r='4' /></svg>") 12 12, auto;
-}
-#mapCanvas.interact {
-    cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M15 15l-4 4l-4-4'/><path d='M15 9l-4-4l-4 4'/></svg>") 12 12, auto;
-}
-#mapCanvas.fogging {
-    cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='rgba(255,255,255,0.5)' stroke='white' stroke-width='1'><circle cx='12' cy='12' r='10'/></svg>") 12 12, auto;
-}
-#mapCanvas.selecting {
-    cursor: crosshair;
-}
-
-/* Control Panel Styles */
-#panelWrapper {
-    width: var(--panel-width, 20rem); /* Default width, can be changed by JS */
-    min-width: 250px;
-    max-width: 50vw;
-    height: 100vh;
-    display: flex;
-    transition: min-width 0.3s ease-in-out; /* Smooth transition for collapse */
-    flex-shrink: 0;
-    overflow: hidden;
-}
-#panelWrapper.closed {
-    min-width: 0;
-    width: 0;
-}
-
-.control-container {
-    background-color: #111827; /* bg-gray-900 */
-    color: #d1d5db; /* text-gray-300 */
-    width: 100%;
-    height: 100%;
-    flex-shrink: 0;
-    overflow: hidden; /* Hide content when panel is collapsing */
-}
-
-/* Resizer Handle */
-.resizer {
-    width: 5px;
-    cursor: col-resize;
-    background-color: #374151; /* bg-gray-700 */
-    height: 100%;
-    flex-shrink: 0;
-    transition: background-color 0.2s;
-}
-.resizer:hover {
-    background-color: #4b5563; /* bg-gray-600 */
-}
-
-
-.control-panel {
-    background-color: #1f2937; /* bg-gray-800 */
-    border: 1px solid #374151; /* border-gray-700 */
-    padding: 1rem;
-    border-radius: 0.5rem;
-}
-.control-panel h3 {
-    font-weight: 700;
-    margin-bottom: 0;
-    color: #f9fafb; /* text-gray-50 */
-}
-.collapsible-header {
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid #374151;
-    padding-bottom: 0.5rem;
-    transition: background-color 0.2s;
-}
-.collapsible-header.active {
-     background-color: #3b82f6;
-}
-.collapsible-header svg {
-    transition: transform 0.3s;
-}
-.collapsible-header.collapsed svg {
-     transform: rotate(-90deg);
-}
-.collapsible-content {
-     padding-top: 0.75rem;
-}
-.collapsible-content.hidden {
-    display: none;
-}
-
-.control-panel label {
-    font-weight: 500;
-    margin-bottom: 0.25rem;
-    display: block;
-}
-.control-panel input[type="range"] {
-    -webkit-appearance: none; appearance: none;
-    width: 100%; height: 8px; background: #4b5563; border-radius: 5px;
-    outline: none; opacity: 0.7; transition: opacity .2s;
-}
-.control-panel input[type="range"]:hover { opacity: 1; }
-.control-panel input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none; appearance: none; width: 20px; height: 20px;
-    background: #3b82f6; cursor: pointer; border-radius: 50%;
-}
-.control-panel input[type="range"]::-moz-range-thumb {
-    width: 20px; height: 20px; background: #3b82f6; cursor: pointer; border-radius: 50%;
-}
-
-.control-panel select, .control-panel button, .control-panel input[type="number"],
-.control-panel input[type="text"], .control-panel textarea, .control-panel input[type="color"] {
-    width: 100%; padding: 0.5rem; border-radius: 0.375rem; border: 1px solid #4b5563;
-    background-color: #374151; color: #f9fafb; margin-bottom: 0.75rem; transition: all 0.2s;
-}
-.control-panel textarea { min-height: 80px; }
-.control-panel input[type="color"] { padding: 0.25rem; }
-.control-panel button {
-    display: flex; align-items: center; justify-content: center;
-}
-.control-panel button:hover { background-color: #4b5563; }
-
-.control-panel button:disabled {
-    background-color: #4b5563;
-    cursor: not-allowed;
-    opacity: 0.5;
-}
-
-/* --- ACTIVE STATE HIGHLIGHTING --- */
-.control-panel button.active, .tool-btn.active {
-    background-color: #3b82f6 !important; /* blue-500 */
-    color: #f9fafb !important; /* gray-50 */
-    box-shadow: 0 0 0 2px #111827, 0 0 0 4px #3b82f6;
-    outline: none;
-}
-/* Style for active GM View button */
-#gmViewToggleBtn.gm-active {
-    color: #60a5fa; /* blue-400 */
-}
-.item-container.active {
-     border-color: #60a5fa !important; /* blue-400 */
-     background-color: #374151 !important; /* gray-700 */
-     box-shadow: 0 0 10px rgba(96, 165, 250, 0.5);
-}
-.layer-item.active {
-     border-color: #3b82f6 !important; /* blue-500 */
-     background-color: #374151 !important; /* gray-700 */
-}
-/* --- END ACTIVE STATE --- */
-
-/* File Menu Styles */
-.file-dropdown {
-    position: absolute; background-color: #1f2937; border: 1px solid #374151;
-    border-radius: 0.375rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    z-index: 50; width: 200px;
-}
-.file-dropdown-item {
-    padding: 0.75rem 1rem; cursor: pointer; display: block; width: 100%; text-align: left;
-}
- .file-dropdown-item:hover { background-color: #374151; }
-
-/* Swatch & Layer Styles */
-.item-container, .layer-item {
-    display: flex; flex-direction: row; align-items: center; padding: 0.5rem;
-    border-radius: 0.375rem; border: 2px solid transparent; cursor: pointer; transition: all 0.2s;
-}
-
-.item-container:hover, .layer-item:hover { background-color: #374151; }
-.texture-swatch, .object-swatch {
-    width: 32px; height: 32px; border-radius: 0.375rem;
-    border: 1px solid #4b5563; flex-shrink: 0;
-    background-size: cover;
-    background-position: center;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    color: #f9fafb;
-}
-/* Styles for image assets in swatches */
-.object-swatch img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-}
-.item-label, .layer-label {
-    margin-left: 0.75rem; font-size: 14px; text-align: left; flex-grow: 1;
-}
-.layer-controls { display: flex; gap: 0.25rem; }
-.layer-controls button {
-    padding: 0.25rem; background: none; border: none; color: #9ca3af;
-}
- .layer-controls button:hover { color: #f9fafb; background: #4b5563; }
-
-/* Collapsed Panel Bar */
-.collapsed-bar {
-    position: absolute;
-    top: 1rem;
-    left: 0;
-    z-index: 5;
-    writing-mode: vertical-lr;
-    background-color: #111827; 
-    color: #d1d5db;
-    padding: 1rem 0.5rem; 
-    cursor: pointer; 
-    border-radius: 0 0.5rem 0.5rem 0; 
-    display: flex;
-    align-items: center; 
-    justify-content: center; 
-    letter-spacing: 2px; 
-    font-weight: bold;
-    flex-shrink: 0; 
-    transition: all 0.3s ease-in-out;
-    height: 200px;
-    pointer-events: auto;
-}
-.collapsed-bar.hidden {
-    display: none;
-}
-
-/* Map Key Styles */
-#mapKeyWindow {
-    position: absolute;
-    top: 5rem;
-    left: 22rem; /* Position next to the panel */
-    width: 150px; /* NARROWER width */
-    background-color: transparent; /* TRANSPARENT background */
-    border: 1px solid transparent;
-    border-radius: 0.5rem;
-    z-index: 30;
-    color: #d1d5db;
-    display: flex;
-    flex-direction: column;
-}
-#mapKeyHeader {
-    padding: 0.25rem 0.5rem; /* Reduced padding */
-    cursor: move;
-    background-color: rgba(31, 41, 55, 0.9);
-    border-bottom: 1px solid #374151;
-    border-radius: 0.5rem 0.5rem 0 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-shrink: 0;
-}
-#mapKeyHeader h4 {
-    font-weight: bold;
-    font-size: 0.875rem; /* Smaller header font */
-}
-#mapKeyCloseBtn {
-    background: none;
-    border: none;
-    color: #9ca3af;
-    font-size: 1.1rem; /* Smaller close button */
-    line-height: 1;
-    padding: 0.1rem;
-}
-#mapKeyCloseBtn:hover {
-    color: #f9fafb;
-}
-#mapKeyContent {
-    padding: 0.5rem; /* Reduced padding */
-    max-height: 350px;
-    overflow-y: auto;
-    display: grid;
-    grid-template-columns: 1fr; /* Single column layout */
-    gap: 0.25rem; /* space between items */
-}
-.key-section-title {
-    font-weight: 600;
-    border-bottom: 1px solid #4b5563;
-    padding-bottom: 0.25rem;
-    margin-top: 0.25rem;
-    margin-bottom: 0.25rem;
-    font-size: 0.8rem; /* Smaller section title */
-    grid-column: 1 / -1; /* Span full width */
-}
-.key-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem; /* Reduced gap */
-    font-size: 0.75rem; /* Smaller font */
-    background-color: rgba(17, 24, 39, 0.7); /* Background for readability */
-    padding: 0.25rem;
-    border-radius: 0.25rem;
-}
-.key-swatch {
-    width: 20px; /* Reduced size */
-    height: 20px; /* Reduced size */
-    border-radius: 0.25rem;
-    border: 1px solid #4b5563;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px; /* Reduced size */
-}
-/* Styles for image assets in map key */
-.key-swatch img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-}
-
-/* --- AI BOTTOM PANEL --- */
-#aiBottomPanel {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background-color: #111827;
-    border-top: 1px solid #374151;
-    z-index: 25;
-    transition: transform 0.3s ease-in-out;
-}
-#aiBottomPanel.closed {
-    transform: translateY(calc(100% - 40px)); /* 40px is the header height */
-}
-#aiBottomPanelHeader {
-    height: 40px;
-    background-color: #1f2937;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 1rem;
-    font-weight: bold;
-}
-#aiBottomPanelHeader svg {
-    transition: transform 0.3s;
-}
-#aiBottomPanel.closed #aiBottomPanelHeader svg {
-    transform: rotate(180deg);
-}
-#aiBottomPanelContent {
-    height: 45vh;
-    overflow: hidden;
-    padding: 1rem;
-    gap: 1rem;
-}
-
-.hidden {
-    display: none !important;
-}
-.modal-backdrop {
-    position: fixed;
-    inset: 0;
-    background-color: rgba(0,0,0,0.75);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 50;
-    transition: opacity 0.3s ease;
-}
-
-#dungeonKeyContent h5 {
-    font-size: 1.1rem;
-    font-weight: bold;
-    color: #f9fafb;
-    border-bottom: 1px solid #4b5563;
-    padding-bottom: 0.25rem;
-    margin-top: 0.5rem;
-}
-#dungeonKeyContent p {
-    line-height: 1.6;
-}
-
-/* Toast Notification Styles */
-#toast-container {
-    position: fixed;
-    bottom: 1rem;
-    right: 1rem;
-    z-index: 100;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-.toast {
-    padding: 1rem 1.5rem;
-    border-radius: 0.5rem;
-    color: white;
-    font-weight: bold;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    animation: toast-fade-in 0.5s ease;
-}
-.toast.toast-success {
-    background-color: #22c55e; /* green-500 */
-}
-.toast.toast-error {
-    background-color: #ef4444; /* red-500 */
-}
-.toast.toast-info {
-    background-color: #3b82f6; /* blue-500 */
-}
-.toast-fade-out {
-    animation: toast-fade-out 0.5s ease forwards;
-}
-
-@keyframes toast-fade-in {
-    from {
-        opacity: 0;
-        transform: translateX(100%);
+    function switchMode(mode) {
+        previewPanel.classList.toggle('hidden', mode !== 'terrain');
+        clearAllCanvases();
     }
-    to {
-        opacity: 1;
-        transform: translateX(0);
+
+    function clearAllCanvases() {
+        mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+        drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+        updateTilingPreview();
     }
-}
 
-@keyframes toast-fade-out {
-    from {
-        opacity: 1;
-        transform: translateX(0);
+    function updateTilingPreview() {
+        if (assetTypeSelect.value !== 'terrain') return;
+        
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = mainCanvas.width;
+        tempCanvas.height = mainCanvas.height;
+        const tempCtx = tempCanvas.getContext('2d');
+        
+        // Composite the main and drawing layers
+        tempCtx.drawImage(mainCanvas, 0, 0);
+        tempCtx.drawImage(drawCanvas, 0, 0);
+
+        // Clear preview and draw tiled pattern
+        previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+        const pattern = previewCtx.createPattern(tempCanvas, 'repeat');
+        previewCtx.fillStyle = pattern;
+        previewCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
     }
-    to {
-        opacity: 0;
-        transform: translateX(100%);
+
+    function draw(e) {
+        if (!isDrawing) return;
+        
+        const rect = drawCanvas.getBoundingClientRect();
+        const currentPos = {
+            x: (e.clientX - rect.left) * (drawCanvas.width / rect.width),
+            y: (e.clientY - rect.top) * (drawCanvas.height / rect.height)
+        };
+
+        drawCtx.beginPath();
+        drawCtx.moveTo(lastPos.x, lastPos.y);
+        drawCtx.lineTo(currentPos.x, currentPos.y);
+        
+        drawCtx.strokeStyle = brushColor;
+        drawCtx.lineWidth = brushSize;
+        drawCtx.lineCap = 'round';
+        drawCtx.lineJoin = 'round';
+        
+        if (currentTool === 'eraser') {
+            drawCtx.globalCompositeOperation = 'destination-out';
+        } else {
+            drawCtx.globalCompositeOperation = 'source-over';
+        }
+        
+        drawCtx.stroke();
+        
+        if (assetTypeSelect.value === 'terrain') {
+            const wrapX = currentPos.x < brushSize ? drawCanvas.width : (currentPos.x > drawCanvas.width - brushSize ? -drawCanvas.width : 0);
+            const wrapY = currentPos.y < brushSize ? drawCanvas.height : (currentPos.y > drawCanvas.height - brushSize ? -drawCanvas.height : 0);
+
+            if (wrapX !== 0 || wrapY !== 0) {
+                drawCtx.moveTo(lastPos.x + wrapX, lastPos.y + wrapY);
+                drawCtx.lineTo(currentPos.x + wrapX, currentPos.y + wrapY);
+                drawCtx.stroke();
+            }
+        }
+
+        lastPos = currentPos;
+        updateTilingPreview();
     }
-}
 
-/* AI Assist Render Area */
-#ai-render-area {
-    background-image: 
-        linear-gradient(45deg, #2d3748 25%, transparent 25%), 
-        linear-gradient(-45deg, #2d3748 25%, transparent 25%),
-        linear-gradient(45deg, transparent 75%, #2d3748 75%),
-        linear-gradient(-45deg, transparent 75%, #2d3748 75%);
-    background-size: 20px 20px;
-    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-    width: 100%;
-    height: 100%;
-}
-#ai-render-area img {
-    border: 2px solid #4b5563; /* border-gray-600 */
-    border-radius: 0.25rem;
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-}
+    async function generateAIAsset() {
+        const userPrompt = promptInput.value;
+        if (!userPrompt) {
+            showToast("Please enter a prompt.", "error");
+            return;
+        }
+        if (!state.apiKey) {
+            state.showToast("Please set your API Key in the settings menu first.", "error");
+            return;
+        }
+        
+        loadingOverlay.classList.remove('hidden');
+        generateBtn.disabled = true;
 
-/* --- ASSET EDITOR --- */
-#asset-editor-overlay {
-    position: fixed;
-    inset: 0;
-    background-color: rgba(0,0,0,0.85);
-    z-index: 100;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-}
+        try {
+            const payload = { instances: [{ prompt: userPrompt }], parameters: { "sampleCount": 1} };
+            // CORRECTED: Always use state.apiKey to get the current value
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${state.apiKey}`;
+            
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
 
-.asset-editor-main {
-    background-color: #1f2937;
-    border-radius: 0.5rem;
-    width: 90vw;
-    height: 90vh;
-    max-width: 1400px;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-    border: 1px solid #374151;
-}
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(`API Error: ${error.error?.message || response.statusText}`);
+            }
 
-.asset-editor-top-bar {
-    padding: 0.75rem 1.5rem;
-    border-bottom: 1px solid #374151;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-shrink: 0;
-}
+            const result = await response.json();
+            if (result.predictions && result.predictions.length > 0 && result.predictions[0].bytesBase64Encoded) {
+                const base64Data = result.predictions[0].bytesBase64Encoded;
+                const imageUrl = `data:image/png;base64,${base64Data}`;
+                
+                const img = new Image();
+                img.onload = () => {
+                    clearAllCanvases();
+                    mainCtx.drawImage(img, 0, 0, mainCanvas.width, mainCanvas.height);
+                    updateTilingPreview();
+                };
+                img.src = imageUrl;
+            } else {
+                throw new Error("No image data found in API response.");
+            }
 
-#asset-editor-close-btn {
-    font-size: 2rem;
-    font-weight: bold;
-    color: #9ca3af;
-    background: none;
-    border: none;
-    line-height: 1;
-}
-#asset-editor-close-btn:hover {
-    color: #f9fafb;
-}
+        } catch (error) {
+            console.error("AI Generation Error:", error);
+            showToast(`An error occurred: ${error.message}`, "error");
+        } finally {
+            loadingOverlay.classList.add('hidden');
+            generateBtn.disabled = false;
+        }
+    }
 
-.asset-editor-content {
-    display: grid;
-    grid-template-columns: 280px 1fr 280px;
-    gap: 1rem;
-    padding: 1rem;
-    flex-grow: 1;
-    overflow: hidden;
-}
+    function saveAssetToLibrary() {
+        const name = assetNameInput.value.trim();
+        if (!name) {
+            showToast("Please provide a name for your asset.", "error");
+            return;
+        }
 
-.asset-editor-left-panel, .asset-editor-right-panel {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    overflow-y: auto;
-}
+        const finalCanvas = document.createElement('canvas');
+        finalCanvas.width = mainCanvas.width;
+        finalCanvas.height = mainCanvas.height;
+        const finalCtx = finalCanvas.getContext('2d');
+        finalCtx.drawImage(mainCanvas, 0, 0);
+        finalCtx.drawImage(drawCanvas, 0, 0);
+        
+        const dataUri = finalCanvas.toDataURL('image/png');
+        const assetId = `custom_${name.toLowerCase().replace(/[^a-z0-9]/gi, '_')}_${Date.now()}`;
+        const tags = assetTagsInput.value.split(',').map(t => t.trim()).filter(t => t);
 
-.asset-editor-center-panel {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #111827;
-    border-radius: 0.5rem;
-    position: relative;
-}
+        let newAssetObject = {};
 
-#asset-canvas-container {
-    position: relative;
-    width: 512px;
-    height: 512px;
-    max-width: 100%;
-    max-height: 100%;
-    aspect-ratio: 1 / 1;
-    background-image: 
-        linear-gradient(45deg, #2d3748 25%, transparent 25%), 
-        linear-gradient(-45deg, #2d3748 25%, transparent 25%),
-        linear-gradient(45deg, transparent 75%, #2d3748 75%),
-        linear-gradient(-45deg, transparent 75%, #2d3748 75%);
-    background-size: 20px 20px;
-    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-}
+        if (assetTypeSelect.value === 'object') {
+            newAssetObject = {
+                [assetId]: {
+                    name: name,
+                    src: dataUri,
+                    tags: tags
+                }
+            };
+        } else { 
+            const patternId = `pattern-${assetId}`;
+            newAssetObject = {
+                [assetId]: {
+                    name: name,
+                    color: "#ffffff",
+                    pattern: patternId,
+                    tags: tags,
+                    isCustom: true,
+                    src: dataUri
+                }
+            };
+        }
+        
+        addNewAsset(newAssetObject);
+        showToast(`Asset "${name}" saved to your library!`, 'success');
+        document.dispatchEvent(new CustomEvent('assetLibraryUpdated'));
+        assetEditorOverlay.classList.add('hidden');
+    }
 
-#asset-canvas-main, #asset-canvas-draw {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-}
 
-#asset-canvas-draw {
-    cursor: crosshair;
-}
+    // --- EVENT LISTENERS ---
+    assetTypeSelect.addEventListener('change', (e) => switchMode(e.target.value));
 
-#loading-overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(17, 24, 39, 0.8);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-    font-weight: bold;
-    z-index: 10;
-}
+    generateBtn.addEventListener('click', generateAIAsset);
+    exportBtn.addEventListener('click', saveAssetToLibrary);
 
-.asset-tool-palette {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.5rem;
-    background-color: #374151;
-    padding: 0.5rem;
-    border-radius: 0.375rem;
-    margin-bottom: 0.75rem;
-}
-.asset-tool, .asset-tool-palette input[type="color"] {
-    width: 100%;
-    height: 40px;
-    background-color: #4b5563;
-    border: none;
-    border-radius: 0.25rem;
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color 0.2s;
-    padding: 0;
-    margin: 0;
-}
-.asset-tool:hover {
-    background-color: #6b7280;
-}
-.asset-tool.active {
-    background-color: #3b82f6;
-}
-.asset-tool-palette input[type="color"] {
-    padding: 0.1rem;
-}
+    toolBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            toolBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentTool = btn.dataset.tool;
+        });
+    });
 
-#asset-preview-canvas {
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    border: 1px solid #4b5563;
-    border-radius: 0.25rem;
-}
+    brushSizeSlider.addEventListener('input', (e) => {
+        brushSize = parseInt(e.target.value);
+        brushSizeValue.textContent = brushSize;
+    });
+    colorPicker.addEventListener('input', (e) => brushColor = e.target.value);
+
+    drawCanvas.addEventListener('mousedown', (e) => {
+        isDrawing = true;
+        const rect = drawCanvas.getBoundingClientRect();
+        lastPos = {
+            x: (e.clientX - rect.left) * (drawCanvas.width / rect.width),
+            y: (e.clientY - rect.top) * (drawCanvas.height / rect.height)
+        };
+    });
+    drawCanvas.addEventListener('mousemove', draw);
+    drawCanvas.addEventListener('mouseup', () => {
+        isDrawing = false;
+        updateTilingPreview();
+    });
+    drawCanvas.addEventListener('mouseleave', () => {
+        isDrawing = false;
+    });
+
+    closeBtn.addEventListener('click', () => {
+        assetEditorOverlay.classList.add('hidden');
+    });
+
+    // --- INITIALIZATION ---
+    switchMode('object');
+});
 
