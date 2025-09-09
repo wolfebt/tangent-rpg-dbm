@@ -1,4 +1,4 @@
-// Version 15.1 - No changes needed. Code is sound.
+// Version 16.0 - Added removeCustomAsset and improved modal flexibility.
 // This module acts as the single source of truth for the application's data.
 
 // --- State Variables ---
@@ -36,6 +36,9 @@ export function loadApiKey() {
     const savedKey = localStorage.getItem('mapMakerApiKey');
     if (savedKey) {
         apiKey = savedKey;
+        console.log("API Key loaded.");
+    } else {
+        console.log("No API Key found in localStorage.");
     }
 }
 
@@ -46,20 +49,44 @@ export function addNewAsset(assetData) {
     Object.assign(assetManifest, assetData);
 }
 
+export function removeCustomAsset(assetId) {
+    let customAssets = JSON.parse(localStorage.getItem('mapMakerCustomAssets')) || {};
+    if (customAssets[assetId]) {
+        delete customAssets[assetId];
+        localStorage.setItem('mapMakerCustomAssets', JSON.stringify(customAssets));
+    }
+    if (assetManifest[assetId]) {
+        delete assetManifest[assetId];
+    }
+    // Also check terrains
+    let customTerrains = JSON.parse(localStorage.getItem('mapMakerCustomTerrains')) || {};
+    if (customTerrains[assetId]) {
+        delete customTerrains[assetId];
+        localStorage.setItem('mapMakerCustomTerrains', JSON.stringify(customTerrains));
+    }
+     if (terrains[assetId]) {
+        delete terrains[assetId];
+    }
+}
+
+
 export function loadCustomAssets() {
     const customAssets = JSON.parse(localStorage.getItem('mapMakerCustomAssets')) || {};
     Object.assign(assetManifest, customAssets);
+    const customTerrains = JSON.parse(localStorage.getItem('mapMakerCustomTerrains')) || {};
+    Object.assign(terrains, customTerrains);
 }
 
 
 // --- Shared UI Utility Functions ---
 
-export function showModal(message, onConfirm) {
+export function showModal(title, message, onConfirm) {
     // Generates and displays a generic confirmation or info modal.
     const modalBackdrop = document.createElement('div');
     modalBackdrop.className = 'modal-backdrop';
     modalBackdrop.innerHTML = `
         <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm text-white">
+            <h3 class="text-lg font-bold mb-4">${title}</h3>
             <p class="mb-6 text-center">${message}</p>
             <div class="flex justify-end gap-4">
                 ${onConfirm ? `<button id="modalConfirm" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500">Confirm</button>` : ''}
@@ -68,11 +95,12 @@ export function showModal(message, onConfirm) {
         </div>
     `;
     document.body.appendChild(modalBackdrop);
-    modalBackdrop.querySelector('#modalCancel').onclick = () => document.body.removeChild(modalBackdrop);
+    const closeModal = () => document.body.removeChild(modalBackdrop);
+    modalBackdrop.querySelector('#modalCancel').onclick = closeModal;
     if (onConfirm) {
         modalBackdrop.querySelector('#modalConfirm').onclick = () => {
             onConfirm();
-            document.body.removeChild(modalBackdrop);
+            closeModal();
         };
     }
 }
@@ -99,7 +127,10 @@ export function showContentModal(title, content) {
 export function showToast(message, type = 'info', duration = 3000) {
     // Displays a small, temporary notification at the bottom-right of the screen.
     const container = document.getElementById('toast-container');
-    if (!container) return;
+    if (!container) {
+        console.error("Toast container not found!");
+        return;
+    }
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
     toast.textContent = message;
@@ -110,3 +141,4 @@ export function showToast(message, type = 'info', duration = 3000) {
         toast.addEventListener('animationend', () => toast.remove());
     }, duration);
 }
+

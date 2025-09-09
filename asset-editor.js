@@ -1,4 +1,4 @@
-// Version 13.7 - Implemented saving for terrain patterns.
+// Version 14.0 - Improved AI prompt engineering and saving logic.
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -30,12 +30,16 @@ document.addEventListener('DOMContentLoaded', () => {
     let brushColor = '#FFFFFF';
     let isDrawing = false;
     let lastPos = { x: 0, y: 0 };
+    let isGeneratingAsset = false;
 
     // --- FUNCTIONS ---
 
     function switchMode(mode) {
         previewPanel.classList.toggle('hidden', mode !== 'terrain');
         clearAllCanvases();
+        assetNameInput.value = '';
+        assetTagsInput.value = '';
+        promptInput.value = '';
     }
 
     function clearAllCanvases() {
@@ -57,8 +61,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
         const pattern = previewCtx.createPattern(tempCanvas, 'repeat');
-        previewCtx.fillStyle = pattern;
-        previewCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+        if (pattern) {
+            previewCtx.fillStyle = pattern;
+            previewCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+        }
     }
 
     function draw(e) {
@@ -70,52 +76,101 @@ document.addEventListener('DOMContentLoaded', () => {
             y: (e.clientY - rect.top) * (drawCanvas.height / rect.height)
         };
 
+        drawCtx.lineCap = 'round';
+        drawCtx.lineJoin = 'round';
+        drawCtx.lineWidth = brushSize;
+        
+        drawCtx.globalCompositeOperation = currentTool === 'eraser' ? 'destination-out' : 'source-over';
+        if (currentTool !== 'eraser') {
+            drawCtx.strokeStyle = brushColor;
+        }
+        
         drawCtx.beginPath();
         drawCtx.moveTo(lastPos.x, lastPos.y);
         drawCtx.lineTo(currentPos.x, currentPos.y);
-        
-        drawCtx.strokeStyle = brushColor;
-        drawCtx.lineWidth = brushSize;
-        drawCtx.lineCap = 'round';
-        drawCtx.lineJoin = 'round';
-        
-        if (currentTool === 'eraser') {
-            drawCtx.globalCompositeOperation = 'destination-out';
-        } else {
-            drawCtx.globalCompositeOperation = 'source-over';
-        }
-        
         drawCtx.stroke();
         
+        lastPos = currentPos;
+    }
+    
+    function onDrawEnd() {
+        if (!isDrawing) return;
+        isDrawing = false;
+        
         if (assetTypeSelect.value === 'terrain') {
-            const wrapX = currentPos.x < brushSize ? drawCanvas.width : (currentPos.x > drawCanvas.width - brushSize ? -drawCanvas.width : 0);
-            const wrapY = currentPos.y < brushSize ? drawCanvas.height : (currentPos.y > drawCanvas.height - brushSize ? -drawCanvas.height : 0);
-
-            if (wrapX !== 0 || wrapY !== 0) {
-                drawCtx.moveTo(lastPos.x + wrapX, lastPos.y + wrapY);
-                drawCtx.lineTo(currentPos.x + wrapX, currentPos.y + wrapY);
-                drawCtx.stroke();
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = drawCanvas.width; tempCanvas.height = drawCanvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            for (let x = -1; x <= 1; x++) {
+                for (let y = -1; y <= 1; y++) {
+                    tempCtx.drawImage(drawCanvas, x * drawCanvas.width, y * drawCanvas.height);
+                }
             }
+            drawCtx.globalCompositeOperation = 'source-over'; // Ensure we're drawing normally
+            drawCtx.clearRect(0,0,drawCanvas.width, drawCanvas.height);
+            drawCtx.drawImage(tempCanvas, 0, 0);
         }
 
-        lastPos = currentPos;
         updateTilingPreview();
     }
 
+
     async function generateAIAsset() {
-        // ... (Implementation is sound, no changes needed)
+        if (isGeneratingAsset) return;
+        if (!state.apiKey) {
+            state.showModal("API Key Required", "Please set your generative AI API Key in the settings menu first.", () => document.getElementById('settingsBtn').click());
+            return;
+        }
+        const userPrompt = promptInput.value;
+        if (!userPrompt) { state.showToast("Please enter a prompt.", "error"); return; }
+
+        isGeneratingAsset = true;
+        loadingOverlay.classList.remove('hidden');
+        clearAllCanvases();
+
+        const type = assetTypeSelect.value;
+        const styleGuidance = type === 'terrain'
+            ? "seamless tileable texture, top-down perspective, 4k detail"
+            : "isolated on a transparent background, clean vector icon style, suitable for a fantasy map";
+
+        const fullPrompt = `${userPrompt}, ${styleGuidance}`;
+
+        try {
+            const payload = { instances: [{ prompt: fullPrompt }], parameters: { "sampleCount": 1 } };
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${state.apiKey}`;
+
+            const response = await fetch(apiUrl, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
+
+            const result = await response.json();
+            if (result.predictions && result.predictions[0].bytesBase64Encoded) {
+                const img = new Image();
+                img.onload = () => {
+                    mainCtx.drawImage(img, 0, 0, mainCanvas.width, mainCanvas.height);
+                    updateTilingPreview();
+                    state.showToast("Asset generated!", "success");
+                };
+                img.src = `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
+            } else { throw new Error("No image data in API response."); }
+        } catch (error) {
+            console.error("Asset Generation Error:", error);
+            state.showToast(`Error: ${error.message}`, "error");
+        } finally {
+            isGeneratingAsset = false;
+            loadingOverlay.classList.add('hidden');
+        }
     }
 
     function saveAssetToLibrary() {
         const name = assetNameInput.value.trim();
-        if (!name) {
-            state.showToast("Please provide a name for your asset.", "error");
-            return;
-        }
+        if (!name) { state.showToast("Please provide a name for your asset.", "error"); assetNameInput.focus(); return; }
 
         const finalCanvas = document.createElement('canvas');
-        finalCanvas.width = mainCanvas.width;
-        finalCanvas.height = mainCanvas.height;
+        finalCanvas.width = mainCanvas.width; finalCanvas.height = mainCanvas.height;
         const finalCtx = finalCanvas.getContext('2d');
         finalCtx.drawImage(mainCanvas, 0, 0);
         finalCtx.drawImage(drawCanvas, 0, 0);
@@ -123,44 +178,30 @@ document.addEventListener('DOMContentLoaded', () => {
         const dataUri = finalCanvas.toDataURL('image/png');
         const assetId = `custom_${name.toLowerCase().replace(/[^a-z0-9]/gi, '_')}_${Date.now()}`;
         const tags = assetTagsInput.value.split(',').map(t => t.trim()).filter(t => t);
-
-        let newAssetObject = {};
         const type = assetTypeSelect.value;
 
         if (type === 'object') {
-            newAssetObject = {
-                [assetId]: { name: name, src: dataUri, tags: tags }
-            };
-            state.addNewAsset(newAssetObject);
+            const newAsset = { [assetId]: { name, src: dataUri, tags } };
+            state.addNewAsset(newAsset);
         } else if (type === 'terrain') {
-             newAssetObject = {
-                [assetId]: { name: name, src: dataUri, tags: tags, color: '#CCCCCC', pattern: `pattern_${assetId}` }
-            };
-            // Terrains are a separate category in the state
+            const newTerrain = { [assetId]: { name, src: dataUri, tags, color: '#CCCCCC' }};
             let customTerrains = JSON.parse(localStorage.getItem('mapMakerCustomTerrains')) || {};
-            Object.assign(customTerrains, newAssetObject);
+            Object.assign(customTerrains, newTerrain);
             localStorage.setItem('mapMakerCustomTerrains', JSON.stringify(customTerrains));
-            Object.assign(state.terrains, newAssetObject);
+            Object.assign(state.terrains, newTerrain);
         }
         
         state.showToast(`Asset "${name}" saved to your library!`, 'success');
-        document.dispatchEvent(new CustomEvent('assetLibraryUpdated')); // A generic event to trigger refreshes
+        document.dispatchEvent(new CustomEvent('assetLibraryUpdated'));
         
-        // Reset inputs and close
-        assetNameInput.value = '';
-        assetTagsInput.value = '';
-        clearAllCanvases();
         assetEditorOverlay.classList.add('hidden');
+        switchMode('object');
     }
 
-
     // --- EVENT LISTENERS ---
-    // ... (Implementation is sound, no changes needed)
     assetTypeSelect.addEventListener('change', (e) => switchMode(e.target.value));
-
     generateBtn.addEventListener('click', generateAIAsset);
     exportBtn.addEventListener('click', saveAssetToLibrary);
-
     toolBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             toolBtns.forEach(b => b.classList.remove('active'));
@@ -168,34 +209,18 @@ document.addEventListener('DOMContentLoaded', () => {
             currentTool = btn.dataset.tool;
         });
     });
-
-    brushSizeSlider.addEventListener('input', (e) => {
-        brushSize = parseInt(e.target.value);
-        brushSizeValue.textContent = brushSize;
-    });
+    brushSizeSlider.addEventListener('input', (e) => { brushSize = parseInt(e.target.value); brushSizeValue.textContent = brushSize; });
     colorPicker.addEventListener('input', (e) => brushColor = e.target.value);
-
     drawCanvas.addEventListener('mousedown', (e) => {
         isDrawing = true;
         const rect = drawCanvas.getBoundingClientRect();
-        lastPos = {
-            x: (e.clientX - rect.left) * (drawCanvas.width / rect.width),
-            y: (e.clientY - rect.top) * (drawCanvas.height / rect.height)
-        };
+        lastPos = { x: (e.clientX - rect.left) * (drawCanvas.width / rect.width), y: (e.clientY - rect.top) * (drawCanvas.height / rect.height) };
     });
     drawCanvas.addEventListener('mousemove', draw);
-    drawCanvas.addEventListener('mouseup', () => {
-        isDrawing = false;
-        updateTilingPreview();
-    });
-    drawCanvas.addEventListener('mouseleave', () => {
-        isDrawing = false;
-    });
-
-    closeBtn.addEventListener('click', () => {
-        assetEditorOverlay.classList.add('hidden');
-    });
-
-    // --- INITIALIZATION ---
-    switchMode('object');
+    drawCanvas.addEventListener('mouseup', onDrawEnd);
+    drawCanvas.addEventListener('mouseleave', onDrawEnd);
+    closeBtn.addEventListener('click', () => { assetEditorOverlay.classList.add('hidden'); });
+    
+    switchMode('object'); // Initial state
 });
+
