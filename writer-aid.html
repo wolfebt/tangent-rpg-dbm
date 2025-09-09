@@ -148,6 +148,11 @@
             border-radius: 0.375rem;
             transition: all 0.2s ease;
         }
+        textarea.tool-input {
+            resize: vertical;
+            overflow-y: hidden;
+            line-height: 1.5;
+        }
         .tool-input:focus {
             outline: none;
             border-color: #2563eb;
@@ -188,26 +193,84 @@
             color: white;
             border-color: #60a5fa;
         }
+        .collapsible-content {
+            margin-top: 1rem;
+        }
+        .path-gem {
+            display: inline-flex;
+            align-items: center;
+            background-color: #374151;
+            color: #d1d5db;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            line-height: 1;
+            border: 1px solid #2563eb;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+        .path-gem:hover {
+            background-color: #4b5563;
+            border-color: #6b7280;
+        }
+        .path-gem-label {
+            color: #9ca3af;
+            margin-right: 0.25rem;
+        }
+        .tool-checkbox {
+            appearance: none; -webkit-appearance: none;
+            width: 1.5em; height: 1.5em;
+            border: 2px solid #4b5563;
+            border-radius: 50%;
+            background-color: #374151;
+            display: grid; place-content: center;
+            cursor: pointer; transition: all 120ms ease-in-out;
+            flex-shrink: 0;
+        }
+        .tool-checkbox::before {
+            content: ""; width: 0.8em; height: 0.8em;
+            border-radius: 50%; transform: scale(0);
+            transition: 120ms transform ease-in-out;
+            background-color: #d1d5db;
+        }
+        .tool-checkbox:checked {
+            background-color: #2563eb;
+            border-color: #60a5fa;
+        }
+        .tool-checkbox:checked::before { transform: scale(1); }
 
     </style>
 </head>
 <body class="antialiased">
 
     <div class="container mx-auto max-w-screen-xl p-4 sm:p-6 lg:p-8">
-        <header class="text-center mb-8">
+        <header class="text-center mb-4 relative">
             <h1 class="text-4xl font-bold text-white">Writer AId</h1>
             <p class="text-lg text-gray-400 mt-2">Your AI-powered partner for literary creation, character design, and scene building.</p>
+             <button id="settings-btn" class="absolute top-0 right-0 p-2 rounded-lg btn-secondary bg-gray-700/50 hover:bg-gray-600/50" title="Settings">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0l-.1.41a2 2 0 01-2.23 1.52l-.4-.1a2 2 0 00-2.2 2.2l.1.4a2 2 0 01-1.52 2.23l-.41.1c-1.56.38-1.56 2.6 0 2.98l.41.1a2 2 0 011.52 2.23l-.1.4a2 2 0 002.2 2.2l.4-.1a2 2 0 012.23 1.52l.1.41c.38 1.56 2.6 1.56 2.98 0l.1-.41a2 2 0 012.23-1.52l.4.1a2 2 0 002.2-2.2l-.1-.4a2 2 0 011.52-2.23l.41-.1c-1.56-.38-1.56-2.6 0-2.98l-.41-.1a2 2 0 01-1.52-2.23l.1-.4a2 2 0 00-2.2-2.2l-.4.1a2 2 0 01-2.23-1.52l-.1-.41zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>
+            </button>
+             <div class="mt-4">
+                <h2 id="project-title" contenteditable="true" title="Click to edit project title" class="text-2xl font-semibold text-gray-300 inline-block p-1 rounded-md hover:bg-gray-700/50 cursor-pointer">Untitled Project</h2>
+            </div>
         </header>
+
+         <!-- MAIN TABS -->
+        <div class="border-b border-gray-700 mb-6">
+            <nav class="-mb-px flex space-x-6 justify-center" aria-label="Tabs">
+                <button id="tab-story" data-tab="story-weaver" class="main-tab-btn active">Story Weaver</button>
+                <button id="tab-character" data-tab="character-tool" class="main-tab-btn">Character Tool</button>
+                <button id="tab-scene" data-tab="scene-builder" class="main-tab-btn">Scene Builder</button>
+            </nav>
+        </div>
         
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:items-start">
-            <aside class="lg:col-span-3 h-fit lg:sticky top-8 space-y-6">
+        <div id="story-weaver-content-wrapper" class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:items-start">
+            <aside id="story-weaver-sidebar" class="lg:col-span-3 h-fit lg:sticky top-8 space-y-6">
                 <div class="bg-gray-900/50 border border-gray-700 rounded-lg p-4">
                         <div class="flex items-center justify-between gap-4 mb-4">
                             <button id="project-options-btn" class="flex-1 py-2 px-3 text-sm rounded-lg font-semibold btn-primary">
                                 Project
-                            </button>
-                            <button id="settings-btn" class="p-2 rounded-lg btn-secondary" title="Settings">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0l-.1.41a2 2 0 01-2.23 1.52l-.4-.1a2 2 0 00-2.2 2.2l.1.4a2 2 0 01-1.52 2.23l-.41.1c-1.56.38-1.56 2.6 0 2.98l.41.1a2 2 0 011.52 2.23l-.1.4a2 2 0 002.2 2.2l.4-.1a2 2 0 012.23 1.52l.1.41c.38 1.56 2.6 1.56 2.98 0l.1-.41a2 2 0 012.23-1.52l.4.1a2 2 0 002.2-2.2l-.1-.4a2 2 0 011.52-2.23l.41-.1c-1.56-.38-1.56-2.6 0-2.98l-.41-.1a2 2 0 01-1.52-2.23l.1-.4a2 2 0 00-2.2-2.2l-.4.1a2 2 0 01-2.23-1.52l-.1-.41zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>
                             </button>
                         </div>
                         <span id="status-message" class="text-sm text-gray-400 opacity-0 h-4 block text-center"></span>
@@ -235,15 +298,6 @@
             </aside>
 
             <main class="lg:col-span-9">
-                <!-- MAIN TABS -->
-                <div class="border-b border-gray-700 mb-6">
-                    <nav class="-mb-px flex space-x-6" aria-label="Tabs">
-                        <button id="tab-story" data-tab="story-weaver" class="main-tab-btn active">Story Weaver</button>
-                        <button id="tab-character" data-tab="character-tool" class="main-tab-btn">Character Tool</button>
-                        <button id="tab-scene" data-tab="scene-builder" class="main-tab-btn">Scene Builder</button>
-                    </nav>
-                </div>
-
                 <!-- STORY WEAVER TAB CONTENT -->
                 <div id="story-weaver" class="tab-content active">
                     <div id="project-path-display" class="flex items-center justify-center gap-2 mb-6 flex-wrap"></div>
@@ -367,144 +421,150 @@
                         <div id="storyboard-output" class="mt-8 grid gap-6 grid-cols-1 md:grid-cols-2"></div>
                     </div>
                 </div>
-
-                <!-- CHARACTER TOOL TAB CONTENT -->
-                <div id="character-tool" class="tab-content">
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <!-- LEFT COLUMN -->
-                        <div class="bg-gray-800 p-6 rounded-lg shadow-lg space-y-6">
-                            <form id="character-form-unified">
-                                <div class="tool-section-header">Character Details</div>
-                                <p class="text-sm text-gray-400 -mt-4 mb-4">Fill in the fields or check the box to have the AI generate the content for you.</p>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                                    <div>
-                                        <label for="name" class="block text-sm font-medium text-gray-300 mb-1">Name</label>
-                                        <div class="flex items-center gap-3"><input type="text" id="name" name="name" placeholder="e.g., Alistair Croft" class="tool-input"><input type="checkbox" id="cb-name" name="cb-name" checked title="Check to generate with AI"></div>
-                                    </div>
-                                    <div>
-                                        <label for="genre" class="block text-sm font-medium text-gray-300 mb-1">Genre</label>
-                                        <div class="flex items-center gap-3"><input type="text" id="genre" name="genre" placeholder="e.g., Sci-Fi, Fantasy" class="tool-input"><input type="checkbox" id="cb-genre" name="cb-genre" checked title="Check to generate with AI"></div>
-                                    </div>
-                                    <div class="md:col-span-2">
-                                        <label for="core-description" class="block text-sm font-medium text-gray-300 mb-1">Core Description</label>
-                                        <div class="flex items-center gap-3"><textarea id="core-description" name="core-description" placeholder="A high-level summary..." class="tool-input"></textarea><input type="checkbox" id="cb-core-description" name="cb-core-description" checked title="Check to generate with AI"></div>
-                                    </div>
-                                    <div class="md:col-span-2"><label for="backstory" class="block text-sm font-medium text-gray-300 mb-1">Backstory</label><div class="flex items-center gap-3"><textarea id="backstory" name="backstory" placeholder="Detail their history..." class="tool-input"></textarea><input type="checkbox" id="cb-backstory" name="cb-backstory" checked></div></div>
-                                    <div class="md:col-span-2"><label for="personality" class="block text-sm font-medium text-gray-300 mb-1">Personality</label><div class="flex items-center gap-3"><textarea id="personality" name="personality" placeholder="e.g., Witty, cautious..." class="tool-input"></textarea><input type="checkbox" id="cb-personality" name="cb-personality" checked></div></div>
-                                    <div><label for="skills" class="block text-sm font-medium text-gray-300 mb-1">Skills</label><div class="flex items-center gap-3"><input type="text" id="skills" name="skills" placeholder="e.g., Lockpicking" class="tool-input"><input type="checkbox" id="cb-skills" name="cb-skills" checked></div></div>
-                                    <div><label for="abilities" class="block text-sm font-medium text-gray-300 mb-1">Abilities</label><div class="flex items-center gap-3"><input type="text" id="abilities" name="abilities" placeholder="e.g., Minor pyromancy" class="tool-input"><input type="checkbox" id="cb-abilities" name="cb-abilities" checked></div></div>
-                                    <div class="md:col-span-2"><label for="goals" class="block text-sm font-medium text-gray-300 mb-1">Goals</label><div class="flex items-center gap-3"><textarea id="goals" name="goals" placeholder="Short-term and long-term goals." class="tool-input"></textarea><input type="checkbox" id="cb-goals" name="cb-goals" checked></div></div>
-                                    <div class="md:col-span-2"><label for="motivations" class="block text-sm font-medium text-gray-300 mb-1">Motivations</label><div class="flex items-center gap-3"><textarea id="motivations" name="motivations" placeholder="What drives them?" class="tool-input"></textarea><input type="checkbox" id="cb-motivations" name="cb-motivations" checked></div></div>
-                                    <div><label for="weaknesses" class="block text-sm font-medium text-gray-300 mb-1">Weaknesses</label><div class="flex items-center gap-3"><input type="text" id="weaknesses" name="weaknesses" placeholder="e.g., Fear of heights" class="tool-input"><input type="checkbox" id="cb-weaknesses" name="cb-weaknesses" checked></div></div>
-                                    <div><label for="equipment" class="block text-sm font-medium text-gray-300 mb-1">Equipment</label><div class="flex items-center gap-3"><textarea id="equipment" name="equipment" placeholder="What items do they carry?" class="tool-input"></textarea><input type="checkbox" id="cb-equipment" name="cb-equipment" checked></div></div>
-                                    <div class="md:col-span-2"><label for="relationships" class="block text-sm font-medium text-gray-300 mb-1">Relationships</label><div class="flex items-center gap-3"><textarea id="relationships" name="relationships" placeholder="Family, friends, rivals, etc." class="tool-input"></textarea><input type="checkbox" id="cb-relationships" name="cb-relationships" checked></div></div>
-                                    <div class="md:col-span-2"><label for="notes" class="block text-sm font-medium text-gray-300 mb-1">Notes</label><div class="flex items-center gap-3"><textarea id="notes" name="notes" placeholder="Any other important details..." class="tool-input"></textarea><input type="checkbox" id="cb-notes" name="cb-notes" checked></div></div>
-                                    <div class="md:col-span-2 tool-section-header mt-4">Appearance & Image Details</div>
-                                    <div><label for="gender" class="block text-sm font-medium text-gray-300 mb-1">Gender / Sex</label><input type="text" id="gender" name="gender" placeholder="e.g., Female, Male" class="tool-input"></div>
-                                    <div><label for="build" class="block text-sm font-medium text-gray-300 mb-1">Build</label><input type="text" id="build" name="build" placeholder="e.g., Athletic, Slender" class="tool-input"></div>
-                                    <div><label for="hairColor" class="block text-sm font-medium text-gray-300 mb-1">Hair Color</label><input type="text" id="hairColor" name="hairColor" placeholder="e.g., Black, Blonde" class="tool-input"></div>
-                                    <div><label for="eyeColor" class="block text-sm font-medium text-gray-300 mb-1">Eye Color</label><input type="text" id="eyeColor" name="eyeColor" placeholder="e.g., Brown, Blue" class="tool-input"></div>
-                                    <div class="md:col-span-2"><label for="details" class="block text-sm font-medium text-gray-300 mb-1">Other Details (Race, etc.)</label><textarea id="details" name="details" class="tool-input" placeholder="e.g., Human with rounded ears..."></textarea></div>
-                                    <div class="md:col-span-2"><label for="clothing" class="block text-sm font-medium text-gray-300 mb-1">Clothing</label><textarea id="clothing" name="clothing" class="tool-input" placeholder="e.g., Leather armor..."></textarea></div>
-                                    <div class="md:col-span-2"><label for="expression" class="block text-sm font-medium text-gray-300 mb-1">Expression / Mood</label><textarea id="expression" name="expression" class="tool-input" placeholder="e.g., Determined, smiling..."></textarea></div>
-                                    <div class="md:col-span-2"><label for="background" class="block text-sm font-medium text-gray-300 mb-1">Background / Setting</label><textarea id="background" name="background" class="tool-input" placeholder="e.g., Bustling city street..."></textarea></div>
-                                    <div class="md:col-span-2"><label for="negative_prompts_char" class="block text-sm font-medium text-gray-300 mb-1 text-red-400">Negative Prompts</label><textarea id="negative_prompts_char" name="negative_prompts_char" class="tool-input" placeholder="e.g., eyepatch, helmet..."></textarea></div>
-                                </div>
-                            </form>
-                        </div>
-                        <!-- RIGHT COLUMN -->
-                        <div class="space-y-6">
-                           <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-                                <h2 class="text-xl font-bold mb-4 text-white">Generation Controls</h2>
-                                <div class="space-y-4">
-                                    <button id="generate-text-btn-char" class="w-full py-3 px-4 rounded-lg font-semibold btn-primary bg-green-600 hover:bg-green-700">Generate Text</button>
-                                    <div class="border-t border-gray-700 pt-4">
-                                        <label class="block text-sm font-medium text-gray-300 mb-2">Art Style</label>
-                                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-2">
-                                            <input type="radio" name="style_char" value="painting" id="style_painting_char" class="hidden" checked><label for="style_painting_char" class="tool-custom-radio-label">Painting</label>
-                                            <input type="radio" name="style_char" value="photorealistic" id="style_photorealistic_char" class="hidden"><label for="style_photorealistic_char" class="tool-custom-radio-label">Photorealistic</label>
-                                            <input type="radio" name="style_char" value="anime" id="style_anime_char" class="hidden"><label for="style_anime_char" class="tool-custom-radio-label">Anime</label>
-                                            <input type="radio" name="style_char" value="sketch" id="style_sketch_char" class="hidden"><label for="style_sketch_char" class="tool-custom-radio-label">Sketch</label>
-                                        </div>
-                                    </div>
-                                    <button id="generate-image-btn-char" class="w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Image</button>
-                                </div>
-                            </div>
-                            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-                                <h2 class="text-2xl font-bold mb-4 text-white">Generated Image</h2>
-                                <div id="image-container-char" class="w-full aspect-square bg-gray-900 rounded-md flex items-center justify-center border border-gray-700">
-                                    <div id="loading-spinner-image-char" class="loader hidden"></div>
-                                    <img id="generated-image-char" src="" alt="Generated Character" class="hidden w-full h-full object-cover rounded-md">
-                                    <span id="image-placeholder-char" class="text-gray-500">Your character image will appear here</span>
-                                </div>
-                                <button id="download-image-btn-char" class="hidden mt-4 w-full py-2 px-4 rounded-lg font-semibold btn-secondary">Download Image</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- SCENE BUILDER TAB CONTENT -->
-                <div id="scene-builder" class="tab-content">
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                         <!-- LEFT COLUMN -->
-                        <div class="bg-gray-800 p-6 rounded-lg shadow-lg space-y-6">
-                            <form id="scene-form-unified">
-                                <div class="tool-section-header">Location Details</div>
-                                <p class="text-sm text-gray-400 -mt-4 mb-4">Fill in the fields or check the box to have the AI generate the content for you.</p>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                                    <div>
-                                        <label for="location-name" class="block text-sm font-medium text-gray-300 mb-1">Location Name</label>
-                                        <div class="flex items-center gap-3"><input type="text" id="location-name" name="location-name" placeholder="e.g., The Spire" class="tool-input"><input type="checkbox" id="cb-location-name" name="cb-location-name" checked></div>
-                                    </div>
-                                    <div>
-                                        <label for="genre-scene" class="block text-sm font-medium text-gray-300 mb-1">Genre</label>
-                                        <div class="flex items-center gap-3"><input type="text" id="genre-scene" name="genre-scene" placeholder="e.g., Sci-Fi, Fantasy" class="tool-input"><input type="checkbox" id="cb-genre-scene" name="cb-genre-scene" checked></div>
-                                    </div>
-                                    <div class="md:col-span-2"><label for="overview" class="block text-sm font-medium text-gray-300 mb-1">Overview</label><div class="flex items-center gap-3"><textarea id="overview" name="overview" placeholder="A high-level summary..." class="tool-input"></textarea><input type="checkbox" id="cb-overview" name="cb-overview" checked></div></div>
-                                    <div class="md:col-span-2"><label for="exterior-description" class="block text-sm font-medium text-gray-300 mb-1">Exterior Description</label><div class="flex items-center gap-3"><textarea id="exterior-description" name="exterior-description" placeholder="Describe the outside..." class="tool-input"></textarea><input type="checkbox" id="cb-exterior-description" name="cb-exterior-description" checked></div></div>
-                                    <div class="md:col-span-2"><label for="interior-details" class="block text-sm font-medium text-gray-300 mb-1">Interior Details</label><div class="flex items-center gap-3"><textarea id="interior-details" name="interior-details" placeholder="Describe the layout..." class="tool-input"></textarea><input type="checkbox" id="cb-interior-details" name="cb-interior-details" checked></div></div>
-                                    <div class="md:col-span-2"><label for="history" class="block text-sm font-medium text-gray-300 mb-1">History</label><div class="flex items-center gap-3"><textarea id="history" name="history" placeholder="Detail its origins..." class="tool-input"></textarea><input type="checkbox" id="cb-history" name="cb-history" checked></div></div>
-                                    <div class="md:col-span-2"><label for="atmosphere" class="block text-sm font-medium text-gray-300 mb-1">Atmosphere / Mood</label><div class="flex items-center gap-3"><textarea id="atmosphere" name="atmosphere" placeholder="e.g., Oppressive, serene..." class="tool-input"></textarea><input type="checkbox" id="cb-atmosphere" name="cb-atmosphere" checked></div></div>
-                                    <div class="md:col-span-2"><label for="time_of_day" class="block text-sm font-medium text-gray-300 mb-1">Time of Day</label><input type="text" id="time_of_day" name="time_of_day" placeholder="e.g., Sunrise, Night" class="tool-input"></div>
-                                    <div class="md:col-span-2"><label for="weather" class="block text-sm font-medium text-gray-300 mb-1">Weather</label><input type="text" id="weather" name="weather" placeholder="e.g., Sunny, Raining" class="tool-input"></div>
-                                    <div class="md:col-span-2"><label for="architectural_style" class="block text-sm font-medium text-gray-300 mb-1">Architectural Style</label><input type="text" id="architectural_style" name="architectural_style" placeholder="e.g., Gothic, Modern" class="tool-input"></div>
-                                    <div class="md:col-span-2"><label for="other_details" class="block text-sm font-medium text-gray-300 mb-1">Other Details</label><textarea id="other_details" name="other_details" class="tool-input" placeholder="e.g., specific flora..."></textarea></div>
-                                    <div class="md:col-span-2"><label for="negative_prompts_scene" class="block text-sm font-medium text-gray-300 mb-1 text-red-400">Negative Prompts</label><textarea id="negative_prompts_scene" name="negative_prompts_scene" class="tool-input" placeholder="e.g., people, vehicles..."></textarea></div>
-                                </div>
-                            </form>
-                        </div>
-                         <!-- RIGHT COLUMN -->
-                        <div class="space-y-6">
-                           <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-                                <h2 class="text-xl font-bold mb-4 text-white">Generation Controls</h2>
-                                <div class="space-y-4">
-                                    <button id="generate-text-btn-scene" class="w-full py-3 px-4 rounded-lg font-semibold btn-primary bg-green-600 hover:bg-green-700">Generate Text</button>
-                                    <div class="border-t border-gray-700 pt-4">
-                                        <label class="block text-sm font-medium text-gray-300 mb-2">Art Style</label>
-                                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-2">
-                                            <input type="radio" name="style_scene" value="painting" id="style_painting_scene" class="hidden" checked><label for="style_painting_scene" class="tool-custom-radio-label">Painting</label>
-                                            <input type="radio" name="style_scene" value="photorealistic" id="style_photorealistic_scene" class="hidden"><label for="style_photorealistic_scene" class="tool-custom-radio-label">Photorealistic</label>
-                                            <input type="radio" name="style_scene" value="anime" id="style_anime_scene" class="hidden"><label for="style_anime_scene" class="tool-custom-radio-label">Anime</label>
-                                            <input type="radio" name="style_scene" value="sketch" id="style_sketch_scene" class="hidden"><label for="style_sketch_scene" class="tool-custom-radio-label">Sketch</label>
-                                        </div>
-                                    </div>
-                                    <button id="generate-image-btn-scene" class="w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Image</button>
-                                </div>
-                            </div>
-                            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-                                <h2 class="text-2xl font-bold mb-4 text-white">Generated Image</h2>
-                                <div id="image-container-scene" class="w-full aspect-square bg-gray-900 rounded-md flex items-center justify-center border border-gray-700">
-                                    <div id="loading-spinner-image-scene" class="loader hidden"></div>
-                                    <img id="generated-image-scene" src="" alt="Generated Scene" class="hidden w-full h-full object-cover rounded-md">
-                                    <span id="image-placeholder-scene" class="text-gray-500">Your scene image will appear here</span>
-                                </div>
-                                <button id="download-image-btn-scene" class="hidden mt-4 w-full py-2 px-4 rounded-lg font-semibold btn-secondary">Download Image</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </main>
         </div>
+
+        <!-- CHARACTER TOOL & SCENE BUILDER (NO SIDEBAR) -->
+        <div id="character-tool" class="tab-content">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- LEFT COLUMN -->
+                <div class="bg-gray-800 p-6 rounded-lg shadow-lg space-y-6">
+                    <form id="character-form-unified">
+                        <div class="tool-section-header">Character Details</div>
+                        <p class="text-sm text-gray-400 -mt-4 mb-4">Fill in the fields or check the box to have the AI generate the content for you.</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                            <div>
+                                <label for="char-name" class="block text-sm font-medium text-gray-300 mb-1">Name</label>
+                                <div class="flex items-center gap-3"><input type="text" id="char-name" name="name" placeholder="e.g., Alistair Croft" class="tool-input"><input type="checkbox" id="cb-char-name" name="cb-name" class="tool-checkbox" checked title="Check to generate with AI"></div>
+                            </div>
+                            <div>
+                                <label for="char-genre" class="block text-sm font-medium text-gray-300 mb-1">Genre</label>
+                                <div class="flex items-center gap-3"><input type="text" id="char-genre" name="genre" placeholder="e.g., Sci-Fi, Fantasy" class="tool-input"><input type="checkbox" id="cb-char-genre" name="cb-genre" class="tool-checkbox" checked title="Check to generate with AI"></div>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label for="char-core-description" class="block text-sm font-medium text-gray-300 mb-1">Core Description</label>
+                                <div class="flex items-center gap-3"><textarea id="char-core-description" name="core-description" placeholder="A high-level summary..." class="tool-input" rows="1"></textarea><input type="checkbox" id="cb-char-core-description" name="cb-core-description" class="tool-checkbox" checked title="Check to generate with AI"></div>
+                            </div>
+                            <div class="md:col-span-2"><label for="char-backstory" class="block text-sm font-medium text-gray-300 mb-1">Backstory</label><div class="flex items-center gap-3"><textarea id="char-backstory" name="backstory" placeholder="Detail their history..." class="tool-input" rows="1"></textarea><input type="checkbox" id="cb-char-backstory" name="cb-backstory" class="tool-checkbox" checked></div></div>
+                            <div class="md:col-span-2"><label for="char-personality" class="block text-sm font-medium text-gray-300 mb-1">Personality</label><div class="flex items-center gap-3"><textarea id="char-personality" name="personality" placeholder="e.g., Witty, cautious..." class="tool-input" rows="1"></textarea><input type="checkbox" id="cb-char-personality" name="cb-personality" class="tool-checkbox" checked></div></div>
+                            <div><label for="char-skills" class="block text-sm font-medium text-gray-300 mb-1">Skills</label><div class="flex items-center gap-3"><input type="text" id="char-skills" name="skills" placeholder="e.g., Lockpicking" class="tool-input"><input type="checkbox" id="cb-char-skills" name="cb-skills" class="tool-checkbox" checked></div></div>
+                            <div><label for="char-abilities" class="block text-sm font-medium text-gray-300 mb-1">Abilities</label><div class="flex items-center gap-3"><input type="text" id="char-abilities" name="abilities" placeholder="e.g., Minor pyromancy" class="tool-input"><input type="checkbox" id="cb-char-abilities" name="cb-abilities" class="tool-checkbox" checked></div></div>
+                            <div class="md:col-span-2"><label for="char-goals" class="block text-sm font-medium text-gray-300 mb-1">Goals</label><div class="flex items-center gap-3"><textarea id="char-goals" name="goals" placeholder="Short-term and long-term goals." class="tool-input" rows="1"></textarea><input type="checkbox" id="cb-char-goals" name="cb-goals" class="tool-checkbox" checked></div></div>
+                            <div class="md:col-span-2"><label for="char-motivations" class="block text-sm font-medium text-gray-300 mb-1">Motivations</label><div class="flex items-center gap-3"><textarea id="char-motivations" name="motivations" placeholder="What drives them?" class="tool-input" rows="1"></textarea><input type="checkbox" id="cb-char-motivations" name="cb-motivations" class="tool-checkbox" checked></div></div>
+                            <div><label for="char-weaknesses" class="block text-sm font-medium text-gray-300 mb-1">Weaknesses</label><div class="flex items-center gap-3"><input type="text" id="char-weaknesses" name="weaknesses" placeholder="e.g., Fear of heights" class="tool-input"><input type="checkbox" id="cb-char-weaknesses" name="cb-weaknesses" class="tool-checkbox" checked></div></div>
+                            <div><label for="char-equipment" class="block text-sm font-medium text-gray-300 mb-1">Equipment</label><div class="flex items-center gap-3"><textarea id="char-equipment" name="equipment" placeholder="What items do they carry?" class="tool-input" rows="1"></textarea><input type="checkbox" id="cb-char-equipment" name="cb-equipment" class="tool-checkbox" checked></div></div>
+                            <div class="md:col-span-2"><label for="char-relationships" class="block text-sm font-medium text-gray-300 mb-1">Relationships</label><div class="flex items-center gap-3"><textarea id="char-relationships" name="relationships" placeholder="Family, friends, rivals, etc." class="tool-input" rows="1"></textarea><input type="checkbox" id="cb-char-relationships" name="cb-relationships" class="tool-checkbox" checked></div></div>
+                            <div class="md:col-span-2"><label for="char-notes" class="block text-sm font-medium text-gray-300 mb-1">Notes</label><div class="flex items-center gap-3"><textarea id="char-notes" name="notes" placeholder="Any other important details..." class="tool-input" rows="1"></textarea><input type="checkbox" id="cb-char-notes" name="cb-notes" class="tool-checkbox" checked></div></div>
+                            <div class="md:col-span-2 tool-section-header mt-4">Appearance & Image Details</div>
+                            <div><label for="char-gender" class="block text-sm font-medium text-gray-300 mb-1">Gender / Sex</label><input type="text" id="char-gender" name="gender" placeholder="e.g., Female, Male" class="tool-input"></div>
+                            <div><label for="char-build" class="block text-sm font-medium text-gray-300 mb-1">Build</label><input type="text" id="char-build" name="build" placeholder="e.g., Athletic, Slender" class="tool-input"></div>
+                            <div><label for="char-hairColor" class="block text-sm font-medium text-gray-300 mb-1">Hair Color</label><input type="text" id="char-hairColor" name="hairColor" placeholder="e.g., Black, Blonde" class="tool-input"></div>
+                            <div><label for="char-eyeColor" class="block text-sm font-medium text-gray-300 mb-1">Eye Color</label><input type="text" id="char-eyeColor" name="eyeColor" placeholder="e.g., Brown, Blue" class="tool-input"></div>
+                            <div class="md:col-span-2"><label for="char-details" class="block text-sm font-medium text-gray-300 mb-1">Other Details (Race, etc.)</label><textarea id="char-details" name="details" class="tool-input" rows="1" placeholder="e.g., Human with rounded ears..."></textarea></div>
+                            <div class="md:col-span-2"><label for="char-clothing" class="block text-sm font-medium text-gray-300 mb-1">Clothing</label><textarea id="char-clothing" name="clothing" class="tool-input" rows="1" placeholder="e.g., Leather armor..."></textarea></div>
+                            <div class="md:col-span-2"><label for="char-expression" class="block text-sm font-medium text-gray-300 mb-1">Expression / Mood</label><textarea id="char-expression" name="expression" class="tool-input" rows="1" placeholder="e.g., Determined, smiling..."></textarea></div>
+                            <div class="md:col-span-2"><label for="char-background" class="block text-sm font-medium text-gray-300 mb-1">Background / Setting</label><textarea id="char-background" name="background" class="tool-input" rows="1" placeholder="e.g., Bustling city street..."></textarea></div>
+                            <div class="md:col-span-2"><label for="char-negative_prompts" class="block text-sm font-medium text-gray-300 mb-1 text-red-400">Negative Prompts</label><textarea id="char-negative_prompts" name="negative_prompts_char" class="tool-input" rows="1" placeholder="e.g., eyepatch, helmet..."></textarea></div>
+                        </div>
+                    </form>
+                </div>
+                <!-- RIGHT COLUMN -->
+                <div class="space-y-6">
+                   <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                        <h2 class="text-xl font-bold mb-4 text-white">Generation Controls</h2>
+                        <div class="space-y-4">
+                            <button id="generate-text-btn-char" class="w-full py-3 px-4 rounded-lg font-semibold btn-primary bg-green-600 hover:bg-green-700">Generate Text</button>
+                            <div class="border-t border-gray-700 pt-4">
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Art Style</label>
+                                <div class="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                                    <input type="radio" name="style_char" value="painting" id="style_painting_char" class="hidden" checked><label for="style_painting_char" class="tool-custom-radio-label">Painting</label>
+                                    <input type="radio" name="style_char" value="photorealistic" id="style_photorealistic_char" class="hidden"><label for="style_photorealistic_char" class="tool-custom-radio-label">Photorealistic</label>
+                                    <input type="radio" name="style_char" value="anime" id="style_anime_char" class="hidden"><label for="style_anime_char" class="tool-custom-radio-label">Anime</label>
+                                    <input type="radio" name="style_char" value="sketch" id="style_sketch_char" class="hidden"><label for="style_sketch_char" class="tool-custom-radio-label">Sketch</label>
+                                </div>
+                            </div>
+                            <button id="generate-image-btn-char" class="w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Image</button>
+                        </div>
+                    </div>
+                    <div id="char-outputs" class="space-y-6">
+                        <!-- Outputs will be injected here -->
+                    </div>
+                     <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                        <h2 class="text-2xl font-bold mb-4 text-white">Generated Image</h2>
+                        <div id="image-container-char" class="w-full aspect-square bg-gray-900 rounded-md flex items-center justify-center border border-gray-700">
+                            <div id="loading-spinner-image-char" class="loader hidden"></div>
+                            <img id="generated-image-char" src="" alt="Generated Character" class="hidden w-full h-full object-cover rounded-md">
+                            <span id="image-placeholder-char" class="text-gray-500">Your character image will appear here</span>
+                        </div>
+                        <button id="download-image-btn-char" class="hidden mt-4 w-full py-2 px-4 rounded-lg font-semibold btn-secondary">Download Image</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="scene-builder" class="tab-content">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                 <!-- LEFT COLUMN -->
+                <div class="bg-gray-800 p-6 rounded-lg shadow-lg space-y-6">
+                    <form id="scene-form-unified">
+                        <div class="tool-section-header">Location Details</div>
+                        <p class="text-sm text-gray-400 -mt-4 mb-4">Fill in the fields or check the box to have the AI generate the content for you.</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                            <div>
+                                <label for="scene-location-name" class="block text-sm font-medium text-gray-300 mb-1">Location Name</label>
+                                <div class="flex items-center gap-3"><input type="text" id="scene-location-name" name="location-name" placeholder="e.g., The Spire" class="tool-input"><input type="checkbox" id="cb-scene-location-name" name="cb-location-name" class="tool-checkbox" checked></div>
+                            </div>
+                            <div>
+                                <label for="scene-genre" class="block text-sm font-medium text-gray-300 mb-1">Genre</label>
+                                <div class="flex items-center gap-3"><input type="text" id="scene-genre" name="genre-scene" placeholder="e.g., Sci-Fi, Fantasy" class="tool-input"><input type="checkbox" id="cb-scene-genre" name="cb-genre-scene" class="tool-checkbox" checked></div>
+                            </div>
+                            <div class="md:col-span-2"><label for="scene-overview" class="block text-sm font-medium text-gray-300 mb-1">Overview</label><div class="flex items-center gap-3"><textarea id="scene-overview" name="overview" placeholder="A high-level summary..." class="tool-input" rows="1"></textarea><input type="checkbox" id="cb-scene-overview" name="cb-overview" class="tool-checkbox" checked></div></div>
+                            <div class="md:col-span-2"><label for="scene-exterior-description" class="block text-sm font-medium text-gray-300 mb-1">Exterior Description</label><div class="flex items-center gap-3"><textarea id="scene-exterior-description" name="exterior-description" placeholder="Describe the outside..." class="tool-input" rows="1"></textarea><input type="checkbox" id="cb-scene-exterior-description" name="cb-exterior-description" class="tool-checkbox" checked></div></div>
+                            <div class="md:col-span-2"><label for="scene-interior-details" class="block text-sm font-medium text-gray-300 mb-1">Interior Details</label><div class="flex items-center gap-3"><textarea id="scene-interior-details" name="interior-details" placeholder="Describe the layout..." class="tool-input" rows="1"></textarea><input type="checkbox" id="cb-scene-interior-details" name="cb-interior-details" class="tool-checkbox" checked></div></div>
+                            <div class="md:col-span-2"><label for="scene-history" class="block text-sm font-medium text-gray-300 mb-1">History</label><div class="flex items-center gap-3"><textarea id="scene-history" name="history" placeholder="Detail its origins..." class="tool-input" rows="1"></textarea><input type="checkbox" id="cb-scene-history" name="cb-history" class="tool-checkbox" checked></div></div>
+                            <div class="md:col-span-2"><label for="scene-atmosphere" class="block text-sm font-medium text-gray-300 mb-1">Atmosphere / Mood</label><div class="flex items-center gap-3"><textarea id="scene-atmosphere" name="atmosphere" placeholder="e.g., Oppressive, serene..." class="tool-input" rows="1"></textarea><input type="checkbox" id="cb-scene-atmosphere" name="cb-atmosphere" class="tool-checkbox" checked></div></div>
+                            <div class="md:col-span-2"><label for="scene-time_of_day" class="block text-sm font-medium text-gray-300 mb-1">Time of Day</label><input type="text" id="scene-time_of_day" name="time_of_day" placeholder="e.g., Sunrise, Night" class="tool-input"></div>
+                            <div class="md:col-span-2"><label for="scene-weather" class="block text-sm font-medium text-gray-300 mb-1">Weather</label><input type="text" id="scene-weather" name="weather" placeholder="e.g., Sunny, Raining" class="tool-input"></div>
+                            <div class="md:col-span-2"><label for="scene-architectural_style" class="block text-sm font-medium text-gray-300 mb-1">Architectural Style</label><input type="text" id="scene-architectural_style" name="architectural_style" placeholder="e.g., Gothic, Modern" class="tool-input"></div>
+                            <div class="md:col-span-2"><label for="scene-other_details" class="block text-sm font-medium text-gray-300 mb-1">Other Details</label><textarea id="scene-other_details" name="other_details" class="tool-input" rows="1" placeholder="e.g., specific flora..."></textarea></div>
+                            <div class="md:col-span-2"><label for="scene-negative_prompts" class="block text-sm font-medium text-gray-300 mb-1 text-red-400">Negative Prompts</label><textarea id="scene-negative_prompts" name="negative_prompts_scene" class="tool-input" rows="1" placeholder="e.g., people, vehicles..."></textarea></div>
+                        </div>
+                    </form>
+                </div>
+                 <!-- RIGHT COLUMN -->
+                <div class="space-y-6">
+                   <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                        <h2 class="text-xl font-bold mb-4 text-white">Generation Controls</h2>
+                        <div class="space-y-4">
+                            <button id="generate-text-btn-scene" class="w-full py-3 px-4 rounded-lg font-semibold btn-primary bg-green-600 hover:bg-green-700">Generate Text</button>
+                            <div class="border-t border-gray-700 pt-4">
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Art Style</label>
+                                <div class="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                                    <input type="radio" name="style_scene" value="painting" id="style_painting_scene" class="hidden" checked><label for="style_painting_scene" class="tool-custom-radio-label">Painting</label>
+                                    <input type="radio" name="style_scene" value="photorealistic" id="style_photorealistic_scene" class="hidden"><label for="style_photorealistic_scene" class="tool-custom-radio-label">Photorealistic</label>
+                                    <input type="radio" name="style_scene" value="anime" id="style_anime_scene" class="hidden"><label for="style_anime_scene" class="tool-custom-radio-label">Anime</label>
+                                    <input type="radio" name="style_scene" value="sketch" id="style_sketch_scene" class="hidden"><label for="style_sketch_scene" class="tool-custom-radio-label">Sketch</label>
+                                </div>
+                            </div>
+                            <button id="generate-image-btn-scene" class="w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Image</button>
+                        </div>
+                    </div>
+                     <div id="scene-outputs" class="space-y-6">
+                        <!-- Outputs will be injected here -->
+                    </div>
+                    <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                        <h2 class="text-2xl font-bold mb-4 text-white">Generated Image</h2>
+                        <div id="image-container-scene" class="w-full aspect-square bg-gray-900 rounded-md flex items-center justify-center border border-gray-700">
+                            <div id="loading-spinner-image-scene" class="loader hidden"></div>
+                            <img id="generated-image-scene" src="" alt="Generated Scene" class="hidden w-full h-full object-cover rounded-md">
+                            <span id="image-placeholder-scene" class="text-gray-500">Your scene image will appear here</span>
+                        </div>
+                        <button id="download-image-btn-scene" class="hidden mt-4 w-full py-2 px-4 rounded-lg font-semibold btn-secondary">Download Image</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
     
     <footer class="text-center mt-12 pb-8">
@@ -613,7 +673,7 @@
                 openModal('settings');
                 return "Error: API Key is missing.";
             }
-            if (loaderElement) loaderElement.style.display = 'block';
+            if (loaderElement) loaderElement.classList.remove('hidden');
 
             const maxRetries = 3;
             let delay = 1000;
@@ -626,7 +686,7 @@
 
                     if (response.ok) {
                         const result = await response.json();
-                        if(loaderElement) loaderElement.style.display = 'none';
+                        if(loaderElement) loaderElement.classList.add('hidden');
                         return result.candidates?.[0]?.content?.parts?.[0]?.text;
                     }
                     if (response.status === 503 || response.status === 429) {
@@ -641,7 +701,7 @@
                 } catch (e) {
                     if (i === maxRetries - 1) {
                         console.error(e);
-                        if(loaderElement) loaderElement.style.display = 'none';
+                        if(loaderElement) loaderElement.classList.add('hidden');
                         return `Error: ${e.message}`;
                     }
                 }
@@ -747,6 +807,10 @@
         // --- TAB SWITCHING LOGIC ---
         const tabButtons = document.querySelectorAll('.main-tab-btn');
         const tabContents = document.querySelectorAll('.tab-content');
+        const storyWeaverSidebar = document.getElementById('story-weaver-sidebar');
+        const storyWeaverMainContent = document.querySelector('#story-weaver-content-wrapper > main');
+        const storyWeaverContentWrapper = document.getElementById('story-weaver-content-wrapper');
+
 
         tabButtons.forEach(button => {
             button.addEventListener('click', () => {
@@ -754,12 +818,23 @@
 
                 tabButtons.forEach(btn => btn.classList.remove('active'));
                 button.classList.add('active');
+                
+                storyWeaverContentWrapper.style.display = 'none';
+                document.getElementById('character-tool').style.display = 'none';
+                document.getElementById('scene-builder').style.display = 'none';
 
-                tabContents.forEach(content => {
-                    content.classList.toggle('active', content.id === targetTab);
-                });
+
+                if (targetTab === 'story-weaver') {
+                    storyWeaverContentWrapper.style.display = 'grid';
+                    document.getElementById('story-weaver').style.display = 'block';
+                } else if (targetTab === 'character-tool') {
+                    document.getElementById('character-tool').style.display = 'block';
+                } else {
+                     document.getElementById('scene-builder').style.display = 'block';
+                }
             });
         });
+
 
         // --- STORY WEAVER INITIALIZATION ---
         function initStoryWeaver() {
@@ -1058,7 +1133,67 @@
                 });
             }
 
+            function openPathModal(setting) {
+                pathModalContent.innerHTML = '';
+                const settingConfig = PATH_OPTIONS[setting];
+                if (!settingConfig) return;
+
+                pathModalTitle.textContent = `Select ${settingConfig.title}`;
+
+                const createAndAppendButton = (option) => {
+                    const button = document.createElement('button');
+                    button.className = 'w-full py-3 px-4 rounded-lg font-semibold btn-secondary text-left';
+                    const isCustom = !Object.values(settingConfig.options).flat().includes(storyWeaverState[settingConfig.stateKey]);
+                    if (storyWeaverState[settingConfig.stateKey] === option || (option === 'Other...' && isCustom)) {
+                        button.classList.replace('btn-secondary', 'btn-primary');
+                    }
+                    button.textContent = option;
+                    button.addEventListener('click', () => handleOptionSelection(setting, option));
+                    pathModalContent.appendChild(button);
+                };
+
+                for (const groupName in settingConfig.options) {
+                    const groupHeader = document.createElement('h3');
+                    groupHeader.className = 'text-sm font-semibold text-gray-400 mt-4 first:mt-0 mb-2';
+                    groupHeader.textContent = groupName;
+                    pathModalContent.appendChild(groupHeader);
+                    settingConfig.options[groupName].forEach(createAndAppendButton);
+                }
+
+                pathSettingsModal.classList.remove('hidden');
+                pathSettingsModal.classList.add('flex');
+                setTimeout(() => pathSettingsModal.style.opacity = 1, 10);
+            }
+
+             function handleOptionSelection(setting, option) {
+                const settingConfig = PATH_OPTIONS[setting];
+                const stateKey = settingConfig.stateKey;
+                if (option === 'Other...') {
+                    const customValue = prompt(`Please enter a custom ${settingConfig.title.toLowerCase()}:`);
+                    if (customValue && customValue.trim()) {
+                        storyWeaverState[stateKey] = customValue.trim();
+                        closePathModal();
+                    }
+                } else {
+                    storyWeaverState[stateKey] = option;
+                    closePathModal();
+                }
+            }
+
+            function closePathModal() {
+                pathSettingsModal.style.opacity = 0;
+                setTimeout(() => { pathSettingsModal.classList.add('hidden'); pathSettingsModal.classList.remove('flex');}, 250);
+                updatePathDisplay();
+                saveStateToLocalStorage();
+            }
+
             // --- Event Listeners ---
+            projectPathDisplay.addEventListener('click', (e) => {
+                const gemButton = e.target.closest('.path-gem');
+                if (gemButton) openPathModal(gemButton.dataset.setting);
+            });
+            pathSettingsModal.addEventListener('click', (e) => { if (e.target === pathSettingsModal) closePathModal(); });
+
             navButtons.forEach(btn => btn.addEventListener('click', () => setActiveStage(btn.dataset.stage)));
             generateIdeasBtn.addEventListener('click', async () => { /* ... Story Weaver logic ... */ });
             // ... (All other Story Weaver event listeners) ...
@@ -1074,6 +1209,11 @@
             newProjectBtn.addEventListener('click', clearProject);
             loadAssetBtn.addEventListener('click', () => assetFileInput.click());
             assetFileInput.addEventListener('change', handleAssetLoad);
+            projectTitleEl.addEventListener('input', (e) => {
+                storyWeaverState.projectTitle = e.target.textContent;
+                saveStateToLocalStorage();
+            });
+
             
             loadStateFromLocalStorage();
             updatePathDisplay();
@@ -1083,7 +1223,8 @@
         function initCharacterTool() {
             const container = document.getElementById('character-tool');
             if(!container) return;
-
+            
+            const outputContainer = container.querySelector('#char-outputs');
             const generateTextBtn = container.querySelector('#generate-text-btn-char');
             const generateImageBtn = container.querySelector('#generate-image-btn-char');
             const form = container.querySelector('#character-form-unified');
@@ -1096,7 +1237,26 @@
             };
 
             const fieldDefinitions = [ { name: 'name', label: 'Name' }, { name: 'genre', label: 'Genre' }, { name: 'core-description', label: 'Core Description' }, { name: 'backstory', label: 'Backstory' }, { name: 'personality', label: 'Personality' }, { name: 'skills', label: 'Skills' }, { name: 'abilities', label: 'Abilities' }, { name: 'goals', label: 'Goals' }, { name: 'motivations', label: 'Motivations' }, { name: 'weaknesses', label: 'Weaknesses' }, { name: 'equipment', label: 'Equipment' }, { name: 'relationships', label: 'Relationships' }, { name: 'notes', label: 'Notes' }];
-
+            
+            // Inject output HTML
+            const outputFormats = ['Workup', 'Markdown', 'JSON'];
+            if(outputContainer.children.length === 0) {
+                outputFormats.forEach(format => {
+                    const formatId = format.toLowerCase();
+                    outputContainer.innerHTML += `
+                        <div class="bg-gray-800 p-6 rounded-lg shadow-lg output-container">
+                            <div class="flex justify-between items-center">
+                                <h2 class="text-xl font-bold text-white">${format}</h2>
+                                <div class="flex items-center space-x-2">
+                                     <button class="copy-btn btn-secondary py-1 px-2 text-xs rounded" data-target="output-${formatId}-char">Copy</button>
+                                     <button class="save-btn btn-secondary py-1 px-2 text-xs rounded" data-target="output-${formatId}-char" data-format="${formatId === 'workup' ? 'txt' : formatId}">Save</button>
+                                </div>
+                            </div>
+                            <div class="tool-output-box mt-2"><div id="loading-spinner-${formatId}-char" class="loader hidden"></div><pre id="output-${formatId}-char" class="whitespace-pre-wrap text-sm w-full h-full"></pre></div>
+                        </div>`;
+                });
+            }
+            
             async function handleTextGeneration() {
                 generateTextBtn.disabled = true;
                 generateTextBtn.textContent = 'Generating...';
@@ -1106,24 +1266,25 @@
                 fieldDefinitions.forEach(field => {
                     const value = formData.get(field.name)?.trim() || '';
                     allFieldsData.push(`- **${field.label}:** ${value}`);
-                    const checkbox = form.querySelector(`#cb-${field.name}`);
-                    if (checkbox && checkbox.checked) {
-                        sectionsToGenerate.push(field.label);
-                    }
+                    const checkbox = form.querySelector(`#cb-char-${field.name}`);
+                    if (checkbox && checkbox.checked) sectionsToGenerate.push(field.label);
                 });
 
                 try {
                     const basePrompt = `Generate a complete and cohesive character profile. **USER-PROVIDED DATA:**\n${allFieldsData.join('\n')} **YOUR TASK:** Create a single, cohesive profile, generating content for these sections: **${sectionsToGenerate.join(', ')}**. Return a complete profile with each field as a bold heading.`;
-                    const workupOutput = await callGeminiAPI(basePrompt);
+                    const workupOutput = await callGeminiAPI(basePrompt, document.getElementById('loading-spinner-workup-char'));
+                    document.getElementById('output-workup-char').textContent = workupOutput;
                     
                     const jsonPrompt = `Distill this character profile into a simple JSON object: ${workupOutput}`;
-                    const jsonOutput = await callGeminiAPI(jsonPrompt);
-                    
-                    let cleanedJson = jsonOutput.trim().replace(/^```json\s*|```$/g, '');
-                    const jsonData = JSON.parse(cleanedJson);
+                    const markdownPrompt = `Condense the following workup into a concise Markdown format: \n ${workupOutput}`;
 
-                    addAssetToState({ type: 'json', content: jsonData, fileName: `${jsonData.name || 'character'}.json` });
-                    showStatus('Character profile generated and added to assets.');
+                    const jsonOutput = await callGeminiAPI(jsonPrompt, document.getElementById('loading-spinner-json-char'));
+                     document.getElementById('output-json-char').textContent = jsonOutput.replace(/```json/g, '').replace(/```/g, '');
+
+                    const markdownOutput = await callGeminiAPI(markdownPrompt, document.getElementById('loading-spinner-markdown-char'));
+                     document.getElementById('output-markdown-char').textContent = markdownOutput;
+
+                    showStatus('Character profile generated.');
                     
                 } catch (error) { showStatus(`Text Gen Error: ${error.message}`, true); } 
                 finally { generateTextBtn.disabled = false; generateTextBtn.textContent = 'Generate Text'; }
@@ -1131,11 +1292,10 @@
 
             async function handleImageGeneration() {
                 generateImageBtn.disabled = true; generateImageBtn.textContent = 'Generating...';
-                imageElements.spinner.style.display = 'block';
+                imageElements.spinner.classList.remove('hidden');
                 imageElements.placeholder.style.display = 'none';
                 imageElements.img.style.display = 'none';
                 imageElements.downloadBtn.style.display = 'none';
-
 
                 try {
                     const formData = new FormData(form);
@@ -1165,7 +1325,7 @@
                     imageElements.placeholder.style.display = 'block';
                 } 
                 finally {
-                    imageElements.spinner.style.display = 'none';
+                    imageElements.spinner.classList.add('hidden');
                     generateImageBtn.disabled = false; generateImageBtn.textContent = 'Generate Image';
                 }
             }
@@ -1181,7 +1341,8 @@
         function initSceneBuilder() {
             const container = document.getElementById('scene-builder');
             if(!container) return;
-
+            
+            const outputContainer = container.querySelector('#scene-outputs');
             const generateTextBtn = container.querySelector('#generate-text-btn-scene');
             const generateImageBtn = container.querySelector('#generate-image-btn-scene');
             const form = container.querySelector('#scene-form-unified');
@@ -1195,6 +1356,24 @@
 
             const fieldDefinitions = [ { name: 'location-name', label: 'Location Name' }, { name: 'genre-scene', label: 'Genre' }, { name: 'overview', label: 'Overview' }, { name: 'exterior-description', label: 'Exterior Description' }, { name: 'interior-details', label: 'Interior Details' }, { name: 'history', label: 'History' }, { name: 'atmosphere', label: 'Atmosphere' }];
             
+            const outputFormats = ['Workup', 'Markdown', 'JSON'];
+             if(outputContainer.children.length === 0) {
+                outputFormats.forEach(format => {
+                    const formatId = format.toLowerCase();
+                    outputContainer.innerHTML += `
+                        <div class="bg-gray-800 p-6 rounded-lg shadow-lg output-container">
+                            <div class="flex justify-between items-center">
+                                <h2 class="text-xl font-bold text-white">${format}</h2>
+                                 <div class="flex items-center space-x-2">
+                                     <button class="copy-btn btn-secondary py-1 px-2 text-xs rounded" data-target="output-${formatId}-scene">Copy</button>
+                                     <button class="save-btn btn-secondary py-1 px-2 text-xs rounded" data-target="output-${formatId}-scene" data-format="${formatId === 'workup' ? 'txt' : formatId}">Save</button>
+                                </div>
+                            </div>
+                            <div class="tool-output-box mt-2"><div id="loading-spinner-${formatId}-scene" class="loader hidden"></div><pre id="output-${formatId}-scene" class="whitespace-pre-wrap text-sm w-full h-full"></pre></div>
+                        </div>`;
+                });
+            }
+
             async function handleTextGeneration() {
                 generateTextBtn.disabled = true;
                 generateTextBtn.textContent = 'Generating...';
@@ -1204,24 +1383,25 @@
                 fieldDefinitions.forEach(field => {
                     const value = formData.get(field.name)?.trim() || '';
                     allFieldsData.push(`- **${field.label}:** ${value}`);
-                    const checkbox = form.querySelector(`#cb-${field.name}`);
-                    if (checkbox && checkbox.checked) {
-                        sectionsToGenerate.push(field.label);
-                    }
+                    const checkbox = form.querySelector(`#cb-scene-${field.name}`);
+                    if (checkbox && checkbox.checked)  sectionsToGenerate.push(field.label);
                 });
 
                 try {
                     const basePrompt = `Generate a complete and cohesive location profile. **USER-PROVIDED DATA:**\n${allFieldsData.join('\n')} **YOUR TASK:** Create a single, cohesive profile, generating content for these sections: **${sectionsToGenerate.join(', ')}**. Return a complete profile with each field as a bold heading.`;
-                    const workupOutput = await callGeminiAPI(basePrompt);
+                    const workupOutput = await callGeminiAPI(basePrompt, document.getElementById('loading-spinner-workup-scene'));
+                    document.getElementById('output-workup-scene').textContent = workupOutput;
                     
                     const jsonPrompt = `Distill this location profile into a simple JSON object: ${workupOutput}`;
-                    const jsonOutput = await callGeminiAPI(jsonPrompt);
-                    
-                    let cleanedJson = jsonOutput.trim().replace(/^```json\s*|```$/g, '');
-                    const jsonData = JSON.parse(cleanedJson);
+                    const markdownPrompt = `Condense the following workup into a concise Markdown format: \n ${workupOutput}`;
 
-                    addAssetToState({ type: 'json', content: jsonData, fileName: `${jsonData['location-name'] || 'scene'}.json` });
-                    showStatus('Scene profile generated and added to assets.');
+                    const jsonOutput = await callGeminiAPI(jsonPrompt, document.getElementById('loading-spinner-json-scene'));
+                    document.getElementById('output-json-scene').textContent = jsonOutput.replace(/```json/g, '').replace(/```/g, '');
+
+                    const markdownOutput = await callGeminiAPI(markdownPrompt, document.getElementById('loading-spinner-markdown-scene'));
+                     document.getElementById('output-markdown-scene').textContent = markdownOutput;
+
+                    showStatus('Scene profile generated.');
                     
                 } catch (error) { showStatus(`Text Gen Error: ${error.message}`, true); } 
                 finally { generateTextBtn.disabled = false; generateTextBtn.textContent = 'Generate Text'; }
@@ -1229,7 +1409,7 @@
 
             async function handleImageGeneration() { 
                 generateImageBtn.disabled = true; generateImageBtn.textContent = 'Generating...';
-                imageElements.spinner.style.display = 'block';
+                imageElements.spinner.classList.remove('hidden');
                 imageElements.placeholder.style.display = 'none';
                 imageElements.img.style.display = 'none';
                 imageElements.downloadBtn.style.display = 'none';
@@ -1262,7 +1442,7 @@
                      imageElements.placeholder.style.display = 'block';
                 }
                 finally {
-                    imageElements.spinner.style.display = 'none';
+                    imageElements.spinner.classList.add('hidden');
                     generateImageBtn.disabled = false; generateImageBtn.textContent = 'Generate Image';
                 }
             }
@@ -1273,12 +1453,67 @@
                 const a = document.createElement('a'); a.href = imageElements.img.src; a.download = 'scene.png'; a.click();
             });
         }
+        
+        function initToolInputs() {
+            function autoResizeTextarea(event) {
+                const textarea = event.target;
+                textarea.style.height = 'auto';
+                textarea.style.height = (textarea.scrollHeight) + 'px';
+            }
+            document.querySelectorAll('textarea.tool-input').forEach(textarea => {
+                autoResizeTextarea({ target: textarea });
+                textarea.addEventListener('input', autoResizeTextarea, false);
+            });
+
+            document.querySelectorAll('#character-tool .flex.items-center, #scene-builder .flex.items-center').forEach(wrapper => {
+                const input = wrapper.querySelector('input[type="text"], textarea');
+                const checkbox = wrapper.querySelector('input[type="checkbox"]');
+                if(input && checkbox) {
+                    input.addEventListener('input', () => {
+                        if (input.value.trim() !== '') {
+                            checkbox.checked = false;
+                        }
+                    });
+                }
+            });
+        }
+
 
         // --- APP START ---
         loadApiKey();
         initStoryWeaver();
         initCharacterTool();
         initSceneBuilder();
+        initToolInputs();
+
+        // Initial setup for layout
+        document.getElementById('character-tool').style.display = 'none';
+        document.getElementById('scene-builder').style.display = 'none';
+
+        document.querySelectorAll('.copy-btn, .save-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const targetId = e.currentTarget.dataset.target;
+                const text = document.getElementById(targetId)?.textContent;
+                if (!text) return;
+
+                if (e.currentTarget.classList.contains('copy-btn')) {
+                    navigator.clipboard.writeText(text).then(() => showStatus('Copied to clipboard!'));
+                } else {
+                    const format = e.currentTarget.dataset.format;
+                    const name = document.getElementById('char-name')?.value || document.getElementById('scene-location-name')?.value || 'download';
+                    const filename = `${sanitizeFilename(name)}.${format}`;
+                    const blob = new Blob([text], { type: `text/${format};charset=utf-8` });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                }
+            });
+        });
+
+
     });
     </script>
 </body>
