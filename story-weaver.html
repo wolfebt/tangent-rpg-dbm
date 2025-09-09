@@ -147,6 +147,28 @@
             background-color: rgba(59, 130, 246, 0.15);
             border-radius: 3px;
         }
+        .path-gem {
+            display: inline-flex;
+            align-items: center;
+            background-color: #374151;
+            color: #d1d5db;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            line-height: 1;
+            border: 1px solid #2563eb;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+        .path-gem:hover {
+            background-color: #4b5563;
+            border-color: #6b7280;
+        }
+        .path-gem-label {
+            color: #9ca3af;
+            margin-right: 0.25rem;
+        }
     </style>
 </head>
 <body class="antialiased">
@@ -159,6 +181,10 @@
                 <h2 id="project-title" contenteditable="true" title="Click to edit project title" class="text-2xl font-semibold text-gray-300 inline-block p-1 rounded-md hover:bg-gray-700/50 cursor-pointer">Untitled Project</h2>
             </div>
         </header>
+
+        <div id="project-path-display" class="flex items-center justify-center gap-2 mb-6 flex-wrap">
+            <!-- Gems will be inserted here by JS -->
+        </div>
         
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:items-start">
             <aside class="lg:col-span-3 h-fit lg:sticky top-8 space-y-6">
@@ -198,29 +224,7 @@
                 <div id="brainstorm" class="stage active">
                     <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
                         <h2 class="text-2xl font-semibold mb-2 text-white">Creative Brainstorming</h2>
-                        <p class="text-gray-400 mb-6">Kickstart your creativity. Select what you want to brainstorm (like 'Characters' or 'Plot Twists'), give the AI a theme (e.g., 'a detective in a cyberpunk city'), and it will generate unique, detailed concepts to build upon.</p>
-                        <label for="brainstorm-type-select" class="block text-sm font-medium text-gray-400 mb-2">I want to brainstorm...</label>
-                        <select id="brainstorm-type-select" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 mb-4">
-                            <optgroup label="Story Writing">
-                                <option value="Story Ideas">Story Ideas</option>
-                                <option value="Characters">Characters</option>
-                                <option value="Settings">Settings</option>
-                                <option value="Plot Twists">Plot Twists</option>
-                                <option value="Story Hooks">Story Hooks</option>
-                            </optgroup>
-                            <optgroup label="General Purpose">
-                                <option value="Design Concept">Design Concepts</option>
-                                <option value="Shopping List">Shopping Lists</option>
-                                <option value="Travel Ideas">Travel Ideas</option>
-                            </optgroup>
-                            <optgroup label="Custom">
-                                <option value="Other">Other...</option>
-                            </optgroup>
-                        </select>
-                        <div id="other-format-container" class="hidden mb-4">
-                            <label for="other-format-input" class="block text-sm font-medium text-gray-400 mb-2">Define custom format</label>
-                            <input type="text" id="other-format-input" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., Recipe, Workout Plan, Blog Post Ideas">
-                        </div>
+                        <p class="text-gray-400 mb-6">Kickstart your creativity. Select what you want to brainstorm by clicking the "Type" gem above. Then give the AI a theme (e.g., 'a detective in a cyberpunk city'), and it will generate unique, detailed concepts to build upon.</p>
                         <textarea id="brainstorm-input" class="w-full h-32 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Enter a theme or concept..."></textarea>
                         <button id="generate-ideas-btn" class="mt-4 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Concepts</button>
                     </div>
@@ -231,27 +235,7 @@
                 <div id="outline" class="stage">
                         <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
                             <h2 class="text-2xl font-semibold mb-2 text-white">Create a Story Outline</h2>
-                            <p class="text-gray-400 mb-6">Give your story a backbone. Your chosen concept from the Brainstorm stage will appear below, but you can also type or paste your own. Choose a classic narrative structure (like the 'Three-Act Structure') and the AI will build a detailed roadmap for your story. Use 'Secondary Guidance' to add specific instructions, like 'make sure the protagonist has a secret'.</p>
-                            <label for="outline-structure" class="block text-sm font-medium text-gray-400 mb-2">Select an outline structure:</label>
-                            <select id="outline-structure" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 mb-4">
-                                <optgroup label="Classic Structures">
-                                    <option>Three-Act Structure</option>
-                                    <option>The Hero's Journey</option>
-                                    <option>Five-Act Structure</option>
-                                </optgroup>
-                                <optgroup label="Novel Writing">
-                                    <option>Save the Cat Beat Sheet</option>
-                                    <option>Snowflake Method</option>
-                                    <option>Fichtean Curve</option>
-                                </optgroup>
-                                <optgroup label="Custom">
-                                    <option value="Other">Other...</option>
-                                </optgroup>
-                            </select>
-                            <div id="other-outline-container" class="hidden mb-4">
-                                <label for="other-outline-input" class="block text-sm font-medium text-gray-400 mb-2">Define custom outline structure</label>
-                                <input type="text" id="other-outline-input" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., Episodic TV format, 10-step plan">
-                            </div>
+                            <p class="text-gray-400 mb-6">Give your story a backbone. Your chosen concept from the Brainstorm stage will appear below, but you can also type or paste your own. Choose a narrative structure and audience by clicking the gems above. Use 'Secondary Guidance' to add specific instructions, like 'make sure the protagonist has a secret'.</p>
                             <label class="block text-sm font-medium text-gray-400 mb-2">Your Concept</label>
                             <div id="chosen-idea-display" contenteditable="true" class="editable-area p-4 mb-4 bg-gray-900 border-2 border-gray-700 rounded-lg text-gray-300 min-h-[5rem]"><span class="text-gray-500">Select a concept from the Brainstorm tab, or type/paste your own concept here.</span></div>
                             <label for="outline-secondary-guidance" class="block text-sm font-medium text-gray-400 mb-2 mt-4">Secondary Guidance (Optional)</label>
@@ -265,28 +249,7 @@
                 <div id="treatment" class="stage">
                     <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
                         <h2 class="text-2xl font-semibold mb-2 text-white">Develop a Story Treatment</h2>
-                        <p class="text-gray-400 mb-6">Bring your outline to life. A 'treatment' is a prose summary of your entire story, like a detailed short story. It helps you understand the flow and key moments before you start writing scenes. Your outline will be loaded automatically. Tell the AI the final format (e.g., 'Novel Chapter', 'Screenplay') to get a treatment tailored to your goal.</p>
-                        <label for="treatment-format-select" class="block text-sm font-medium text-gray-400 mb-2">What is the final format of this story?</label>
-                            <select id="treatment-format-select" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 mb-4">
-                                <optgroup label="Prose & Narrative">
-                                    <option>Novel / Book Chapter</option>
-                                    <option>Short Story</option>
-                                    <option>Flash Fiction</option>
-                                </optgroup>
-                                <optgroup label="Scripts & Performance">
-                                    <option>Screenplay Scene</option>
-                                    <option>Dialogue Only</option>
-                                    <option>Stage Play Scene</option>
-                                    <option>Comic Book Script</option>
-                                </optgroup>
-                                <optgroup label="Custom">
-                                    <option value="Other">Other...</option>
-                                </optgroup>
-                            </select>
-                            <div id="other-treatment-container" class="hidden mb-4">
-                                <label for="other-treatment-input" class="block text-sm font-medium text-gray-400 mb-2">Define custom format</label>
-                                <input type="text" id="other-treatment-input" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., Video Game Quest, Podcast Episode">
-                            </div>
+                        <p class="text-gray-400 mb-6">Bring your outline to life. A 'treatment' is a prose summary of your entire story, like a detailed short story. It helps you understand the flow and key moments before you start writing scenes. Your outline will be loaded automatically. Tell the AI the final format by clicking the "Format" gem above.</p>
                         <label class="block text-sm font-medium text-gray-400 mb-2">Your Outline</label>
                         <div id="chosen-outline-display" contenteditable="true" class="editable-area p-4 mb-4 bg-gray-900 border-2 border-gray-700 rounded-lg text-gray-300 min-h-[5rem] max-h-48 overflow-y-auto"><span class="text-gray-500">Generate an outline in the previous step, or type/paste your own outline here.</span></div>
                         <label for="treatment-secondary-guidance" class="block text-sm font-medium text-gray-400 mb-2 mt-4">Secondary Guidance (Optional)</label>
@@ -387,14 +350,22 @@
                         <!-- Storyboard panels will be dynamically inserted here -->
                     </div>
                 </div>
-
             </main>
         </div>
     </div>
-
+    
     <footer class="text-center mt-12 pb-8">
         <p class="text-sm text-gray-500">Created with Story Weaver by Wolfe.bt@TangentLLC</p>
     </footer>
+
+    <div id="path-settings-modal" class="modal fixed inset-0 bg-black/60 items-center justify-center hidden z-50 opacity-0">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md relative border border-gray-700">
+            <h2 id="path-modal-title" class="text-2xl font-bold text-white mb-6">Edit Path</h2>
+            <div id="path-modal-content" class="space-y-2">
+                <!-- Buttons will be dynamically inserted here -->
+            </div>
+        </div>
+    </div>
 
     <div id="project-modal" class="modal fixed inset-0 bg-black/60 items-center justify-center hidden z-50 opacity-0">
         <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md relative border border-gray-700">
@@ -463,7 +434,10 @@
             brainstormConcept: '',
             storyOutline: '',
             storyTreatment: '',
+            brainstormType: 'Story Ideas',
+            outlineStructure: 'Three-Act Structure',
             writingFormat: 'Novel / Book Chapter',
+            targetAudience: 'Young Adult',
             assets: [],
         };
 
@@ -488,28 +462,19 @@
         const navButtons = document.querySelectorAll('.nav-btn-side');
         const stages = document.querySelectorAll('.stage');
         const loaders = { ideas: document.getElementById('ideas-loader'), outline: document.getElementById('outline-loader'), treatment: document.getElementById('treatment-loader') };
-        const brainstormTypeSelect = document.getElementById('brainstorm-type-select');
         const brainstormInput = document.getElementById('brainstorm-input');
         const generateIdeasBtn = document.getElementById('generate-ideas-btn');
         const ideasOutput = document.getElementById('ideas-output');
         const chosenIdeaDisplay = document.getElementById('chosen-idea-display');
-        const outlineStructureSelect = document.getElementById('outline-structure');
         const generateOutlineBtn = document.getElementById('generate-outline-btn');
         const outlineOutput = document.getElementById('outline-output');
         const chosenOutlineDisplay = document.getElementById('chosen-outline-display');
         const generateTreatmentBtn = document.getElementById('generate-treatment-btn');
         const treatmentOutput = document.getElementById('treatment-output');
-        const treatmentFormatSelect = document.getElementById('treatment-format-select');
         const mainEditor = document.getElementById('main-editor');
         const loadAssetBtn = document.getElementById('load-asset-btn');
         const assetFileInput = document.getElementById('asset-file-input');
         const assetContainer = document.getElementById('asset-container');
-        const otherFormatContainer = document.getElementById('other-format-container');
-        const otherFormatInput = document.getElementById('other-format-input');
-        const otherOutlineContainer = document.getElementById('other-outline-container');
-        const otherOutlineInput = document.getElementById('other-outline-input');
-        const otherTreatmentContainer = document.getElementById('other-treatment-container');
-        const otherTreatmentInput = document.getElementById('other-treatment-input');
         const outlineSecondaryGuidance = document.getElementById('outline-secondary-guidance');
         const treatmentSecondaryGuidance = document.getElementById('treatment-secondary-guidance');
         const generateStoryboardBtn = document.getElementById('generate-storyboard-btn');
@@ -522,6 +487,12 @@
         const loadStoryToStoryboardBtn = document.getElementById('load-story-to-storyboard');
         const storyboardSecondaryGuidance = document.getElementById('storyboard-secondary-guidance');
         const writeTreatmentReference = document.getElementById('write-treatment-reference');
+        const projectPathDisplay = document.getElementById('project-path-display');
+        
+        // Modal elements
+        const pathSettingsModal = document.getElementById('path-settings-modal');
+        const pathModalTitle = document.getElementById('path-modal-title');
+        const pathModalContent = document.getElementById('path-modal-content');
         
         // AI Toolbar elements
         const aiActionBar = document.getElementById('ai-action-bar');
@@ -541,12 +512,51 @@
         const copyAiResponseBtn = document.getElementById('copy-ai-response-btn');
         const dismissAiResponseBtn = document.getElementById('dismiss-ai-response-btn');
 
-
         // Write Stage Tabs
         const workTab = document.getElementById('work-tab');
         const referenceTab = document.getElementById('reference-tab');
         const workPanel = document.getElementById('work-panel');
         const referencePanel = document.getElementById('reference-panel');
+
+        const PATH_OPTIONS = {
+            'brainstorm-type': {
+                title: 'Brainstorm Type',
+                options: {
+                    'Story Writing': ['Story Ideas', 'Characters', 'Settings', 'Plot Twists', 'Story Hooks'],
+                    'General Purpose': ['Design Concept', 'Shopping List', 'Travel Ideas'],
+                    'Custom': ['Other...']
+                },
+                stateKey: 'brainstormType'
+            },
+            'target-audience': {
+                title: 'Target Audience',
+                options: {
+                    'Youth': ['Children', 'Teen', 'Young Adult'],
+                    'Adult': ['Mature', 'Graphic'],
+                    'Technical': ['Academic'],
+                    'Custom': ['Other...']
+                },
+                stateKey: 'targetAudience'
+            },
+            'outline-structure': {
+                title: 'Outline Structure',
+                options: {
+                    'Classic Structures': ['Three-Act Structure', "The Hero's Journey", 'Five-Act Structure'],
+                    'Novel Writing': ['Save the Cat Beat Sheet', 'Snowflake Method', 'Fichtean Curve'],
+                    'Custom': ['Other...']
+                },
+                stateKey: 'outlineStructure'
+            },
+            'treatment-format': {
+                title: 'Treatment Format',
+                options: {
+                    'Prose & Narrative': ['Novel / Book Chapter', 'Short Story', 'Flash Fiction'],
+                    'Scripts & Performance': ['Screenplay Scene', 'Dialogue Only', 'Stage Play Scene', 'Comic Book Script'],
+                    'Custom': ['Other...']
+                },
+                stateKey: 'writingFormat'
+            }
+        };
 
 
         function showStatus(message, isError = false) {
@@ -555,6 +565,30 @@
             statusMessage.style.opacity = '1';
             setTimeout(() => { statusMessage.style.opacity = '0'; }, 3000);
         }
+
+        function updatePathDisplay() {
+            projectPathDisplay.innerHTML = '';
+
+            const createGem = (label, value, setting) => {
+                if (!value) return '';
+                // The span container helps the event listener delegate properly even if an inner element is clicked
+                return `<button class="path-gem" data-setting="${setting}">
+                            <span>
+                                <span class="path-gem-label">${label}:</span>
+                                <strong>${value}</strong>
+                            </span>
+                        </button>`;
+            };
+
+            const brainstormType = state.brainstormType;
+            const outlineType = state.outlineStructure;
+            const formatType = state.writingFormat;
+
+            projectPathDisplay.innerHTML += createGem('Type', brainstormType, 'brainstorm-type');
+            projectPathDisplay.innerHTML += createGem('Audience', state.targetAudience, 'target-audience');
+            projectPathDisplay.innerHTML += createGem('Structure', outlineType, 'outline-structure');
+            projectPathDisplay.innerHTML += createGem('Format', formatType, 'treatment-format');
+        }
         
         function updateUiFromState(data) {
             state.projectTitle = data.projectTitle || 'Untitled Project';
@@ -562,22 +596,15 @@
             state.storyOutline = data.storyOutline || '';
             state.storyTreatment = data.storyTreatment || '';
             state.writingFormat = data.writingFormat || 'Novel / Book Chapter';
+            state.targetAudience = data.targetAudience || 'Young Adult';
+            state.brainstormType = data.brainstormType || 'Story Ideas';
+            state.outlineStructure = data.outlineStructure || 'Three-Act Structure';
             state.assets = data.assets || [];
             
             projectTitleEl.textContent = state.projectTitle;
             mainEditor.innerHTML = data.editorContent || '';
             
-            const isStandardFormat = [...treatmentFormatSelect.options].some(opt => opt.value === state.writingFormat);
-            if(isStandardFormat) {
-                treatmentFormatSelect.value = state.writingFormat;
-                otherTreatmentContainer.classList.add('hidden');
-            } else {
-                treatmentFormatSelect.value = 'Other';
-                otherTreatmentInput.value = state.writingFormat;
-                otherTreatmentContainer.classList.remove('hidden');
-            }
-            
-            chosenIdeaDisplay.innerHTML = state.brainstormConcept || `<span class="text-gray-500">Select a concept, or type/paste your own.</span>`;
+            chosenIdeaDisplay.innerHTML = state.brainstormConcept || `<span class="text-gray-500">Select a concept from the Brainstorm tab, or type/paste your own concept here.</span>`;
             
             if (state.storyOutline) {
                 const formatted = cleanAndFormat(state.storyOutline);
@@ -597,6 +624,7 @@
                  writeTreatmentReference.innerHTML = `<span class="text-gray-500">Your generated treatment will appear here once created.</span>`;
             }
             renderAssets();
+            updatePathDisplay();
         }
         
         function handleJsonLoad(event) {
@@ -648,7 +676,7 @@
 
         function exportAsText() {
             const separator = "\n\n========================================\n\n";
-            let textContent = `PROJECT TITLE: ${state.projectTitle}\nWRITING FORMAT: ${state.writingFormat}\nEXPORTED ON: ${new Date().toLocaleString()}\n`;
+            let textContent = `PROJECT TITLE: ${state.projectTitle}\nTARGET AUDIENCE: ${state.targetAudience}\nWRITING FORMAT: ${state.writingFormat}\nEXPORTED ON: ${new Date().toLocaleString()}\n`;
             
             textContent += separator + "BRAINSTORM CONCEPT:\n\n" + htmlToText(state.brainstormConcept);
             textContent += separator + "STORY OUTLINE:\n\n" + state.storyOutline;
@@ -703,7 +731,10 @@
                     brainstormConcept: '',
                     storyOutline: '',
                     storyTreatment: '',
+                    brainstormType: 'Story Ideas',
+                    outlineStructure: 'Three-Act Structure',
                     writingFormat: 'Novel / Book Chapter',
+                    targetAudience: 'Young Adult',
                     assets: [],
                     editorContent: ''
                 };
@@ -715,6 +746,7 @@
                 storyboardOutput.innerHTML = '';
                 showStatus("New project started.");
                 closeModal('project');
+                updatePathDisplay();
             }
         }
         
@@ -775,6 +807,7 @@
                 </head>
                 <body>
                     <h1>${state.projectTitle}</h1>
+                    <p><strong>Target Audience:</strong> ${state.targetAudience}</p>
                     ${printContent}
                     <footer>Created with Story Weaver by Wolfe.bt@TangentLLC</footer>
                 </body>
@@ -1188,33 +1221,16 @@
             }
         });
 
-        brainstormTypeSelect.addEventListener('change', (e) => {
-            if (e.target.value === 'Other') {
-                otherFormatContainer.classList.remove('hidden');
-            } else {
-                otherFormatContainer.classList.add('hidden');
-            }
-        });
-
         generateIdeasBtn.addEventListener('click', async () => {
             const assetContext = getAssetContextForAI();
             ideasOutput.innerHTML = ''; 
-            let brainstormType = brainstormTypeSelect.value; 
+            let brainstormType = state.brainstormType; 
             const userInput = brainstormInput.value.trim(); 
             if(!userInput) return; 
             let prompt = ''; 
             const base = `You are a creative assistant. Your output must ONLY be the generated concepts, with each concept separated by a line containing only '---'. Do not include any introductory phrases or conversational text.`; 
             
             const fullBase = `${assetContext}${base}`;
-
-            if (brainstormType === 'Other') {
-                const otherFormat = otherFormatInput.value.trim();
-                if (!otherFormat) {
-                    showStatus("Please define a custom format when using 'Other'.", true);
-                    return;
-                }
-                brainstormType = otherFormat;
-            }
 
             switch (brainstormType) { 
                 case 'Characters': prompt = `${fullBase} Brainstorm 5 unique characters based on the theme: "${userInput}". For each character, provide a **Name:**, a **Description:**, and their **Motivation:**.`; break; 
@@ -1238,7 +1254,7 @@
                 return; 
             } 
 
-            if (state.projectTitle === 'Untitled Project' && brainstormTypeSelect.value === 'Story Ideas' && ideasArray.length > 0) {
+            if (state.projectTitle === 'Untitled Project' && state.brainstormType === 'Story Ideas' && ideasArray.length > 0) {
                 const firstIdea = ideasArray[0];
                 const titleMatch = firstIdea.match(/\*\*Title:\*\*\s*(.*)/);
                 if (titleMatch && titleMatch[1]) {
@@ -1263,7 +1279,7 @@
                 chosenIdeaDisplay.innerHTML = state.brainstormConcept; 
                 
                 const newTitle = decodeURIComponent(e.target.dataset.title);
-                if (brainstormTypeSelect.value === 'Story Ideas' && newTitle !== 'Untitled Concept') {
+                if (state.brainstormType === 'Story Ideas' && newTitle !== 'Untitled Concept') {
                      state.projectTitle = newTitle;
                      projectTitleEl.textContent = state.projectTitle;
                 }
@@ -1280,14 +1296,6 @@
             } 
         });
 
-        outlineStructureSelect.addEventListener('change', (e) => {
-            if (e.target.value === 'Other') {
-                otherOutlineContainer.classList.remove('hidden');
-            } else {
-                otherOutlineContainer.classList.add('hidden');
-            }
-        });
-
         generateOutlineBtn.addEventListener('click', async () => { 
             const conceptText = htmlToText(chosenIdeaDisplay.innerHTML);
             if (!conceptText.trim() || chosenIdeaDisplay.textContent.includes('Select a concept')) {
@@ -1295,21 +1303,17 @@
                 return;
             }
 
-            let outlineType = outlineStructureSelect.value;
-            if (outlineType === 'Other') {
-                const customType = otherOutlineInput.value.trim();
-                if (!customType) {
-                    showStatus("Please define a custom outline structure when using 'Other'.", true);
-                    return;
-                }
-                outlineType = customType;
-            }
+            let outlineType = state.outlineStructure;
 
             const secondaryGuidance = outlineSecondaryGuidance.value.trim();
             const guidanceText = secondaryGuidance ? `\n\n**Secondary Guidance:**\n${secondaryGuidance}` : '';
 
             const assetContext = getAssetContextForAI();
-            const prompt = `${assetContext}You are a story outlining expert. Your output must ONLY be the story outline itself. Do not include any introductory phrases. Generate a detailed story outline for the following concept using the **${outlineType}**.${guidanceText}\n\n**Concept:**\n${conceptText}`; 
+            let audienceInstruction = `for a **${state.targetAudience}** audience`;
+            if (state.targetAudience === 'Academic') {
+                audienceInstruction = `for an **Academic** audience. The outline should be structured to present factual information clearly and logically. Prioritize accuracy and a formal tone.`;
+            }
+            const prompt = `${assetContext}You are a story outlining expert. Your output must ONLY be the story outline itself. Do not include any introductory phrases. Generate a detailed story outline ${audienceInstruction} for the following concept using the **${outlineType}**.${guidanceText}\n\n**Concept:**\n${conceptText}`; 
             outlineOutput.innerHTML = ''; 
             const generatedOutline = await callGeminiAPI(prompt, loaders.outline); 
             if (generatedOutline.startsWith("Error:")) { showStatus(generatedOutline, true); return; } 
@@ -1326,14 +1330,6 @@
             } 
         });
 
-        treatmentFormatSelect.addEventListener('change', (e) => {
-            if (e.target.value === 'Other') {
-                otherTreatmentContainer.classList.remove('hidden');
-            } else {
-                otherTreatmentContainer.classList.add('hidden');
-            }
-        });
-
         generateTreatmentBtn.addEventListener('click', async () => { 
             state.storyOutline = htmlToText(chosenOutlineDisplay.innerHTML);
             if (!state.storyOutline.trim() || chosenOutlineDisplay.textContent.includes('Generate an outline')) {
@@ -1341,22 +1337,17 @@
                 return;
             }
             
-            let writingFormat = treatmentFormatSelect.value;
-            if (writingFormat === 'Other') {
-                const customFormat = otherTreatmentInput.value.trim();
-                if (!customFormat) {
-                    showStatus("Please define a custom format when using 'Other'.", true);
-                    return;
-                }
-                writingFormat = customFormat;
-            }
-            state.writingFormat = writingFormat;
+            let writingFormat = state.writingFormat;
 
             const secondaryGuidance = treatmentSecondaryGuidance.value.trim();
             const guidanceText = secondaryGuidance ? `\n\n**Secondary Guidance:**\n${secondaryGuidance}` : '';
 
             const assetContext = getAssetContextForAI();
-            const prompt = `${assetContext}Act as a professional writer. Expand the following story outline into a narrative treatment. The final work will be a **${state.writingFormat}**. The treatment should be written as present tense prose. Provide ONLY the treatment text.${guidanceText}\n\n**Outline:**\n${state.storyOutline}`; 
+            let audienceInstruction = `for a **${state.targetAudience}** audience`;
+            if (state.targetAudience === 'Academic') {
+                audienceInstruction = `for an **Academic** audience. The writing should be formal, objective, and well-structured, focusing on presenting factual information accurately.`;
+            }
+            const prompt = `${assetContext}Act as a professional writer. Expand the following story outline into a narrative treatment ${audienceInstruction}. The final work will be a **${state.writingFormat}**. The treatment should be written as present tense prose. Provide ONLY the treatment text.${guidanceText}\n\n**Outline:**\n${state.storyOutline}`; 
             treatmentOutput.innerHTML = ''; 
             const generatedTreatment = await callGeminiAPI(prompt, loaders.treatment); 
             if (generatedTreatment.startsWith("Error:")) { showStatus(generatedTreatment, true); return; } 
@@ -1437,8 +1428,92 @@
             saveStateToLocalStorage();
         });
         mainEditor.addEventListener('input', saveStateToLocalStorage);
+        
+        // --- Path Gem Modal Logic ---
+        function openPathModal(setting) {
+            pathModalContent.innerHTML = '';
+            const settingConfig = PATH_OPTIONS[setting];
+            if (!settingConfig) return;
 
-        // --- New AI Toolbar Logic ---
+            pathModalTitle.textContent = `Select ${settingConfig.title}`;
+
+            const createAndAppendButton = (option) => {
+                const button = document.createElement('button');
+                button.className = 'w-full py-3 px-4 rounded-lg font-semibold btn-secondary text-left';
+                
+                const isCustom = !Object.values(settingConfig.options).flat().includes(state[settingConfig.stateKey]);
+
+                if (state[settingConfig.stateKey] === option || (option === 'Other...' && isCustom)) {
+                    button.classList.remove('btn-secondary');
+                    button.classList.add('btn-primary');
+                }
+                button.textContent = option;
+                button.dataset.value = option;
+                button.addEventListener('click', () => handleOptionSelection(setting, option));
+                pathModalContent.appendChild(button);
+            };
+
+            if (Array.isArray(settingConfig.options)) {
+                settingConfig.options.forEach(createAndAppendButton);
+            } else { // It's an object with optgroups
+                for (const groupName in settingConfig.options) {
+                    const groupHeader = document.createElement('h3');
+                    groupHeader.className = 'text-sm font-semibold text-gray-400 mt-4 first:mt-0 mb-2';
+                    groupHeader.textContent = groupName;
+                    pathModalContent.appendChild(groupHeader);
+                    settingConfig.options[groupName].forEach(createAndAppendButton);
+                }
+            }
+
+            pathSettingsModal.classList.remove('hidden');
+            pathSettingsModal.classList.add('flex');
+            setTimeout(() => pathSettingsModal.style.opacity = 1, 10);
+        }
+
+        function handleOptionSelection(setting, option) {
+            const settingConfig = PATH_OPTIONS[setting];
+            const stateKey = settingConfig.stateKey;
+
+            if (option === 'Other...') {
+                const currentVal = state[stateKey];
+                const isAlreadyCustom = !Object.values(settingConfig.options).flat().includes(currentVal);
+                const promptDefault = isAlreadyCustom ? currentVal : '';
+
+                const customValue = prompt(`Please enter a custom ${settingConfig.title.toLowerCase()}:`, promptDefault);
+                
+                if (customValue && customValue.trim() !== '') {
+                    state[stateKey] = customValue.trim();
+                    closePathModal();
+                }
+                // If user cancels or enters nothing, do nothing, modal stays open.
+                return;
+            } else {
+                state[stateKey] = option;
+                closePathModal();
+            }
+        }
+
+        function closePathModal() {
+            pathSettingsModal.style.opacity = 0;
+            setTimeout(() => {
+                pathSettingsModal.classList.add('hidden');
+                pathSettingsModal.classList.remove('flex');
+            }, 250);
+            updatePathDisplay();
+            saveStateToLocalStorage();
+        }
+
+        projectPathDisplay.addEventListener('click', (e) => {
+            const gemButton = e.target.closest('.path-gem');
+            if (gemButton) {
+                const setting = gemButton.dataset.setting;
+                openPathModal(setting);
+            }
+        });
+        pathSettingsModal.addEventListener('click', (e) => { if (e.target === pathSettingsModal) closePathModal(); });
+
+
+        // --- AI Toolbar Logic ---
 
         mainEditor.addEventListener('mouseup', handleTextSelection);
         mainEditor.addEventListener('keyup', handleTextSelection);
@@ -1482,21 +1557,28 @@
             const format = state.writingFormat;
             const role = format.includes("Screenplay") ? "screenwriter" : "novelist";
 
+            let audienceInstruction = `for a **${state.targetAudience}** audience`;
+            let roleInstruction = `You are a talented ${role}.`;
+            if (state.targetAudience === 'Academic') {
+                roleInstruction = `You are an academic writer.`;
+                audienceInstruction = `for an **Academic** audience. Ensure the text is factual, formal, and objective.`;
+            }
+
             let prompt;
             if (action === 'expand') {
-                prompt = `${assetContext}You are a talented ${role}. Your task is to expand upon the following text, adding more detail, description, or dialogue as appropriate for a **${format}**. Seamlessly integrate the original ideas into a new, more detailed version.
+                prompt = `${assetContext}${roleInstruction} Your task is to expand upon the following text ${audienceInstruction}, adding more detail, description, or factual data as appropriate for a **${format}**. Seamlessly integrate the original ideas into a new, more detailed version.
                 **Original Text:** "${selectedText}"
                 **Full Story Context (for reference):** "${fullStoryContext}"
                 ---
                 Generate only the new, complete, expanded version of the text.`;
             } else if (action === 'rewrite') {
-                 prompt = `${assetContext}You are a talented ${role}. Your task is to rewrite the following text for a **${format}**.
+                 prompt = `${assetContext}${roleInstruction} Your task is to rewrite the following text ${audienceInstruction}, for a **${format}**.
                 **Original Text:** "${selectedText}"
                 **Full Story Context (for reference):** "${fullStoryContext}"
                 ---
                 Generate only the new, rewritten version of the text.`;
             } else if (action === 'custom') {
-                prompt = `${assetContext}You are a talented ${role}. Your task is to modify the following text based on the user's request, for a **${format}**.
+                prompt = `${assetContext}${roleInstruction} Your task is to modify the following text ${audienceInstruction}, based on the user's request, for a **${format}**.
                 **User Request:** "${customPrompt}"
                 **Original Text:** "${selectedText}"
                 **Full Story Context (for reference):** "${fullStoryContext}"
@@ -1590,6 +1672,7 @@
 
         loadApiKey();
         loadStateFromLocalStorage();
+        updatePathDisplay();
 
     </script>
 </body>
