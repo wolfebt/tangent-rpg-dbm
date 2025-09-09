@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Wolfe.bt@TangentLLC">
+    <title>Writer AId</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827;
+            color: #d1d5db;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .stage { display: none; }
+        .stage.active { display: block; }
+        .idea-card {
+            border: 2px solid #374151;
+            transition: border-color 0.3s, transform 0.2s;
+        }
+        .idea-card.selected-card {
+            border-color: #3b82f6;
+            transform: translateY(-2px);
+        }
+        .loader {
+            border: 4px solid #374151;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 2rem auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .btn-primary {
+            background-color: #2563eb;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        .btn-primary:hover:not(:disabled) { background-color: #1d4ed8; }
+        .btn-secondary {
+            background-color: #4b5563;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        .btn-secondary:hover:not(:disabled) { background-color: #374151; }
+        :disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        #status-message {
+            transition: opacity 0.5s ease-in-out;
+        }
+        .modal {
+            transition: opacity 0.25s ease;
+        }
+        #project-title {
+            outline: none;
+            border-bottom: 2px solid transparent;
+            transition: border-color 0.3s;
+        }
+        #project-title:focus {
+            border-bottom-color: #3b82f6;
+        }
+        .editable-area {
+            outline: none;
+            transition: box-shadow 0.2s;
+        }
+        .editable-area:focus {
+            box-shadow: 0 0 0 2px #2563eb;
+        }
+        .asset-card {
+            background-color: #1f2937;
+            border: 1px solid #374151;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+        }
+        .asset-input {
+            width: 100%;
+            background-color: #374151;
+            border: 1px solid #4b5563;
+            border-radius: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            color: #d1d5db;
+        }
+        .asset-input:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+        .storyboard-panel {
+            background-color: #1f2937;
+            border: 1px solid #374151;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+        .storyboard-panel .panel-loader {
+            width: 3rem;
+            height: 3rem;
+        }
+        .main-tab-btn {
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            border-bottom: 3px solid transparent;
+            color: #9ca3af;
+            transition: all 0.2s;
+        }
+        .main-tab-btn.active {
+            color: #3b82f6;
+            border-bottom-color: #3b82f6;
+        }
+        .main-tab-btn:not(.active):hover {
+            color: white;
+            border-bottom-color: #4b5563;
+        }
+        .nav-btn-side {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 0.75rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            transition: background-color 0.2s, color 0.2s;
+            color: #9ca3af;
+        }
+        .nav-btn-side.active {
+            background-color: #2563eb;
+            color: white;
+        }
+        .nav-btn-side:not(.active):hover {
+            background-color: #374151;
+            color: white;
+        }
+        /* Styles adapted for Character/Scene Tools */
+        .tool-input {
+            background-color: #374151;
+            border: 1px solid #4b5563;
+            color: #d1d5db;
+            width: 100%;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            transition: all 0.2s ease;
+        }
+        .tool-input:focus {
+            outline: none;
+            border-color: #2563eb;
+            background-color: #4b5563;
+        }
+        .tool-section-header {
+            font-weight: bold;
+            font-size: 1.25rem;
+            color: #60a5fa;
+            border-bottom: 1px solid #4b5563;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+         .tool-output-box {
+            background-color: #111827;
+            border: 1px solid #374151;
+            padding: 1rem; border-radius: 0.5rem;
+            min-height: 250px; overflow-y: auto;
+            font-family: monospace;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .tool-custom-radio-label {
+            display: block;
+            background-color: #374151;
+            color: #9ca3af;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            text-align: center;
+        }
+        .tool-custom-radio-label:hover { background-color: #4b5563; }
+        input[type="radio"]:checked + .tool-custom-radio-label {
+            background-color: #2563eb;
+            color: white;
+            border-color: #60a5fa;
+        }
+
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto max-w-screen-xl p-4 sm:p-6 lg:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-white">Writer AId</h1>
+            <p class="text-lg text-gray-400 mt-2">Your AI-powered partner for literary creation, character design, and scene building.</p>
+        </header>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:items-start">
+            <aside class="lg:col-span-3 h-fit lg:sticky top-8 space-y-6">
+                <div class="bg-gray-900/50 border border-gray-700 rounded-lg p-4">
+                        <div class="flex items-center justify-between gap-4 mb-4">
+                            <button id="project-options-btn" class="flex-1 py-2 px-3 text-sm rounded-lg font-semibold btn-primary">
+                                Project
+                            </button>
+                            <button id="settings-btn" class="p-2 rounded-lg btn-secondary" title="Settings">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0l-.1.41a2 2 0 01-2.23 1.52l-.4-.1a2 2 0 00-2.2 2.2l.1.4a2 2 0 01-1.52 2.23l-.41.1c-1.56.38-1.56 2.6 0 2.98l.41.1a2 2 0 011.52 2.23l-.1.4a2 2 0 002.2 2.2l.4-.1a2 2 0 012.23 1.52l.1.41c.38 1.56 2.6 1.56 2.98 0l.1-.41a2 2 0 012.23-1.52l.4.1a2 2 0 002.2-2.2l-.1-.4a2 2 0 011.52-2.23l.41-.1c-1.56-.38-1.56-2.6 0-2.98l-.41-.1a2 2 0 01-1.52-2.23l.1-.4a2 2 0 00-2.2-2.2l-.4.1a2 2 0 01-2.23-1.52l-.1-.41zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>
+                            </button>
+                        </div>
+                        <span id="status-message" class="text-sm text-gray-400 opacity-0 h-4 block text-center"></span>
+                </div>
+
+                <nav class="bg-gray-900/50 border border-gray-700 rounded-lg p-4 space-y-2">
+                    <h3 class="text-lg font-semibold text-gray-300 mb-2">Story Workflow</h3>
+                    <button data-stage="brainstorm" class="nav-btn-side active">1. Brainstorm</button>
+                    <button data-stage="outline" class="nav-btn-side">2. Outline</button>
+                    <button data-stage="treatment" class="nav-btn-side">3. Treatment</button>
+                    <button data-stage="write" class="nav-btn-side">4. Write</button>
+                    <button data-stage="storyboard" class="nav-btn-side">5. Storyboard</button>
+                </nav>
+
+                <div class="bg-gray-900/50 border border-gray-700 rounded-lg p-4">
+                    <h2 class="text-xl font-bold mb-4 text-blue-400">Project Assets</h2>
+                    <p class="text-sm text-gray-400 mb-4">Load JSON, Text, and Image files to provide context for the AI across all tools.</p>
+                    <button id="load-asset-btn" class="w-full py-2 px-4 rounded-lg font-semibold btn-secondary mb-4">Load Asset(s)</button>
+                    <input type="file" id="asset-file-input" class="hidden" accept=".json,.txt,image/*" multiple>
+                    
+                    <div id="asset-container" class="space-y-4 max-h-[40vh] overflow-y-auto">
+                        <!-- Loaded assets will be dynamically inserted here -->
+                    </div>
+                </div>
+            </aside>
+
+            <main class="lg:col-span-9">
+                <!-- MAIN TABS -->
+                <div class="border-b border-gray-700 mb-6">
+                    <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+                        <button id="tab-story" data-tab="story-weaver" class="main-tab-btn active">Story Weaver</button>
+                        <button id="tab-character" data-tab="character-tool" class="main-tab-btn">Character Tool</button>
+                        <button id="tab-scene" data-tab="scene-builder" class="main-tab-btn">Scene Builder</button>
+                    </nav>
+                </div>
+
+                <!-- STORY WEAVER TAB CONTENT -->
+                <div id="story-weaver" class="tab-content active">
+                    <div id="project-path-display" class="flex items-center justify-center gap-2 mb-6 flex-wrap"></div>
+                    
+                    <div id="brainstorm" class="stage active">
+                        <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                            <h2 class="text-2xl font-semibold mb-2 text-white">Creative Brainstorming</h2>
+                            <p class="text-gray-400 mb-6">Kickstart your creativity. Select what you want to brainstorm by clicking the "Type" gem above. Then give the AI a theme (e.g., 'a detective in a cyberpunk city'), and it will generate unique, detailed concepts to build upon.</p>
+                            <textarea id="brainstorm-input" class="w-full h-32 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Enter a theme or concept..."></textarea>
+                            <button id="generate-ideas-btn" class="mt-4 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Concepts</button>
+                        </div>
+                        <div id="ideas-output" class="mt-8 grid gap-6 md:grid-cols-1"></div>
+                        <div id="ideas-loader" class="hidden"><div class="loader"></div></div>
+                    </div>
+                    <div id="outline" class="stage">
+                         <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                            <h2 class="text-2xl font-semibold mb-2 text-white">Create a Story Outline</h2>
+                            <p class="text-gray-400 mb-6">Give your story a backbone. Your chosen concept from the Brainstorm stage will appear below, but you can also type or paste your own. Choose a narrative structure and audience by clicking the gems above. Use 'Secondary Guidance' to add specific instructions, like 'make sure the protagonist has a secret'.</p>
+                            <label class="block text-sm font-medium text-gray-400 mb-2">Your Concept</label>
+                            <div id="chosen-idea-display" contenteditable="true" class="editable-area p-4 mb-4 bg-gray-900 border-2 border-gray-700 rounded-lg text-gray-300 min-h-[5rem]"><span class="text-gray-500">Select a concept from the Brainstorm tab, or type/paste your own concept here.</span></div>
+                            <label for="outline-secondary-guidance" class="block text-sm font-medium text-gray-400 mb-2 mt-4">Secondary Guidance (Optional)</label>
+                            <textarea id="outline-secondary-guidance" class="w-full h-24 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., Make the second act focus on a betrayal, ensure the ending is a cliffhanger..."></textarea>
+                            <button id="generate-outline-btn" class="mt-4 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Outline</button>
+                        </div>
+                        <div id="outline-output" class="mt-8"></div>
+                        <div id="outline-loader" class="hidden"><div class="loader"></div></div>
+                    </div>
+                    <div id="treatment" class="stage">
+                        <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                            <h2 class="text-2xl font-semibold mb-2 text-white">Develop a Story Treatment</h2>
+                            <p class="text-gray-400 mb-6">Bring your outline to life. A 'treatment' is a prose summary of your entire story, like a detailed short story. It helps you understand the flow and key moments before you start writing scenes. Your outline will be loaded automatically. Tell the AI the final format by clicking the "Format" gem above.</p>
+                            <label class="block text-sm font-medium text-gray-400 mb-2">Your Outline</label>
+                            <div id="chosen-outline-display" contenteditable="true" class="editable-area p-4 mb-4 bg-gray-900 border-2 border-gray-700 rounded-lg text-gray-300 min-h-[5rem] max-h-48 overflow-y-auto"><span class="text-gray-500">Generate an outline in the previous step, or type/paste your own outline here.</span></div>
+                            <label for="treatment-secondary-guidance" class="block text-sm font-medium text-gray-400 mb-2 mt-4">Secondary Guidance (Optional)</label>
+                            <textarea id="treatment-secondary-guidance" class="w-full h-24 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., Emphasize the romantic subplot, write in a gritty, noir style..."></textarea>
+                            <button id="generate-treatment-btn" class="w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Treatment from Outline</button>
+                        </div>
+                        <div id="treatment-output" class="mt-8"></div>
+                        <div id="treatment-loader" class="hidden"><div class="loader"></div></div>
+                    </div>
+                    <div id="write" class="stage">
+                        <div id="ai-action-bar" class="hidden sticky top-8 z-10 bg-gray-800/95 backdrop-blur-sm border border-gray-700 p-2 rounded-lg flex items-center gap-4 mb-4">
+                            <span class="text-sm font-semibold text-gray-300">AI Toolkit:</span>
+                            <div id="ai-toolbar-buttons" class="flex items-center gap-2">
+                                <button class="ai-toolbar-btn" id="ai-expand-btn">Expand</button>
+                                <button class="ai-toolbar-btn" id="ai-rewrite-btn">Rewrite</button>
+                                <div id="ai-custom-prompt-container" class="hidden items-center gap-2">
+                                    <input type="text" id="ai-toolbar-prompt" placeholder="Your prompt...">
+                                    <button class="ai-toolbar-btn" id="ai-custom-submit-btn">Submit</button>
+                                </div>
+                                <button class="ai-toolbar-btn" id="ai-ask-btn">Ask AI...</button>
+                            </div>
+                            <div id="ai-toolbar-loader" class="hidden">
+                                <div class="loader" style="width: 24px; height: 24px; border-width: 2px; margin: 0.5rem;"></div>
+                            </div>
+                        </div>
+                         <div id="ai-response-panel" class="hidden bg-gray-900/50 border-2 border-dashed border-blue-500/50 p-4 rounded-lg mb-6">
+                            <h3 class="text-lg font-semibold text-blue-400 mb-2">AI Suggestion</h3>
+                            <div id="ai-response-content" contenteditable="true" class="w-full min-h-[150px] p-4 bg-gray-800 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 overflow-y-auto"></div>
+                            <div class="flex gap-2 mt-3 justify-end">
+                                <button id="copy-ai-response-btn" class="py-2 px-4 rounded-lg font-semibold btn-primary">Copy</button>
+                                <button id="dismiss-ai-response-btn" class="py-2 px-4 rounded-lg font-semibold btn-secondary">Close</button>
+                            </div>
+                        </div>
+                        <div class="bg-gray-800 rounded-lg shadow-lg">
+                            <div class="flex border-b border-gray-700 justify-between items-center">
+                                <div class="flex">
+                                    <button id="work-tab" class="py-3 px-6 font-semibold border-b-2 border-blue-500 text-white">Work</button>
+                                    <button id="reference-tab" class="py-3 px-6 font-semibold border-b-2 border-transparent text-gray-400 hover:text-white transition-colors">Reference</button>
+                                </div>
+                            </div>
+                            <div id="work-panel" class="p-6">
+                                <h2 class="text-2xl font-semibold mb-4 text-white">Your Story</h2>
+                                <p class="text-sm text-gray-400 mb-4">This is your main writing space. Write freely, and when you need assistance, simply highlight any text. The AI Toolkit will appear at the top, allowing you to expand, rewrite, or give custom instructions for the selected passage. AI suggestions will appear in a separate panel for you to review, edit, and copy.</p>
+                                <div id="main-editor" contenteditable="true" class="relative w-full min-h-[70vh] p-4 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 overflow-y-auto" aria-label="Main story editor"></div>
+                            </div>
+                            <div id="reference-panel" class="p-6 hidden">
+                                <h3 class="text-xl font-semibold mb-2 text-white">Reference Panel</h3>
+                                <p class="text-sm text-gray-400 mb-4">You can use this area to see your Treatment or other reference material while you write.</p>
+                                <div id="write-treatment-reference" class="p-4 bg-gray-900 border border-gray-700 rounded-lg text-gray-300 max-h-[70vh] overflow-y-auto prose prose-invert max-w-none text-sm">
+                                    <span class="text-gray-500">Your generated treatment will appear here once created.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="storyboard" class="stage">
+                        <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                            <h2 class="text-2xl font-semibold mb-2 text-white">Create a Storyboard</h2>
+                            <p class="text-gray-400 mb-6">Turn your words into images. Paste a scene description from your story or treatment into the box below. The AI will first act as a director, breaking your scene into key shots. Then, it will generate a unique image for each shot, creating a visual storyboard to help you picture the action.</p>
+                            <div class="flex space-x-2 mb-4">
+                                <button id="load-treatment-to-storyboard" class="flex-1 py-2 px-4 text-sm rounded-lg font-semibold btn-secondary">Load from Treatment</button>
+                                <button id="load-story-to-storyboard" class="flex-1 py-2 px-4 text-sm rounded-lg font-semibold btn-secondary">Load from Story</button>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                                <div>
+                                    <label for="storyboard-panels" class="block text-sm font-medium text-gray-400 mb-2">Number of Panels</label>
+                                    <input type="number" id="storyboard-panels" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" value="4" min="1" max="8">
+                                </div>
+                                <div>
+                                    <label for="storyboard-style" class="block text-sm font-medium text-gray-400 mb-2">Art Style</label>
+                                    <select id="storyboard-style" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                        <option>Sketch</option>
+                                        <option>Painting</option>
+                                        <option>Anime</option>
+                                        <option>Photorealistic</option>
+                                        <option>Comic Book</option>
+                                        <option>Cinematic</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <label for="storyboard-description" class="block text-sm font-medium text-gray-400 mb-2">Scene Description</label>
+                            <textarea id="storyboard-description" class="w-full h-48 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Paste or write the scene you want to visualize..."></textarea>
+                            <label for="storyboard-secondary-guidance" class="block text-sm font-medium text-gray-400 mb-2 mt-4">Secondary Guidance (Optional)</label>
+                            <textarea id="storyboard-secondary-guidance" class="w-full h-24 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., Maintain a consistent color palette of blues and grays, ensure the main character always wears a red scarf..."></textarea>
+                            <button id="generate-storyboard-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Storyboard</button>
+                        </div>
+                        <div id="storyboard-loader" class="hidden text-center mt-4">
+                            <p class="mb-2 text-gray-400">Generating visual seeds...</p>
+                            <div class="loader inline-block"></div>
+                        </div>
+                        <div id="storyboard-output" class="mt-8 grid gap-6 grid-cols-1 md:grid-cols-2"></div>
+                    </div>
+                </div>
+
+                <!-- CHARACTER TOOL TAB CONTENT -->
+                <div id="character-tool" class="tab-content">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <!-- LEFT COLUMN -->
+                        <div class="bg-gray-800 p-6 rounded-lg shadow-lg space-y-6">
+                            <form id="character-form-unified">
+                                <div class="tool-section-header">Character Details</div>
+                                <p class="text-sm text-gray-400 -mt-4 mb-4">Fill in the fields or check the box to have the AI generate the content for you.</p>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                                    <div>
+                                        <label for="name" class="block text-sm font-medium text-gray-300 mb-1">Name</label>
+                                        <div class="flex items-center gap-3"><input type="text" id="name" name="name" placeholder="e.g., Alistair Croft" class="tool-input"><input type="checkbox" id="cb-name" name="cb-name" checked title="Check to generate with AI"></div>
+                                    </div>
+                                    <div>
+                                        <label for="genre" class="block text-sm font-medium text-gray-300 mb-1">Genre</label>
+                                        <div class="flex items-center gap-3"><input type="text" id="genre" name="genre" placeholder="e.g., Sci-Fi, Fantasy" class="tool-input"><input type="checkbox" id="cb-genre" name="cb-genre" checked title="Check to generate with AI"></div>
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <label for="core-description" class="block text-sm font-medium text-gray-300 mb-1">Core Description</label>
+                                        <div class="flex items-center gap-3"><textarea id="core-description" name="core-description" placeholder="A high-level summary..." class="tool-input"></textarea><input type="checkbox" id="cb-core-description" name="cb-core-description" checked title="Check to generate with AI"></div>
+                                    </div>
+                                    <div class="md:col-span-2"><label for="backstory" class="block text-sm font-medium text-gray-300 mb-1">Backstory</label><div class="flex items-center gap-3"><textarea id="backstory" name="backstory" placeholder="Detail their history..." class="tool-input"></textarea><input type="checkbox" id="cb-backstory" name="cb-backstory" checked></div></div>
+                                    <div class="md:col-span-2"><label for="personality" class="block text-sm font-medium text-gray-300 mb-1">Personality</label><div class="flex items-center gap-3"><textarea id="personality" name="personality" placeholder="e.g., Witty, cautious..." class="tool-input"></textarea><input type="checkbox" id="cb-personality" name="cb-personality" checked></div></div>
+                                    <div><label for="skills" class="block text-sm font-medium text-gray-300 mb-1">Skills</label><div class="flex items-center gap-3"><input type="text" id="skills" name="skills" placeholder="e.g., Lockpicking" class="tool-input"><input type="checkbox" id="cb-skills" name="cb-skills" checked></div></div>
+                                    <div><label for="abilities" class="block text-sm font-medium text-gray-300 mb-1">Abilities</label><div class="flex items-center gap-3"><input type="text" id="abilities" name="abilities" placeholder="e.g., Minor pyromancy" class="tool-input"><input type="checkbox" id="cb-abilities" name="cb-abilities" checked></div></div>
+                                    <div class="md:col-span-2"><label for="goals" class="block text-sm font-medium text-gray-300 mb-1">Goals</label><div class="flex items-center gap-3"><textarea id="goals" name="goals" placeholder="Short-term and long-term goals." class="tool-input"></textarea><input type="checkbox" id="cb-goals" name="cb-goals" checked></div></div>
+                                    <div class="md:col-span-2"><label for="motivations" class="block text-sm font-medium text-gray-300 mb-1">Motivations</label><div class="flex items-center gap-3"><textarea id="motivations" name="motivations" placeholder="What drives them?" class="tool-input"></textarea><input type="checkbox" id="cb-motivations" name="cb-motivations" checked></div></div>
+                                    <div><label for="weaknesses" class="block text-sm font-medium text-gray-300 mb-1">Weaknesses</label><div class="flex items-center gap-3"><input type="text" id="weaknesses" name="weaknesses" placeholder="e.g., Fear of heights" class="tool-input"><input type="checkbox" id="cb-weaknesses" name="cb-weaknesses" checked></div></div>
+                                    <div><label for="equipment" class="block text-sm font-medium text-gray-300 mb-1">Equipment</label><div class="flex items-center gap-3"><textarea id="equipment" name="equipment" placeholder="What items do they carry?" class="tool-input"></textarea><input type="checkbox" id="cb-equipment" name="cb-equipment" checked></div></div>
+                                    <div class="md:col-span-2"><label for="relationships" class="block text-sm font-medium text-gray-300 mb-1">Relationships</label><div class="flex items-center gap-3"><textarea id="relationships" name="relationships" placeholder="Family, friends, rivals, etc." class="tool-input"></textarea><input type="checkbox" id="cb-relationships" name="cb-relationships" checked></div></div>
+                                    <div class="md:col-span-2"><label for="notes" class="block text-sm font-medium text-gray-300 mb-1">Notes</label><div class="flex items-center gap-3"><textarea id="notes" name="notes" placeholder="Any other important details..." class="tool-input"></textarea><input type="checkbox" id="cb-notes" name="cb-notes" checked></div></div>
+                                    <div class="md:col-span-2 tool-section-header mt-4">Appearance & Image Details</div>
+                                    <div><label for="gender" class="block text-sm font-medium text-gray-300 mb-1">Gender / Sex</label><input type="text" id="gender" name="gender" placeholder="e.g., Female, Male" class="tool-input"></div>
+                                    <div><label for="build" class="block text-sm font-medium text-gray-300 mb-1">Build</label><input type="text" id="build" name="build" placeholder="e.g., Athletic, Slender" class="tool-input"></div>
+                                    <div><label for="hairColor" class="block text-sm font-medium text-gray-300 mb-1">Hair Color</label><input type="text" id="hairColor" name="hairColor" placeholder="e.g., Black, Blonde" class="tool-input"></div>
+                                    <div><label for="eyeColor" class="block text-sm font-medium text-gray-300 mb-1">Eye Color</label><input type="text" id="eyeColor" name="eyeColor" placeholder="e.g., Brown, Blue" class="tool-input"></div>
+                                    <div class="md:col-span-2"><label for="details" class="block text-sm font-medium text-gray-300 mb-1">Other Details (Race, etc.)</label><textarea id="details" name="details" class="tool-input" placeholder="e.g., Human with rounded ears..."></textarea></div>
+                                    <div class="md:col-span-2"><label for="clothing" class="block text-sm font-medium text-gray-300 mb-1">Clothing</label><textarea id="clothing" name="clothing" class="tool-input" placeholder="e.g., Leather armor..."></textarea></div>
+                                    <div class="md:col-span-2"><label for="expression" class="block text-sm font-medium text-gray-300 mb-1">Expression / Mood</label><textarea id="expression" name="expression" class="tool-input" placeholder="e.g., Determined, smiling..."></textarea></div>
+                                    <div class="md:col-span-2"><label for="background" class="block text-sm font-medium text-gray-300 mb-1">Background / Setting</label><textarea id="background" name="background" class="tool-input" placeholder="e.g., Bustling city street..."></textarea></div>
+                                    <div class="md:col-span-2"><label for="negative_prompts_char" class="block text-sm font-medium text-gray-300 mb-1 text-red-400">Negative Prompts</label><textarea id="negative_prompts_char" name="negative_prompts_char" class="tool-input" placeholder="e.g., eyepatch, helmet..."></textarea></div>
+                                </div>
+                            </form>
+                        </div>
+                        <!-- RIGHT COLUMN -->
+                        <div class="space-y-6">
+                           <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                                <h2 class="text-xl font-bold mb-4 text-white">Generation Controls</h2>
+                                <div class="space-y-4">
+                                    <button id="generate-text-btn-char" class="w-full py-3 px-4 rounded-lg font-semibold btn-primary bg-green-600 hover:bg-green-700">Generate Text</button>
+                                    <div class="border-t border-gray-700 pt-4">
+                                        <label class="block text-sm font-medium text-gray-300 mb-2">Art Style</label>
+                                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                                            <input type="radio" name="style_char" value="painting" id="style_painting_char" class="hidden" checked><label for="style_painting_char" class="tool-custom-radio-label">Painting</label>
+                                            <input type="radio" name="style_char" value="photorealistic" id="style_photorealistic_char" class="hidden"><label for="style_photorealistic_char" class="tool-custom-radio-label">Photorealistic</label>
+                                            <input type="radio" name="style_char" value="anime" id="style_anime_char" class="hidden"><label for="style_anime_char" class="tool-custom-radio-label">Anime</label>
+                                            <input type="radio" name="style_char" value="sketch" id="style_sketch_char" class="hidden"><label for="style_sketch_char" class="tool-custom-radio-label">Sketch</label>
+                                        </div>
+                                    </div>
+                                    <button id="generate-image-btn-char" class="w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Image</button>
+                                </div>
+                            </div>
+                            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                                <h2 class="text-2xl font-bold mb-4 text-white">Generated Image</h2>
+                                <div id="image-container-char" class="w-full aspect-square bg-gray-900 rounded-md flex items-center justify-center border border-gray-700">
+                                    <div id="loading-spinner-image-char" class="loader hidden"></div>
+                                    <img id="generated-image-char" src="" alt="Generated Character" class="hidden w-full h-full object-cover rounded-md">
+                                    <span id="image-placeholder-char" class="text-gray-500">Your character image will appear here</span>
+                                </div>
+                                <button id="download-image-btn-char" class="hidden mt-4 w-full py-2 px-4 rounded-lg font-semibold btn-secondary">Download Image</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SCENE BUILDER TAB CONTENT -->
+                <div id="scene-builder" class="tab-content">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                         <!-- LEFT COLUMN -->
+                        <div class="bg-gray-800 p-6 rounded-lg shadow-lg space-y-6">
+                            <form id="scene-form-unified">
+                                <div class="tool-section-header">Location Details</div>
+                                <p class="text-sm text-gray-400 -mt-4 mb-4">Fill in the fields or check the box to have the AI generate the content for you.</p>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                                    <div>
+                                        <label for="location-name" class="block text-sm font-medium text-gray-300 mb-1">Location Name</label>
+                                        <div class="flex items-center gap-3"><input type="text" id="location-name" name="location-name" placeholder="e.g., The Spire" class="tool-input"><input type="checkbox" id="cb-location-name" name="cb-location-name" checked></div>
+                                    </div>
+                                    <div>
+                                        <label for="genre-scene" class="block text-sm font-medium text-gray-300 mb-1">Genre</label>
+                                        <div class="flex items-center gap-3"><input type="text" id="genre-scene" name="genre-scene" placeholder="e.g., Sci-Fi, Fantasy" class="tool-input"><input type="checkbox" id="cb-genre-scene" name="cb-genre-scene" checked></div>
+                                    </div>
+                                    <div class="md:col-span-2"><label for="overview" class="block text-sm font-medium text-gray-300 mb-1">Overview</label><div class="flex items-center gap-3"><textarea id="overview" name="overview" placeholder="A high-level summary..." class="tool-input"></textarea><input type="checkbox" id="cb-overview" name="cb-overview" checked></div></div>
+                                    <div class="md:col-span-2"><label for="exterior-description" class="block text-sm font-medium text-gray-300 mb-1">Exterior Description</label><div class="flex items-center gap-3"><textarea id="exterior-description" name="exterior-description" placeholder="Describe the outside..." class="tool-input"></textarea><input type="checkbox" id="cb-exterior-description" name="cb-exterior-description" checked></div></div>
+                                    <div class="md:col-span-2"><label for="interior-details" class="block text-sm font-medium text-gray-300 mb-1">Interior Details</label><div class="flex items-center gap-3"><textarea id="interior-details" name="interior-details" placeholder="Describe the layout..." class="tool-input"></textarea><input type="checkbox" id="cb-interior-details" name="cb-interior-details" checked></div></div>
+                                    <div class="md:col-span-2"><label for="history" class="block text-sm font-medium text-gray-300 mb-1">History</label><div class="flex items-center gap-3"><textarea id="history" name="history" placeholder="Detail its origins..." class="tool-input"></textarea><input type="checkbox" id="cb-history" name="cb-history" checked></div></div>
+                                    <div class="md:col-span-2"><label for="atmosphere" class="block text-sm font-medium text-gray-300 mb-1">Atmosphere / Mood</label><div class="flex items-center gap-3"><textarea id="atmosphere" name="atmosphere" placeholder="e.g., Oppressive, serene..." class="tool-input"></textarea><input type="checkbox" id="cb-atmosphere" name="cb-atmosphere" checked></div></div>
+                                    <div class="md:col-span-2"><label for="time_of_day" class="block text-sm font-medium text-gray-300 mb-1">Time of Day</label><input type="text" id="time_of_day" name="time_of_day" placeholder="e.g., Sunrise, Night" class="tool-input"></div>
+                                    <div class="md:col-span-2"><label for="weather" class="block text-sm font-medium text-gray-300 mb-1">Weather</label><input type="text" id="weather" name="weather" placeholder="e.g., Sunny, Raining" class="tool-input"></div>
+                                    <div class="md:col-span-2"><label for="architectural_style" class="block text-sm font-medium text-gray-300 mb-1">Architectural Style</label><input type="text" id="architectural_style" name="architectural_style" placeholder="e.g., Gothic, Modern" class="tool-input"></div>
+                                    <div class="md:col-span-2"><label for="other_details" class="block text-sm font-medium text-gray-300 mb-1">Other Details</label><textarea id="other_details" name="other_details" class="tool-input" placeholder="e.g., specific flora..."></textarea></div>
+                                    <div class="md:col-span-2"><label for="negative_prompts_scene" class="block text-sm font-medium text-gray-300 mb-1 text-red-400">Negative Prompts</label><textarea id="negative_prompts_scene" name="negative_prompts_scene" class="tool-input" placeholder="e.g., people, vehicles..."></textarea></div>
+                                </div>
+                            </form>
+                        </div>
+                         <!-- RIGHT COLUMN -->
+                        <div class="space-y-6">
+                           <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                                <h2 class="text-xl font-bold mb-4 text-white">Generation Controls</h2>
+                                <div class="space-y-4">
+                                    <button id="generate-text-btn-scene" class="w-full py-3 px-4 rounded-lg font-semibold btn-primary bg-green-600 hover:bg-green-700">Generate Text</button>
+                                    <div class="border-t border-gray-700 pt-4">
+                                        <label class="block text-sm font-medium text-gray-300 mb-2">Art Style</label>
+                                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                                            <input type="radio" name="style_scene" value="painting" id="style_painting_scene" class="hidden" checked><label for="style_painting_scene" class="tool-custom-radio-label">Painting</label>
+                                            <input type="radio" name="style_scene" value="photorealistic" id="style_photorealistic_scene" class="hidden"><label for="style_photorealistic_scene" class="tool-custom-radio-label">Photorealistic</label>
+                                            <input type="radio" name="style_scene" value="anime" id="style_anime_scene" class="hidden"><label for="style_anime_scene" class="tool-custom-radio-label">Anime</label>
+                                            <input type="radio" name="style_scene" value="sketch" id="style_sketch_scene" class="hidden"><label for="style_sketch_scene" class="tool-custom-radio-label">Sketch</label>
+                                        </div>
+                                    </div>
+                                    <button id="generate-image-btn-scene" class="w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Image</button>
+                                </div>
+                            </div>
+                            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                                <h2 class="text-2xl font-bold mb-4 text-white">Generated Image</h2>
+                                <div id="image-container-scene" class="w-full aspect-square bg-gray-900 rounded-md flex items-center justify-center border border-gray-700">
+                                    <div id="loading-spinner-image-scene" class="loader hidden"></div>
+                                    <img id="generated-image-scene" src="" alt="Generated Scene" class="hidden w-full h-full object-cover rounded-md">
+                                    <span id="image-placeholder-scene" class="text-gray-500">Your scene image will appear here</span>
+                                </div>
+                                <button id="download-image-btn-scene" class="hidden mt-4 w-full py-2 px-4 rounded-lg font-semibold btn-secondary">Download Image</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    
+    <footer class="text-center mt-12 pb-8">
+        <p class="text-sm text-gray-500">Created with Writer AId by Wolfe.bt@TangentLLC</p>
+    </footer>
+
+    <!-- MODALS (SHARED) -->
+    <div id="path-settings-modal" class="modal fixed inset-0 bg-black/60 items-center justify-center hidden z-50 opacity-0">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md relative border border-gray-700">
+            <h2 id="path-modal-title" class="text-2xl font-bold text-white mb-6">Edit Path</h2>
+            <div id="path-modal-content" class="space-y-2"></div>
+        </div>
+    </div>
+    <div id="project-modal" class="modal fixed inset-0 bg-black/60 items-center justify-center hidden z-50 opacity-0">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md relative border border-gray-700">
+            <button id="close-modal-btn" class="absolute top-3 right-3 text-gray-500 hover:text-white transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            <h2 class="text-2xl font-bold text-white mb-6">Project Options</h2>
+            <div class="space-y-4">
+                <button id="new-project-btn" class="w-full py-3 px-4 rounded-lg font-semibold btn-secondary bg-red-600/50 hover:bg-red-600/80">New Project (Clear All)</button>
+                <button id="load-json-btn" class="w-full py-3 px-4 rounded-lg font-semibold btn-secondary">Load Project from JSON File</button>
+                <input type="file" id="json-file-input" class="hidden" accept=".json">
+                <button id="export-json-btn" class="w-full py-3 px-4 rounded-lg font-semibold btn-secondary">Export Project to JSON File</button>
+                <button id="export-text-btn" class="w-full py-3 px-4 rounded-lg font-semibold btn-secondary">Export Story as Text File</button>
+                <button id="print-project-btn" class="w-full py-3 px-4 rounded-lg font-semibold btn-primary">Print Project</button>
+            </div>
+             <div id="print-options" class="mt-6 pt-4 border-t border-gray-700">
+                <h3 class="text-lg font-semibold text-white mb-3">Print Selection</h3>
+                <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                    <div class="flex items-center">
+                        <input id="print-check-brainstorm" type="checkbox" checked class="h-4 w-4 rounded bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500">
+                        <label for="print-check-brainstorm" class="ml-2 text-gray-300">Brainstorm</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input id="print-check-outline" type="checkbox" checked class="h-4 w-4 rounded bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500">
+                        <label for="print-check-outline" class="ml-2 text-gray-300">Outline</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input id="print-check-treatment" type="checkbox" checked class="h-4 w-4 rounded bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500">
+                        <label for="print-check-treatment" class="ml-2 text-gray-300">Treatment</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input id="print-check-story" type="checkbox" checked class="h-4 w-4 rounded bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500">
+                        <label for="print-check-story" class="ml-2 text-gray-300">Story</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input id="print-check-storyboard" type="checkbox" checked class="h-4 w-4 rounded bg-gray-700 border-gray-600 text-blue-600 focus:ring-blue-500">
+                        <label for="print-check-storyboard" class="ml-2 text-gray-300">Storyboard</label>
+                    </div>
+                </div>
+                 <div class="flex space-x-2 mt-4">
+                    <button id="print-select-all-btn" class="flex-1 py-1 px-2 text-xs rounded-md font-semibold btn-secondary">Select All</button>
+                    <button id="print-deselect-all-btn" class="flex-1 py-1 px-2 text-xs rounded-md btn-secondary">Deselect All</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="settings-modal" class="modal fixed inset-0 bg-black/60 items-center justify-center hidden z-50 opacity-0">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md relative border border-gray-700">
+            <button id="close-settings-modal-btn" class="absolute top-3 right-3 text-gray-500 hover:text-white transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            <h2 class="text-2xl font-bold text-white mb-4">Settings</h2>
+            <p class="text-sm text-gray-400 mb-4">Your Gemini API key is stored locally in your browser and is never sent to our servers.</p>
+            <div class="space-y-2">
+                <label for="api-key-input" class="block text-sm font-medium text-gray-300">Gemini API Key</label>
+                <input type="password" id="api-key-input" class="w-full p-2 bg-gray-900 text-gray-300 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Enter your API key">
+            </div>
+            <button id="save-api-key-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Save Key</button>
+        </div>
+    </div>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+        // --- GLOBAL STATE & API CONFIG ---
+        let userApiKey = '';
+        const storyWeaverState = {
+            projectTitle: 'Untitled Project',
+            brainstormConcept: '',
+            storyOutline: '',
+            storyTreatment: '',
+            brainstormType: 'Story Ideas',
+            outlineStructure: 'Three-Act Structure',
+            writingFormat: 'Novel / Book Chapter',
+            targetAudience: 'Young Adult',
+            assets: [],
+        };
+        
+        // --- GLOBAL DOM ELEMENTS ---
+        const assetContainer = document.getElementById('asset-container');
+
+        // --- GLOBAL UTILITY FUNCTIONS ---
+        function showStatus(message, isError = false) {
+            const statusMessage = document.getElementById('status-message');
+            statusMessage.textContent = message;
+            statusMessage.style.color = isError ? '#ef4444' : '#9ca3af';
+            statusMessage.style.opacity = '1';
+            setTimeout(() => { statusMessage.style.opacity = '0'; }, 3000);
+        }
+
+        async function callGeminiAPI(prompt, loaderElement) {
+            if (!userApiKey) {
+                showStatus("API Key is missing. Please add it in Settings.", true);
+                openModal('settings');
+                return "Error: API Key is missing.";
+            }
+            if (loaderElement) loaderElement.style.display = 'block';
+
+            const maxRetries = 3;
+            let delay = 1000;
+
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${userApiKey}`;
+                    const payload = { contents: [{ parts: [{ text: prompt }] }] };
+                    const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        if(loaderElement) loaderElement.style.display = 'none';
+                        return result.candidates?.[0]?.content?.parts?.[0]?.text;
+                    }
+                    if (response.status === 503 || response.status === 429) {
+                        if (i < maxRetries - 1) {
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                            delay *= 2;
+                            continue;
+                        }
+                    }
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error?.message || `API request failed with status ${response.status}`);
+                } catch (e) {
+                    if (i === maxRetries - 1) {
+                        console.error(e);
+                        if(loaderElement) loaderElement.style.display = 'none';
+                        return `Error: ${e.message}`;
+                    }
+                }
+            }
+        }
+
+        async function callImagenAPI(positivePrompt, negativePrompt) {
+            if (!userApiKey) {
+                showStatus("API Key is missing for image generation.", true);
+                openModal('settings');
+                return null;
+            }
+            try {
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${userApiKey}`;
+                const payload = {
+                    instances: [{ prompt: positivePrompt, negativePrompt: negativePrompt }],
+                    parameters: { "sampleCount": 1 }
+                };
+                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+                }
+                const result = await response.json();
+                if (result.predictions?.[0]?.bytesBase64Encoded) {
+                    return `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
+                }
+                throw new Error('API returned a valid response but no image data was found.');
+            } catch(e) {
+                console.error("Imagen API Error:", e);
+                showStatus(`Image Gen Error: ${e.message}`, true);
+                return null;
+            }
+        }
+
+        function addAssetToState(assetData) {
+            const asset = { id: `asset-${Date.now()}-${Math.random()}`, label: '', notes: '', includeInPrompt: true, ...assetData };
+            storyWeaverState.assets.push(asset);
+            renderAssets();
+            showStatus(`Asset "${assetData.fileName}" loaded.`);
+        }
+
+        function renderAssets() {
+            assetContainer.innerHTML = '';
+            storyWeaverState.assets.forEach(asset => {
+                const card = document.createElement('div');
+                card.className = 'asset-card space-y-2';
+                card.dataset.id = asset.id;
+                card.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <strong class="text-blue-400 truncate" style="max-width: 120px;">${asset.fileName}</span></strong>
+                        <div class="flex items-center space-x-2">
+                            <label class="text-xs text-gray-400">Include</label>
+                            <input type="checkbox" class="asset-include-checkbox w-4 h-4" data-id="${asset.id}" ${asset.includeInPrompt ? 'checked' : ''}>
+                            <button class="remove-asset-btn text-red-400 text-xs font-bold">X</button>
+                        </div>
+                    </div>
+                    ${asset.type === 'image' ? `<img src="${asset.content}" class="rounded w-full h-auto mt-2">` : ''}
+                    <textarea class="asset-input asset-notes" rows="2" placeholder="Notes...">${asset.notes}</textarea>`;
+                assetContainer.appendChild(card);
+            });
+        }
+        
+        // --- GLOBAL SETUP & MODAL LOGIC ---
+        const settingsModal = document.getElementById('settings-modal');
+        const projectModal = document.getElementById('project-modal');
+        const apiKeyInput = document.getElementById('api-key-input');
+        
+        function openModal(type) {
+            const modal = (type === 'settings') ? settingsModal : projectModal;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => modal.style.opacity = 1, 10);
+        }
+
+        function closeModal(type) {
+            const modal = (type === 'settings') ? settingsModal : projectModal;
+            modal.style.opacity = 0;
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 250);
+        }
+
+        function saveApiKey() {
+            const key = apiKeyInput.value.trim();
+            localStorage.setItem('geminiApiKey', key);
+            userApiKey = key;
+            showStatus(key ? "API Key saved." : "API Key removed.");
+            closeModal('settings');
+        }
+
+        function loadApiKey() {
+            userApiKey = localStorage.getItem('geminiApiKey') || '';
+            apiKeyInput.value = userApiKey;
+        }
+
+        document.getElementById('settings-btn').addEventListener('click', () => openModal('settings'));
+        document.getElementById('close-settings-modal-btn').addEventListener('click', () => closeModal('settings'));
+        settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) closeModal('settings'); });
+        document.getElementById('save-api-key-btn').addEventListener('click', saveApiKey);
+
+        // --- TAB SWITCHING LOGIC ---
+        const tabButtons = document.querySelectorAll('.main-tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const targetTab = button.dataset.tab;
+
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+
+                tabContents.forEach(content => {
+                    content.classList.toggle('active', content.id === targetTab);
+                });
+            });
+        });
+
+        // --- STORY WEAVER INITIALIZATION ---
+        function initStoryWeaver() {
+            const {
+                brainstormConcept, storyOutline, storyTreatment, brainstormType, 
+                outlineStructure, writingFormat, targetAudience, assets
+            } = storyWeaverState;
+
+            const projectTitleEl = document.getElementById('project-title');
+            const projectOptionsBtn = document.getElementById('project-options-btn');
+            const closeModalBtn = document.getElementById('close-modal-btn');
+            const loadJsonBtn = document.getElementById('load-json-btn');
+            const jsonFileInput = document.getElementById('json-file-input');
+            const exportJsonBtn = document.getElementById('export-json-btn');
+            const exportTextBtn = document.getElementById('export-text-btn');
+            const printProjectBtn = document.getElementById('print-project-btn');
+            const printSelectAllBtn = document.getElementById('print-select-all-btn');
+            const printDeselectAllBtn = document.getElementById('print-deselect-all-btn');
+            const newProjectBtn = document.getElementById('new-project-btn');
+            const navButtons = document.querySelectorAll('aside .nav-btn-side');
+            const stages = document.querySelectorAll('#story-weaver .stage');
+            const loaders = { ideas: document.getElementById('ideas-loader'), outline: document.getElementById('outline-loader'), treatment: document.getElementById('treatment-loader') };
+            const brainstormInput = document.getElementById('brainstorm-input');
+            const generateIdeasBtn = document.getElementById('generate-ideas-btn');
+            const ideasOutput = document.getElementById('ideas-output');
+            const chosenIdeaDisplay = document.getElementById('chosen-idea-display');
+            const generateOutlineBtn = document.getElementById('generate-outline-btn');
+            const outlineOutput = document.getElementById('outline-output');
+            const chosenOutlineDisplay = document.getElementById('chosen-outline-display');
+            const generateTreatmentBtn = document.getElementById('generate-treatment-btn');
+            const treatmentOutput = document.getElementById('treatment-output');
+            const mainEditor = document.getElementById('main-editor');
+            const loadAssetBtn = document.getElementById('load-asset-btn');
+            const assetFileInput = document.getElementById('asset-file-input');
+            const outlineSecondaryGuidance = document.getElementById('outline-secondary-guidance');
+            const treatmentSecondaryGuidance = document.getElementById('treatment-secondary-guidance');
+            const generateStoryboardBtn = document.getElementById('generate-storyboard-btn');
+            const storyboardDescription = document.getElementById('storyboard-description');
+            const storyboardPanels = document.getElementById('storyboard-panels');
+            const storyboardStyle = document.getElementById('storyboard-style');
+            const storyboardOutput = document.getElementById('storyboard-output');
+            const storyboardLoader = document.getElementById('storyboard-loader');
+            const loadTreatmentToStoryboardBtn = document.getElementById('load-treatment-to-storyboard');
+            const loadStoryToStoryboardBtn = document.getElementById('load-story-to-storyboard');
+            const storyboardSecondaryGuidance = document.getElementById('storyboard-secondary-guidance');
+            const writeTreatmentReference = document.getElementById('write-treatment-reference');
+            const projectPathDisplay = document.getElementById('project-path-display');
+            const pathSettingsModal = document.getElementById('path-settings-modal');
+            const pathModalTitle = document.getElementById('path-modal-title');
+            const pathModalContent = document.getElementById('path-modal-content');
+            const aiActionBar = document.getElementById('ai-action-bar');
+            const aiToolbarLoader = document.getElementById('ai-toolbar-loader');
+            const aiToolbarButtons = document.getElementById('ai-toolbar-buttons');
+            const aiExpandBtn = document.getElementById('ai-expand-btn');
+            const aiRewriteBtn = document.getElementById('ai-rewrite-btn');
+            const aiAskBtn = document.getElementById('ai-ask-btn');
+            const aiCustomPromptContainer = document.getElementById('ai-custom-prompt-container');
+            const aiToolbarPrompt = document.getElementById('ai-toolbar-prompt');
+            const aiCustomSubmitBtn = document.getElementById('ai-custom-submit-btn');
+            let selectedTextForAI = '';
+            const aiResponsePanel = document.getElementById('ai-response-panel');
+            const aiResponseContent = document.getElementById('ai-response-content');
+            const copyAiResponseBtn = document.getElementById('copy-ai-response-btn');
+            const dismissAiResponseBtn = document.getElementById('dismiss-ai-response-btn');
+            const workTab = document.getElementById('work-tab');
+            const referenceTab = document.getElementById('reference-tab');
+            const workPanel = document.getElementById('work-panel');
+            const referencePanel = document.getElementById('reference-panel');
+
+            const PATH_OPTIONS = {
+                'brainstorm-type': { title: 'Brainstorm Type', options: { 'Story Writing': ['Story Ideas', 'Characters', 'Settings', 'Plot Twists', 'Story Hooks'], 'General Purpose': ['Design Concept', 'Shopping List', 'Travel Ideas'], 'Custom': ['Other...'] }, stateKey: 'brainstormType' },
+                'target-audience': { title: 'Target Audience', options: { 'Youth': ['Children', 'Teen', 'Young Adult'], 'Adult': ['Mature', 'Graphic'], 'Technical': ['Academic'], 'Custom': ['Other...'] }, stateKey: 'targetAudience' },
+                'outline-structure': { title: 'Outline Structure', options: { 'Classic Structures': ['Three-Act Structure', "The Hero's Journey", 'Five-Act Structure'], 'Novel Writing': ['Save the Cat Beat Sheet', 'Snowflake Method', 'Fichtean Curve'], 'Custom': ['Other...'] }, stateKey: 'outlineStructure' },
+                'treatment-format': { title: 'Treatment Format', options: { 'Prose & Narrative': ['Novel / Book Chapter', 'Short Story', 'Flash Fiction'], 'Scripts & Performance': ['Screenplay Scene', 'Dialogue Only', 'Stage Play Scene', 'Comic Book Script'], 'Custom': ['Other...'] }, stateKey: 'writingFormat' }
+            };
+
+            function updatePathDisplay() {
+                projectPathDisplay.innerHTML = '';
+                const createGem = (label, value, setting) => value ? `<button class="path-gem" data-setting="${setting}"><span><span class="path-gem-label">${label}:</span><strong>${value}</strong></span></button>` : '';
+                projectPathDisplay.innerHTML += createGem('Type', storyWeaverState.brainstormType, 'brainstorm-type');
+                projectPathDisplay.innerHTML += createGem('Audience', storyWeaverState.targetAudience, 'target-audience');
+                projectPathDisplay.innerHTML += createGem('Structure', storyWeaverState.outlineStructure, 'outline-structure');
+                projectPathDisplay.innerHTML += createGem('Format', storyWeaverState.writingFormat, 'treatment-format');
+            }
+
+            function cleanAndFormat(text) { return text ? text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/^\* (.*$)/gim, '<li class="ml-4 list-disc">$1</li>').replace(/\n/g, '<br>') : ""; }
+            
+            function updateUiFromState(data) {
+                Object.assign(storyWeaverState, data);
+                projectTitleEl.textContent = storyWeaverState.projectTitle;
+                mainEditor.innerHTML = data.editorContent || '';
+                chosenIdeaDisplay.innerHTML = storyWeaverState.brainstormConcept || `<span class="text-gray-500">Select a concept...</span>`;
+                if (storyWeaverState.storyOutline) {
+                    const formatted = cleanAndFormat(storyWeaverState.storyOutline);
+                    chosenOutlineDisplay.innerHTML = `<div class="prose prose-invert max-w-none text-gray-300 text-sm">${formatted}</div>`;
+                    outlineOutput.innerHTML = `<div class="bg-gray-900 p-6 rounded-lg shadow-inner"><div class="prose prose-invert max-w-none">${formatted}</div></div><button id="use-outline-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Develop Treatment →</button>`;
+                } else {
+                     chosenOutlineDisplay.innerHTML = `<span class="text-gray-500">Generate or paste an outline.</span>`;
+                     outlineOutput.innerHTML = '';
+                }
+                if (storyWeaverState.storyTreatment) {
+                    const formatted = cleanAndFormat(storyWeaverState.storyTreatment);
+                    treatmentOutput.innerHTML = `<div class="bg-gray-900 p-6 rounded-lg shadow-inner"><div class="prose prose-invert max-w-none">${formatted}</div></div><button id="use-treatment-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Start Writing →</button>`;
+                    writeTreatmentReference.innerHTML = formatted;
+                } else {
+                     treatmentOutput.innerHTML = '';
+                     writeTreatmentReference.innerHTML = `<span class="text-gray-500">Your treatment will appear here.</span>`;
+                }
+                renderAssets();
+                updatePathDisplay();
+            }
+
+            function handleJsonLoad(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        if (confirm("Loading this file will overwrite your current project. Are you sure?")) {
+                            updateUiFromState(data);
+                            showStatus("Project loaded successfully.");
+                            closeModal('project');
+                        }
+                    } catch (error) { alert("Error: Invalid JSON file."); }
+                };
+                reader.readAsText(file);
+                event.target.value = null; 
+            }
+
+            function sanitizeFilename(name) { return (name || 'untitled-project').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''); }
+
+            function exportToJson() {
+                const projectData = { ...storyWeaverState, editorContent: mainEditor.innerHTML };
+                const dataStr = JSON.stringify(projectData, null, 2);
+                const blob = new Blob([dataStr], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${sanitizeFilename(storyWeaverState.projectTitle)}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                showStatus("Project exported as JSON.");
+                closeModal('project');
+            }
+
+            function htmlToText(html) {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                return tempDiv.textContent || tempDiv.innerText || "";
+            }
+
+            function exportAsText() {
+                const separator = "\n\n========================================\n\n";
+                let textContent = `PROJECT TITLE: ${storyWeaverState.projectTitle}\n`;
+                textContent += separator + "BRAINSTORM CONCEPT:\n\n" + htmlToText(storyWeaverState.brainstormConcept);
+                textContent += separator + "STORY OUTLINE:\n\n" + storyWeaverState.storyOutline;
+                textContent += separator + "STORY TREATMENT:\n\n" + storyWeaverState.storyTreatment;
+                textContent += separator + "YOUR STORY:\n\n" + htmlToText(mainEditor.innerHTML);
+                const blob = new Blob([textContent], { type: "text/plain" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${sanitizeFilename(storyWeaverState.projectTitle)}.txt`;
+                a.click();
+                URL.revokeObjectURL(url);
+                showStatus("Project exported as Text.");
+                closeModal('project');
+            }
+        
+            function saveStateToLocalStorage() {
+                try {
+                    const projectData = { ...storyWeaverState, editorContent: mainEditor.innerHTML };
+                    localStorage.setItem('storyWeaverProject', JSON.stringify(projectData));
+                } catch (error) { showStatus("Could not save project data.", true); }
+            }
+
+            function loadStateFromLocalStorage() {
+                try {
+                    const savedData = localStorage.getItem('storyWeaverProject');
+                    if (savedData) {
+                        updateUiFromState(JSON.parse(savedData));
+                        showStatus("Project restored from last session.");
+                    }
+                } catch (error) {
+                    showStatus("Failed to load saved project.", true);
+                    localStorage.removeItem('storyWeaverProject');
+                }
+            }
+
+            function clearProject() {
+                if (confirm("Are you sure you want to clear your entire project?")) {
+                    localStorage.removeItem('storyWeaverProject');
+                    const initialState = { projectTitle: 'Untitled Project', brainstormConcept: '', storyOutline: '', storyTreatment: '', brainstormType: 'Story Ideas', outlineStructure: 'Three-Act Structure', writingFormat: 'Novel / Book Chapter', targetAudience: 'Young Adult', assets: [], editorContent: '' };
+                    updateUiFromState(initialState);
+                    ideasOutput.innerHTML = '';
+                    outlineOutput.innerHTML = '';
+                    treatmentOutput.innerHTML = '';
+                    storyboardOutput.innerHTML = '';
+                    showStatus("New project started.");
+                    closeModal('project');
+                    updatePathDisplay();
+                }
+            }
+
+            function printProject() {
+                const checks = {
+                    brainstorm: document.getElementById('print-check-brainstorm').checked,
+                    outline: document.getElementById('print-check-outline').checked,
+                    treatment: document.getElementById('print-check-treatment').checked,
+                    story: document.getElementById('print-check-story').checked,
+                    storyboard: document.getElementById('print-check-storyboard').checked,
+                };
+                let content = '';
+                if (checks.brainstorm && storyWeaverState.brainstormConcept) content += `<h2>Brainstorm Concept</h2><div>${storyWeaverState.brainstormConcept}</div>`;
+                if (checks.outline && storyWeaverState.storyOutline) content += `<h2>Story Outline</h2><div>${cleanAndFormat(storyWeaverState.storyOutline)}</div>`;
+                if (checks.treatment && storyWeaverState.storyTreatment) content += `<h2>Story Treatment</h2><div>${cleanAndFormat(storyWeaverState.storyTreatment)}</div>`;
+                if (checks.story && mainEditor.innerHTML) content += `<h2>Your Story</h2><div>${mainEditor.innerHTML}</div>`;
+                if (checks.storyboard && storyboardOutput.innerHTML.trim() !== '') content += `<h2>Storyboard</h2><div class="storyboard-print-container">${storyboardOutput.innerHTML}</div>`;
+
+                if (!content.trim()) { showStatus("No content selected to print.", true); return; }
+
+                const printWindow = window.open('', '_blank');
+                printWindow.document.write(`<html><head><title>Print - ${storyWeaverState.projectTitle}</title><style>body{font-family:sans-serif;line-height:1.6} h1{font-size:2em} h2{font-size:1.5em;margin-top:1.5em} .storyboard-print-container{display:grid;grid-template-columns:1fr 1fr;gap:20px} img{max-width:100%}</style></head><body><h1>${storyWeaverState.projectTitle}</h1>${content}</body></html>`);
+                printWindow.document.close();
+                printWindow.print();
+            }
+
+            function setActiveStage(stageName) {
+                stages.forEach(s => s.classList.toggle('active', s.id === stageName)); 
+                navButtons.forEach(b => b.classList.toggle('active', b.dataset.stage === stageName)); 
+            }
+
+            function cleanAndParseBrainstorm(rawResponse) {
+                if (!rawResponse) return [];
+                return rawResponse.split(/^\s*---+\s*$/m).map(s => s.trim()).filter(Boolean); 
+            }
+            
+            function handleAssetLoad(event) {
+                Array.from(event.target.files).forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            if (file.type.startsWith('image/')) addAssetToState({ type: 'image', content: e.target.result, fileName: file.name });
+                            else if (file.type === 'application/json') addAssetToState({ type: 'json', content: JSON.parse(e.target.result), fileName: file.name });
+                            else if (file.type === 'text/plain') addAssetToState({ type: 'text', content: e.target.result, fileName: file.name });
+                        } catch (error) { alert(`Error parsing ${file.name}.`); }
+                    };
+                    if (file.type.startsWith('image/')) reader.readAsDataURL(file);
+                    else reader.readAsText(file);
+                });
+                event.target.value = null;
+            }
+
+            
+            
+            async function handleStoryboardGeneration() {
+                const description = storyboardDescription.value.trim();
+                if (!description) { showStatus("Please enter a scene description.", true); return; }
+                const numPanels = parseInt(storyboardPanels.value, 10);
+                const style = storyboardStyle.value;
+
+                storyboardLoader.classList.remove('hidden');
+                storyboardOutput.innerHTML = '';
+                generateStoryboardBtn.disabled = true;
+                const assetContext = getAssetContextForAI();
+                const secondaryGuidance = storyboardSecondaryGuidance.value.trim();
+
+                const seedPrompt = `Create a concise "Visual Style Guide" for an AI image generator based on this scene: ${description}. Include character features, setting, and mood. ${assetContext} ${secondaryGuidance}`;
+                const visualSeed = await callGeminiAPI(seedPrompt);
+                
+                const panelPrompt = `As a film director, break this scene into ${numPanels} storyboard panels: ${description}. For each, give a concise visual description for an AI. Separate each panel description with '---'.`;
+                const panelDescriptionsText = await callGeminiAPI(panelPrompt);
+                
+                if (!panelDescriptionsText || panelDescriptionsText.startsWith("Error:")) {
+                    showStatus(panelDescriptionsText || "Failed to generate panel descriptions.", true);
+                    storyboardLoader.classList.add('hidden');
+                    generateStoryboardBtn.disabled = false;
+                    return;
+                }
+                const panelPrompts = panelDescriptionsText.split('---').map(p => p.trim()).filter(Boolean);
+
+                const imagePromises = panelPrompts.map(prompt => {
+                    const fullPrompt = `${visualSeed}, ${prompt}, ${style} style`;
+                    return callImagenAPI(fullPrompt, "text, watermark, signature, ugly, deformed, blurry");
+                });
+                const generatedImages = await Promise.all(imagePromises);
+
+                storyboardLoader.classList.add('hidden');
+                generateStoryboardBtn.disabled = false;
+                generatedImages.forEach((imageUrl, index) => {
+                    const panelDiv = document.createElement('div');
+                    panelDiv.className = 'storyboard-panel';
+                    panelDiv.innerHTML = `<div class="aspect-video bg-gray-900 flex items-center justify-center">${imageUrl ? `<img src="${imageUrl}" class="w-full h-full object-cover">` : `<div class="p-4 text-red-400">Failed.</div>`}</div><div class="p-3 text-xs text-gray-400"><p>${index + 1}. ${panelPrompts[index]}</p></div>`;
+                    storyboardOutput.appendChild(panelDiv);
+                });
+            }
+
+            // --- Event Listeners ---
+            navButtons.forEach(btn => btn.addEventListener('click', () => setActiveStage(btn.dataset.stage)));
+            generateIdeasBtn.addEventListener('click', async () => { /* ... Story Weaver logic ... */ });
+            // ... (All other Story Weaver event listeners) ...
+            
+            projectOptionsBtn.addEventListener('click', () => openModal('project'));
+            closeModalBtn.addEventListener('click', () => closeModal('project'));
+            projectModal.addEventListener('click', (e) => { if (e.target === projectModal) closeModal('project'); });
+            loadJsonBtn.addEventListener('click', () => jsonFileInput.click());
+            jsonFileInput.addEventListener('change', handleJsonLoad);
+            exportJsonBtn.addEventListener('click', exportToJson);
+            exportTextBtn.addEventListener('click', exportAsText);
+            printProjectBtn.addEventListener('click', printProject);
+            newProjectBtn.addEventListener('click', clearProject);
+            loadAssetBtn.addEventListener('click', () => assetFileInput.click());
+            assetFileInput.addEventListener('change', handleAssetLoad);
+            
+            loadStateFromLocalStorage();
+            updatePathDisplay();
+        }
+
+        // --- CHARACTER TOOL INITIALIZATION ---
+        function initCharacterTool() {
+            const container = document.getElementById('character-tool');
+            if(!container) return;
+
+            const generateTextBtn = container.querySelector('#generate-text-btn-char');
+            const generateImageBtn = container.querySelector('#generate-image-btn-char');
+            const form = container.querySelector('#character-form-unified');
+            
+            const imageElements = {
+                spinner: container.querySelector('#loading-spinner-image-char'),
+                img: container.querySelector('#generated-image-char'),
+                placeholder: container.querySelector('#image-placeholder-char'),
+                downloadBtn: container.querySelector('#download-image-btn-char')
+            };
+
+            const fieldDefinitions = [ { name: 'name', label: 'Name' }, { name: 'genre', label: 'Genre' }, { name: 'core-description', label: 'Core Description' }, { name: 'backstory', label: 'Backstory' }, { name: 'personality', label: 'Personality' }, { name: 'skills', label: 'Skills' }, { name: 'abilities', label: 'Abilities' }, { name: 'goals', label: 'Goals' }, { name: 'motivations', label: 'Motivations' }, { name: 'weaknesses', label: 'Weaknesses' }, { name: 'equipment', label: 'Equipment' }, { name: 'relationships', label: 'Relationships' }, { name: 'notes', label: 'Notes' }];
+
+            async function handleTextGeneration() {
+                generateTextBtn.disabled = true;
+                generateTextBtn.textContent = 'Generating...';
+                
+                const formData = new FormData(form);
+                const allFieldsData = [], sectionsToGenerate = [];
+                fieldDefinitions.forEach(field => {
+                    const value = formData.get(field.name)?.trim() || '';
+                    allFieldsData.push(`- **${field.label}:** ${value}`);
+                    const checkbox = form.querySelector(`#cb-${field.name}`);
+                    if (checkbox && checkbox.checked) {
+                        sectionsToGenerate.push(field.label);
+                    }
+                });
+
+                try {
+                    const basePrompt = `Generate a complete and cohesive character profile. **USER-PROVIDED DATA:**\n${allFieldsData.join('\n')} **YOUR TASK:** Create a single, cohesive profile, generating content for these sections: **${sectionsToGenerate.join(', ')}**. Return a complete profile with each field as a bold heading.`;
+                    const workupOutput = await callGeminiAPI(basePrompt);
+                    
+                    const jsonPrompt = `Distill this character profile into a simple JSON object: ${workupOutput}`;
+                    const jsonOutput = await callGeminiAPI(jsonPrompt);
+                    
+                    let cleanedJson = jsonOutput.trim().replace(/^```json\s*|```$/g, '');
+                    const jsonData = JSON.parse(cleanedJson);
+
+                    addAssetToState({ type: 'json', content: jsonData, fileName: `${jsonData.name || 'character'}.json` });
+                    showStatus('Character profile generated and added to assets.');
+                    
+                } catch (error) { showStatus(`Text Gen Error: ${error.message}`, true); } 
+                finally { generateTextBtn.disabled = false; generateTextBtn.textContent = 'Generate Text'; }
+            }
+
+            async function handleImageGeneration() {
+                generateImageBtn.disabled = true; generateImageBtn.textContent = 'Generating...';
+                imageElements.spinner.style.display = 'block';
+                imageElements.placeholder.style.display = 'none';
+                imageElements.img.style.display = 'none';
+                imageElements.downloadBtn.style.display = 'none';
+
+
+                try {
+                    const formData = new FormData(form);
+                    const attributes = Object.fromEntries(formData.entries());
+                    const style = container.querySelector('input[name="style_char"]:checked').value;
+                    let styleKeywords = "epic digital painting";
+                    if (style === 'photorealistic') styleKeywords = "photorealistic, 8k, cinematic";
+                    if (style === 'anime') styleKeywords = "anime style, vibrant";
+                    if (style === 'sketch') styleKeywords = "detailed pencil sketch";
+
+                    const corePrompt = `Bust portrait of a ${attributes.gender || 'character'}. Build: ${attributes.build}. Hair: ${attributes.hairColor}. Eyes: ${attributes.eyeColor}. Details: ${attributes.details}. Clothing: ${attributes.clothing}. Expression: ${attributes.expression}. Setting: ${attributes.background}.`;
+                    const positivePrompt = `${corePrompt.replace(/\s+/g, ' ').trim()}, ${styleKeywords}`;
+                    const negativePrompt = attributes.negative_prompts_char || 'blurry, low quality, text, watermark';
+
+                    const imageUrl = await callImagenAPI(positivePrompt, negativePrompt);
+                    if(imageUrl){
+                        imageElements.img.src = imageUrl;
+                        imageElements.img.style.display = 'block';
+                        imageElements.downloadBtn.style.display = 'block';
+                    } else {
+                         imageElements.placeholder.innerHTML = `<span class="text-red-400">Image Error</span>`;
+                         imageElements.placeholder.style.display = 'block';
+                    }
+                } catch (error) { 
+                    showStatus(`Image Gen Error: ${error.message}`, true);
+                    imageElements.placeholder.innerHTML = `<span class="text-red-400">Image Error</span>`;
+                    imageElements.placeholder.style.display = 'block';
+                } 
+                finally {
+                    imageElements.spinner.style.display = 'none';
+                    generateImageBtn.disabled = false; generateImageBtn.textContent = 'Generate Image';
+                }
+            }
+            
+            generateTextBtn.addEventListener('click', handleTextGeneration);
+            generateImageBtn.addEventListener('click', handleImageGeneration);
+            imageElements.downloadBtn.addEventListener('click', () => {
+                const a = document.createElement('a'); a.href = imageElements.img.src; a.download = 'character.png'; a.click();
+            });
+        }
+
+        // --- SCENE BUILDER INITIALIZATION ---
+        function initSceneBuilder() {
+            const container = document.getElementById('scene-builder');
+            if(!container) return;
+
+            const generateTextBtn = container.querySelector('#generate-text-btn-scene');
+            const generateImageBtn = container.querySelector('#generate-image-btn-scene');
+            const form = container.querySelector('#scene-form-unified');
+            
+            const imageElements = {
+                spinner: container.querySelector('#loading-spinner-image-scene'),
+                img: container.querySelector('#generated-image-scene'),
+                placeholder: container.querySelector('#image-placeholder-scene'),
+                downloadBtn: container.querySelector('#download-image-btn-scene')
+            };
+
+            const fieldDefinitions = [ { name: 'location-name', label: 'Location Name' }, { name: 'genre-scene', label: 'Genre' }, { name: 'overview', label: 'Overview' }, { name: 'exterior-description', label: 'Exterior Description' }, { name: 'interior-details', label: 'Interior Details' }, { name: 'history', label: 'History' }, { name: 'atmosphere', label: 'Atmosphere' }];
+            
+            async function handleTextGeneration() {
+                generateTextBtn.disabled = true;
+                generateTextBtn.textContent = 'Generating...';
+                
+                const formData = new FormData(form);
+                const allFieldsData = [], sectionsToGenerate = [];
+                fieldDefinitions.forEach(field => {
+                    const value = formData.get(field.name)?.trim() || '';
+                    allFieldsData.push(`- **${field.label}:** ${value}`);
+                    const checkbox = form.querySelector(`#cb-${field.name}`);
+                    if (checkbox && checkbox.checked) {
+                        sectionsToGenerate.push(field.label);
+                    }
+                });
+
+                try {
+                    const basePrompt = `Generate a complete and cohesive location profile. **USER-PROVIDED DATA:**\n${allFieldsData.join('\n')} **YOUR TASK:** Create a single, cohesive profile, generating content for these sections: **${sectionsToGenerate.join(', ')}**. Return a complete profile with each field as a bold heading.`;
+                    const workupOutput = await callGeminiAPI(basePrompt);
+                    
+                    const jsonPrompt = `Distill this location profile into a simple JSON object: ${workupOutput}`;
+                    const jsonOutput = await callGeminiAPI(jsonPrompt);
+                    
+                    let cleanedJson = jsonOutput.trim().replace(/^```json\s*|```$/g, '');
+                    const jsonData = JSON.parse(cleanedJson);
+
+                    addAssetToState({ type: 'json', content: jsonData, fileName: `${jsonData['location-name'] || 'scene'}.json` });
+                    showStatus('Scene profile generated and added to assets.');
+                    
+                } catch (error) { showStatus(`Text Gen Error: ${error.message}`, true); } 
+                finally { generateTextBtn.disabled = false; generateTextBtn.textContent = 'Generate Text'; }
+            }
+
+            async function handleImageGeneration() { 
+                generateImageBtn.disabled = true; generateImageBtn.textContent = 'Generating...';
+                imageElements.spinner.style.display = 'block';
+                imageElements.placeholder.style.display = 'none';
+                imageElements.img.style.display = 'none';
+                imageElements.downloadBtn.style.display = 'none';
+
+                try {
+                    const formData = new FormData(form);
+                    const attributes = Object.fromEntries(formData.entries());
+                    const style = container.querySelector('input[name="style_scene"]:checked').value;
+                    let styleKeywords = "epic digital painting";
+                    if (style === 'photorealistic') styleKeywords = "photorealistic, 8k, cinematic";
+                    if (style === 'anime') styleKeywords = "anime style, vibrant";
+                    if (style === 'sketch') styleKeywords = "detailed pencil sketch";
+
+                    const corePrompt = `A wide-angle shot of a ${attributes['location-name'] || attributes['genre-scene'] || 'scene'}, ${attributes['exterior-description']}. Style: ${attributes.architectural_style}. Environment: ${attributes.time_of_day}, ${attributes.weather}. Atmosphere: ${attributes.atmosphere}. Details: ${attributes.other_details}`;
+                    const positivePrompt = `${corePrompt.replace(/\s+/g, ' ').trim()}, ${styleKeywords}`;
+                    const negativePrompt = attributes.negative_prompts_scene || 'blurry, low quality, text, watermark, people, vehicles';
+
+                    const imageUrl = await callImagenAPI(positivePrompt, negativePrompt);
+                     if(imageUrl){
+                        imageElements.img.src = imageUrl;
+                        imageElements.img.style.display = 'block';
+                        imageElements.downloadBtn.style.display = 'block';
+                    } else {
+                         imageElements.placeholder.innerHTML = `<span class="text-red-400">Image Error</span>`;
+                         imageElements.placeholder.style.display = 'block';
+                    }
+                } catch (error) {
+                     showStatus(`Image Gen Error: ${error.message}`, true);
+                     imageElements.placeholder.innerHTML = `<span class="text-red-400">Image Error</span>`;
+                     imageElements.placeholder.style.display = 'block';
+                }
+                finally {
+                    imageElements.spinner.style.display = 'none';
+                    generateImageBtn.disabled = false; generateImageBtn.textContent = 'Generate Image';
+                }
+            }
+            
+            generateTextBtn.addEventListener('click', handleTextGeneration);
+            generateImageBtn.addEventListener('click', handleImageGeneration);
+            imageElements.downloadBtn.addEventListener('click', () => {
+                const a = document.createElement('a'); a.href = imageElements.img.src; a.download = 'scene.png'; a.click();
+            });
+        }
+
+        // --- APP START ---
+        loadApiKey();
+        initStoryWeaver();
+        initCharacterTool();
+        initSceneBuilder();
+    });
+    </script>
+</body>
+</html>
+
