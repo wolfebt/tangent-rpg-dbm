@@ -99,8 +99,7 @@
                                     </button>
                                     <div id="eraserDropdownMenu" class="file-dropdown hidden -left-1/2 top-full mt-2 !w-48">
                                         <button id="eraseTerrainBtn" class="file-dropdown-item">Erase Terrain</button>
-                                        <button id="eraseObjectsBtn" class="file-dropdown-item">Erase Objects</button>
-                                        <button id="eraseDrawingsBtn" class="file-dropdown-item">Erase Drawings</button>
+                                        <button id="eraseObjectsBtn" class="file-dropdown-item">Erase Objects & Drawings</button>
                                     </div>
                                 </div>
                                 <button id="resetViewBtn" title="Reset View & Zoom">Center</button>
@@ -112,7 +111,6 @@
                                     <button id="toolTerrainBtn" class="tool-btn active">Terrain</button>
                                     <button id="toolObjectBtn" class="tool-btn">Object</button>
                                     <button id="toolPencilBtn" class="tool-btn">Pencil</button>
-                                    <button id="toolSelectBtn" class="tool-btn">Select</button>
                                     <button id="toolTokenBtn" class="tool-btn">Token</button>
                                     <button id="toolTextBtn" class="tool-btn">Text</button>
                                     <button id="toolFogBtn" class="tool-btn">Fog</button>
@@ -160,13 +158,6 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </div>
                         <div class="collapsible-content">
-                            <label for="pencilBrushMode">Pencil Mode</label>
-                            <select id="pencilBrushMode">
-                                <option value="freestyle">Freestyle</option>
-                                <option value="line">Line</option>
-                                <option value="rectangle">Rectangle</option>
-                                <option value="ellipse">Ellipse</option>
-                            </select>
                             <div class="grid grid-cols-2 gap-4 mt-4">
                                 <div>
                                     <label for="pencilColorPicker">Color</label>
@@ -238,6 +229,8 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </div>
                          <div id="objectContent" class="collapsible-content">
+                             <button id="toolSelectBtn" class="tool-btn w-full mb-2">Select Object</button>
+                             <hr class="border-gray-600 my-3">
                             <div class="flex items-center mb-2">
                                 <input type="checkbox" id="objectGmOnlyCheckbox" class="h-4 w-4 rounded !mb-0">
                                 <label for="objectGmOnlyCheckbox" class="ml-2 !mb-0 text-sm">Place as GM-Only (Secret)</label>
@@ -289,12 +282,7 @@
         <div id="canvas-container" class="relative">
             <div id="breadcrumb-nav" class="absolute top-2 left-2 z-20 bg-gray-900 bg-opacity-70 p-2 rounded-md text-sm"></div>
             <canvas id="mapCanvas"></canvas>
-            <!-- FIX: Added the missing uiCanvas element -->
             <canvas id="uiCanvas" style="pointer-events:none;"></canvas>
-            <canvas id="wallCanvas" style="pointer-events:none;"></canvas>
-            <canvas id="lightCanvas" style="pointer-events:none;"></canvas>
-            <canvas id="drawingCanvas" style="pointer-events:none;"></canvas>
-            <canvas id="fogCanvas" style="pointer-events:none;"></canvas>
             
             <div id="asset-context-menu" class="asset-context-menu hidden">
                 <button id="asset-rotate-left-btn" title="Rotate Left (r)">
@@ -361,7 +349,6 @@
                             <textarea id="ai-prompt-initial" placeholder="e.g., A rugged mountain range with a central volcano. A small goblin hideout in a cave..." class="mb-2"></textarea>
                             <button id="ai-generate-btn" class="w-full">
                                 <span class="btn-text">Generate</span>
-                                <span class="spinner hidden"></span>
                             </button>
                         </div>
                         <!-- Step 2 -->
@@ -372,7 +359,6 @@
                             <div class="grid grid-cols-2 gap-2 mt-2">
                                  <button id="ai-update-btn" class="w-full" disabled>
                                      <span class="btn-text">Update Image</span>
-                                     <span class="spinner hidden"></span>
                                  </button>
                                 <button id="ai-transfer-btn" class="w-full" disabled>Transfer to New Layer</button>
                             </div>
@@ -396,6 +382,15 @@
             </div>
         </div>
     </div>
+    
+    <!-- Global Loading Overlay -->
+    <div id="global-loading-overlay" class="modal-backdrop hidden">
+        <div class="text-white text-center">
+            <div class="spinner-large"></div>
+            <p id="loading-message" class="mt-4 text-xl">Loading...</p>
+        </div>
+    </div>
+
 
     <!-- Modals -->
     <div id="newMapModal" class="modal-backdrop hidden">
