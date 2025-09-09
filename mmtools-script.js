@@ -1,4 +1,4 @@
-// Version 22.1 - Corrected script structure to resolve ReferenceError on initialization.
+// Version 22.2 - Fixed SVG pattern loading and added robust checks for event listeners to prevent crashes.
 import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -98,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectedObjectId = null;
     let mouseWorldPos = {x: 0, y: 0};
 
-    // --- Function Declarations (Moved before initialize call) ---
+    // --- Function Declarations ---
 
     function requestRender() { if (!renderRequested) { renderRequested = true; } }
     
@@ -108,7 +108,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function markAllLayersAsDirty() {
-        state.getActiveMap()?.layers.forEach(l => l.dirty = true);
+        const activeMap = state.getActiveMap();
+        if (activeMap && activeMap.layers) {
+            activeMap.layers.forEach(l => l.dirty = true);
+        }
         requestRender();
     }
 
@@ -143,20 +146,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const tempCtx = document.createElement('canvas').getContext('2d');
         const patternPromises = Object.entries(state.terrains).map(([id, terrain]) => {
             return new Promise(resolve => {
-                if (terrain.src) { // Custom image-based terrain
+                if (terrain.src) {
                     const img = new Image();
                     img.onload = () => { terrainPatterns[id] = tempCtx.createPattern(img, 'repeat'); resolve(); };
                     img.onerror = () => { console.error(`Failed to load custom terrain image for ${terrain.name}`); terrainPatterns[id] = terrain.color; resolve(); };
                     img.src = terrain.src;
-                } else { // SVG or color-based terrain
+                } else {
                     const patternEl = document.getElementById(terrain.pattern);
                     if (patternEl) {
                         const sizeAttr = patternEl.getAttribute('width');
                         if (!sizeAttr) { console.error(`Pattern ${terrain.pattern} is missing width attribute.`); terrainPatterns[id] = terrain.color; resolve(); return; }
                         const size = parseInt(sizeAttr);
-                        const svgString = new XMLSerializer().serializeToString(patternEl);
-                        const svgBlob = new Blob([svgString], {type: 'image/svg+xml;charset=utf-8'});
+                        
+                        // FIX: Create a full, valid SVG document to be loaded as an image
+                        const patternHTML = new XMLSerializer().serializeToString(patternEl);
+                        const fullSvg = `<svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg"><defs>${patternHTML}</defs><rect width="100%" height="100%" fill="url(#${patternEl.id})"/></svg>`;
+                        const svgBlob = new Blob([fullSvg], {type: 'image/svg+xml;charset=utf-8'});
                         const url = URL.createObjectURL(svgBlob);
+                        
                         const img = new Image();
                         img.onload = () => {
                             const pC = document.createElement('canvas'); pC.width = size; pC.height = size;
@@ -174,7 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function reloadAssetsAndPatterns() {
-        assetCache = {}; // Clear existing cache
+        assetCache = {};
         await loadAssets();
         await createTerrainPatterns();
         markAllLayersAsDirty();
@@ -232,6 +239,17 @@ document.addEventListener('DOMContentLoaded', () => {
         targetCtx.stroke();
     }
     
+    function getSelectedObject() {
+        if (!selectedObjectId) return null;
+        const activeMap = state.getActiveMap();
+        if (!activeMap) return null;
+        for (const layer of activeMap.layers) {
+            const object = layer.objects.find(obj => obj.id === selectedObjectId);
+            if (object) return { object, layer };
+        }
+        return null;
+    }
+
     function renderUI() {
         uiCtx.clearRect(0, 0, uiCanvas.width, uiCanvas.height);
         uiCtx.save();
@@ -286,12 +304,20 @@ document.addEventListener('DOMContentLoaded', () => {
         requestAnimationFrame(renderLoop);
     }
     
-    function saveStateForUndo(actionName) {
-        const activeMap = state.getActiveMap(); if (!activeMap) return;
-        const stateCopy = JSON.parse(JSON.stringify(activeMap));
-        undoStack.push({ actionName, mapState: stateCopy });
-        if (undoStack.length > 30) undoStack.shift();
-        redoStack = []; updateUndoRedoButtons();
+    function updateUndoRedoButtons() { elements.undoBtn.disabled = undoStack.length <= 1; elements.redoBtn.disabled = redoStack.length === 0; }
+
+    function updateLayerList() {
+        const activeMap = state.getActiveMap(); elements.layerList.innerHTML = '';
+        if (!activeMap) return;
+        activeMap.layers.forEach(layer => {
+            const item = document.createElement('div');
+            item.className = `layer-item ${layer.id === activeLayerId ? 'active' : ''}`;
+            item.dataset.layerId = layer.id;
+            item.innerHTML = `<span class="layer-label">${layer.name}</span><div class="layer-controls ml-auto"><button class="toggle-visibility">${layer.visible ? '👁️' : '🙈'}</button></div>`;
+            item.querySelector('.toggle-visibility').addEventListener('click', (e) => { e.stopPropagation(); layer.visible = !layer.visible; markAllLayersAsDirty(); updateLayerList(); });
+            item.addEventListener('click', () => setActiveLayer(layer.id));
+            elements.layerList.appendChild(item);
+        });
     }
 
     function applyState(mapState, actionName) {
@@ -300,11 +326,16 @@ document.addEventListener('DOMContentLoaded', () => {
         state.showToast(actionName, 'info', 1500);
     }
 
+    function saveStateForUndo(actionName) {
+        const activeMap = state.getActiveMap(); if (!activeMap) return;
+        const stateCopy = JSON.parse(JSON.stringify(activeMap));
+        undoStack.push({ actionName, mapState: stateCopy });
+        if (undoStack.length > 30) undoStack.shift();
+        redoStack = []; updateUndoRedoButtons();
+    }
+
     function undo() { if (undoStack.length > 1) { const c = undoStack.pop(); redoStack.push(c); const p = undoStack[undoStack.length - 1]; applyState(p.mapState, `Undo: ${c.actionName}`); } }
-    
     function redo() { if (redoStack.length > 0) { const n = redoStack.pop(); undoStack.push(n); applyState(n.mapState, `Redo: ${n.actionName}`); } }
-    
-    function updateUndoRedoButtons() { elements.undoBtn.disabled = undoStack.length <= 1; elements.redoBtn.disabled = redoStack.length === 0; }
     
     function clearSelection() { selectedObjectId = null; }
     
@@ -367,8 +398,14 @@ document.addEventListener('DOMContentLoaded', () => {
         a.click(); state.showToast('Map saved as PNG!', 'success');
     }
 
+    function resizeCanvas() {
+        const container = document.getElementById('canvas-container');
+        canvas.width = container.clientWidth; canvas.height = container.clientHeight;
+        uiCanvas.width = canvas.width; uiCanvas.height = canvas.height;
+        requestRender();
+    }
+
     function handleResize(e) { if(isResizing) elements.panelWrapper.style.width = `${e.clientX}px`; }
-    
     function stopResize() { isResizing = false; document.removeEventListener('mousemove', handleResize); document.removeEventListener('mouseup', stopResize); resizeCanvas(); }
     
     function showUserGuide() {
@@ -452,20 +489,6 @@ document.addEventListener('DOMContentLoaded', () => {
             updateLayerList(); markAllLayersAsDirty();
         });
     }
-
-    function updateLayerList() {
-        const activeMap = state.getActiveMap(); elements.layerList.innerHTML = '';
-        if (!activeMap) return;
-        activeMap.layers.forEach(layer => {
-            const item = document.createElement('div');
-            item.className = `layer-item ${layer.id === activeLayerId ? 'active' : ''}`;
-            item.dataset.layerId = layer.id;
-            item.innerHTML = `<span class="layer-label">${layer.name}</span><div class="layer-controls ml-auto"><button class="toggle-visibility">${layer.visible ? '👁️' : '🙈'}</button></div>`;
-            item.querySelector('.toggle-visibility').addEventListener('click', (e) => { e.stopPropagation(); layer.visible = !layer.visible; markAllLayersAsDirty(); updateLayerList(); });
-            item.addEventListener('click', () => setActiveLayer(layer.id));
-            elements.layerList.appendChild(item);
-        });
-    }
     
     function setActiveLayer(layerId) { activeLayerId = layerId; updateLayerList(); }
     
@@ -518,8 +541,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function handleKeyDown(e) {
-        if (e.ctrlKey && e.key === 'z') { undo(); return; }
-        if (e.ctrlKey && e.key === 'y') { redo(); return; }
+        if (e.ctrlKey && e.key === 'z') { e.preventDefault(); undo(); return; }
+        if (e.ctrlKey && e.key === 'y') { e.preventDefault(); redo(); return; }
         if (!selectedObjectId) return;
         switch(e.key) {
             case 'Delete': deleteSelectedObject(); break;
@@ -575,16 +598,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (foundObject) { selectedObjectId = foundObject.id; } else { clearSelection(); }
     }
 
-    function getSelectedObject() {
-        if (!selectedObjectId) return null;
-        const activeMap = state.getActiveMap();
-        for (const layer of activeMap.layers) {
-            const object = layer.objects.find(obj => obj.id === selectedObjectId);
-            if (object) return { object, layer };
-        }
-        return null;
-    }
-
     function deleteSelectedObject() {
         const selection = getSelectedObject(); if (!selection) return;
         selection.layer.objects = selection.layer.objects.filter(obj => obj.id !== selectedObjectId);
@@ -594,77 +607,88 @@ document.addEventListener('DOMContentLoaded', () => {
     function rotateSelectedObject(degrees) {
         const selection = getSelectedObject(); if (!selection) return;
         selection.object.rotation = (selection.object.rotation + degrees) % 360;
-        markLayerAsDirty(selection.layer.id); saveStateForUndo("Rotate Object");
+        markLayerAsDirty(selection.layer.id);
+        // No undo for this rapid action, user can rotate back.
     }
 
     function scaleSelectedObject(factor) {
         const selection = getSelectedObject(); if (!selection) return;
         selection.object.scale *= factor;
-        markLayerAsDirty(selection.layer.id); saveStateForUndo("Scale Object");
+        markLayerAsDirty(selection.layer.id);
+        // No undo for this rapid action, user can scale back.
     }
 
-    function resizeCanvas() {
-        const container = document.getElementById('canvas-container');
-        canvas.width = container.clientWidth; canvas.height = container.clientHeight;
-        uiCanvas.width = canvas.width; uiCanvas.height = canvas.height;
-        requestRender();
-    }
-    
     function setupAllEventListeners() {
+        // FIX: Add defensive checks for all elements to prevent crashes if an element is missing.
+        const safeListen = (element, event, handler, elementName) => {
+            if (element) {
+                element.addEventListener(event, handler);
+            } else {
+                console.error(`Initialization Error: Element "${elementName}" not found. Cannot attach event listener.`);
+            }
+        };
+
         window.addEventListener('resize', resizeCanvas);
-        canvas.addEventListener('mousedown', handleMouseDown);
-        canvas.addEventListener('mousemove', handleMouseMove);
+        safeListen(canvas, 'mousedown', handleMouseDown, 'canvas');
+        safeListen(canvas, 'mousemove', handleMouseMove, 'canvas');
         window.addEventListener('mouseup', handleMouseUp);
-        canvas.addEventListener('mouseleave', () => uiCtx.clearRect(0, 0, uiCanvas.width, uiCanvas.height));
-        canvas.addEventListener('wheel', handleWheel, { passive: false });
+        safeListen(canvas, 'mouseleave', () => uiCtx.clearRect(0, 0, uiCanvas.width, uiCanvas.height), 'canvas');
+        safeListen(canvas, 'wheel', handleWheel, { passive: false }, 'canvas');
         document.addEventListener('keydown', handleKeyDown);
+
         document.addEventListener('mapStateUpdated', (e) => {
              updateLayerList();
              if (e.detail?.newLayer) { const newLayerId = state.getActiveMap().layers[0].id; setActiveLayer(newLayerId); }
              markAllLayersAsDirty(); requestRender();
         });
         document.addEventListener('assetLibraryUpdated', async () => { await reloadAssetsAndPatterns(); populateObjectSelector(); populateTerrainSelector(); });
-        elements.settingsBtn.addEventListener('click', () => elements.apiKeyModal.classList.remove('hidden'));
-        elements.mapKeyBtn.addEventListener('click', toggleMapKey);
-        elements.gmViewToggleBtn.addEventListener('click', toggleGmView);
-        elements.assetEditorBtn.addEventListener('click', () => elements.assetEditorOverlay.classList.remove('hidden'));
-        elements.userGuideBtn.addEventListener('click', showUserGuide);
+        
+        safeListen(elements.settingsBtn, 'click', () => elements.apiKeyModal.classList.remove('hidden'), 'settingsBtn');
+        safeListen(elements.mapKeyBtn, 'click', toggleMapKey, 'mapKeyBtn');
+        safeListen(elements.gmViewToggleBtn, 'click', toggleGmView, 'gmViewToggleBtn');
+        safeListen(elements.assetEditorBtn, 'click', () => elements.assetEditorOverlay.classList.remove('hidden'), 'assetEditorBtn');
+        safeListen(elements.userGuideBtn, 'click', showUserGuide, 'userGuideBtn');
+        
         document.addEventListener('click', (e) => {
-            if (!elements.fileMenuBtn.contains(e.target)) elements.fileDropdownMenu.classList.add('hidden');
-            if (!elements.eraserToolBtn.contains(e.target)) elements.eraserDropdownMenu.classList.add('hidden');
+            if (elements.fileMenuBtn && !elements.fileMenuBtn.contains(e.target)) elements.fileDropdownMenu.classList.add('hidden');
+            if (elements.eraserToolBtn && !elements.eraserToolBtn.contains(e.target)) elements.eraserDropdownMenu.classList.add('hidden');
         });
-        elements.fileMenuBtn.addEventListener('click', () => elements.fileDropdownMenu.classList.toggle('hidden'));
-        elements.saveProjectBtn.addEventListener('click', saveProject);
-        elements.loadProjectBtn.addEventListener('click', () => elements.loadJsonInput.click());
-        elements.loadJsonInput.addEventListener('change', loadProject);
-        elements.savePngBtn.addEventListener('click', saveMapAsPng);
-        elements.eraserToolBtn.addEventListener('click', (e) => { handleToolSwitch('eraser'); elements.eraserDropdownMenu.classList.toggle('hidden'); });
-        elements.eraseTerrainBtn.addEventListener('click', () => { eraserMode = 'terrain'; elements.eraserDropdownMenu.classList.add('hidden');});
-        elements.eraseObjectsBtn.addEventListener('click', () => { eraserMode = 'objects'; elements.eraserDropdownMenu.classList.add('hidden');});
-        elements.eraserBrushSize.addEventListener('input', e => { eraserBrushSize = parseInt(e.target.value); elements.eraserBrushSizeValue.textContent = eraserBrushSize; });
-        elements.saveApiKeyBtn.addEventListener('click', saveApiKey);
-        elements.cancelApiKeyBtn.addEventListener('click', () => elements.apiKeyModal.classList.add('hidden'));
-        elements.mapKeyCloseBtn.addEventListener('click', toggleMapKey);
-        elements.addNewMapBtn.addEventListener('click', () => elements.newMapModal.classList.remove('hidden'));
-        elements.confirmNewMapBtn.addEventListener('click', confirmNewMap);
-        elements.cancelNewMapBtn.addEventListener('click', () => elements.newMapModal.classList.add('hidden'));
-        elements.resizer.addEventListener('mousedown', (e) => { isResizing = true; document.addEventListener('mousemove', handleResize); document.addEventListener('mouseup', stopResize); });
-        elements.resetViewBtn.addEventListener('click', () => { view = { zoom: 1, offsetX: 0, offsetY: 0 }; requestRender(); });
-        elements.undoBtn.addEventListener('click', undo);
-        elements.redoBtn.addEventListener('click', redo);
-        elements.addLayerBtn.addEventListener('click', addLayer);
-        elements.deleteLayerBtn.addEventListener('click', deleteActiveLayer);
-        elements.brushSizeSlider.addEventListener('input', e => elements.brushSizeValue.textContent = e.target.value);
-        elements.gridVisibleCheckbox.addEventListener('change', requestRender);
-        elements.gridColorPicker.addEventListener('input', requestRender);
-        makeDraggable(elements.mapKeyWindow, elements.mapKeyHeader);
-        document.querySelectorAll('.tool-btn').forEach(btn => { btn.addEventListener('click', (e) => { const toolName = e.currentTarget.id.replace('tool', '').replace('Btn', '').toLowerCase(); handleToolSwitch(toolName); }); });
-        elements.deleteAssetBtn.addEventListener('click', deleteSelectedObject);
-        elements.rotateLeftBtn.addEventListener('click', () => rotateSelectedObject(-15));
-        elements.rotateRightBtn.addEventListener('click', () => rotateSelectedObject(15));
-        elements.scaleUpBtn.addEventListener('click', () => scaleSelectedObject(1.1));
-        elements.scaleDownBtn.addEventListener('click', () => scaleSelectedObject(0.9));
-        document.addEventListener('mousedown', (e) => { if (!elements.assetContextMenu.contains(e.target) && !canvas.contains(e.target)) { elements.assetContextMenu.classList.add('hidden'); } });
+
+        safeListen(elements.fileMenuBtn, 'click', () => elements.fileDropdownMenu.classList.toggle('hidden'), 'fileMenuBtn');
+        safeListen(elements.saveProjectBtn, 'click', saveProject, 'saveProjectBtn');
+        safeListen(elements.loadProjectBtn, 'click', () => elements.loadJsonInput.click(), 'loadProjectBtn');
+        safeListen(elements.loadJsonInput, 'change', loadProject, 'loadJsonInput');
+        safeListen(elements.savePngBtn, 'click', saveMapAsPng, 'savePngBtn');
+        safeListen(elements.eraserToolBtn, 'click', () => { handleToolSwitch('eraser'); elements.eraserDropdownMenu.classList.toggle('hidden'); }, 'eraserToolBtn');
+        safeListen(elements.eraseTerrainBtn, 'click', () => { eraserMode = 'terrain'; elements.eraserDropdownMenu.classList.add('hidden'); }, 'eraseTerrainBtn');
+        safeListen(elements.eraseObjectsBtn, 'click', () => { eraserMode = 'objects'; elements.eraserDropdownMenu.classList.add('hidden'); }, 'eraseObjectsBtn');
+        safeListen(elements.eraserBrushSize, 'input', e => { eraserBrushSize = parseInt(e.target.value); elements.eraserBrushSizeValue.textContent = eraserBrushSize; }, 'eraserBrushSize');
+        safeListen(elements.saveApiKeyBtn, 'click', saveApiKey, 'saveApiKeyBtn');
+        safeListen(elements.cancelApiKeyBtn, 'click', () => elements.apiKeyModal.classList.add('hidden'), 'cancelApiKeyBtn');
+        safeListen(elements.mapKeyCloseBtn, 'click', toggleMapKey, 'mapKeyCloseBtn');
+        safeListen(elements.addNewMapBtn, 'click', () => elements.newMapModal.classList.remove('hidden'), 'addNewMapBtn');
+        safeListen(elements.confirmNewMapBtn, 'click', confirmNewMap, 'confirmNewMapBtn');
+        safeListen(elements.cancelNewMapBtn, 'click', () => elements.newMapModal.classList.add('hidden'), 'cancelNewMapBtn');
+        safeListen(elements.resizer, 'mousedown', () => { isResizing = true; document.addEventListener('mousemove', handleResize); document.addEventListener('mouseup', stopResize); }, 'resizer');
+        safeListen(elements.resetViewBtn, 'click', () => { view = { zoom: 1, offsetX: 0, offsetY: 0 }; requestRender(); }, 'resetViewBtn');
+        safeListen(elements.undoBtn, 'click', undo, 'undoBtn');
+        safeListen(elements.redoBtn, 'click', redo, 'redoBtn');
+        safeListen(elements.addLayerBtn, 'click', addLayer, 'addLayerBtn');
+        safeListen(elements.deleteLayerBtn, 'click', deleteActiveLayer, 'deleteLayerBtn');
+        safeListen(elements.brushSizeSlider, 'input', e => elements.brushSizeValue.textContent = e.target.value, 'brushSizeSlider');
+        safeListen(elements.gridVisibleCheckbox, 'change', requestRender, 'gridVisibleCheckbox');
+        safeListen(elements.gridColorPicker, 'input', requestRender, 'gridColorPicker');
+        
+        if (elements.mapKeyWindow && elements.mapKeyHeader) makeDraggable(elements.mapKeyWindow, elements.mapKeyHeader);
+
+        document.querySelectorAll('.tool-btn').forEach(btn => { safeListen(btn, 'click', (e) => { const toolName = e.currentTarget.id.replace('tool', '').replace('Btn', '').toLowerCase(); handleToolSwitch(toolName); }, `tool-btn-${btn.id}`); });
+        
+        safeListen(elements.deleteAssetBtn, 'click', deleteSelectedObject, 'deleteAssetBtn');
+        safeListen(elements.rotateLeftBtn, 'click', () => rotateSelectedObject(-15), 'rotateLeftBtn');
+        safeListen(elements.rotateRightBtn, 'click', () => rotateSelectedObject(15), 'rotateRightBtn');
+        safeListen(elements.scaleUpBtn, 'click', () => scaleSelectedObject(1.1), 'scaleUpBtn');
+        safeListen(elements.scaleDownBtn, 'click', () => scaleSelectedObject(0.9), 'scaleDownBtn');
+        document.addEventListener('mousedown', (e) => { if (elements.assetContextMenu && !elements.assetContextMenu.contains(e.target) && !canvas.contains(e.target)) { elements.assetContextMenu.classList.add('hidden'); } });
     }
     
     // --- Initialization ---
