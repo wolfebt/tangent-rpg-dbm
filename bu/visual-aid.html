@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Wolfe.bt@TangentLLC">
+    <title>Writer AId - Image Generation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Verdana', sans-serif;
+            background-color: #111827;
+            color: #d1d5db;
+        }
+        .loader {
+            border: 4px solid #374151;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 2rem auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .btn-primary {
+            background-color: #2563eb;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        .btn-primary:hover:not(:disabled) { background-color: #1d4ed8; }
+        .btn-secondary {
+            background-color: #4b5563;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        .btn-secondary:hover:not(:disabled) { background-color: #374151; }
+        :disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        #status-message {
+            transition: opacity 0.5s ease-in-out;
+        }
+        .modal {
+            transition: opacity 0.25s ease;
+        }
+        .tool-input {
+            background-color: #374151;
+            border: 1px solid #4b5563;
+            color: #d1d5db;
+            width: 100%;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            transition: all 0.2s ease;
+        }
+        textarea.tool-input {
+            resize: vertical;
+        }
+        .tool-input:focus {
+            outline: none;
+            border-color: #2563eb;
+            background-color: #4b5563;
+        }
+        .path-gem {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            width: 100%;
+            min-height: 3.5rem;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            background-color: #374151;
+            border: 1px solid #4b5563;
+            text-align: left;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .path-gem:hover {
+            border-color: #2563eb;
+            background-color: #4b5563;
+        }
+        .path-gem-label {
+            font-weight: 600;
+            color: #9ca3af;
+            font-size: 0.75rem;
+            line-height: 1;
+        }
+        .path-gem-value {
+            display: none; 
+            color: #e5e7eb;
+            font-weight: 600;
+            font-size: 0.9rem;
+            line-height: 1.2;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            margin-top: 0.125rem;
+        }
+        .path-gem.has-value .path-gem-value {
+            display: block;
+        }
+        .path-gem:not(.has-value) {
+            align-items: center;
+        }
+        .path-gem:not(.has-value) .path-gem-label {
+            font-size: 0.875rem;
+        }
+        .accordion-section {
+            background-color: #1f2937;
+            border: 1px solid #374151;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+        .accordion-header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            font-weight: 600;
+            color: #e5e7eb;
+            background-color: #374151;
+            cursor: pointer;
+        }
+        .accordion-header svg {
+            transition: transform 0.2s;
+        }
+        .accordion-section.open .accordion-header svg {
+            transform: rotate(180deg);
+        }
+        .accordion-content {
+            display: none;
+            padding: 1.5rem;
+        }
+        .accordion-section.open .accordion-content {
+            display: block;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .main-tab-btn {
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            border-bottom: 3px solid transparent;
+            color: #9ca3af;
+            transition: all 0.2s;
+        }
+        .main-tab-btn.active {
+            color: #3b82f6;
+            border-bottom-color: #3b82f6;
+        }
+        .main-tab-btn:not(.active):hover {
+            color: white;
+            border-bottom-color: #4b5563;
+        }
+        .storyboard-panel {
+            background-color: #1f2937;
+            border: 1px solid #374151;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+        .storyboard-panel .panel-loader {
+            width: 3rem;
+            height: 3rem;
+        }
+
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto max-w-screen-xl p-4 sm:p-6 lg:p-8">
+        <header class="text-center mb-4 relative">
+            <h1 class="text-4xl font-bold text-white">Writer AId - Image Generation</h1>
+            <p class="text-lg text-gray-400 mt-2">Standalone AI-powered Image Generator</p>
+            <button id="settings-btn" class="absolute top-0 right-0 p-2 rounded-lg btn-secondary bg-gray-700/50 hover:bg-gray-600/50" title="Settings">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0l-.1.41a2 2 0 01-2.23 1.52l-.4-.1a2 2 0 00-2.2 2.2l.1.4a2 2 0 01-1.52 2.23l-.41.1c-1.56.38-1.56 2.6 0 2.98l.41.1a2 2 0 011.52 2.23l-.1.4a2 2 0 002.2 2.2l.4-.1a2 2 0 012.23 1.52l.1.41c.38 1.56 2.6 1.56 2.98 0l.1-.41a2 2 0 012.23-1.52l.4.1a2 2 0 002.2-2.2l-.1-.4a2 2 0 011.52-2.23l.41-.1c-1.56-.38-1.56-2.6 0-2.98l-.41-.1a2 2 0 01-1.52-2.23l.1-.4a2 2 0 00-2.2-2.2l-.4.1a2 2 0 01-2.23-1.52l-.1-.41zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>
+            </button>
+        </header>
+
+        <span id="status-message" class="text-sm text-gray-400 opacity-0 h-4 block text-center mt-4"></span>
+
+        <!-- MAIN TABS -->
+        <div class="border-b border-gray-700 mb-6">
+            <nav class="-mb-px flex space-x-6 justify-center" aria-label="Tabs">
+                <button data-tab="character-image-tool" class="main-tab-btn active">Character</button>
+                <button data-tab="scene-image-tool" class="main-tab-btn">Scene</button>
+                <button data-tab="setting-image-tool" class="main-tab-btn">Setting</button>
+                <button data-tab="storyboard-tool" class="main-tab-btn">Storyboard</button>
+            </nav>
+        </div>
+
+        <div id="character-image-tool" class="tab-content active">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                 <div class="bg-gray-800 p-6 rounded-lg shadow-lg space-y-4">
+                    <h2 class="text-2xl font-semibold mb-2 text-white">Character Details</h2>
+                    <p class="text-sm text-gray-400 mb-4">Describe the character you want to visualize.</p>
+                    <div><label for="char-gender" class="block text-sm font-medium text-gray-300 mb-1">Gender Representation</label><input type="text" id="char-gender" data-field-name="gender" placeholder="e.g., Female, Male" class="tool-input"></div>
+                    <div><label for="char-build" class="block text-sm font-medium text-gray-300 mb-1">Build</label><input type="text" id="char-build" data-field-name="build" placeholder="e.g., Athletic, Slender" class="tool-input"></div>
+                    <div><label for="char-hairColor" class="block text-sm font-medium text-gray-300 mb-1">Hair Color</label><input type="text" id="char-hairColor" data-field-name="hairColor" placeholder="e.g., Black, Blonde" class="tool-input"></div>
+                    <div><label for="char-eyeColor" class="block text-sm font-medium text-gray-300 mb-1">Eye Color</label><input type="text" id="char-eyeColor" data-field-name="eyeColor" placeholder="e.g., Brown, Blue" class="tool-input"></div>
+                    <div><label for="char-details" class="block text-sm font-medium text-gray-300 mb-1">Other Details (Race, etc.)</label><textarea id="char-details" data-field-name="details" class="tool-input" rows="1" placeholder="e.g., Human with rounded ears..."></textarea></div>
+                    <div><label for="char-clothing" class="block text-sm font-medium text-gray-300 mb-1">Clothing</label><textarea id="char-clothing" data-field-name="clothing" class="tool-input" rows="1" placeholder="e.g., Leather armor..."></textarea></div>
+                    <div><label for="char-expression" class="block text-sm font-medium text-gray-300 mb-1">Expression / Mood</label><textarea id="char-expression" data-field-name="expression" class="tool-input" rows="1" placeholder="e.g., Determined, smiling..."></textarea></div>
+                    <div><label for="char-background" class="block text-sm font-medium text-gray-300 mb-1">Background / Setting</label><textarea id="char-background" data-field-name="background" class="tool-input" rows="1" placeholder="e.g., Bustling city street..."></textarea></div>
+                    <div><label for="char-negative_prompts" class="block text-sm font-medium text-gray-300 mb-1 text-red-400">Negative Prompts</label><textarea id="char-negative_prompts" data-field-name="negative_prompts_char" class="tool-input" rows="1" placeholder="e.g., eyepatch, helmet..."></textarea></div>
+                 </div>
+                 <div class="space-y-6">
+                     <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                        <p class="text-sm text-gray-400 mb-4">Select an art style and click generate.</p>
+                        <div class="space-y-4">
+                            <div class="border-t border-gray-700 pt-4">
+                                 <label class="block text-sm font-medium text-gray-300 mb-2 text-center">Image Style</label>
+                                <div id="character-path-display" class="grid grid-cols-2 gap-2 mb-4"></div>
+                            </div>
+                            <div class="mb-4">
+                                <label for="char-image-guidance" class="block text-sm font-medium text-gray-400 mb-2">Image Guidance (Optional)</label>
+                                <textarea id="char-image-guidance" class="w-full h-24 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., in the style of Greg Rutkowski, dramatic lighting..."></textarea>
+                            </div>
+                            <button id="generate-image-btn-char" class="w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Image</button>
+                        </div>
+                        <div id="image-container-char" class="w-full aspect-square bg-gray-900 rounded-md flex items-center justify-center border border-gray-700 mt-6">
+                            <div id="loading-spinner-image-char" class="loader hidden"></div>
+                            <img id="generated-image-char" src="" alt="Generated Character" class="hidden w-full h-full object-cover rounded-md">
+                            <span id="image-placeholder-char" class="text-gray-500">Your character image will appear here</span>
+                        </div>
+                        <button id="download-image-btn-char" class="hidden mt-4 w-full py-2 px-4 rounded-lg font-semibold btn-secondary">Save Image</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="scene-image-tool" class="tab-content">
+             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                 <div class="bg-gray-800 p-6 rounded-lg shadow-lg space-y-4">
+                    <h2 class="text-2xl font-semibold mb-2 text-white">Scene Details</h2>
+                    <p class="text-sm text-gray-400 mb-4">Describe the scene you want to visualize.</p>
+                    <div><label for="scene-name" class="block text-sm font-medium text-gray-300 mb-1">Scene Name or Genre</label><input type="text" id="scene-name" data-field-name="name" placeholder="e.g., Cyberpunk City, Fantasy Forest" class="tool-input"></div>
+                    <div><label for="scene-exterior" class="block text-sm font-medium text-gray-300 mb-1">Exterior Description</label><textarea id="scene-exterior" data-field-name="exterior" placeholder="Describe the scene from the outside..." class="tool-input" rows="2"></textarea></div>
+                    <div><label for="scene-time_of_day" class="block text-sm font-medium text-gray-300 mb-1">Time of Day</label><input type="text" id="scene-time_of_day" data-field-name="time_of_day" placeholder="e.g., Sunrise, Night" class="tool-input"></div>
+                    <div><label for="scene-weather" class="block text-sm font-medium text-gray-300 mb-1">Weather</label><input type="text" id="scene-weather" data-field-name="weather" placeholder="e.g., Sunny, Raining" class="tool-input"></div>
+                    <div><label for="scene-architectural_style" class="block text-sm font-medium text-gray-300 mb-1">Architectural Style</label><input type="text" id="scene-architectural_style" data-field-name="architectural_style" placeholder="e.g., Gothic, Modern" class="tool-input"></div>
+                    <div><label for="scene-other_details" class="block text-sm font-medium text-gray-300 mb-1">Other Details</label><textarea id="scene-other_details" data-field-name="other_details" class="tool-input" rows="1" placeholder="e.g., specific flora..."></textarea></div>
+                    <div><label for="scene-negative_prompts" class="block text-sm font-medium text-gray-300 mb-1 text-red-400">Negative Prompts</label><textarea id="scene-negative_prompts" data-field-name="negative_prompts_scene" class="tool-input" rows="1" placeholder="e.g., people, vehicles..."></textarea></div>
+                 </div>
+                 <div class="space-y-6">
+                     <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                         <p class="text-sm text-gray-400 mb-4">Create a stunning visual for your scene. Choose an art style that fits the mood and let the AI bring your words to life.</p>
+                        <div class="space-y-4">
+                            <div class="border-t border-gray-700 pt-4">
+                                <label class="block text-sm font-medium text-gray-300 mb-2 text-center">Image Style</label>
+                                <div id="scene-path-display" class="grid grid-cols-2 gap-2 mb-4"></div>
+                            </div>
+                            <div class="mb-4">
+                                <label for="scene-image-guidance" class="block text-sm font-medium text-gray-400 mb-2">Image Guidance (Optional)</label>
+                                <textarea id="scene-image-guidance" class="w-full h-24 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., wide-angle shot, moody lighting..."></textarea>
+                            </div>
+                            <button id="generate-image-btn-scene" class="w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Image</button>
+                        </div>
+                        <div id="image-container-scene" class="w-full aspect-square bg-gray-900 rounded-md flex items-center justify-center border border-gray-700 mt-6">
+                            <div id="loading-spinner-image-scene" class="loader hidden"></div>
+                            <img id="generated-image-scene" src="" alt="Generated Scene" class="hidden w-full h-full object-cover rounded-md">
+                            <span id="image-placeholder-scene" class="text-gray-500">Your scene image will appear here</span>
+                        </div>
+                        <button id="download-image-btn-scene" class="hidden mt-4 w-full py-2 px-4 rounded-lg font-semibold btn-secondary">Save Image</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="setting-image-tool" class="tab-content">
+             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="bg-gray-800 p-6 rounded-lg shadow-lg space-y-4">
+                    <h2 class="text-2xl font-semibold mb-2 text-white">Setting Details</h2>
+                    <p class="text-sm text-gray-400 mb-4">Describe the world or setting you want to visualize.</p>
+                     <div><label for="setting-name" class="block text-sm font-medium text-gray-300 mb-1">Setting Name or Genre</label><input type="text" id="setting-name" data-field-name="name" placeholder="e.g., The Clockwork City, Steampunk" class="tool-input"></div>
+                     <div><label for="setting-architectural_style" class="block text-sm font-medium text-gray-300 mb-1">Architectural Style</label><input type="text" id="setting-architectural_style" data-field-name="architectural_style" placeholder="e.g., Gothic, Modern, Alien" class="tool-input"></div>
+                     <div><label for="setting-time_of_day" class="block text-sm font-medium text-gray-300 mb-1">Time of Day</label><input type="text" id="setting-time_of_day" data-field-name="time_of_day" placeholder="e.g., Sunrise, Twin Moons Night" class="tool-input"></div>
+                     <div><label for="setting-weather_vis" class="block text-sm font-medium text-gray-300 mb-1">Weather</label><input type="text" id="setting-weather_vis" data-field-name="weather_vis" placeholder="e.g., Light snow, heavy fog" class="tool-input"></div>
+                     <div><label for="setting-other_details" class="block text-sm font-medium text-gray-300 mb-1">Other Visual Details</label><textarea id="setting-other_details" data-field-name="other_details" class="tool-input" rows="1" placeholder="e.g., Glowing crystals, strange colors..."></textarea></div>
+                     <div><label for="setting-negative_prompts" class="block text-sm font-medium text-gray-300 mb-1 text-red-400">Negative Prompts</label><textarea id="setting-negative_prompts" data-field-name="negative_prompts_setting" class="tool-input" rows="1" placeholder="e.g., people, vehicles, text..."></textarea></div>
+                </div>
+                <div class="space-y-6">
+                    <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                        <p class="text-sm text-gray-400 mb-4">Bring your setting to life. Choose an art style and click generate.</p>
+                        <div class="space-y-4">
+                            <div class="border-t border-gray-700 pt-4">
+                                 <label class="block text-sm font-medium text-gray-300 mb-2 text-center">Image Style</label>
+                                <div id="setting-path-display" class="grid grid-cols-2 gap-2 mb-4"></div>
+                            </div>
+                            <div class="mb-4">
+                                <label for="setting-image-guidance" class="block text-sm font-medium text-gray-400 mb-2">Image Guidance (Optional)</label>
+                                <textarea id="setting-image-guidance" class="w-full h-24 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., hyperrealistic, volumetric lighting..."></textarea>
+                            </div>
+                            <button id="generate-image-btn-setting" class="w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Image</button>
+                        </div>
+                        <div id="image-container-setting" class="w-full aspect-square bg-gray-900 rounded-md flex items-center justify-center border border-gray-700 mt-6">
+                            <div id="loading-spinner-image-setting" class="loader hidden"></div>
+                            <img id="generated-image-setting" src="" alt="Generated Setting" class="hidden w-full h-full object-cover rounded-md">
+                            <span id="image-placeholder-setting" class="text-gray-500">Your setting image will appear here</span>
+                        </div>
+                        <button id="download-image-btn-setting" class="hidden mt-4 w-full py-2 px-4 rounded-lg font-semibold btn-secondary">Save Image</button>
+                    </div>
+                </div>
+             </div>
+        </div>
+
+        <div id="storyboard-tool" class="tab-content">
+             <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h2 class="text-2xl font-semibold mb-2 text-white">Create a Storyboard</h2>
+                <p class="text-gray-400 mb-6">Turn your words into images. Paste a scene description into the box below. The AI will first break your scene into key shots and then generate an image for each one.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                    <div>
+                        <label for="storyboard-panels" class="block text-sm font-medium text-gray-400 mb-2">Number of Panels</label>
+                        <input type="number" id="storyboard-panels" class="w-full p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" value="4" min="1" max="8">
+                    </div>
+                    <div id="storyboard-style-gems-container" class="md:col-span-2 grid grid-cols-2 gap-4">
+                        <!-- Storyboard style gems will be injected here -->
+                    </div>
+                </div>
+                <label for="storyboard-description" class="block text-sm font-medium text-gray-400 mb-2">Scene Description</label>
+                <textarea id="storyboard-description" class="w-full h-48 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Paste or write the scene you want to visualize..."></textarea>
+                <label for="storyboard-secondary-guidance" class="block text-sm font-medium text-gray-400 mb-2 mt-4">Secondary Guidance (Optional)</label>
+                <textarea id="storyboard-secondary-guidance" class="w-full h-24 p-3 bg-gray-900 text-gray-300 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="e.g., Maintain a consistent color palette of blues and grays..."></textarea>
+                <button id="generate-storyboard-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Generate Storyboard</button>
+            </div>
+            <div id="storyboard-loader" class="hidden text-center mt-4">
+                <p class="mb-2 text-gray-400">Generating visual seeds...</p>
+                <div class="loader inline-block"></div>
+            </div>
+            <div id="storyboard-output" class="mt-8 grid gap-6 grid-cols-1 md:grid-cols-2"></div>
+            <div id="storyboard-save-container" class="hidden mt-6 text-center flex justify-center gap-4">
+               <button id="reiterate-storyboard-btn" class="py-3 px-6 rounded-lg font-semibold btn-secondary">Reiterate Selected Images</button>
+               <button id="save-storyboard-btn" class="py-3 px-6 rounded-lg font-semibold btn-primary">Save Selected Images</button>
+            </div>
+        </div>
+
+    </div>
+    
+    <footer class="text-center mt-12 pb-8">
+        <p class="text-sm text-gray-500">Writer AId by Wolfe.BT@TangentLLC</p>
+    </footer>
+
+    <!-- MODALS -->
+    <div id="path-settings-modal" class="modal fixed inset-0 bg-black/60 items-start justify-center pt-20 hidden z-50 opacity-0">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-lg relative border border-gray-700">
+            <h2 id="path-modal-title" class="text-2xl font-bold text-white mb-6">Edit Path</h2>
+            <div id="path-modal-content" class="space-y-2"></div>
+            <div id="path-modal-custom-input-container" class="hidden mt-4 pt-4 border-t border-gray-700">
+                <label id="path-modal-custom-label" for="path-modal-custom-input" class="block text-sm font-medium text-gray-300 mb-2">Enter Custom Value</label>
+                <div class="flex gap-2">
+                    <input type="text" id="path-modal-custom-input" class="tool-input flex-grow">
+                    <button id="path-modal-custom-save-btn" class="btn-primary py-2 px-4 rounded-lg font-semibold">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="settings-modal" class="modal fixed inset-0 bg-black/60 items-center justify-center hidden z-50 opacity-0">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md relative border border-gray-700">
+            <button id="close-settings-modal-btn" class="absolute top-3 right-3 text-gray-500 hover:text-white transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            <h2 class="text-2xl font-bold text-white mb-4">Settings</h2>
+            <p class="text-sm text-gray-400 mb-4">Your Gemini API key is stored locally in your browser and is never sent to our servers.</p>
+            <div class="space-y-2">
+                <label for="api-key-input" class="block text-sm font-medium text-gray-300">Writer AId API Key</label>
+                <input type="password" id="api-key-input" class="w-full p-2 bg-gray-900 text-gray-300 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Enter your API key">
+            </div>
+            <button id="save-api-key-btn" class="mt-6 w-full py-3 px-4 rounded-lg font-semibold btn-primary">Save Key</button>
+        </div>
+    </div>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+        let userApiKey = '';
+        const globalState = {
+            story: {
+                storyboardVisualSeed: '',
+                storyboardPanelPrompts: [],
+                storyboardArtStyle: 'Painting',
+                storyboardSubstyle: ''
+            },
+            character: { artStyle: 'Painting', substyle: '', pose: 'Close Up' },
+            scene: { artStyle: 'Painting', substyle: '' },
+            setting: { artStyle: 'Painting', substyle: '' }
+        };
+
+        const pathSettingsModal = document.getElementById('path-settings-modal');
+        const pathModalTitle = document.getElementById('path-modal-title');
+        const pathModalContent = document.getElementById('path-modal-content');
+        const pathModalCustomInputContainer = document.getElementById('path-modal-custom-input-container');
+        const pathModalCustomLabel = document.getElementById('path-modal-custom-label');
+        const pathModalCustomInput = document.getElementById('path-modal-custom-input');
+        let pathModalCustomSaveBtn = document.getElementById('path-modal-custom-save-btn');
+        const characterPathDisplay = document.getElementById('character-path-display');
+        const scenePathDisplay = document.getElementById('scene-path-display');
+        const settingPathDisplay = document.getElementById('setting-path-display');
+        
+        const PATH_OPTIONS = {
+            'character-art-style': { title: 'Art Style', options: { 'Styles': ['Sketch', 'Painting', 'Anime', 'Photorealistic', 'Comic Book', 'Cinematic'] }, stateKey: 'artStyle', stateObject: 'character' },
+            'character-substyle-sketch': { title: 'Sketch Substyle', options: { 'Substyles': ['Line Drawing', 'Doodling', 'Cartoon', 'Pointillism', 'Architectural'] }, stateKey: 'substyle', stateObject: 'character' },
+            'character-substyle-painting': { title: 'Painting Substyle', options: { 'Substyles': ['Realism', 'Impressionism', 'Expressionism', 'Abstract', 'Surrealism', 'Pop Art', 'No Outline'] }, stateKey: 'substyle', stateObject: 'character' },
+            'character-substyle-anime': { title: 'Anime Substyle', options: { 'Substyles': ['Shōjo', 'Shōnen', 'Chibi', 'Seinen', 'Kodomomuke'] }, stateKey: 'substyle', stateObject: 'character' },
+            'character-substyle-photorealistic': { title: 'Photorealistic Substyle', options: { 'Substyles': ["Hyperrealism", "Trompe-l'œil"] }, stateKey: 'substyle', stateObject: 'character' },
+            'character-substyle-comic-book': { title: 'Comic Book Substyle', options: { 'Substyles': ['Golden Age (1930s-1950s)', 'Silver Age (1950s-1970s)', 'Bronze Age (1970s-1985)', 'Modern Age (1985-Present)', 'Manga Style'] }, stateKey: 'substyle', stateObject: 'character' },
+            'character-substyle-cinematic': { title: 'Cinematic Substyle', options: { 'Substyles': ['Film Noir', 'German Expressionism', 'New Wave', 'Italian Neorealism', 'Hollywood Golden Age', 'Modern'] }, stateKey: 'substyle', stateObject: 'character' },
+            'character-pose': { title: 'Pose', options: { 'Portrait': ['Close Up'], 'Full Body': ['Modeling Pose', 'Action Pose', 'In Scene'], 'Reference': ['Concept Sheet'], 'Custom': ['Other...'] }, stateKey: 'pose', stateObject: 'character' },
+            'scene-art-style': { title: 'Art Style', options: { 'Styles': ['Sketch', 'Painting', 'Anime', 'Photorealistic', 'Comic Book', 'Cinematic'] }, stateKey: 'artStyle', stateObject: 'scene' },
+            'scene-substyle-sketch': { title: 'Sketch Substyle', options: { 'Substyles': ['Line Drawing', 'Doodling', 'Cartoon', 'Pointillism', 'Architectural'] }, stateKey: 'substyle', stateObject: 'scene' },
+            'scene-substyle-painting': { title: 'Painting Substyle', options: { 'Substyles': ['Realism', 'Impressionism', 'Expressionism', 'Abstract', 'Surrealism', 'Pop Art', 'No Outline'] }, stateKey: 'substyle', stateObject: 'scene' },
+            'scene-substyle-anime': { title: 'Anime Substyle', options: { 'Substyles': ['Shōjo', 'Shōnen', 'Chibi', 'Seinen', 'Kodomomuke'] }, stateKey: 'substyle', stateObject: 'scene' },
+            'scene-substyle-photorealistic': { title: 'Photorealistic Substyle', options: { 'Substyles': ["Hyperrealism", "Trompe-l'œil"] }, stateKey: 'substyle', stateObject: 'scene' },
+            'scene-substyle-comic-book': { title: 'Comic Book Substyle', options: { 'Substyles': ['Golden Age (1930s-1950s)', 'Silver Age (1950s-1970s)', 'Bronze Age (1970s-1985)', 'Modern Age (1985-Present)', 'Manga Style'] }, stateKey: 'substyle', stateObject: 'scene' },
+            'scene-substyle-cinematic': { title: 'Cinematic Substyle', options: { 'Substyles': ['Film Noir', 'German Expressionism', 'New Wave', 'Italian Neorealism', 'Hollywood Golden Age', 'Modern'] }, stateKey: 'substyle', stateObject: 'scene' },
+            'setting-art-style': { title: 'Art Style', options: { 'Styles': ['Sketch', 'Painting', 'Anime', 'Photorealistic', 'Comic Book', 'Cinematic'] }, stateKey: 'artStyle', stateObject: 'setting' },
+            'setting-substyle-sketch': { title: 'Sketch Substyle', options: { 'Substyles': ['Line Drawing', 'Doodling', 'Cartoon', 'Pointillism', 'Architectural'] }, stateKey: 'substyle', stateObject: 'setting' },
+            'setting-substyle-painting': { title: 'Painting Substyle', options: { 'Substyles': ['Realism', 'Impressionism', 'Expressionism', 'Abstract', 'Surrealism', 'Pop Art', 'No Outline'] }, stateKey: 'substyle', stateObject: 'setting' },
+            'setting-substyle-anime': { title: 'Anime Substyle', options: { 'Substyles': ['Shōjo', 'Shōnen', 'Chibi', 'Seinen', 'Kodomomuke'] }, stateKey: 'substyle', stateObject: 'setting' },
+            'setting-substyle-photorealistic': { title: 'Photorealistic Substyle', options: { 'Substyles': ["Hyperrealism", "Trompe-l'œil"] }, stateKey: 'substyle', stateObject: 'setting' },
+            'setting-substyle-comic-book': { title: 'Comic Book Substyle', options: { 'Substyles': ['Golden Age (1930s-1950s)', 'Silver Age (1950s-1970s)', 'Bronze Age (1970s-1985)', 'Modern Age (1985-Present)', 'Manga Style'] }, stateKey: 'substyle', stateObject: 'setting' },
+            'setting-substyle-cinematic': { title: 'Cinematic Substyle', options: { 'Substyles': ['Film Noir', 'German Expressionism', 'New Wave', 'Italian Neorealism', 'Hollywood Golden Age', 'Modern'] }, stateKey: 'substyle', stateObject: 'setting' },
+            'storyboard-art-style': { title: 'Art Style', options: { 'Styles': ['Sketch', 'Painting', 'Anime', 'Photorealistic', 'Comic Book', 'Cinematic'] }, stateKey: 'storyboardArtStyle', stateObject: 'story' },
+            'storyboard-substyle-sketch': { title: 'Sketch Substyle', options: { 'Substyles': ['Line Drawing', 'Doodling', 'Cartoon', 'Pointillism', 'Architectural'] }, stateKey: 'storyboardSubstyle', stateObject: 'story' },
+            'storyboard-substyle-painting': { title: 'Painting Substyle', options: { 'Substyles': ['Realism', 'Impressionism', 'Expressionism', 'Abstract', 'Surrealism', 'Pop Art', 'No Outline'] }, stateKey: 'storyboardSubstyle', stateObject: 'story' },
+            'storyboard-substyle-anime': { title: 'Anime Substyle', options: { 'Substyles': ['Shōjo', 'Shōnen', 'Chibi', 'Seinen', 'Kodomomuke'] }, stateKey: 'storyboardSubstyle', stateObject: 'story' },
+            'storyboard-substyle-photorealistic': { title: 'Photorealistic Substyle', options: { 'Substyles': ["Hyperrealism", "Trompe-l'œil"] }, stateKey: 'storyboardSubstyle', stateObject: 'story' },
+            'storyboard-substyle-comic-book': { title: 'Comic Book Substyle', options: { 'Substyles': ['Golden Age (1930s-1950s)', 'Silver Age (1950s-1970s)', 'Bronze Age (1970s-1985)', 'Modern Age (1985-Present)', 'Manga Style'] }, stateKey: 'storyboardSubstyle', stateObject: 'story' },
+            'storyboard-substyle-cinematic': { title: 'Cinematic Substyle', options: { 'Substyles': ['Film Noir', 'German Expressionism', 'New Wave', 'Italian Neorealism', 'Hollywood Golden Age', 'Modern'] }, stateKey: 'storyboardSubstyle', stateObject: 'story' }
+        };
+
+        const createDisplayGem = (label, value, setting) => {
+            const hasValue = !!value;
+            const gemClass = `path-gem ${hasValue ? 'has-value' : ''}`;
+            const gemContent = `<span class="path-gem-label">${label}:</span><span class="path-gem-value">${value || ''}</span>`;
+            return `<button class="${gemClass}" data-setting="${setting}">${gemContent}</button>`;
+        };
+
+        function updateAllPathDisplays() {
+            updateCharacterPathDisplay();
+            updateScenePathDisplay();
+            updateSettingPathDisplay();
+            updateStoryboardStyleGems();
+        }
+
+        function updateCharacterPathDisplay() {
+            characterPathDisplay.innerHTML = createDisplayGem('Art Style', globalState.character.artStyle, 'character-art-style');
+            const mainStyle = globalState.character.artStyle.toLowerCase().replace(/\s+/g, '-');
+            const substyleSetting = `character-substyle-${mainStyle}`;
+            if (PATH_OPTIONS[substyleSetting]) {
+                characterPathDisplay.innerHTML += createDisplayGem(PATH_OPTIONS[substyleSetting].title, globalState.character.substyle, substyleSetting);
+            }
+            characterPathDisplay.innerHTML += createDisplayGem('Pose', globalState.character.pose, 'character-pose');
+        }
+
+        function updateScenePathDisplay() {
+            scenePathDisplay.innerHTML = createDisplayGem('Art Style', globalState.scene.artStyle, 'scene-art-style');
+            const mainStyle = globalState.scene.artStyle.toLowerCase().replace(/\s+/g, '-');
+            const substyleSetting = `scene-substyle-${mainStyle}`;
+            if (PATH_OPTIONS[substyleSetting]) {
+                scenePathDisplay.innerHTML += createDisplayGem(PATH_OPTIONS[substyleSetting].title, globalState.scene.substyle, substyleSetting);
+            }
+        }
+
+        function updateSettingPathDisplay() {
+            settingPathDisplay.innerHTML = createDisplayGem('Art Style', globalState.setting.artStyle, 'setting-art-style');
+            const mainStyle = globalState.setting.artStyle.toLowerCase().replace(/\s+/g, '-');
+            const substyleSetting = `setting-substyle-${mainStyle}`;
+            if (PATH_OPTIONS[substyleSetting]) {
+                settingPathDisplay.innerHTML += createDisplayGem(PATH_OPTIONS[substyleSetting].title, globalState.setting.substyle, substyleSetting);
+            }
+        }
+        
+        function updateStoryboardStyleGems() {
+            const container = document.getElementById('storyboard-style-gems-container');
+            container.innerHTML = createDisplayGem('Art Style', globalState.story.storyboardArtStyle, 'storyboard-art-style');
+            const mainStyle = globalState.story.storyboardArtStyle.toLowerCase().replace(/\s+/g, '-');
+            const substyleSetting = `storyboard-substyle-${mainStyle}`;
+            if (PATH_OPTIONS[substyleSetting]) {
+                container.innerHTML += createDisplayGem(PATH_OPTIONS[substyleSetting].title, globalState.story.storyboardSubstyle, substyleSetting);
+            }
+        }
+
+        function handleOptionSelection(setting, option) {
+            const config = PATH_OPTIONS[setting];
+            const stateObj = globalState[config.stateObject];
+
+            if (setting.endsWith('-art-style') && stateObj[config.stateKey] !== option) {
+                 if (config.stateObject === 'story') {
+                    globalState.story.storyboardSubstyle = '';
+                } else {
+                    globalState[config.stateObject].substyle = '';
+                }
+            }
+
+            if (option === 'Other...') {
+                pathModalCustomInputContainer.classList.remove('hidden');
+                pathModalCustomLabel.textContent = `Enter custom ${config.title.toLowerCase()}:`;
+                pathModalCustomInput.value = '';
+                pathModalCustomInput.focus();
+                const newSaveBtn = pathModalCustomSaveBtn.cloneNode(true);
+                pathModalCustomSaveBtn.parentNode.replaceChild(newSaveBtn, pathModalCustomSaveBtn);
+                pathModalCustomSaveBtn = newSaveBtn;
+                pathModalCustomSaveBtn.onclick = () => {
+                    const customValue = pathModalCustomInput.value.trim();
+                    if (customValue) {
+                        stateObj[config.stateKey] = customValue;
+                        closePathModal();
+                    }
+                };
+            } else {
+                stateObj[config.stateKey] = option;
+                closePathModal();
+            }
+        }
+
+        function openPathModal(setting) {
+            pathModalContent.innerHTML = '';
+            pathModalCustomInputContainer.classList.add('hidden');
+            const settingConfig = PATH_OPTIONS[setting];
+            if (!settingConfig) return;
+
+            const stateObject = globalState[settingConfig.stateObject];
+            pathModalTitle.textContent = `Select ${settingConfig.title}`;
+
+            for (const groupName in settingConfig.options) {
+                const groupContainer = document.createElement('div');
+                const groupHeader = document.createElement('h3');
+                groupHeader.className = 'w-full text-sm font-semibold text-gray-400 mt-4 first:mt-0 mb-2';
+                groupHeader.textContent = groupName;
+                groupContainer.appendChild(groupHeader);
+                
+                const buttonContainer = document.createElement('div');
+                buttonContainer.className = 'flex flex-wrap gap-2';
+                groupContainer.appendChild(buttonContainer);
+
+                settingConfig.options[groupName].forEach(option => {
+                    const button = document.createElement('button');
+                    button.className = 'py-2 px-3 rounded-md font-semibold btn-secondary text-sm';
+                    const isCustom = !Object.values(settingConfig.options).flat().includes(stateObject[settingConfig.stateKey]);
+
+                    if (stateObject[settingConfig.stateKey] === option || (option === 'Other...' && isCustom)) {
+                        button.classList.replace('btn-secondary', 'btn-primary');
+                    }
+                    button.textContent = option;
+                    button.addEventListener('click', () => handleOptionSelection(setting, option));
+                    buttonContainer.appendChild(button);
+                });
+                pathModalContent.appendChild(groupContainer);
+            }
+            pathSettingsModal.classList.remove('hidden');
+            pathSettingsModal.classList.add('flex');
+            setTimeout(() => pathSettingsModal.style.opacity = 1, 10);
+        }
+
+        function closePathModal() {
+            pathSettingsModal.style.opacity = 0;
+            setTimeout(() => { 
+                pathSettingsModal.classList.add('hidden'); 
+                pathSettingsModal.classList.remove('flex');
+                pathModalCustomInputContainer.classList.add('hidden');
+            }, 250);
+            updateAllPathDisplays();
+        }
+
+        function showStatus(message, isError = false) {
+            const statusMessage = document.getElementById('status-message');
+            statusMessage.textContent = message;
+            statusMessage.style.color = isError ? '#ef4444' : '#9ca3af';
+            statusMessage.style.opacity = '1';
+            setTimeout(() => { statusMessage.style.opacity = '0'; }, 3000);
+        }
+        
+        async function callGeminiAPI(prompt, loaderElement) {
+            if (loaderElement) loaderElement.classList.remove('hidden');
+            try {
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${userApiKey}`;
+                const payload = { contents: [{ parts: [{ text: prompt }] }] };
+                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (response.ok) {
+                    const result = await response.json();
+                    return result.candidates?.[0]?.content?.parts?.[0]?.text;
+                }
+                const errorData = await response.json().catch(() => ({}));
+                if (errorData.error && errorData.error.message.includes("API key not valid")) {
+                    showStatus("Error: API Key is not valid. Please check settings.", true);
+                    openModal('settings');
+                }
+                throw new Error(errorData.error?.message || `API request failed with status ${response.status}`);
+            } catch (e) {
+                console.error(e);
+                return `Error: ${e.message}`;
+            } finally {
+                if(loaderElement) loaderElement.classList.add('hidden');
+            }
+        }
+
+
+        async function callImagenAPI(positivePrompt, negativePrompt) {
+            if (!userApiKey) {
+                showStatus("API Key is missing for image generation.", true);
+                openModal('settings');
+                return null;
+            }
+            try {
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${userApiKey}`;
+                const payload = {
+                    instances: [{ prompt: positivePrompt, negativePrompt: negativePrompt }],
+                    parameters: { "sampleCount": 1 }
+                };
+                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+                }
+                const result = await response.json();
+                if (result.predictions?.[0]?.bytesBase64Encoded) {
+                    return `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
+                }
+                throw new Error('API returned a valid response but no image data was found.');
+            } catch(e) {
+                console.error("Imagen API Error:", e);
+                showStatus(`Image Gen Error: ${e.message}`, true);
+                return null;
+            }
+        }
+        
+        function sanitizeFilename(name) { return (name || 'untitled').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''); }
+
+        const settingsModal = document.getElementById('settings-modal');
+        const apiKeyInput = document.getElementById('api-key-input');
+        
+        function openModal(type) {
+            const modal = settingsModal;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => modal.style.opacity = 1, 10);
+        }
+
+        function closeModal(type) {
+            const modal = settingsModal;
+            modal.style.opacity = 0;
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 250);
+        }
+
+        function saveApiKey() {
+            const key = apiKeyInput.value.trim();
+            localStorage.setItem('writerAIdApiKey', key);
+            userApiKey = key;
+            showStatus(key ? "API Key saved." : "API Key removed.");
+            closeModal('settings');
+        }
+
+        function loadApiKey() {
+            let key = localStorage.getItem('writerAIdApiKey');
+            if (!key) key = localStorage.getItem('geminiApiKey');
+            if (!key) key = localStorage.getItem('googleApiKey');
+            userApiKey = key || '';
+            apiKeyInput.value = userApiKey;
+            if (key) localStorage.setItem('writerAIdApiKey', key);
+        }
+
+        const tabButtons = document.querySelectorAll('.main-tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const targetTabId = button.dataset.tab;
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                tabContents.forEach(content => content.classList.toggle('active', content.id === targetTabId));
+            });
+        });
+
+        function setupImageGenerator(toolPrefix, formId, generateBtnId, imageGuidanceId, imageContainerId, spinnerId, imgId, placeholderId, downloadBtnId) {
+            const generateBtn = document.getElementById(generateBtnId);
+            const imageContainer = document.getElementById(imageContainerId);
+            const spinner = document.getElementById(spinnerId);
+            const imgEl = document.getElementById(imgId);
+            const placeholder = document.getElementById(placeholderId);
+            const downloadBtn = document.getElementById(downloadBtnId);
+            
+            generateBtn.addEventListener('click', async () => {
+                if (!userApiKey) { showStatus("API Key is missing. Please add it in Settings.", true); openModal('settings'); return; }
+                
+                generateBtn.disabled = true;
+                generateBtn.textContent = 'Generating...';
+                spinner.classList.remove('hidden');
+                placeholder.style.display = 'none';
+                imgEl.style.display = 'none';
+                downloadBtn.style.display = 'none';
+
+                try {
+                    const attributes = {};
+                    document.querySelectorAll(`#${formId} .tool-input`).forEach(input => {
+                        attributes[input.dataset.fieldName] = input.value;
+                    });
+                    
+                    const stateKey = toolPrefix.replace(/-/g, '');
+                    const style = globalState[stateKey].artStyle;
+                    const substyle = globalState[stateKey].substyle;
+                    const imageGuidance = document.getElementById(imageGuidanceId).value.trim();
+                    let posePromptPrefix = '';
+                    let corePrompt = '';
+                    
+                    if (toolPrefix === 'character') {
+                         const pose = globalState.character.pose;
+                         corePrompt = `a ${attributes.gender || 'character'}. Build: ${attributes.build}. Hair: ${attributes.hairColor}. Eyes: ${attributes.eyeColor}. Details: ${attributes.details}. Clothing: ${attributes.clothing}. Expression: ${attributes.expression}.`;
+                         switch (pose) {
+                             case 'Concept Sheet': posePromptPrefix = 'Character concept sheet, multiple views, full body, detailed face, clean background.'; break;
+                             case 'In Scene': posePromptPrefix = `Full body shot in a dynamic scene.`; corePrompt += ` Setting: ${attributes.background}.`; break;
+                             case 'Action Pose': posePromptPrefix = `Dynamic action pose.`; corePrompt += ` Setting: ${attributes.background}.`; break;
+                             case 'Modeling Pose': posePromptPrefix = `Full body, standing modeling pose.`; break;
+                             default: posePromptPrefix = !['Close Up'].includes(pose) ? `${pose} of a` : 'Close up portrait from the chest up.'; break;
+                         }
+                    } else if (toolPrefix === 'scene') {
+                        corePrompt = `A wide-angle shot of a ${attributes.name || 'scene'}. Description: ${attributes.exterior}. Style: ${attributes.architectural_style}. Environment: ${attributes.time_of_day}, ${attributes.weather}. Details: ${attributes.other_details}`;
+                    } else if (toolPrefix === 'setting') {
+                         corePrompt = `A wide-angle shot of a ${attributes.name || 'setting'}. Style: ${attributes.architectural_style}. Environment: ${attributes.time_of_day}, ${attributes.weather_vis}. Details: ${attributes.other_details}`;
+                    }
+                    
+                    const positivePrompt = `${posePromptPrefix} ${corePrompt.replace(/\s+/g, ' ').trim()}, ${substyle}, ${style} style, ${imageGuidance}`;
+                    const negativePrompt = attributes[`negative_prompts_${toolPrefix}`] || 'blurry, low quality, text, watermark';
+                    
+                    const imageUrl = await callImagenAPI(positivePrompt, negativePrompt);
+                    if (imageUrl) {
+                        imgEl.src = imageUrl;
+                        imgEl.style.display = 'block';
+                        downloadBtn.style.display = 'block';
+                    } else {
+                        placeholder.innerHTML = `<span class="text-red-400">Image Error</span>`;
+                        placeholder.style.display = 'block';
+                    }
+                } catch (error) {
+                    showStatus(`Image Gen Error: ${error.message}`, true);
+                    placeholder.innerHTML = `<span class="text-red-400">Image Error</span>`;
+                    placeholder.style.display = 'block';
+                } finally {
+                    spinner.classList.add('hidden');
+                    generateBtn.disabled = false;
+                    generateBtn.textContent = 'Generate Image';
+                }
+            });
+
+            downloadBtn.addEventListener('click', () => {
+                const name = document.getElementById(`${toolPrefix}-name`)?.value || toolPrefix;
+                const filename = `${sanitizeFilename(name)}.${toolPrefix.substring(0,4)}.png`;
+                const a = document.createElement('a');
+                a.href = imgEl.src;
+                a.download = filename;
+                a.click();
+            });
+        }
+        
+        async function handleStoryboardGeneration() {
+            const description = document.getElementById('storyboard-description').value.trim();
+            if (!description) { showStatus("Please enter a scene description.", true); return; }
+            
+            const numPanels = parseInt(document.getElementById('storyboard-panels').value, 10);
+            const style = globalState.story.storyboardArtStyle;
+            const substyle = globalState.story.storyboardSubstyle;
+            const secondaryGuidance = document.getElementById('storyboard-secondary-guidance').value.trim();
+            const loader = document.getElementById('storyboard-loader');
+            const output = document.getElementById('storyboard-output');
+            const generateBtn = document.getElementById('generate-storyboard-btn');
+            const saveContainer = document.getElementById('storyboard-save-container');
+
+            loader.classList.remove('hidden');
+            output.innerHTML = '';
+            generateBtn.disabled = true;
+            saveContainer.classList.add('hidden');
+            
+            const seedPrompt = `Create a concise, comma-separated list of visual keywords for an AI image generator based on this scene: "${description}". Include this guidance: "${secondaryGuidance}". Output only the keywords.`;
+            globalState.story.storyboardVisualSeed = await callGeminiAPI(seedPrompt);
+            
+            const panelPrompt = `As a film director, break this scene into ${numPanels} storyboard panels: "${description}". For each panel, provide only a concise visual description for an AI image generator. Separate each description with '---'.`;
+            const panelDescriptionsText = await callGeminiAPI(panelPrompt);
+            
+            if (!panelDescriptionsText || panelDescriptionsText.startsWith("Error:")) {
+                showStatus(panelDescriptionsText || "Failed to generate panel descriptions.", true);
+                loader.classList.add('hidden');
+                generateBtn.disabled = false;
+                return;
+            }
+            
+            globalState.story.storyboardPanelPrompts = panelDescriptionsText.split('---').map(p => p.trim()).filter(Boolean);
+            const imagePromises = globalState.story.storyboardPanelPrompts.map(prompt => {
+                const fullPrompt = `${globalState.story.storyboardVisualSeed}, ${prompt}, ${substyle}, ${style} style`;
+                return callImagenAPI(fullPrompt, "text, watermark, signature, ugly, deformed, blurry");
+            });
+            const generatedImages = await Promise.all(imagePromises);
+            
+            loader.classList.add('hidden');
+            generateBtn.disabled = false;
+
+            generatedImages.forEach((imageUrl, index) => {
+                const panelDiv = document.createElement('div');
+                panelDiv.className = 'storyboard-panel relative';
+                panelDiv.dataset.index = index;
+                panelDiv.innerHTML = `
+                    <div class="aspect-video bg-gray-900 flex items-center justify-center">
+                        ${imageUrl ? `<img src="${imageUrl}" class="w-full h-full object-cover">` : `<div class="p-4 text-red-400">Failed.</div>`}
+                    </div>
+                    <input type="checkbox" class="storyboard-checkbox absolute top-2 right-2 h-6 w-6 rounded text-blue-500 bg-gray-900/50 border-gray-500 focus:ring-blue-500">
+                    <div class="p-3 text-xs text-gray-400">
+                        <p>${index + 1}. ${globalState.story.storyboardPanelPrompts[index] || ''}</p>
+                    </div>`;
+                output.appendChild(panelDiv);
+            });
+
+            if (generatedImages.some(img => img)) {
+                saveContainer.classList.remove('hidden');
+            }
+        }
+        
+        async function handleStoryboardReiteration() {
+            const selectedCheckboxes = document.querySelectorAll('#storyboard-output .storyboard-checkbox:checked');
+            if (selectedCheckboxes.length === 0) { showStatus('Please select at least one image to reiterate.', true); return; }
+
+            const reiterateBtn = document.getElementById('reiterate-storyboard-btn');
+            reiterateBtn.disabled = true;
+            reiterateBtn.textContent = 'Reiterating...';
+
+            const style = globalState.story.storyboardArtStyle;
+            const substyle = globalState.story.storyboardSubstyle;
+            
+            const reiterationPromises = Array.from(selectedCheckboxes).map(checkbox => {
+                const panelDiv = checkbox.closest('.storyboard-panel');
+                const panelIndex = parseInt(panelDiv.dataset.index, 10);
+                const originalPrompt = globalState.story.storyboardPanelPrompts[panelIndex];
+                
+                panelDiv.querySelector('.aspect-video').innerHTML = `<div class="panel-loader loader" style="margin: auto;"></div>`;
+                const newPrompt = `Reiterate and refine this image, maintaining consistency with: "${globalState.story.storyboardVisualSeed}". Shot: "${originalPrompt}". Style: "${substyle}, ${style}".`;
+                
+                return callImagenAPI(newPrompt, "text, watermark, signature, ugly, deformed, blurry")
+                    .then(imageUrl => ({ panelDiv, imageUrl, checkbox }));
+            });
+
+            const results = await Promise.all(reiterationPromises);
+            results.forEach(({ panelDiv, imageUrl, checkbox }) => {
+                const imgContainer = panelDiv.querySelector('.aspect-video');
+                imgContainer.innerHTML = imageUrl ? `<img src="${imageUrl}" class="w-full h-full object-cover">` : `<div class="p-4 text-red-400">Reiteration Failed.</div>`;
+                checkbox.checked = false;
+            });
+
+            reiterateBtn.disabled = false;
+            reiterateBtn.textContent = 'Reiterate Selected Images';
+        }
+
+
+        // APP INITIALIZATION
+        loadApiKey();
+        updateAllPathDisplays();
+        setupImageGenerator('character', 'character-image-tool', 'generate-image-btn-char', 'char-image-guidance', 'image-container-char', 'loading-spinner-image-char', 'generated-image-char', 'image-placeholder-char', 'download-image-btn-char');
+        setupImageGenerator('scene', 'scene-image-tool', 'generate-image-btn-scene', 'scene-image-guidance', 'image-container-scene', 'loading-spinner-image-scene', 'generated-image-scene', 'image-placeholder-scene', 'download-image-btn-scene');
+        setupImageGenerator('setting', 'setting-image-tool', 'generate-image-btn-setting', 'setting-image-guidance', 'image-container-setting', 'loading-spinner-image-setting', 'generated-image-setting', 'image-placeholder-setting', 'download-image-btn-setting');
+        document.getElementById('generate-storyboard-btn').addEventListener('click', handleStoryboardGeneration);
+        document.getElementById('reiterate-storyboard-btn').addEventListener('click', handleStoryboardReiteration);
+        document.getElementById('save-storyboard-btn').addEventListener('click', () => {
+            document.querySelectorAll('#storyboard-output .storyboard-checkbox:checked').forEach((checkbox, index) => {
+                const img = checkbox.closest('.storyboard-panel').querySelector('img');
+                if (img && img.src) {
+                    const a = document.createElement('a');
+                    a.href = img.src;
+                    a.download = `storyboard-panel-${index + 1}.png`;
+                    a.click();
+                }
+            });
+        });
+
+        document.getElementById('settings-btn').addEventListener('click', () => openModal('settings'));
+        document.getElementById('close-settings-modal-btn').addEventListener('click', () => closeModal('settings'));
+        settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) closeModal('settings'); });
+        document.getElementById('save-api-key-btn').addEventListener('click', saveApiKey);
+        pathSettingsModal.addEventListener('click', (e) => { if (e.target === pathSettingsModal) closePathModal(); });
+        document.body.addEventListener('click', (e) => {
+            const gemButton = e.target.closest('.path-gem');
+            if (gemButton) openPathModal(gemButton.dataset.setting);
+        });
+
+    });
+    </script>
+</body>
+</html>

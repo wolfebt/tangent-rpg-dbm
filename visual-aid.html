@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Wolfe.bt@TangentLLC">
+    <title>Visual AId</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="aid-style.css">
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto max-w-screen-xl p-4 sm:p-6 lg:p-8">
+        <header class="text-center mb-4 relative">
+            <h1 class="text-4xl font-bold text-white">Writer AId - Image Generation</h1>
+            <p class="text-lg text-gray-400 mt-2">Standalone AI-powered Image Generator</p>
+            <button id="settings-btn" class="absolute top-0 right-0 p-2 rounded-lg btn-secondary bg-gray-700/50 hover:bg-gray-600/50" title="Settings">
+                <svg xmlns="http://www.w.3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0l-.1.41a2 2 0 01-2.23 1.52l-.4-.1a2 2 0 00-2.2 2.2l.1.4a2 2 0 01-1.52 2.23l-.41.1c-1.56.38-1.56 2.6 0 2.98l.41.1a2 2 0 011.52 2.23l-.1.4a2 2 0 002.2 2.2l.4-.1a2 2 0 012.23 1.52l.1.41c.38 1.56 2.6 1.56 2.98 0l.1-.41a2 2 0 012.23-1.52l.4.1a2 2 0 002.2-2.2l-.1-.4a2 2 0 011.52-2.23l.41-.1c-1.56-.38-1.56-2.6 0-2.98l-.41-.1a2 2 0 01-1.52-2.23l.1-.4a2 2 0 00-2.2-2.2l-.4.1a2 2 0 01-2.23-1.52l-.1-.41zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>
+            </button>
+        </header>
+
+        <span id="status-message" class="text-sm text-gray-400 opacity-0 h-4 block text-center mt-4"></span>
+
+        <!-- MAIN TABS -->
+        <div class="border-b border-gray-700 mb-6">
+            <nav class="-mb-px flex space-x-6 justify-center" aria-label="Tabs">
+                <button data-tab="character-image-tool" class="main-tab-btn active">Character</button>
+                <button data-tab="scene-image-tool" class="main-tab-btn">Scene</button>
+                <button data-tab="setting-image-tool" class="main-tab-btn">Setting</button>
+                <button data-tab="storyboard-tool" class="main-tab-btn">Storyboard</button>
+            </nav>
+        </div>
+
+        <div id="character-image-tool" class="tab-content active">
+             <!-- Character Tool Content Will Be Populated Here -->
+        </div>
+
+        <div id="scene-image-tool" class="tab-content">
+             <!-- Scene Tool Content Will Be Populated Here -->
+        </div>
+
+        <div id="setting-image-tool" class="tab-content">
+            <!-- Setting Tool Content Will Be Populated Here -->
+        </div>
+
+        <div id="storyboard-tool" class="tab-content">
+            <!-- Storyboard Tool Content Will Be Populated Here -->
+        </div>
+    </div>
+    
+    <footer class="text-center mt-12 pb-8">
+        <p class="text-sm text-gray-500">Writer AId by Wolfe.BT@TangentLLC</p>
+    </footer>
+
+    <!-- MODALS -->
+    <div id="settings-modal" class="modal hidden fixed inset-0 bg-black bg-opacity-75 z-50 items-center justify-center p-4 opacity-0">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-white">Settings</h2>
+                <button id="close-settings-modal-btn" class="text-gray-400 hover:text-white">&times;</button>
+            </div>
+            <div>
+                <label for="api-key-input" class="block text-sm font-medium text-gray-300 mb-2">Google Gemini API Key</label>
+                <input type="password" id="api-key-input" class="tool-input" placeholder="Enter your API key">
+                <button id="save-api-key-btn" class="mt-4 w-full btn-primary py-2 px-4 rounded-lg">Save Key</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="path-settings-modal" class="modal hidden fixed inset-0 bg-black bg-opacity-75 z-50 items-center justify-center p-4 opacity-0">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-lg">
+            <h2 id="path-modal-title" class="text-xl font-bold text-white mb-4">Select Option</h2>
+            <div id="path-modal-content" class="space-y-4"></div>
+            <div id="path-modal-custom-input-container" class="hidden mt-4">
+                <label id="path-modal-custom-label" for="path-modal-custom-input" class="block text-sm font-medium text-gray-300 mb-2"></label>
+                <input type="text" id="path-modal-custom-input" class="tool-input">
+                <button id="path-modal-custom-save-btn" class="mt-2 w-full btn-primary py-2 px-4 rounded-lg">Save Custom Value</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="aid-image.js"></script>
+</body>
+</html>
+
