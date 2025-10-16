@@ -52,7 +52,7 @@ async function callGeminiAPI(prompt, apiKey) {
         showAIStatus("API Key is missing. Please add it in Settings.", true);
         return null;
     }
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
     const payload = {
         contents: [{ parts: [{ text: prompt }] }],
     };
