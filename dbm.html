@@ -1335,13 +1335,16 @@ When logged in, you can create and modify data using the **Entry Modal**.
                 return;
             }
 
+            // Force clear search term on view render to prevent autofill issues
+            appState.searchTerm = '';
+
             container.innerHTML = `
                 <div class="flex flex-col sm:flex-row justify-between sm:items-center my-4 gap-4">
                     <div class="flex-grow min-w-0">
                         <h2 id="table-title-${collectionKey}" class="text-3xl font-bold truncate uppercase">${title}</h2>
                     </div>
                     <div class="flex items-center gap-2">
-                        <input type="text" id="search-input-${collectionKey}" placeholder="Search by name..." class="global-form-input !w-auto" value="${appState.searchTerm}" autocomplete="new-password">
+                        <input type="text" id="search-input-${collectionKey}" placeholder="Search by name..." class="global-form-input !w-auto" value="" autocomplete="new-password">
                         <button id="add-new-btn-${collectionKey}" class="btn btn-primary auth-required hidden">ADD NEW</button>
                     </div>
                 </div>
@@ -1371,6 +1374,9 @@ When logged in, you can create and modify data using the **Entry Modal**.
 
             const searchInput = container.querySelector(`#search-input-${collectionKey}`);
             if (searchInput) {
+                // Also clear with JS as a fallback for aggressive autofill
+                setTimeout(() => { searchInput.value = ''; }, 50);
+
                 let debounceTimer;
                 searchInput.addEventListener('input', (e) => {
                     clearTimeout(debounceTimer);
