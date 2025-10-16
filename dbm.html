@@ -2076,8 +2076,20 @@ When logged in, you can create and modify data using the **Entry Modal**.
                 return [{ name: 'Special Ability'}, ...metaSkills];
             }
             if (collectionName === 'rules_codex') {
-                const filteredEntries = appState.wikiEntries.filter(entry => entry.id !== appState.editingDocId);
-                return filteredEntries.map(entry => ({ name: entry.name, id: entry.id }));
+                const allEntries = appState.wikiEntries.filter(entry => entry.id !== appState.editingDocId);
+
+                function buildCodexTree(parentName, level) {
+                    const children = allEntries.filter(entry => (entry.parent || null) === parentName);
+                    let result = [];
+                    children.sort((a, b) => (a.order || 0) - (b.order || 0) || a.name.localeCompare(b.name));
+                    for (const child of children) {
+                        result.push({ name: child.name, id: child.id, level: level });
+                        result = result.concat(buildCodexTree(child.name, level + 1));
+                    }
+                    return result;
+                }
+
+                return buildCodexTree(null, 0);
             }
 
 
@@ -2373,7 +2385,16 @@ When logged in, you can create and modify data using the **Entry Modal**.
                 return `<div class="global-form-input display-only-input">${String(displayValue).toUpperCase()}</div>`;
             }
 
-            let optionHtml = options.map(opt => `<option value="${opt.name}" ${savedValue == opt.name ? 'selected' : ''} data-dc="${opt.dc || 0}" data-cp="${opt.cp || 0}">${String(opt.name).toUpperCase()}</option>`).join('');
+            let optionHtml = '';
+            if (fieldConfig.source === 'rules_codex') {
+                optionHtml = options.map(opt => {
+                    const indentation = '&nbsp;&nbsp;'.repeat(opt.level || 0);
+                    const prefix = (opt.level || 0) > 0 ? '└─ ' : '';
+                    return `<option value="${opt.name}" ${savedValue == opt.name ? 'selected' : ''}>${indentation}${prefix}${String(opt.name).toUpperCase()}</option>`;
+                }).join('');
+            } else {
+                optionHtml = options.map(opt => `<option value="${opt.name}" ${savedValue == opt.name ? 'selected' : ''} data-dc="${opt.dc || 0}" data-cp="${opt.cp || 0}">${String(opt.name).toUpperCase()}</option>`).join('');
+            }
             return `<select id="${fieldKey}" name="${fieldKey}" class="global-form-input form-select-arrow"><option value="">--CHOOSE--</option>${optionHtml}</select>`;
         }
 
