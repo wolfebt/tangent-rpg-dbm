@@ -560,10 +560,9 @@
 
 
     <div id="pair-gm-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-[70] p-4 hidden modal-backdrop">
-        <div class="modal-content w-full max-w-4xl p-8 max-h-[90vh] overflow-y-auto flex flex-col">
+        <div id="pair-gm-modal-content" class="modal-content w-full max-w-4xl p-8 max-h-[90vh] overflow-y-auto flex flex-col">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl font-bold">Pair-Game Master Assistant</h2>
-                <button id="pair-gm-close-btn" class="text-gray-400 hover:text-white">&times;</button>
             </div>
 
             <div class="flex-grow space-y-6">
@@ -597,6 +596,10 @@
 
             <div id="pair-gm-output" class="mt-6 p-4 bg-gray-900 rounded-lg max-h-96 overflow-y-auto prose prose-invert max-w-none hidden">
                 <!-- Generated content will appear here -->
+            </div>
+
+            <div class="flex justify-end mt-6">
+                <button id="pair-gm-close-btn" class="btn btn-secondary">Close</button>
             </div>
         </div>
     </div>
@@ -3246,6 +3249,30 @@ When logged in, you can create and modify data using the **Entry Modal**.
         const pairGmModal = document.getElementById('pair-gm-modal');
         const pairGmCloseBtn = document.getElementById('pair-gm-close-btn');
 
+        function isPairGmDirty() {
+            const inputs = pairGmModal.querySelectorAll('select, textarea');
+            for (const input of inputs) {
+                if (input.tagName === 'TEXTAREA' && input.value.trim() !== '') {
+                    return true;
+                }
+                if (input.tagName === 'SELECT' && input.value !== '') {
+                    return true;
+                }
+            }
+            const outputDiv = document.getElementById('pair-gm-output');
+            return outputDiv.innerHTML.trim() !== '' && !outputDiv.classList.contains('hidden');
+        }
+
+        function closePairGmModal() {
+            if (isPairGmDirty()) {
+                showConfirmModal("You have unsaved changes in the Pair-GM assistant. Are you sure you want to close it?", () => {
+                    pairGmModal.classList.add('hidden');
+                });
+            } else {
+                pairGmModal.classList.add('hidden');
+            }
+        }
+
         async function openPairGmModal() {
             // Populate dropdowns
             const personaContainer = document.getElementById('persona-generator-inputs');
@@ -3305,8 +3332,12 @@ When logged in, you can create and modify data using the **Entry Modal**.
             pairGmModal.classList.remove('hidden');
         }
 
-        document.getElementById('pair-gm-close-btn').addEventListener('click', () => {
-            document.getElementById('pair-gm-modal').classList.add('hidden');
+        pairGmCloseBtn.addEventListener('click', closePairGmModal);
+
+        pairGmModal.addEventListener('click', (event) => {
+            if (event.target === pairGmModal) {
+                closePairGmModal();
+            }
         });
 
         document.getElementById('generate-persona-btn').addEventListener('click', async () => {
