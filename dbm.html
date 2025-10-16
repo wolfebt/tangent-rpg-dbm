@@ -1341,7 +1341,7 @@ When logged in, you can create and modify data using the **Entry Modal**.
                         <h2 id="table-title-${collectionKey}" class="text-3xl font-bold truncate uppercase">${title}</h2>
                     </div>
                     <div class="flex items-center gap-2">
-                        <input type="text" id="search-input-${collectionKey}" placeholder="Search by name..." class="global-form-input !w-auto" value="${appState.searchTerm}">
+                        <input type="text" id="search-input-${collectionKey}" placeholder="Search by name..." class="global-form-input !w-auto" value="${appState.searchTerm}" autocomplete="off">
                         <button id="add-new-btn-${collectionKey}" class="btn btn-primary auth-required hidden">ADD NEW</button>
                     </div>
                 </div>
