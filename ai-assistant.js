@@ -1,6 +1,6 @@
 // AI Assistant Module for Tangent SFF RPG Database Manager
 // This file contains all functions related to generative AI,
-// including text generation, image generation, and data-aware suggestions.
+// including text generation and data-aware suggestions.
 
 // --- UTILITIES ---
 
@@ -15,7 +15,6 @@ function showAIStatus(message, isError = false, duration = 3000) {
     if (!statusEl) {
         statusEl = document.createElement('div');
         statusEl.id = 'ai-status-message';
-        // Basic styling, can be enhanced
         statusEl.style.position = 'fixed';
         statusEl.style.bottom = '20px';
         statusEl.style.left = '50%';
@@ -56,8 +55,6 @@ async function callGeminiAPI(prompt, apiKey) {
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
     const payload = {
         contents: [{ parts: [{ text: prompt }] }],
-        // Optional: Add safety settings if needed
-        // safetySettings: [...]
     };
 
     try {
@@ -83,14 +80,6 @@ async function callGeminiAPI(prompt, apiKey) {
         return null;
     }
 }
-
-/**
- * Calls the Imagen API for image generation.
- * @param {string} positivePrompt - The positive prompt for the image.
- * @param {string} negativePrompt - The negative prompt for the image.
- * @param {string} apiKey - The user's Gemini API key for Imagen.
- * @returns {Promise<string|null>} - The base64-encoded image data or null on failure.
- */
 
 // --- PROMPT & CONTEXT HELPERS ---
 
@@ -217,17 +206,13 @@ async function suggestImagePrompt(data, categoryKey, userGuidance, apiKey) {
 
         Output only the prompt itself.
     `;
-    const positivePrompt = await callGeminiAPI(promptGenPrompt, apiKey);
+    const imagePrompt = await callGeminiAPI(prompt, apiKey);
 
-    if (!positivePrompt) {
+    if (!imagePrompt) {
         showAIStatus("Failed to generate image prompt.", true);
         return null;
     }
-
-    showAIStatus("Generating image...", false);
-    // A generic negative prompt, could be made configurable later.
-    const negativePrompt = "text, watermark, signature, blurry, low quality, deformed, ugly, poorly drawn";
-    return callImagenAPI(positivePrompt, negativePrompt, apiKey);
+    return imagePrompt;
 }
 
 
@@ -338,13 +323,12 @@ async function generateStoryHook(selectedEntries, userGuidance, apiKey) {
 export {
     showAIStatus,
     callGeminiAPI,
-    callImagenAPI,
     getFormContext,
     getRulesCodexContext,
     brainstormField,
     elaborateField,
     summarizeField,
-    generateImage,
+    suggestImagePrompt,
     suggestLinks,
     generatePersona,
     generateWorldDescription,

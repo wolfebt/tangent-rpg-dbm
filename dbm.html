@@ -464,10 +464,6 @@
         <main id="main-content"></main>
     </div>
 
-    <button id="settings-icon" class="fixed bottom-4 left-4 p-2 bg-gray-700 rounded-full hover:bg-gray-600 transition-colors z-20">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-300"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-    </button>
-
     <div id="settings-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4 hidden modal-backdrop">
         <div class="modal-content w-full max-w-lg p-8">
             <h2 class="text-2xl font-bold mb-6 text-center">Settings</h2>
@@ -1265,6 +1261,45 @@
             'modes', 'note', 'parent', 'order' 
         ];
         
+        const helpMarkdown = `
+### **Welcome to the Tangent SFF RPG Database Manager**
+This guide provides a comprehensive overview of how to use this tool to browse and manage your game world's data, which is stored and shared in real-time using Firebase.
+
+### **Core Concepts & User Roles**
+The Database Manager has different capabilities based on your login status and assigned role.
+* **Guest (Anonymous):** As a guest, you have complete read-only access to all entries in the database. You can navigate all sections, open items to see their details, and explore the rules codex. This is the default mode for players or viewers.
+* **Contributor (Logged-in):** After logging in with a Google account, you are assigned the 'Contributor' role. You can **create** new entries in any category and **edit** or **delete** the entries that you have created. You cannot modify entries created by other users.
+* **Admin/Owner (Logged-in):** These roles have full administrative rights. You can create, edit, and delete **any** data in the database, regardless of who created it.
+
+### **Navigating the Application**
+Your primary navigation tools are the **Header** and the **Sidebar**.
+* **Sidebar:** This is your main navigation hub. Click any category (e.g., "Species", "Factions") to view its content. The active category is highlighted. For categories with sub-pages, like "Equipment," a nested list of links will appear below the main tab.
+* **Header:** Use the back and forward arrows to move through your viewing history. The top-right corner displays your login status and provides the **LOGIN/LOGOUT** button.
+
+### **Viewing & Finding Data**
+* **Table Views:** Most categories are presented in a table format.
+    * **Sorting:** Click on any column header to sort the table by that column's data.
+    * **Searching:** Use the search bar at the top-right of a table to filter entries by name in real-time.
+    * **Viewing Details:** Click anywhere on a row to open a detailed view of that item in a pop-up modal.
+* **Wiki View (Rules Codex):** This special section has a two-column layout. The directory of all rules articles is on the left. Clicking an article title displays its full content on the right.
+
+### **Managing Data (Logged-in Users)**
+When logged in, you can create and modify data using the **Entry Modal**.
+1.  **Creating an Entry:** Click the **ADD NEW** button at the top of any table. This opens the modal with a blank, editable form.
+2.  **Editing an Entry:**
+    * Click on an existing row to open its details in the modal (read-only view).
+    * Click the **DATA** button in the top-right corner of the modal.
+3.  **Saving:** After making changes in edit mode, click the **DATA** button and select **Save**. The modal will remain open in edit mode, allowing for further changes.
+4.  **Deleting:** To remove an entry permanently (if you have permission), open it, click the **DATA** button, and select **Delete**.
+5.  **Managing Linked Data:** Some fields (like "Modifiers" on a species) are managed in other database categories. To add or edit these, click the underlined label for the field (e.g., the word **MODIFIER**). This will navigate you to that category's management table.
+
+### **Special Features**
+* **AI-Powered Generation:** In fields like "Description," logged-in users can click the **GENERATE** button. This uses the Gemini API to create descriptive text based on the entry's other data, like its name and type. You must provide your own Gemini API key in the settings for this to work.
+* **Settings:** Click the gear icon in the bottom-left corner to open the settings modal, where you can enter and save your Gemini API key.
+* **Wiki-Linking:** In text areas within the "Rules Codex," you can create links to other entries by wrapping the exact entry name in double square brackets, for example: \`[[Some Rule Name]]\`. When viewed, this becomes a clickable link that opens the corresponding entry.
+* **Local Backup:** Inside the modal's **DATA** menu, the "Local" submenu allows you to save the current entry's data to a JSON file on your computer or load data from such a file to populate the form.
+`;
+
         // --- UI Elements ---
         const mainContentContainer = document.getElementById('main-content');
         const entryModal = document.getElementById('entry-modal');
@@ -1286,7 +1321,6 @@
         const summaryModal = document.getElementById('summary-modal');
         const summaryCloseBtn = document.getElementById('summary-close-btn');
         const jsonFileInput = document.getElementById('json-file-input');
-        const settingsIcon = document.getElementById('settings-icon');
         const settingsModal = document.getElementById('settings-modal');
         const settingsSaveBtn = document.getElementById('settings-save-btn');
         const settingsCancelBtn = document.getElementById('settings-cancel-btn');
@@ -1656,7 +1690,11 @@
         function renderAppHeader() {
             const headerContainer = document.querySelector('.app-header');
             headerContainer.innerHTML = `
-                <div class="flex-1"></div>
+                <div class="flex-1 flex items-center gap-2">
+                     <button id="settings-icon" class="p-2 bg-gray-700 rounded-full hover:bg-gray-600 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-300"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </button>
+                </div>
                 <div class="flex-grow flex justify-center items-center gap-4">
                     <button id="back-btn" class="btn btn-secondary !p-2 disabled:opacity-50 disabled:cursor-not-allowed">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/></svg>
@@ -1679,6 +1717,10 @@
                 </div>
             `;
             
+            document.getElementById('settings-icon').addEventListener('click', () => {
+                apiKeyInput.value = localStorage.getItem('geminiApiKey') || '';
+                settingsModal.classList.remove('hidden');
+            });
             document.getElementById('back-btn').addEventListener('click', goBack);
             document.getElementById('forward-btn').addEventListener('click', goForward);
             
@@ -3109,7 +3151,7 @@
                 });
                 choicesEl.appendChild(button);
             });
-            
+
             modal.classList.remove('hidden');
             document.getElementById('custom-modal-cancel-btn').onclick = () => modal.classList.add('hidden');
         }
@@ -3365,10 +3407,6 @@
         errorOkBtn.addEventListener('click', hideErrorModal);
         summaryCloseBtn.addEventListener('click', () => { summaryModal.classList.add('hidden'); });
         
-        settingsIcon.addEventListener('click', () => {
-            apiKeyInput.value = localStorage.getItem('geminiApiKey') || '';
-            settingsModal.classList.remove('hidden');
-        });
         settingsCancelBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
         settingsSaveBtn.addEventListener('click', () => {
             localStorage.setItem('geminiApiKey', apiKeyInput.value);
@@ -3413,45 +3451,6 @@
             }
         });
 
-        const helpMarkdown = `
-### **Welcome to the Tangent SFF RPG Database Manager**
-This guide provides a comprehensive overview of how to use this tool to browse and manage your game world's data, which is stored and shared in real-time using Firebase.
-
-### **Core Concepts & User Roles**
-The Database Manager has different capabilities based on your login status and assigned role.
-* **Guest (Anonymous):** As a guest, you have complete read-only access to all entries in the database. You can navigate all sections, open items to see their details, and explore the rules codex. This is the default mode for players or viewers.
-* **Contributor (Logged-in):** After logging in with a Google account, you are assigned the 'Contributor' role. You can **create** new entries in any category and **edit** or **delete** the entries that you have created. You cannot modify entries created by other users.
-* **Admin/Owner (Logged-in):** These roles have full administrative rights. You can create, edit, and delete **any** data in the database, regardless of who created it.
-
-### **Navigating the Application**
-Your primary navigation tools are the **Header** and the **Sidebar**.
-* **Sidebar:** This is your main navigation hub. Click any category (e.g., "Species", "Factions") to view its content. The active category is highlighted. For categories with sub-pages, like "Equipment," a nested list of links will appear below the main tab.
-* **Header:** Use the back and forward arrows to move through your viewing history. The top-right corner displays your login status and provides the **LOGIN/LOGOUT** button.
-
-### **Viewing & Finding Data**
-* **Table Views:** Most categories are presented in a table format.
-    * **Sorting:** Click on any column header to sort the table by that column's data.
-    * **Searching:** Use the search bar at the top-right of a table to filter entries by name in real-time.
-    * **Viewing Details:** Click anywhere on a row to open a detailed view of that item in a pop-up modal.
-* **Wiki View (Rules Codex):** This special section has a two-column layout. The directory of all rules articles is on the left. Clicking an article title displays its full content on the right.
-
-### **Managing Data (Logged-in Users)**
-When logged in, you can create and modify data using the **Entry Modal**.
-1.  **Creating an Entry:** Click the **ADD NEW** button at the top of any table. This opens the modal with a blank, editable form.
-2.  **Editing an Entry:**
-    * Click on an existing row to open its details in the modal (read-only view).
-    * Click the **DATA** button in the top-right corner of the modal.
-3.  **Saving:** After making changes in edit mode, click the **DATA** button and select **Save**. The modal will remain open in edit mode, allowing for further changes.
-4.  **Deleting:** To remove an entry permanently (if you have permission), open it, click the **DATA** button, and select **Delete**.
-5.  **Managing Linked Data:** Some fields (like "Modifiers" on a species) are managed in other database categories. To add or edit these, click the underlined label for the field (e.g., the word **MODIFIER**). This will navigate you to that category's management table.
-
-### **Special Features**
-* **AI-Powered Generation:** In fields like "Description," logged-in users can click the **GENERATE** button. This uses the Gemini API to create descriptive text based on the entry's other data, like its name and type. You must provide your own Gemini API key in the settings for this to work.
-* **Settings:** Click the gear icon in the bottom-left corner to open the settings modal, where you can enter and save your Gemini API key.
-* **Wiki-Linking:** In text areas within the "Rules Codex," you can create links to other entries by wrapping the exact entry name in double square brackets, for example: \`[[Some Rule Name]]\`. When viewed, this becomes a clickable link that opens the corresponding entry.
-* **Local Backup:** Inside the modal's **DATA** menu, the "Local" submenu allows you to save the current entry's data to a JSON file on your computer or load data from such a file to populate the form.
-`; 
-        
         function convertMarkdownToHtml(markdown) {
             if (!markdown) return '';
             const lines = markdown.trim().split('\n');
