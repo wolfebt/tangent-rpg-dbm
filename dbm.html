@@ -454,6 +454,27 @@
         .prose thead { border-bottom-color: var(--border-main); }
         .prose tbody tr { border-bottom-color: var(--border-subtle); }
         .prose ul > li::before { background-color: var(--text-subtle); }
+
+        /* --- Pair-GM Tabs --- */
+        .pair-gm-tab {
+            padding: 0.5rem 1rem;
+            border: 2px solid transparent;
+            border-bottom: none;
+            border-top-left-radius: 0.375rem;
+            border-top-right-radius: 0.375rem;
+            font-weight: 600;
+            color: var(--text-subtle);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .pair-gm-tab:hover {
+            color: var(--text-light);
+        }
+        .pair-gm-tab.active {
+            background-color: var(--bg-main);
+            color: var(--text-light);
+            border-color: var(--border-main);
+        }
     </style>
 </head>
 <body>
@@ -565,37 +586,58 @@
                 <h2 class="text-2xl font-bold">Pair-Game Master Assistant</h2>
             </div>
 
-            <div class="flex-grow space-y-6">
-                <!-- Generate Persona -->
-                <div class="bg-gray-800 p-4 rounded-lg">
-                    <h3 class="text-lg font-bold mb-2">Generate Persona</h3>
-                    <p class="text-sm text-gray-400 mb-4">Select components from the database to generate a new character.</p>
-                    <div id="persona-generator-inputs" class="grid grid-cols-2 gap-4"></div>
-                    <textarea id="persona-user-guidance" class="global-form-input mt-4" placeholder="Enter additional guidance (e.g., 'make them a reluctant hero')"></textarea>
-                    <button id="generate-persona-btn" class="btn btn-primary mt-4">Generate</button>
+            <div class="flex-grow">
+                <!-- Tab Buttons -->
+                <div class="border-b border-gray-700">
+                    <nav id="pair-gm-tabs" class="-mb-px flex space-x-4" aria-label="Tabs">
+                        <button class="pair-gm-tab active" data-tab="persona">Persona</button>
+                        <button class="pair-gm-tab" data-tab="world">World</button>
+                        <button class="pair-gm-tab" data-tab="story">Story</button>
+                    </nav>
                 </div>
 
-                <!-- Generate World Description -->
-                <div class="bg-gray-800 p-4 rounded-lg">
-                    <h3 class="text-lg font-bold mb-2">Describe World</h3>
-                    <p class="text-sm text-gray-400 mb-4">Select a society to generate a detailed world description.</p>
-                    <div id="world-generator-inputs"></div>
-                    <textarea id="world-user-guidance" class="global-form-input mt-4" placeholder="Enter additional guidance (e.g., 'focus on the black market')"></textarea>
-                    <button id="generate-world-btn" class="btn btn-primary mt-4">Generate</button>
-                </div>
+                <!-- Tab Panels -->
+                <div id="pair-gm-tab-panels" class="mt-4">
+                    <!-- Generate Persona -->
+                    <div id="persona-panel" class="pair-gm-tab-panel">
+                        <div class="bg-gray-800 p-4 rounded-lg">
+                            <h3 class="text-lg font-bold mb-2">Generate Persona</h3>
+                            <p class="text-sm text-gray-400 mb-4">Select components from the database to generate a new character.</p>
+                            <div id="persona-generator-inputs" class="grid grid-cols-2 gap-4"></div>
+                            <textarea id="persona-user-guidance" class="global-form-input mt-4" placeholder="Enter additional guidance (e.g., 'make them a reluctant hero')"></textarea>
+                            <button id="generate-persona-btn" class="btn btn-primary mt-4">Generate</button>
+                        </div>
+                    </div>
 
-                <!-- Generate Story Hook -->
-                <div class="bg-gray-800 p-4 rounded-lg">
-                    <h3 class="text-lg font-bold mb-2">Create Story Hook</h3>
-                    <p class="text-sm text-gray-400 mb-4">Select up to 3 database entries to inspire a story hook.</p>
-                    <div id="story-hook-inputs" class="grid grid-cols-3 gap-4"></div>
-                    <textarea id="story-hook-user-guidance" class="global-form-input mt-4" placeholder="Enter additional guidance (e.g., 'make it a mystery')"></textarea>
-                    <button id="generate-story-hook-btn" class="btn btn-primary mt-4">Generate</button>
+                    <!-- Generate World Description -->
+                    <div id="world-panel" class="pair-gm-tab-panel hidden">
+                        <div class="bg-gray-800 p-4 rounded-lg">
+                            <h3 class="text-lg font-bold mb-2">Describe World</h3>
+                            <p class="text-sm text-gray-400 mb-4">Select a society to generate a detailed world description.</p>
+                            <div id="world-generator-inputs"></div>
+                            <textarea id="world-user-guidance" class="global-form-input mt-4" placeholder="Enter additional guidance (e.g., 'focus on the black market')"></textarea>
+                            <button id="generate-world-btn" class="btn btn-primary mt-4">Generate</button>
+                        </div>
+                    </div>
+
+                    <!-- Generate Story Hook -->
+                    <div id="story-panel" class="pair-gm-tab-panel hidden">
+                        <div class="bg-gray-800 p-4 rounded-lg">
+                            <h3 class="text-lg font-bold mb-2">Create Story Hook</h3>
+                            <p class="text-sm text-gray-400 mb-4">Select up to 3 database entries to inspire a story hook.</p>
+                            <div id="story-hook-inputs" class="grid grid-cols-3 gap-4"></div>
+                            <textarea id="story-hook-user-guidance" class="global-form-input mt-4" placeholder="Enter additional guidance (e.g., 'make it a mystery')"></textarea>
+                            <button id="generate-story-hook-btn" class="btn btn-primary mt-4">Generate</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div id="pair-gm-output" class="mt-6 p-4 bg-gray-900 rounded-lg max-h-96 overflow-y-auto prose prose-invert max-w-none hidden">
-                <!-- Generated content will appear here -->
+            <div id="pair-gm-output-container" class="mt-6 hidden">
+                <div id="pair-gm-output" class="p-4 bg-gray-900 rounded-lg prose prose-invert max-w-none">
+                    <!-- Generated content will appear here -->
+                </div>
+                <button id="edit-pair-gm-output-btn" class="btn btn-secondary mt-2">Edit</button>
             </div>
 
             <div class="flex justify-end mt-6">
@@ -3340,6 +3382,20 @@ When logged in, you can create and modify data using the **Entry Modal**.
             }
         });
 
+        document.getElementById('pair-gm-tabs').addEventListener('click', (event) => {
+            if (event.target.classList.contains('pair-gm-tab')) {
+                const tabName = event.target.dataset.tab;
+
+                // Deactivate all tabs and hide all panels
+                document.querySelectorAll('.pair-gm-tab').forEach(tab => tab.classList.remove('active'));
+                document.querySelectorAll('.pair-gm-tab-panel').forEach(panel => panel.classList.add('hidden'));
+
+                // Activate the clicked tab and show the corresponding panel
+                event.target.classList.add('active');
+                document.getElementById(`${tabName}-panel`).classList.remove('hidden');
+            }
+        });
+
         document.getElementById('generate-persona-btn').addEventListener('click', async () => {
             const selects = document.querySelectorAll('#persona-generator-inputs select');
             const promises = Array.from(selects).filter(sel => sel.value).map(sel => {
@@ -3361,9 +3417,10 @@ When logged in, you can create and modify data using the **Entry Modal**.
             }
 
             const userGuidance = document.getElementById('persona-user-guidance').value;
+            const outputContainer = document.getElementById('pair-gm-output-container');
             const outputDiv = document.getElementById('pair-gm-output');
             outputDiv.innerHTML = '<div class="loader"></div>';
-            outputDiv.classList.remove('hidden');
+            outputContainer.classList.remove('hidden');
 
             const result = await generatePersona(selectedEntries, userGuidance, localStorage.getItem('geminiApiKey'));
             outputDiv.innerHTML = result ? parseWikiLinks(result) : '<p class="text-red-400">Failed to generate persona.</p>';
@@ -3380,10 +3437,11 @@ When logged in, you can create and modify data using the **Entry Modal**.
             const docSnap = await getDoc(docRef);
 
             if (docSnap.exists()) {
-                 const userGuidance = document.getElementById('world-user-guidance').value;
+                const userGuidance = document.getElementById('world-user-guidance').value;
+                const outputContainer = document.getElementById('pair-gm-output-container');
                 const outputDiv = document.getElementById('pair-gm-output');
                 outputDiv.innerHTML = '<div class="loader"></div>';
-                outputDiv.classList.remove('hidden');
+                outputContainer.classList.remove('hidden');
 
                 const result = await generateWorldDescription(docSnap.data(), userGuidance, localStorage.getItem('geminiApiKey'));
                 outputDiv.innerHTML = result ? parseWikiLinks(result) : '<p class="text-red-400">Failed to generate world description.</p>';
@@ -3411,12 +3469,30 @@ When logged in, you can create and modify data using the **Entry Modal**.
             }
 
             const userGuidance = document.getElementById('story-hook-user-guidance').value;
+            const outputContainer = document.getElementById('pair-gm-output-container');
             const outputDiv = document.getElementById('pair-gm-output');
             outputDiv.innerHTML = '<div class="loader"></div>';
-            outputDiv.classList.remove('hidden');
+            outputContainer.classList.remove('hidden');
 
             const result = await generateStoryHook(selectedEntries, userGuidance, localStorage.getItem('geminiApiKey'));
             outputDiv.innerHTML = result ? parseWikiLinks(result) : '<p class="text-red-400">Failed to generate story hook.</p>';
+        });
+
+        document.getElementById('edit-pair-gm-output-btn').addEventListener('click', (event) => {
+            const button = event.target;
+            const outputDiv = document.getElementById('pair-gm-output');
+            const isEditing = outputDiv.isContentEditable;
+
+            if (isEditing) {
+                outputDiv.contentEditable = false;
+                button.textContent = 'Edit';
+                outputDiv.classList.remove('border-2', 'border-blue-400');
+            } else {
+                outputDiv.contentEditable = true;
+                button.textContent = 'Save';
+                outputDiv.classList.add('border-2', 'border-blue-400');
+                outputDiv.focus();
+            }
         });
 
 
