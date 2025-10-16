@@ -3292,17 +3292,21 @@ When logged in, you can create and modify data using the **Entry Modal**.
         const pairGmCloseBtn = document.getElementById('pair-gm-close-btn');
 
         function isPairGmDirty() {
-            const inputs = pairGmModal.querySelectorAll('select, textarea');
-            for (const input of inputs) {
-                if (input.tagName === 'TEXTAREA' && input.value.trim() !== '') {
-                    return true;
-                }
-                if (input.tagName === 'SELECT' && input.value !== '') {
+            const textareas = pairGmModal.querySelectorAll('textarea');
+            for (const textarea of textareas) {
+                if (textarea.value.trim() !== '') {
                     return true;
                 }
             }
-            const outputDiv = document.getElementById('pair-gm-output');
-            return outputDiv.innerHTML.trim() !== '' && !outputDiv.classList.contains('hidden');
+            const outputContainer = document.getElementById('pair-gm-output-container');
+            if (outputContainer && !outputContainer.classList.contains('hidden')) {
+                const outputDiv = document.getElementById('pair-gm-output');
+                const hasLoader = outputDiv.querySelector('.loader');
+                if (outputDiv.innerHTML.trim() !== '' && !hasLoader) {
+                   return true;
+                }
+            }
+            return false;
         }
 
         function closePairGmModal() {
@@ -3487,6 +3491,7 @@ When logged in, you can create and modify data using the **Entry Modal**.
                 outputDiv.contentEditable = false;
                 button.textContent = 'Edit';
                 outputDiv.classList.remove('border-2', 'border-blue-400');
+                // The content is already saved in the div's innerHTML
             } else {
                 outputDiv.contentEditable = true;
                 button.textContent = 'Save';
@@ -3617,68 +3622,32 @@ When logged in, you can create and modify data using the **Entry Modal**.
             if (!markdown) return '';
             const lines = markdown.trim().split('\n');
             let html = '';
-            let listStack = []; 
+            let inList = false;
 
             for (const line of lines) {
-                // Handle empty lines as paragraph breaks, but only if not within a list
-                if (line.trim() === '') {
-                    if (listStack.length > 0) {
-                        // If inside a list, an empty line means close the list
-                        while (listStack.length > 0) {
-                            html += `</${listStack.pop().type}>`;
-                        }
-                    } else {
-                        // Otherwise, it's a paragraph break
-                        html += `<p></p>`;
-                    }
-                    continue; // Skip to next line
-                }
-
-                const indentMatch = line.match(/^(\s*)/);
-                const indent = indentMatch ? indentMatch[1].length : 0;
-                let trimmedLine = line.trim();
-
-                // Close lists if de-denting or if a new block element starts
-                while (listStack.length > 0 && indent < listStack[listStack.length - 1].indent) {
-                     html += `</${listStack.pop().type}>`;
-                }
-
-                if (trimmedLine.startsWith('### **')) {
-                    // Close any open lists before adding a heading
-                    while (listStack.length > 0) {
-                        html += `</${listStack.pop().type}>`;
-                    }
-                    html += `<h3>${trimmedLine.substring(5, trimmedLine.length - 2)}</h3>`;
-                } else if (trimmedLine.startsWith('#### **')) {
-                    // Close any open lists before adding a heading
-                    while (listStack.length > 0) {
-                        html += `</${listStack.pop().type}>`;
-                    }
-                    html += `<h4 class="text-lg font-semibold mt-4 mb-1 text-gray-200">${trimmedLine.substring(6, trimmedLine.length - 2)}</h4>`;
-                } else if (trimmedLine.startsWith('* ')) {
-                    if (listStack.length === 0 || listStack[listStack.length - 1].type !== 'ul' || indent > listStack[listStack.length - 1].indent) {
-                        html += `<ul>`;
-                        listStack.push({ type: 'ul', indent });
-                    }
-                    let content = trimmedLine.substring(2).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-                    html += `<li>${content}</li>`;
+                if (line.startsWith('### ')) {
+                    if (inList) { html += '</ul>'; inList = false; }
+                    html += `<h3>${line.substring(4)}</h3>`;
+                } else if (line.startsWith('## ')) {
+                    if (inList) { html += '</ul>'; inList = false; }
+                    html += `<h2>${line.substring(3)}</h2>`;
+                } else if (line.startsWith('# ')) {
+                    if (inList) { html += '</ul>'; inList = false; }
+                    html += `<h1>${line.substring(2)}</h1>`;
+                } else if (line.startsWith('* ')) {
+                    if (!inList) { html += '<ul>'; inList = true; }
+                    html += `<li>${line.substring(2)}</li>`;
+                } else if (line.trim() === '') {
+                    if (inList) { html += '</ul>'; inList = false; }
+                    html += '<br>';
                 } else {
-                     // Close any open lists if it's a regular paragraph
-                    while (listStack.length > 0) {
-                        html += `</${listStack.pop().type}>`;
-                    }
-                    html += `<p>${trimmedLine.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</p>`;
+                    if (inList) { html += '</ul>'; inList = false; }
+                    html += `<p>${line}</p>`;
                 }
             }
-            
-            // Close any remaining open lists
-            while (listStack.length > 0) {
-                html += `</${listStack.pop().type}>`;
-            }
-
-            return html.replace(/`([^`]+)`/g, '<code>$1</code>');
+            if (inList) { html += '</ul>'; }
+            return html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
         }
-
     </script>
 </body>
 </html>
