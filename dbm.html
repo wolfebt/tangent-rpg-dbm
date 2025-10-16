@@ -668,24 +668,29 @@
         function hasPermission(action, itemData = null) {
             const { userRole, userId, devMode } = appState;
 
-            // Owner and admin can always do anything, regardless of mode.
-            if (userRole === 'owner' || userRole === 'admin') {
-                return true;
-            }
-
-            // In GAME MODE (devMode is false), no one else can perform create/edit/delete actions.
+            // In GAME MODE (devMode is false), no one can perform create/edit/delete actions.
             if (!devMode) {
                 return false;
             }
 
-            // In DEV MODE, contributors can perform actions based on ownership.
+            // In DEV MODE, apply role-based permissions.
             switch (action) {
                 case 'create':
-                    return userRole === 'contributor';
+                    // Any logged-in, non-anonymous user with sufficient role can create.
+                    return userRole === 'owner' || userRole === 'admin' || userRole === 'contributor';
                 
                 case 'edit':
                 case 'delete':
-                    return userRole === 'contributor' && itemData && itemData.creatorId === userId;
+                    // Owner and admin can always edit/delete.
+                    if (userRole === 'owner' || userRole === 'admin') {
+                        return true;
+                    }
+                    // Contributors can only edit/delete their own items.
+                    if (userRole === 'contributor') {
+                        return itemData && itemData.creatorId === userId;
+                    }
+                    // Guests cannot edit/delete.
+                    return false;
                 
                 default:
                     return false;
