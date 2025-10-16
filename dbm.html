@@ -584,6 +584,9 @@
         <div id="pair-gm-modal-content" class="modal-content w-full max-w-4xl p-8 max-h-[90vh] overflow-y-auto flex flex-col">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl font-bold">Pair-Game Master Assistant</h2>
+                <button id="pair-gm-close-btn" class="p-2 rounded-full hover:bg-gray-700 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
             </div>
 
             <div class="flex-grow">
@@ -640,9 +643,6 @@
                 <button id="edit-pair-gm-output-btn" class="btn btn-secondary mt-2">Edit</button>
             </div>
 
-            <div class="flex justify-end mt-6">
-                <button id="pair-gm-close-btn" class="btn btn-secondary">Close</button>
-            </div>
         </div>
     </div>
     
@@ -3423,7 +3423,7 @@ When logged in, you can create and modify data using the **Entry Modal**.
             outputContainer.classList.remove('hidden');
 
             const result = await generatePersona(selectedEntries, userGuidance, localStorage.getItem('geminiApiKey'));
-            outputDiv.innerHTML = result ? parseWikiLinks(result) : '<p class="text-red-400">Failed to generate persona.</p>';
+            outputDiv.innerHTML = result ? convertMarkdownToHtml(result) : '<p class="text-red-400">Failed to generate persona.</p>';
         });
 
         document.getElementById('generate-world-btn').addEventListener('click', async () => {
@@ -3444,7 +3444,7 @@ When logged in, you can create and modify data using the **Entry Modal**.
                 outputContainer.classList.remove('hidden');
 
                 const result = await generateWorldDescription(docSnap.data(), userGuidance, localStorage.getItem('geminiApiKey'));
-                outputDiv.innerHTML = result ? parseWikiLinks(result) : '<p class="text-red-400">Failed to generate world description.</p>';
+                outputDiv.innerHTML = result ? convertMarkdownToHtml(result) : '<p class="text-red-400">Failed to generate world description.</p>';
             }
         });
 
@@ -3475,7 +3475,7 @@ When logged in, you can create and modify data using the **Entry Modal**.
             outputContainer.classList.remove('hidden');
 
             const result = await generateStoryHook(selectedEntries, userGuidance, localStorage.getItem('geminiApiKey'));
-            outputDiv.innerHTML = result ? parseWikiLinks(result) : '<p class="text-red-400">Failed to generate story hook.</p>';
+            outputDiv.innerHTML = result ? convertMarkdownToHtml(result) : '<p class="text-red-400">Failed to generate story hook.</p>';
         });
 
         document.getElementById('edit-pair-gm-output-btn').addEventListener('click', (event) => {
