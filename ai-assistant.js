@@ -91,45 +91,6 @@ async function callGeminiAPI(prompt, apiKey) {
  * @param {string} apiKey - The user's Gemini API key for Imagen.
  * @returns {Promise<string|null>} - The base64-encoded image data or null on failure.
  */
-async function callImagenAPI(positivePrompt, negativePrompt, apiKey) {
-    if (!apiKey) {
-        showAIStatus("API Key is missing for image generation.", true);
-        return null;
-    }
-    // Note: The model name might need updates, e.g., 'imagen-3.0-generate-002'
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
-    const payload = {
-        instances: [{ prompt: positivePrompt, negativePrompt: negativePrompt }],
-        parameters: { "sampleCount": 1 }
-    };
-
-    try {
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            const errorMessage = errorData.error?.message || `Image API error with status ${response.status}`;
-            console.error("Imagen API Error:", errorMessage);
-            showAIStatus(`Imagen Error: ${errorMessage}`, true, 5000);
-            return null;
-        }
-
-        const result = await response.json();
-        if (result.predictions?.[0]?.bytesBase64Encoded) {
-            return `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
-        }
-        showAIStatus("API returned a valid response but no image data was found.", true);
-        return null;
-    } catch (error) {
-        console.error("Error calling Imagen API:", error);
-        showAIStatus(`Network or fetch error for Imagen: ${error.message}`, true, 5000);
-        return null;
-    }
-}
 
 // --- PROMPT & CONTEXT HELPERS ---
 
@@ -238,17 +199,17 @@ async function summarizeField(data, categoryKey, fieldToSummarize, userGuidance,
 }
 
 /**
- * Generates an image prompt and calls the image generation API.
+ * Generates a detailed image prompt for an external AI image generator.
  * @param {object} data - The current form data.
  * @param {string} categoryKey - The key of the current category.
  * @param {string} userGuidance - Additional guidance from the user for the image style.
  * @param {string} apiKey - The user's Gemini API key.
- * @returns {Promise<string|null>} - The base64-encoded image data or null.
+ * @returns {Promise<string|null>} - A detailed text prompt for an image generator.
  */
-async function generateImage(data, categoryKey, userGuidance, apiKey) {
+async function suggestImagePrompt(data, categoryKey, userGuidance, apiKey) {
     showAIStatus("Generating image prompt...", false);
     const context = getFormContext(data, categoryKey);
-    const promptGenPrompt = `
+    const prompt = `
         ${context}
         Based on the data above, create a detailed, evocative positive prompt for an AI image generator to create a visual representation of this entry.
         Focus on visual details. Do not include non-visual information like mechanics or goals. Describe a single, clear scene or portrait.
