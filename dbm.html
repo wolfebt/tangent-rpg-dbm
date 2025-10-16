@@ -1499,7 +1499,7 @@ When logged in, you can create and modify data using the **Entry Modal**.
             const userIdDisplay = document.getElementById('userIdDisplay');
 
             if (authContainer) {
-                authContainer.innerHTML = ''; 
+                authContainer.innerHTML = '';
                 if (appState.isAnonymous) {
                     const loginButton = document.createElement('button');
                     loginButton.className = 'btn btn-primary !py-1 !px-3';
@@ -1514,7 +1514,7 @@ When logged in, you can create and modify data using the **Entry Modal**.
                     authContainer.appendChild(logoutButton);
                 }
             }
-            
+
             if(userIdDisplay) {
                  userIdDisplay.textContent = appState.isAnonymous ? 'ANONYMOUS' : (auth.currentUser?.email || appState.userId);
             }
@@ -1540,6 +1540,7 @@ When logged in, you can create and modify data using the **Entry Modal**.
                 }
             });
         }
+
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
@@ -1613,12 +1614,13 @@ When logged in, you can create and modify data using the **Entry Modal**.
                         }
                         console.error("Startup Error:", error);
                     }
-                } else {
-                    updateUIAfterAuthChange();
-                    if (appState.currentView) {
-                        const { view, args } = appState.currentView;
-                        if (viewFunctions[view]) viewFunctions[view](...args);
-                    }
+                }
+                // Always refresh UI on auth state change
+                renderAppHeader();
+                updateUIAfterAuthChange();
+                if (appState.currentView) {
+                    const { view, args } = appState.currentView;
+                    if (viewFunctions[view]) viewFunctions[view](...args);
                 }
             } else {
                 appState.isAnonymous = true;
@@ -1724,6 +1726,11 @@ When logged in, you can create and modify data using the **Entry Modal**.
             document.getElementById('back-btn').addEventListener('click', goBack);
             document.getElementById('forward-btn').addEventListener('click', goForward);
             
+            const pairGmBtn = document.getElementById('pair-gm-btn');
+            if(pairGmBtn) {
+                pairGmBtn.addEventListener('click', openPairGmModal);
+            }
+
             updateUIAfterAuthChange();
             updateNavButtonsState();
         }
@@ -1799,6 +1806,7 @@ When logged in, you can create and modify data using the **Entry Modal**.
                 return;
             }
             
+            updateUIAfterAuthChange();
             if (config.viewType === 'wiki') {
                 mainContentContainer.innerHTML = `
                     <div class="flex" style="height: calc(100vh - var(--header-height) - 3rem);">
@@ -1809,8 +1817,8 @@ When logged in, you can create and modify data using the **Entry Modal**.
                         <div class="flex-grow p-6 overflow-y-auto">
                             <div class="wiki-content prose prose-invert max-w-none" id="wiki-content-main">
                                 <div class="flex justify-end gap-2 mb-4">
-                                    <button id="wiki-edit-btn" class="btn btn-secondary auth-required hidden">Edit</button>
-                                    <button id="wiki-delete-btn" class="btn btn-danger auth-required hidden">Delete</button>
+                                    <button id="wiki-edit-btn" class="btn btn-secondary hidden">Edit</button>
+                                    <button id="wiki-delete-btn" class="btn btn-danger hidden">Delete</button>
                                 </div>
                                 <h2 id="wiki-entry-title">Select an Entry</h2>
                                 <div id="wiki-entry-body">
@@ -2350,7 +2358,7 @@ When logged in, you can create and modify data using the **Entry Modal**.
                                 <span>${labelText}</span>
                               </button>`;
                 labelHtml = '';
-            } else if (fieldConfig.aiEnabled && finalEditMode) {
+            } else if (fieldConfig.aiEnabled && isEditMode) {
                 labelHtml = `<div class="flex justify-between items-center">
                                 <label for="${fieldKey}" class="global-form-label">${labelText}</label>
                                 <div class="relative">
@@ -2366,7 +2374,7 @@ When logged in, you can create and modify data using the **Entry Modal**.
                              </div>`;
             }
 
-            if ((fieldConfig.type === 'multiselect' || fieldConfig.type === 'select') && fieldConfig.source && finalEditMode) {
+            if ((fieldConfig.type === 'multiselect' || fieldConfig.type === 'select') && fieldConfig.source && isEditMode) {
                  const originalLabelHtml = labelHtml;
                  labelHtml = `
                     <div class="flex justify-between items-center">
@@ -2492,7 +2500,7 @@ When logged in, you can create and modify data using the **Entry Modal**.
                 saveButton.setAttribute('form', 'entry-form');
                 saveButton.textContent = 'Save';
                 modalDataDropdown.appendChild(saveButton);
-            } else if (canEdit) {
+            } else if (canPerformAction) {
                  const editButton = document.createElement('button');
                 editButton.textContent = 'Edit';
                 editButton.addEventListener('click', () => openModal(collectionKey, docId, data, true));
@@ -3188,7 +3196,6 @@ When logged in, you can create and modify data using the **Entry Modal**.
         }
 
         // --- Pair-GM Modal Logic ---
-        const pairGmBtn = document.getElementById('pair-gm-btn');
         const pairGmModal = document.getElementById('pair-gm-modal');
         const pairGmCloseBtn = document.getElementById('pair-gm-close-btn');
 
@@ -3251,8 +3258,9 @@ When logged in, you can create and modify data using the **Entry Modal**.
             pairGmModal.classList.remove('hidden');
         }
 
-        pairGmBtn.addEventListener('click', openPairGmModal);
-        pairGmCloseBtn.addEventListener('click', () => pairGmModal.classList.add('hidden'));
+        document.getElementById('pair-gm-close-btn').addEventListener('click', () => {
+            document.getElementById('pair-gm-modal').classList.add('hidden');
+        });
 
         document.getElementById('generate-persona-btn').addEventListener('click', async () => {
             const selects = document.querySelectorAll('#persona-generator-inputs select');
