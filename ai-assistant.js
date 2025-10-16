@@ -130,10 +130,12 @@ function getRulesCodexContext(wikiEntries) {
  * @param {string} apiKey - The user's Gemini API key.
  * @returns {Promise<string|null>} - A list of brainstormed ideas or null.
  */
-async function brainstormField(data, categoryKey, fieldToBrainstorm, userGuidance, apiKey) {
+async function brainstormField(data, categoryKey, fieldToBrainstorm, userGuidance, apiKey, wikiEntries) {
     const context = getFormContext(data, categoryKey);
+    const rulesContext = getRulesCodexContext(wikiEntries);
     const prompt = `
         ${context}
+        ${rulesContext}
         The user wants to brainstorm some ideas for the "${fieldToBrainstorm}" field.
         User Guidance: "${userGuidance}"
         Based on the provided data and guidance, generate a list of 5-7 creative and fitting ideas for the "${fieldToBrainstorm}" field.
@@ -151,11 +153,13 @@ async function brainstormField(data, categoryKey, fieldToBrainstorm, userGuidanc
  * @param {string} apiKey - The user's Gemini API key.
  * @returns {Promise<string|null>} - The elaborated text or null.
  */
-async function elaborateField(data, categoryKey, fieldToElaborate, userGuidance, apiKey) {
+async function elaborateField(data, categoryKey, fieldToElaborate, userGuidance, apiKey, wikiEntries) {
     const context = getFormContext(data, categoryKey);
+    const rulesContext = getRulesCodexContext(wikiEntries);
     const fieldValue = data[fieldToElaborate] || '';
     const prompt = `
         ${context}
+        ${rulesContext}
         The user wants to elaborate on the "${fieldToElaborate}" field. The current text is: "${fieldValue}".
         User Guidance: "${userGuidance}"
         Rewrite and expand upon the provided text, making it more detailed, evocative, and engaging.
@@ -174,11 +178,13 @@ async function elaborateField(data, categoryKey, fieldToElaborate, userGuidance,
  * @param {string} apiKey - The user's Gemini API key.
  * @returns {Promise<string|null>} - The summarized text or null.
  */
-async function summarizeField(data, categoryKey, fieldToSummarize, userGuidance, apiKey) {
+async function summarizeField(data, categoryKey, fieldToSummarize, userGuidance, apiKey, wikiEntries) {
     const context = getFormContext(data, categoryKey);
+    const rulesContext = getRulesCodexContext(wikiEntries);
     const fieldValue = data[fieldToSummarize] || '';
     const prompt = `
         ${context}
+        ${rulesContext}
         The user wants to summarize the text in the "${fieldToSummarize}" field. The current text is: "${fieldValue}".
         User Guidance: "${userGuidance}"
         Summarize the provided text into a concise and clear version, keeping the core meaning.

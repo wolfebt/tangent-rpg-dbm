@@ -508,10 +508,13 @@
             <div class="p-8">
                 <div class="flex justify-between items-center mb-6">
                     <h2 id="modal-title" class="text-2xl font-bold">Manage Entry</h2>
-                    <div class="file-menu">
-                        <button id="modal-data-btn" class="file-menu-button">DATA</button>
-                        <div id="modal-data-dropdown" class="file-menu-dropdown">
+                    <div class="flex items-center gap-4">
+                        <button id="modal-ai-assist-btn" class="btn btn-secondary !py-1 !px-3 auth-required hidden">AI ASSIST</button>
+                        <div class="file-menu">
+                            <button id="modal-data-btn" class="file-menu-button">DATA</button>
+                            <div id="modal-data-dropdown" class="file-menu-dropdown">
                             </div>
+                        </div>
                     </div>
                 </div>
                 <form id="entry-form">
@@ -2471,20 +2474,6 @@ When logged in, you can create and modify data using the **Entry Modal**.
                                 <span>${labelText}</span>
                               </button>`;
                 labelHtml = '';
-            } else if (fieldConfig.aiEnabled && isEditMode) {
-                labelHtml = `<div class="flex justify-between items-center">
-                                <label for="${fieldKey}" class="global-form-label">${labelText}</label>
-                                <div class="relative">
-                                    <button type="button" data-field-key="${fieldKey}" class="ai-assistant-btn flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors underline auth-required hidden">
-                                        AI ASSISTANT
-                                    </button>
-                                    <div class="ai-assistant-dropdown hidden absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-600 rounded-md shadow-lg z-10">
-                                        <button class="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700" data-action="brainstorm">Brainstorm</button>
-                                        <button class="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700" data-action="elaborate">Elaborate</button>
-                                        <button class="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700" data-action="summarize">Summarize</button>
-                                    </div>
-                                </div>
-                             </div>`;
             }
 
             if ((fieldConfig.type === 'multiselect' || fieldConfig.type === 'select') && fieldConfig.source && isEditMode) {
@@ -2604,8 +2593,37 @@ When logged in, you can create and modify data using the **Entry Modal**.
             
             const modalDataBtn = document.getElementById('modal-data-btn');
             const modalDataDropdown = document.getElementById('modal-data-dropdown');
+            const modalAiAssistBtn = document.getElementById('modal-ai-assist-btn');
 
             modalDataDropdown.innerHTML = ''; // Clear previous items
+
+            const openAiAssistModal = () => {
+                const aiEnabledFields = Object.keys(config.fields)
+                    .filter(key => config.fields[key].aiEnabled)
+                    .map(key => (config.fields[key].label || key.replace(/_/g, ' ')).toUpperCase());
+
+                if (aiEnabledFields.length > 0) {
+                    showCustomModal(
+                        "SELECT A FIELD",
+                        aiEnabledFields,
+                        (selectedField) => {
+                             const fieldKey = Object.keys(config.fields).find(key => (config.fields[key].label || key.replace(/_/g, ' ')).toUpperCase() === selectedField);
+                             const actions = ["Brainstorm", "Elaborate", "Summarize"];
+                             showCustomModal(
+                                `SELECT AN ACTION FOR ${selectedField}`,
+                                actions,
+                                (action) => handleAIAssistantClick(action.toLowerCase(), fieldKey)
+                             );
+                        }
+                    );
+                } else {
+                    showError("No AI-enabled fields for this entry type.");
+                }
+            };
+
+            if (modalAiAssistBtn) {
+                modalAiAssistBtn.addEventListener('click', openAiAssistModal);
+            }
 
             if (finalEditMode) {
                 const saveButton = document.createElement('button');
@@ -2691,7 +2709,7 @@ When logged in, you can create and modify data using the **Entry Modal**.
 
                 switch (action) {
                     case 'brainstorm':
-                        resultText = await brainstormField(data, categoryKey, fieldKey, userGuidance, apiKey);
+                        resultText = await brainstormField(data, categoryKey, fieldKey, userGuidance, apiKey, appState.wikiEntries);
                         // Display brainstorm results in a custom modal for the user to choose from
                         if (resultText) {
                             const choices = resultText.split('\n').map(s => s.replace(/^- /, '')).filter(Boolean);
@@ -2702,11 +2720,11 @@ When logged in, you can create and modify data using the **Entry Modal**.
                         }
                         break;
                     case 'elaborate':
-                        resultText = await elaborateField(data, categoryKey, fieldKey, userGuidance, apiKey);
+                        resultText = await elaborateField(data, categoryKey, fieldKey, userGuidance, apiKey, appState.wikiEntries);
                         if (resultText) document.getElementById(fieldKey).value = resultText;
                         break;
                     case 'summarize':
-                        resultText = await summarizeField(data, categoryKey, fieldKey, userGuidance, apiKey);
+                        resultText = await summarizeField(data, categoryKey, fieldKey, userGuidance, apiKey, appState.wikiEntries);
                         if (resultText) document.getElementById(fieldKey).value = resultText;
                         break;
                 }
@@ -2717,34 +2735,6 @@ When logged in, you can create and modify data using the **Entry Modal**.
                     showAIStatus(`AI ${action} complete.`, false);
                 }
             };
-
-            formFieldsContainer.querySelectorAll('.ai-assistant-btn').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    // Hide all other dropdowns
-                    document.querySelectorAll('.ai-assistant-dropdown').forEach(d => d.classList.add('hidden'));
-                    const dropdown = button.nextElementSibling;
-                    dropdown.classList.toggle('hidden');
-                });
-            });
-
-            formFieldsContainer.querySelectorAll('.ai-assistant-dropdown button').forEach(actionButton => {
-                actionButton.addEventListener('click', (e) => {
-                    const dropdown = e.target.closest('.ai-assistant-dropdown');
-                    const fieldKey = dropdown.previousElementSibling.dataset.fieldKey;
-                    const action = e.target.dataset.action;
-                    dropdown.classList.add('hidden');
-                    handleAIAssistantClick(action, fieldKey);
-                });
-            });
-
-
-            // Close dropdowns when clicking elsewhere
-            window.addEventListener('click', (e) => {
-                if (!e.target.matches('.ai-assistant-btn')) {
-                    document.querySelectorAll('.ai-assistant-dropdown').forEach(d => d.classList.add('hidden'));
-                }
-            });
 
             // --- END AI Assistant ---
 
