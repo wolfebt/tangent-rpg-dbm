@@ -562,18 +562,6 @@
         </div>
     </div>
 
-    <div id="image-gen-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-[60] p-4 hidden modal-backdrop">
-        <div class="modal-content w-full max-w-xl p-8">
-            <h2 class="text-2xl font-bold mb-4 text-center">Generated Image</h2>
-            <div id="image-gen-container" class="bg-gray-900 min-h-[300px] flex items-center justify-center rounded-lg">
-                <!-- Image or loader will go here -->
-            </div>
-            <div class="flex justify-end gap-4 mt-8">
-                <button id="image-gen-close-btn" class="btn btn-secondary">Close</button>
-                <a id="image-gen-download-btn" class="btn btn-primary hidden" download="generated-image.png">Download</a>
-            </div>
-        </div>
-    </div>
 
     <div id="pair-gm-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-[70] p-4 hidden modal-backdrop">
         <div class="modal-content w-full max-w-4xl p-8 max-h-[90vh] overflow-y-auto flex flex-col">
@@ -629,7 +617,7 @@
             signInWithCustomToken, signInAnonymously
         } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
         import { getFirestore, doc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, getDocs, getDoc, setDoc, setLogLevel, serverTimestamp, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
-        import { showAIStatus, callGeminiAPI, callImagenAPI, getFormContext, getRulesCodexContext, brainstormField, elaborateField, summarizeField, generateImage, suggestLinks, generatePersona, generateWorldDescription, generateStoryHook } from './ai-assistant.js';
+        import { showAIStatus, callGeminiAPI, getFormContext, getRulesCodexContext, brainstormField, elaborateField, summarizeField, suggestImagePrompt, suggestLinks, generatePersona, generateWorldDescription, generateStoryHook } from './ai-assistant.js';
 
         // --- Firebase Configuration ---
         const firebaseConfig = {
@@ -2377,9 +2365,9 @@
 
         async function openModal(collectionKey, docId = null, data = {}, isEditMode = false) {
             // Determine if the user CAN edit, based on permissions.
-            const canEdit = hasPermission('edit', data);
+            const canPerformAction = docId ? hasPermission('edit', data) : hasPermission('create');
             // The modal is in "edit mode" only if the user has permission AND requested it.
-            const finalEditMode = canEdit && isEditMode;
+            const finalEditMode = canPerformAction && isEditMode;
 
             appState.editingDocId = docId;
             entryForm.dataset.collectionKey = collectionKey;
@@ -2476,11 +2464,11 @@
             summaryButton.addEventListener('click', () => showSummaryModal('modal'));
             modalDataDropdown.appendChild(summaryButton);
 
-            const generateImageButton = document.createElement('button');
-            generateImageButton.id = 'modal-generate-image-btn';
-            generateImageButton.textContent = 'Generate Image';
-            generateImageButton.addEventListener('click', () => handleImageGeneration());
-            modalDataDropdown.appendChild(generateImageButton);
+            const suggestImagePromptButton = document.createElement('button');
+            suggestImagePromptButton.id = 'modal-suggest-image-prompt-btn';
+            suggestImagePromptButton.textContent = 'Suggest Image Prompt';
+            suggestImagePromptButton.addEventListener('click', () => handleSuggestImagePrompt());
+            modalDataDropdown.appendChild(suggestImagePromptButton);
 
             const localMenuContainer = document.createElement('div');
             localMenuContainer.className = 'submenu-container';
@@ -2579,7 +2567,7 @@
 
             formFieldsContainer.querySelectorAll('.ai-assistant-dropdown button').forEach(actionButton => {
                 actionButton.addEventListener('click', (e) => {
-                    const dropdown = e.target.parentElement;
+                    const dropdown = e.target.closest('.ai-assistant-dropdown');
                     const fieldKey = dropdown.previousElementSibling.dataset.fieldKey;
                     const action = e.target.dataset.action;
                     dropdown.classList.add('hidden');
@@ -3126,7 +3114,7 @@
             document.getElementById('custom-modal-cancel-btn').onclick = () => modal.classList.add('hidden');
         }
 
-        async function handleImageGeneration() {
+        async function handleSuggestImagePrompt() {
             const userGuidance = prompt("Provide guidance for the image style (e.g., 'photorealistic, dark, gritty', 'anime, vibrant, cell-shaded'):");
             if (userGuidance === null) return;
 
@@ -3138,29 +3126,24 @@
 
             const data = getFormDataObject();
             const categoryKey = entryForm.dataset.collectionKey;
-            const modal = document.getElementById('image-gen-modal');
-            const container = document.getElementById('image-gen-container');
-            const downloadBtn = document.getElementById('image-gen-download-btn');
 
-            modal.classList.remove('hidden');
-            container.innerHTML = '<div class="loader"></div>';
-            downloadBtn.classList.add('hidden');
+            showAIStatus("Generating image prompt...", false);
+            const promptText = await suggestImagePrompt(data, categoryKey, userGuidance, apiKey);
 
-            const imageData = await generateImage(data, categoryKey, userGuidance, apiKey);
-
-            if (imageData) {
-                container.innerHTML = `<img src="${imageData}" class="w-full h-auto object-contain rounded-lg">`;
-                downloadBtn.href = imageData;
-                downloadBtn.download = `${data.name || 'generated-image'}.png`;
-                downloadBtn.classList.remove('hidden');
+            if (promptText) {
+                const modal = document.getElementById('custom-modal');
+                const titleEl = document.getElementById('custom-modal-title');
+                const contentEl = document.getElementById('custom-modal-content');
+                const choicesEl = document.getElementById('custom-modal-choices');
+                titleEl.textContent = "Suggested Image Prompt";
+                contentEl.innerHTML = `<textarea class="global-form-input" rows="8" readonly>${promptText}</textarea>`;
+                choicesEl.innerHTML = ''; // No choices needed
+                modal.classList.remove('hidden');
+                showAIStatus("Prompt generated.", false);
             } else {
-                container.innerHTML = `<p class="text-red-400">Image generation failed. See console for details.</p>`;
+                showAIStatus("Failed to generate image prompt.", true);
             }
         }
-
-        document.getElementById('image-gen-close-btn').addEventListener('click', () => {
-            document.getElementById('image-gen-modal').classList.add('hidden');
-        });
 
         // --- Pair-GM Modal Logic ---
         const pairGmBtn = document.getElementById('pair-gm-btn');
@@ -3230,23 +3213,31 @@
         pairGmCloseBtn.addEventListener('click', () => pairGmModal.classList.add('hidden'));
 
         document.getElementById('generate-persona-btn').addEventListener('click', async () => {
-            const selected = [];
-            document.querySelectorAll('#persona-generator-inputs select').forEach(async sel => {
-                if (sel.value) {
-                    const category = sel.dataset.category;
-                    const docRef = doc(db, `artifacts/${appId}/public/data/${category}`, sel.value);
-                    const docSnap = await getDoc(docRef);
-                    if(docSnap.exists()) {
-                        selected.push({ ...docSnap.data(), categoryLabel: category });
+            const selects = document.querySelectorAll('#persona-generator-inputs select');
+            const promises = Array.from(selects).filter(sel => sel.value).map(sel => {
+                const category = sel.dataset.category;
+                const docRef = doc(db, `artifacts/${appId}/public/data/${category}`, sel.value);
+                return getDoc(docRef).then(docSnap => {
+                    if (docSnap.exists()) {
+                        return { ...docSnap.data(), categoryLabel: category, name: docSnap.data().name || 'Unnamed' };
                     }
-                }
+                    return null;
+                });
             });
+
+            const selectedEntries = (await Promise.all(promises)).filter(Boolean);
+
+            if (selectedEntries.length === 0) {
+                showError("Please select at least one component to generate a persona.");
+                return;
+            }
+
             const userGuidance = document.getElementById('persona-user-guidance').value;
             const outputDiv = document.getElementById('pair-gm-output');
             outputDiv.innerHTML = '<div class="loader"></div>';
             outputDiv.classList.remove('hidden');
 
-            const result = await generatePersona(selected, userGuidance, localStorage.getItem('geminiApiKey'));
+            const result = await generatePersona(selectedEntries, userGuidance, localStorage.getItem('geminiApiKey'));
             outputDiv.innerHTML = result ? parseWikiLinks(result) : '<p class="text-red-400">Failed to generate persona.</p>';
         });
 
@@ -3272,20 +3263,21 @@
         });
 
         document.getElementById('generate-story-hook-btn').addEventListener('click', async () => {
-            const selected = [];
             const selects = document.querySelectorAll('.story-hook-select');
-            for (const sel of selects) {
-                if(sel.value) {
-                    const [category, id] = sel.value.split(':');
-                    const docRef = doc(db, `artifacts/${appId}/public/data/${category}`, id);
-                    const docSnap = await getDoc(docRef);
-                    if(docSnap.exists()) {
-                        selected.push({ ...docSnap.data(), categoryLabel: category });
+            const promises = Array.from(selects).filter(sel => sel.value).map(sel => {
+                const [category, id] = sel.value.split(':');
+                const docRef = doc(db, `artifacts/${appId}/public/data/${category}`, id);
+                return getDoc(docRef).then(docSnap => {
+                    if (docSnap.exists()) {
+                        return { ...docSnap.data(), categoryLabel: category, name: docSnap.data().name || 'Unnamed' };
                     }
-                }
-            }
+                    return null;
+                });
+            });
 
-            if (selected.length === 0) {
+            const selectedEntries = (await Promise.all(promises)).filter(Boolean);
+
+            if (selectedEntries.length === 0) {
                 showError("Please select at least one element for the story hook.");
                 return;
             }
@@ -3295,7 +3287,7 @@
             outputDiv.innerHTML = '<div class="loader"></div>';
             outputDiv.classList.remove('hidden');
 
-            const result = await generateStoryHook(selected, userGuidance, localStorage.getItem('geminiApiKey'));
+            const result = await generateStoryHook(selectedEntries, userGuidance, localStorage.getItem('geminiApiKey'));
             outputDiv.innerHTML = result ? parseWikiLinks(result) : '<p class="text-red-400">Failed to generate story hook.</p>';
         });
 
