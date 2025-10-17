@@ -6,17 +6,19 @@ let currentTargetFieldKey = null;
 let db; // Firestore instance
 let getCollectionOptions; // Function from dbm.html
 
-const modalElement = document.getElementById('selector-modal');
-const modalTitle = document.getElementById('selector-modal-title');
-const availableList = document.getElementById('selector-available-list');
-const searchInput = document.getElementById('selector-search-input');
-const selectionListsContainer = document.getElementById('selector-lists-container');
-const saveBtn = document.getElementById('selector-save-btn');
-const cancelBtn = document.getElementById('selector-cancel-btn');
+let modalElement, modalTitle, availableList, searchInput, selectionListsContainer, saveBtn, cancelBtn;
 
 export function initializeModal(firestoreInstance, getCollectionOptionsFunc) {
     db = firestoreInstance;
     getCollectionOptions = getCollectionOptionsFunc;
+
+    modalElement = document.getElementById('selector-modal');
+    modalTitle = document.getElementById('selector-modal-title');
+    availableList = document.getElementById('selector-available-list');
+    searchInput = document.getElementById('selector-search-input');
+    selectionListsContainer = document.getElementById('selector-lists-container');
+    saveBtn = document.getElementById('selector-save-btn');
+    cancelBtn = document.getElementById('selector-cancel-btn');
 
     cancelBtn.addEventListener('click', () => modalElement.classList.add('hidden'));
     saveBtn.addEventListener('click', saveModalState);
