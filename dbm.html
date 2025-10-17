@@ -1741,10 +1741,6 @@ When logged in, you can create and modify data using the **Entry Modal**.
             document.getElementById('back-btn').addEventListener('click', goBack);
             document.getElementById('forward-btn').addEventListener('click', goForward);
             
-            const pairGmBtn = document.getElementById('pair-gm-btn');
-            if(pairGmBtn) {
-                pairGmBtn.addEventListener('click', openPairGmModal);
-            }
 
             const modeToggleCheckbox = document.getElementById('mode-toggle-checkbox');
             if (modeToggleCheckbox) {
@@ -1861,7 +1857,7 @@ When logged in, you can create and modify data using the **Entry Modal**.
                     if (appState.currentWikiEntryId) {
                         const entry = appState.wikiEntries.find(e => e.id === appState.currentWikiEntryId);
                         if (entry) {
-                            openModal('rules_codex', entry.id, entry, true);
+                            openModal('rules_codex', entry.id, entry, appState.devMode);
                         }
                     }
                 });
@@ -2132,7 +2128,7 @@ When logged in, you can create and modify data using the **Entry Modal**.
             tr.className = 'cursor-pointer';
             tr.dataset.id = docId;
             tr.addEventListener('click', () => {
-                openModal(collectionKey, docId, data);
+                openModal(collectionKey, docId, data, appState.devMode);
             });
 
             columnsToShow.forEach(fieldKey => {
@@ -2438,8 +2434,8 @@ When logged in, you can create and modify data using the **Entry Modal**.
         async function openModal(collectionKey, docId = null, data = {}, isEditMode = false) {
             // Determine if the user CAN edit, based on permissions.
             const canPerformAction = docId ? hasPermission('edit', data) : hasPermission('create');
-            // The modal is in "edit mode" only if the user has permission AND requested it.
-            const finalEditMode = canPerformAction && isEditMode;
+            // The modal is in "edit mode" only if the user has permission AND requested it OR if dev mode is on.
+            const finalEditMode = canPerformAction && (isEditMode || appState.devMode);
 
             appState.editingDocId = docId;
             entryForm.dataset.collectionKey = collectionKey;
@@ -2522,11 +2518,6 @@ When logged in, you can create and modify data using the **Entry Modal**.
                 saveButton.setAttribute('form', 'entry-form');
                 saveButton.textContent = 'Save';
                 modalDataDropdown.appendChild(saveButton);
-            } else if (canPerformAction) {
-                 const editButton = document.createElement('button');
-                editButton.textContent = 'Edit';
-                editButton.addEventListener('click', () => openModal(collectionKey, docId, data, true));
-                modalDataDropdown.appendChild(editButton);
             }
 
 
@@ -3104,7 +3095,7 @@ When logged in, you can create and modify data using the **Entry Modal**.
                             if (appState.editingDocId !== linkedDocId) {
                                 closeModal(true); 
                             }
-                            openModal('rules_codex', linkedDocId, docSnap.data(), false); 
+                            openModal('rules_codex', linkedDocId, docSnap.data(), appState.devMode);
                         } else {
                             showError(`Linked entry "${linkedDocName}" not found.`);
                         }
