@@ -855,6 +855,10 @@
             const allBonusSkillRanks = [];
             const allBonusFeatures = [];
             const allRecommendedFeatures = [];
+            const allBonusSkillOptions = [];
+            const allBonusFeatureOptions = [];
+            let totalSkillChoices = 0;
+            let totalFeatureChoices = 0;
 
             const sources = [
                 { name: data['char-species'], db: appState.allSpecies },
@@ -867,14 +871,27 @@
                 if (source.name && source.db) {
                     const item = source.db.find(i => i.name === source.name);
                     if (item) {
-                        if (item.bonus_skill_ranks) allBonusSkillRanks.push(...item.bonus_skill_ranks);
+                        if (item.bonus_skills) {
+                            try {
+                                const skills = JSON.parse(item.bonus_skills);
+                                if (Array.isArray(skills)) {
+                                    allBonusSkillRanks.push(...skills.map(s => ({ skill: s.name, ranks: s.value })));
+                                }
+                            } catch(e) {
+                                console.error("Could not parse bonus_skills JSON", e);
+                            }
+                        }
                         if (item.bonus_features) allBonusFeatures.push(...item.bonus_features);
                         if (item.recommended_features) allRecommendedFeatures.push(...item.recommended_features);
+                        if (item.bonus_skill_options) allBonusSkillOptions.push(...item.bonus_skill_options);
+                        if (item.bonus_feature_options) allBonusFeatureOptions.push(...item.bonus_feature_options);
+                        if (item.bonus_skill_choices) totalSkillChoices += item.bonus_skill_choices;
+                        if (item.bonus_feature_choices) totalFeatureChoices += item.bonus_feature_choices;
                     }
                 }
             });
 
-            return { allBonusSkillRanks, allBonusFeatures, allRecommendedFeatures };
+            return { allBonusSkillRanks, allBonusFeatures, allRecommendedFeatures, allBonusSkillOptions, allBonusFeatureOptions, totalSkillChoices, totalFeatureChoices };
         }
 
         function calculateCharacterPoints() {
@@ -890,7 +907,7 @@
             };
 
             const data = getPersonaFolioFormData();
-            const { allBonusSkillRanks, allBonusFeatures, allRecommendedFeatures } = getAggregatedBonuses();
+            const { allBonusSkillRanks, allBonusFeatures, allRecommendedFeatures, allBonusSkillOptions, allBonusFeatureOptions, totalSkillChoices, totalFeatureChoices } = getAggregatedBonuses();
 
             // Attributes
             document.querySelectorAll('.attribute-value').forEach(input => {
@@ -913,10 +930,18 @@
 
             for (const [listKey, categoryName] of Object.entries(itemLists)) {
                 const selectedItems = data[listKey] || [];
+                let bonusChoicesMade = 0;
                 selectedItems.forEach(itemName => {
-                    if (listKey === 'features' && allBonusFeatures.includes(itemName)) {
-                        economyDetails[categoryName].push({ name: `${itemName} (Bonus)`, cost: 0 });
-                        return;
+                    if (listKey === 'features') {
+                        if (allBonusFeatures.includes(itemName)) {
+                            economyDetails[categoryName].push({ name: `${itemName} (Bonus)`, cost: 0 });
+                            return;
+                        }
+                        if (allBonusFeatureOptions.includes(itemName) && bonusChoicesMade < totalFeatureChoices) {
+                            economyDetails[categoryName].push({ name: `${itemName} (Bonus Choice)`, cost: 0 });
+                            bonusChoicesMade++;
+                            return;
+                        }
                     }
 
                     const itemData = appState.allFeatures.find(f => f.name === itemName) || { cp_cost: 3 };
@@ -924,7 +949,7 @@
                     let nameSuffix = '';
 
                     if (listKey === 'features' && allRecommendedFeatures.includes(itemName)) {
-                        cost = Math.max(0, cost - 1);
+                        cost = Math.max(1, cost - 1);
                         nameSuffix = ' (Recommended)';
                     }
                     spentCP += cost;
@@ -933,6 +958,7 @@
             }
 
             // Skills
+            let skillChoicesMade = 0;
             document.querySelectorAll('.skill-row:not(.header):not(.specialization)').forEach(row => {
                 const label = row.querySelector('label');
                 const skillName = label ? label.textContent : '';
@@ -940,13 +966,20 @@
                 
                 if (rank > 0) {
                     const bonus = allBonusSkillRanks.find(b => b.skill === skillName);
-                    const bonusRanks = bonus ? bonus.ranks : 0;
+                    let bonusRanks = bonus ? bonus.ranks : 0;
+
+                    if (allBonusSkillOptions.includes(skillName) && skillChoicesMade < totalSkillChoices) {
+                        bonusRanks += rank; // The chosen rank is free
+                        skillChoicesMade++;
+                        economyDetails['Skills'].push({ name: `${skillName} (Bonus Choice)`, cost: 0 });
+                    }
+
                     const paidRanks = Math.max(0, rank - bonusRanks);
                     if (paidRanks > 0) {
                         spentCP += paidRanks;
                         economyDetails['Skills'].push({ name: `${skillName} (Ranks)`, cost: paidRanks });
                     }
-                    if (bonusRanks > 0 && rank > 0) {
+                    if (bonusRanks > 0 && rank > 0 && !(allBonusSkillOptions.includes(skillName) && skillChoicesMade <= totalSkillChoices)) {
                          economyDetails['Skills'].push({ name: `${skillName} (Bonus Ranks)`, cost: 0 });
                     }
                 }
