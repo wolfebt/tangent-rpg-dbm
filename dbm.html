@@ -653,27 +653,6 @@
         <div class="modal-content w-full max-w-3xl p-8 max-h-[90vh] flex flex-col">
             <h2 class="text-2xl font-bold mb-6 text-center">AI Assistant</h2>
 
-    <div id="selector-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-[90] p-4 hidden modal-backdrop">
-        <div class="modal-content w-full max-w-6xl p-8 max-h-[90vh] flex flex-col">
-            <h2 id="selector-modal-title" class="text-2xl font-bold mb-6 text-center"></h2>
-            <div class="grid grid-cols-3 gap-4 flex-grow">
-                <!-- Available Items -->
-                <div class="bg-gray-800 p-4 rounded-lg flex flex-col">
-                    <h3 class="text-lg font-bold mb-2">Available</h3>
-                    <input type="text" id="selector-search-input" class="global-form-input mb-2" placeholder="Search...">
-                    <div id="selector-available-list" class="flex-grow overflow-y-auto"></div>
-                </div>
-                <!-- Selection Lists -->
-                <div id="selector-lists-container" class="col-span-2 grid grid-cols-2 gap-4">
-                    <!-- Dynamically generated lists here -->
-                </div>
-            </div>
-            <div class="flex justify-end gap-4 mt-8">
-                <button id="selector-cancel-btn" class="btn btn-secondary">Cancel</button>
-                <button id="selector-save-btn" class="btn btn-primary">Save</button>
-            </div>
-        </div>
-    </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
                     <label for="ai-target-field" class="global-form-label">Target Field</label>
@@ -726,7 +705,6 @@
         } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
         import { getFirestore, doc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, getDocs, getDoc, setDoc, setLogLevel, serverTimestamp, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
         import { showAIStatus, callGeminiAPI, getFormContext, getRulesCodexContext, brainstormField, elaborateField, summarizeField, suggestImagePrompt, suggestLinks, generatePersona, generateWorldDescription, generateStoryHook } from './ai-assistant.js';
-        import { initializeModal as initializeSelectorModal, openSelectorModal } from './selector-modal.js';
 
         // --- Firebase Configuration ---
         const firebaseConfig = {
@@ -874,38 +852,12 @@
                     size: { type: 'multiselect', source: 'species_size', manageable: true },
                     movement: { type: 'multiselect', source: 'species_movement', manageable: true },
                     modifier: { type: 'multiselect', source: 'modifier', manageable: true },
-                    features: {
-                        type: 'selector',
-                        label: 'Features',
-                        selectorConfig: {
-                            title: 'Manage Species Features',
-                            source: 'features',
-                            selectionTypes: [
-                                { id: 'granted', label: 'Granted Features', addBtnLabel: 'Grant' },
-                                { id: 'recommended', label: 'Recommended Features', addBtnLabel: 'Recommend', showCost: true }
-                            ],
-                            summary: (state) => `Granted: ${(state.granted || []).length}, Recommended: ${(state.recommended || []).length}`
-                        }
-                    },
-                    skills: {
-                        type: 'selector',
-                        label: 'Skills',
-                        selectorConfig: {
-                            title: 'Manage Species Skills',
-                            source: 'skills',
-                            selectionTypes: [
-                                { id: 'granted', label: 'Granted Skills', addBtnLabel: 'Grant', hasModifier: true },
-                                { id: 'selectable', label: 'Selectable Skills Pool', addBtnLabel: 'Add to Pool', hasBonus: true, hasPoolPoints: true }
-                            ],
-                             summary: (state) => `Granted: ${(state.granted || []).length}, Selectable: ${(state.selectable || []).length}, Pool: ${state.selectablePoolPoints || 0}pts`
-                        }
-                    },
                     note: { type: 'textarea' },
                     cp: { type: 'readonlytext', label: 'CP' }
                 },
                 subcategories: {
-                    species_type: {
-                        label: 'TYPES',
+                    species_type: { 
+                        label: 'TYPES', 
                         directory_columns: ['name', 'description', 'modifier'],
                         fields: { 
                             name: { type:'text', required: true},
@@ -1404,9 +1356,8 @@
             'attitude', 'social_strengths', 'social_weaknesses', 'society', 'goals',
             'component', 'integration',
             'special',
-            'modes', 'note', 'parent', 'order'
+            'modes', 'note', 'parent', 'order' 
         ];
-
         
         const helpMarkdown = `
 ### **Welcome to the Tangent SFF RPG Database Manager**
@@ -1447,27 +1398,9 @@ When logged in, you can create and modify data using the **Entry Modal**.
 * **Local Backup:** Inside the modal's **DATA** menu, the "Local" submenu allows you to save the current entry's data to a JSON file on your computer or load data from such a file to populate the form.
 `;
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const formFieldsContainer = document.getElementById('form-fields');
-            if (formFieldsContainer) {
-                formFieldsContainer.addEventListener('click', (event) => {
-                    const target = event.target;
-                    if (target.matches('input[data-selector-type]')) {
-                        const fieldKey = target.dataset.fieldKey;
-                        const collectionKey = entryForm.dataset.collectionKey;
-                        const config = getActiveConfig(collectionKey);
-                        const fieldConfig = config.fields[fieldKey];
-
-                        if (fieldConfig && fieldConfig.type === 'selector') {
-                            const data = document.getElementById(fieldKey).value;
-                            openSelectorModal(fieldConfig.selectorConfig, fieldKey, data);
-                        }
-                    }
-                });
-            }
-            // --- UI Elements ---
-            const mainContentContainer = document.getElementById('main-content');
-            const entryModal = document.getElementById('entry-modal');
+        // --- UI Elements ---
+        const mainContentContainer = document.getElementById('main-content');
+        const entryModal = document.getElementById('entry-modal');
         const modalTitle = document.getElementById('modal-title');
         const entryForm = document.getElementById('entry-form');
         const formFieldsContainer = document.getElementById('form-fields');
@@ -1759,7 +1692,6 @@ When logged in, you can create and modify data using the **Entry Modal**.
                 if (!appState.authReady) {
                     appState.authReady = true;
                     try {
-                        initializeSelectorModal(db, getCollectionOptions);
                         renderAppHeader();
                         await populateRulesCodexMap();
 
@@ -2575,47 +2507,6 @@ When logged in, you can create and modify data using the **Entry Modal**.
             return `<input type="text" id="${fieldKey}" name="${fieldKey}" value="${savedValue || 0}" class="global-form-input cursor-not-allowed display-only-input" readonly>`;
         }
 
-        function createFeatureSelectorField(fieldKey, savedValue, isEditMode) {
-            let grantedCount = 0;
-            let recommendedCount = 0;
-            try {
-                const parsed = JSON.parse(savedValue || '{}');
-                grantedCount = (parsed.granted || []).length;
-                recommendedCount = (parsed.recommended || []).length;
-            } catch { /* ignore */ }
-
-            if (!isEditMode) {
-                return `<div class="global-form-input display-only-input">GRANTED: ${grantedCount}, RECOMMENDED: ${recommendedCount}</div>`;
-            }
-
-            return `
-                <div>
-                    <input type="text" readonly value="GRANTED: ${grantedCount}, RECOMMENDED: ${recommendedCount}"
-                           class="global-form-input cursor-pointer hover:bg-gray-600"
-                           data-field-key="${fieldKey}" data-selector-type="feature">
-                    <textarea id="${fieldKey}" name="${fieldKey}" class="hidden">${savedValue || ''}</textarea>
-                </div>
-            `;
-        }
-
-        function createSelectorField(fieldKey, fieldConfig, savedValue, isEditMode) {
-            const summaryText = fieldConfig.selectorConfig.summary(JSON.parse(savedValue || '{}'));
-
-            if (!isEditMode) {
-                return `<div class="global-form-input display-only-input">${summaryText}</div>`;
-            }
-
-            return `
-                <div>
-                    <input type="text" readonly value="${summaryText}"
-                           class="global-form-input cursor-pointer hover:bg-gray-600"
-                           data-field-key="${fieldKey}"
-                           data-selector-type="${fieldConfig.type}">
-                    <textarea id="${fieldKey}" name="${fieldKey}" class="hidden">${savedValue || '{}'}</textarea>
-                </div>
-            `;
-        }
-
         async function createFormFieldHtml(fieldKey, fieldConfig, savedValue, collectionKey, isEditMode) {
             const labelText = (fieldConfig.label || fieldKey.replace(/_/g, ' ')).toUpperCase();
             let labelHtml = `<label for="${fieldKey}" class="global-form-label">${labelText}</label>`;
@@ -2650,26 +2541,18 @@ When logged in, you can create and modify data using the **Entry Modal**.
                 case 'textarea': fieldHtml = createTextareaField(fieldKey, savedValue, isEditMode, collectionKey); break;
                 case 'readonlytext': fieldHtml = createReadonlyTextField(fieldKey, savedValue); break;
                 case 'number': fieldHtml = createNumberField(fieldKey, savedValue, isEditMode); break;
-                case 'selector': fieldHtml = createSelectorField(fieldKey, fieldConfig, savedValue, isEditMode); break;
                 default: fieldHtml = createTextField(fieldKey, savedValue, isEditMode);
             }
             return `<div>${buttonHtml || labelHtml}${fieldHtml}</div>`;
         }
         
         window.openModal = openModal;
-        window.openFeatureSelectorModal = openFeatureSelectorModal;
-        window.openSkillSelectorModal = openSkillSelectorModal;
-
         function getSingularLabel(label) {
             if (!label) return '';
-            const upperLabel = label.toUpperCase();
-            if (upperLabel === 'SPECIES') {
-                return 'SPECIES';
-            }
-            if (upperLabel.endsWith('IES')) {
+            if (label.toUpperCase().endsWith('IES')) {
                 return label.slice(0, -3) + 'Y';
             }
-            if (upperLabel.endsWith('S')) {
+            if (label.toUpperCase().endsWith('S')) {
                 return label.slice(0, -1);
             }
             return label;
@@ -3695,7 +3578,6 @@ When logged in, you can create and modify data using the **Entry Modal**.
             });
         }
 
-
         entryModal.addEventListener('click', async (event) => {
             if (event.target.classList.contains('wiki-link')) {
                 event.preventDefault();
@@ -3902,7 +3784,6 @@ When logged in, you can create and modify data using the **Entry Modal**.
             if (inList) { html += '</ul>'; }
             return html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
         }
-    });
     </script>
 </body>
 </html>
