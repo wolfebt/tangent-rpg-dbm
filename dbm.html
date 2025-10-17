@@ -648,10 +648,53 @@
 
         </div>
     </div>
+
+    <div id="ai-assistant-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-[80] p-4 hidden modal-backdrop">
+        <div class="modal-content w-full max-w-3xl p-8 max-h-[90vh] flex flex-col">
+            <h2 class="text-2xl font-bold mb-6 text-center">AI Assistant</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="ai-target-field" class="global-form-label">Target Field</label>
+                    <select id="ai-target-field" class="global-form-input"></select>
+                </div>
+                <div>
+                    <label for="ai-action" class="global-form-label">Action</label>
+                    <select id="ai-action" class="global-form-input">
+                        <option value="elaborate">Elaborate</option>
+                        <option value="brainstorm">Brainstorm</option>
+                        <option value="summarize">Summarize</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label for="ai-user-guidance" class="global-form-label">User Guidance</label>
+                <textarea id="ai-user-guidance" class="global-form-input" rows="2" placeholder="e.g., 'Make it sound ancient and mysterious'"></textarea>
+            </div>
+
+            <button id="ai-generate-btn" class="btn btn-primary w-full mb-4">Generate</button>
+
+            <div class="flex-grow flex flex-col bg-gray-900 rounded-lg p-1">
+                <div class="flex-grow relative">
+                    <div id="ai-canvas" class="prose prose-invert max-w-none p-4 w-full h-full overflow-y-auto">
+                        <!-- AI Generated Content Here -->
+                    </div>
+                    <button id="ai-copy-btn" class="absolute top-2 right-2 btn btn-secondary !py-1 !px-2 !text-xs">Copy</button>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-4 mt-6">
+                <button id="ai-cancel-btn" class="btn btn-secondary">Cancel</button>
+                <button id="ai-accept-btn" class="btn btn-primary">Accept</button>
+            </div>
+        </div>
+    </div>
     
     <input type="file" id="json-file-input" class="hidden" accept=".json">
 
 
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
         import { 
@@ -2598,24 +2641,28 @@ When logged in, you can create and modify data using the **Entry Modal**.
             modalDataDropdown.innerHTML = ''; // Clear previous items
 
             const openAiAssistModal = () => {
+                const config = getActiveConfig(entryForm.dataset.collectionKey);
+                if (!config) return;
+
+                const aiAssistantModal = document.getElementById('ai-assistant-modal');
+                const targetFieldSelect = document.getElementById('ai-target-field');
+
+                targetFieldSelect.innerHTML = '';
                 const aiEnabledFields = Object.keys(config.fields)
                     .filter(key => config.fields[key].aiEnabled)
-                    .map(key => (config.fields[key].label || key.replace(/_/g, ' ')).toUpperCase());
+                    .map(key => ({
+                        key: key,
+                        label: (config.fields[key].label || key.replace(/_/g, ' ')).toUpperCase()
+                    }));
 
                 if (aiEnabledFields.length > 0) {
-                    showCustomModal(
-                        "SELECT A FIELD",
-                        aiEnabledFields,
-                        (selectedField) => {
-                             const fieldKey = Object.keys(config.fields).find(key => (config.fields[key].label || key.replace(/_/g, ' ')).toUpperCase() === selectedField);
-                             const actions = ["Brainstorm", "Elaborate", "Summarize"];
-                             showCustomModal(
-                                `SELECT AN ACTION FOR ${selectedField}`,
-                                actions,
-                                (action) => handleAIAssistantClick(action.toLowerCase(), fieldKey)
-                             );
-                        }
-                    );
+                    aiEnabledFields.forEach(field => {
+                        const option = document.createElement('option');
+                        option.value = field.key;
+                        option.textContent = field.label;
+                        targetFieldSelect.appendChild(option);
+                    });
+                    aiAssistantModal.classList.remove('hidden');
                 } else {
                     showError("No AI-enabled fields for this entry type.");
                 }
@@ -3591,8 +3638,83 @@ When logged in, you can create and modify data using the **Entry Modal**.
             settingsModal.classList.add('hidden');
         });
 
+        // --- AI Assistant Modal Logic ---
+        const aiAssistantModal = document.getElementById('ai-assistant-modal');
+        const aiGenerateBtn = document.getElementById('ai-generate-btn');
+        const aiCancelBtn = document.getElementById('ai-cancel-btn');
+        const aiAcceptBtn = document.getElementById('ai-accept-btn');
+        const aiCopyBtn = document.getElementById('ai-copy-btn');
+        const aiCanvas = document.getElementById('ai-canvas');
+
+        aiCancelBtn.addEventListener('click', () => {
+            aiAssistantModal.classList.add('hidden');
+        });
+
+        aiGenerateBtn.addEventListener('click', async () => {
+            const apiKey = localStorage.getItem('geminiApiKey');
+            if (!apiKey) {
+                showError("Please set your Gemini API key in settings first.");
+                return;
+            }
+
+            const targetField = document.getElementById('ai-target-field').value;
+            const action = document.getElementById('ai-action').value;
+            const userGuidance = document.getElementById('ai-user-guidance').value;
+            const data = getFormDataObject();
+            const categoryKey = entryForm.dataset.collectionKey;
+
+            aiCanvas.innerHTML = '<div class="loader"></div>';
+            let resultText = '';
+
+            try {
+                switch (action) {
+                    case 'brainstorm':
+                        resultText = await brainstormField(data, categoryKey, targetField, userGuidance, apiKey, appState.wikiEntries);
+                        break;
+                    case 'elaborate':
+                        resultText = await elaborateField(data, categoryKey, targetField, userGuidance, apiKey, appState.wikiEntries);
+                        break;
+                    case 'summarize':
+                        resultText = await summarizeField(data, categoryKey, targetField, userGuidance, apiKey, appState.wikiEntries);
+                        break;
+                }
+                aiCanvas.innerHTML = marked.parse(resultText || '<p class="text-red-400">AI returned no content.</p>');
+            } catch (error) {
+                console.error("AI Generation Error:", error);
+                aiCanvas.innerHTML = `<p class="text-red-400">An error occurred: ${error.message}</p>`;
+            }
+        });
+
+        aiAcceptBtn.addEventListener('click', () => {
+            const targetFieldKey = document.getElementById('ai-target-field').value;
+            const targetInput = document.getElementById(targetFieldKey);
+            const targetQuillEditor = document.querySelector(`#editor-${targetFieldKey} .ql-editor`);
+
+            if (targetQuillEditor) {
+                targetQuillEditor.innerHTML = aiCanvas.innerHTML;
+                if(targetInput) targetInput.value = aiCanvas.innerHTML;
+            } else if (targetInput) {
+                if (targetInput.tagName === 'TEXTAREA') {
+                     targetInput.value = aiCanvas.innerText;
+                } else {
+                    targetInput.value = aiCanvas.innerText;
+                }
+            }
+            aiAssistantModal.classList.add('hidden');
+        });
+
+        aiCopyBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(aiCanvas.innerText).then(() => {
+                aiCopyBtn.textContent = 'Copied!';
+                setTimeout(() => { aiCopyBtn.textContent = 'Copy'; }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+            });
+        });
+
+
         window.addEventListener('click', (event) => {
-            if (event.target == entryModal || event.target == confirmModal || event.target == errorModal || event.target == unsavedChangesModal || event.target == customModal || event.target == summaryModal || event.target == settingsModal) {
+            if (event.target == entryModal || event.target == confirmModal || event.target == errorModal || event.target == unsavedChangesModal || event.target == customModal || event.target == summaryModal || event.target == settingsModal || event.target == aiAssistantModal) {
                 if (event.target === entryModal) {
                     appState.navigationContext = null;
                     closeModal();
@@ -3605,6 +3727,9 @@ When logged in, you can create and modify data using the **Entry Modal**.
                 }
                 if (event.target == summaryModal) {
                     summaryModal.classList.add('hidden');
+                }
+                if (event.target == aiAssistantModal) {
+                    aiAssistantModal.classList.add('hidden');
                 }
                 if (event.target == confirmModal) hideConfirmModal();
                 if (event.target == errorModal) hideErrorModal();
