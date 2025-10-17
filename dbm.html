@@ -508,12 +508,9 @@
             <div class="p-8">
                 <div class="flex justify-between items-center mb-6">
                     <h2 id="modal-title" class="text-2xl font-bold">Manage Entry</h2>
-                    <div class="flex items-center gap-4">
-                        <button id="modal-ai-assist-btn" class="btn btn-secondary !py-1 !px-3 auth-required hidden">AI ASSIST</button>
-                        <div class="file-menu">
-                            <button id="modal-data-btn" class="file-menu-button">DATA</button>
-                            <div id="modal-data-dropdown" class="file-menu-dropdown">
-                            </div>
+                    <div class="file-menu">
+                        <button id="modal-data-btn" class="file-menu-button">DATA</button>
+                        <div id="modal-data-dropdown" class="file-menu-dropdown">
                         </div>
                     </div>
                 </div>
@@ -583,113 +580,6 @@
     </div>
 
 
-    <div id="pair-gm-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-[70] p-4 hidden modal-backdrop">
-        <div id="pair-gm-modal-content" class="modal-content w-full max-w-4xl p-8 max-h-[90vh] overflow-y-auto flex flex-col">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold">Pair-Game Master Assistant</h2>
-                <button id="pair-gm-close-btn" class="p-2 rounded-full hover:bg-gray-700 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                </button>
-            </div>
-
-            <div class="flex-grow">
-                <!-- Tab Buttons -->
-                <div class="border-b border-gray-700">
-                    <nav id="pair-gm-tabs" class="-mb-px flex space-x-4" aria-label="Tabs">
-                        <button class="pair-gm-tab active" data-tab="persona">Persona</button>
-                        <button class="pair-gm-tab" data-tab="world">World</button>
-                        <button class="pair-gm-tab" data-tab="story">Story</button>
-                    </nav>
-                </div>
-
-                <!-- Tab Panels -->
-                <div id="pair-gm-tab-panels" class="mt-4">
-                    <!-- Generate Persona -->
-                    <div id="persona-panel" class="pair-gm-tab-panel">
-                        <div class="bg-gray-800 p-4 rounded-lg">
-                            <h3 class="text-lg font-bold mb-2">Generate Persona</h3>
-                            <p class="text-sm text-gray-400 mb-4">Select components from the database to generate a new character.</p>
-                            <div id="persona-generator-inputs" class="grid grid-cols-2 gap-4"></div>
-                            <textarea id="persona-user-guidance" class="global-form-input mt-4" placeholder="Enter additional guidance (e.g., 'make them a reluctant hero')"></textarea>
-                            <button id="generate-persona-btn" class="btn btn-primary mt-4">Generate</button>
-                        </div>
-                    </div>
-
-                    <!-- Generate World Description -->
-                    <div id="world-panel" class="pair-gm-tab-panel hidden">
-                        <div class="bg-gray-800 p-4 rounded-lg">
-                            <h3 class="text-lg font-bold mb-2">Describe World</h3>
-                            <p class="text-sm text-gray-400 mb-4">Select a society to generate a detailed world description.</p>
-                            <div id="world-generator-inputs"></div>
-                            <textarea id="world-user-guidance" class="global-form-input mt-4" placeholder="Enter additional guidance (e.g., 'focus on the black market')"></textarea>
-                            <button id="generate-world-btn" class="btn btn-primary mt-4">Generate</button>
-                        </div>
-                    </div>
-
-                    <!-- Generate Story Hook -->
-                    <div id="story-panel" class="pair-gm-tab-panel hidden">
-                        <div class="bg-gray-800 p-4 rounded-lg">
-                            <h3 class="text-lg font-bold mb-2">Create Story Hook</h3>
-                            <p class="text-sm text-gray-400 mb-4">Select up to 3 database entries to inspire a story hook.</p>
-                            <div id="story-hook-inputs" class="grid grid-cols-3 gap-4"></div>
-                            <textarea id="story-hook-user-guidance" class="global-form-input mt-4" placeholder="Enter additional guidance (e.g., 'make it a mystery')"></textarea>
-                            <button id="generate-story-hook-btn" class="btn btn-primary mt-4">Generate</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="pair-gm-output-container" class="mt-6 hidden">
-                <div id="pair-gm-output" class="p-4 bg-gray-900 rounded-lg prose prose-invert max-w-none">
-                    <!-- Generated content will appear here -->
-                </div>
-                <button id="edit-pair-gm-output-btn" class="btn btn-secondary mt-2">Edit</button>
-            </div>
-
-        </div>
-    </div>
-
-    <div id="ai-assistant-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-[80] p-4 hidden modal-backdrop">
-        <div class="modal-content w-full max-w-3xl p-8 max-h-[90vh] flex flex-col">
-            <h2 class="text-2xl font-bold mb-6 text-center">AI Assistant</h2>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                    <label for="ai-target-field" class="global-form-label">Target Field</label>
-                    <select id="ai-target-field" class="global-form-input"></select>
-                </div>
-                <div>
-                    <label for="ai-action" class="global-form-label">Action</label>
-                    <select id="ai-action" class="global-form-input">
-                        <option value="elaborate">Elaborate</option>
-                        <option value="brainstorm">Brainstorm</option>
-                        <option value="summarize">Summarize</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="mb-4">
-                <label for="ai-user-guidance" class="global-form-label">User Guidance</label>
-                <textarea id="ai-user-guidance" class="global-form-input" rows="2" placeholder="e.g., 'Make it sound ancient and mysterious'"></textarea>
-            </div>
-
-            <button id="ai-generate-btn" class="btn btn-primary w-full mb-4">Generate</button>
-
-            <div class="flex-grow flex flex-col bg-gray-900 rounded-lg p-1">
-                <div class="flex-grow relative">
-                    <div id="ai-canvas" class="prose prose-invert max-w-none p-4 w-full h-full overflow-y-auto">
-                        <!-- AI Generated Content Here -->
-                    </div>
-                    <button id="ai-copy-btn" class="absolute top-2 right-2 btn btn-secondary !py-1 !px-2 !text-xs">Copy</button>
-                </div>
-            </div>
-
-            <div class="flex justify-end gap-4 mt-6">
-                <button id="ai-cancel-btn" class="btn btn-secondary">Cancel</button>
-                <button id="ai-accept-btn" class="btn btn-primary">Accept</button>
-            </div>
-        </div>
-    </div>
     
     <input type="file" id="json-file-input" class="hidden" accept=".json">
 
@@ -704,7 +594,6 @@
             signInWithCustomToken, signInAnonymously
         } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
         import { getFirestore, doc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, getDocs, getDoc, setDoc, setLogLevel, serverTimestamp, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
-        import { showAIStatus, callGeminiAPI, getFormContext, getRulesCodexContext, brainstormField, elaborateField, summarizeField, suggestImagePrompt, suggestLinks, generatePersona, generateWorldDescription, generateStoryHook } from './ai-assistant.js';
 
         // --- Firebase Configuration ---
         const firebaseConfig = {
@@ -1815,7 +1704,6 @@ When logged in, you can create and modify data using the **Entry Modal**.
                      <button id="settings-icon" class="p-2 bg-gray-700 rounded-full hover:bg-gray-600 transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-300"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 0 2l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1 0-2l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                     </button>
-                    <button id="pair-gm-btn" class="btn btn-secondary !py-1 !px-3 hidden">PAIR-GM</button>
                 </div>
                 <div class="flex-grow flex justify-center items-center gap-4">
                     <button id="back-btn" class="btn btn-secondary !p-2 disabled:opacity-50 disabled:cursor-not-allowed">
@@ -2519,17 +2407,6 @@ When logged in, you can create and modify data using the **Entry Modal**.
                 labelHtml = '';
             }
 
-            if ((fieldConfig.type === 'multiselect' || fieldConfig.type === 'select') && fieldConfig.source && isEditMode) {
-                 const originalLabelHtml = labelHtml;
-                 labelHtml = `
-                    <div class="flex justify-between items-center">
-                        ${originalLabelHtml}
-                        <button type="button" data-field-key="${fieldKey}" class="ai-suggest-btn flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors underline auth-required hidden">
-                            AI SUGGEST
-                        </button>
-                    </div>
-                 `;
-            }
 
             let fieldHtml = '';
             switch (fieldConfig.type) {
@@ -2636,41 +2513,8 @@ When logged in, you can create and modify data using the **Entry Modal**.
             
             const modalDataBtn = document.getElementById('modal-data-btn');
             const modalDataDropdown = document.getElementById('modal-data-dropdown');
-            const modalAiAssistBtn = document.getElementById('modal-ai-assist-btn');
 
             modalDataDropdown.innerHTML = ''; // Clear previous items
-
-            const openAiAssistModal = () => {
-                const config = getActiveConfig(entryForm.dataset.collectionKey);
-                if (!config) return;
-
-                const aiAssistantModal = document.getElementById('ai-assistant-modal');
-                const targetFieldSelect = document.getElementById('ai-target-field');
-
-                targetFieldSelect.innerHTML = '';
-                const aiEnabledFields = Object.keys(config.fields)
-                    .filter(key => config.fields[key].aiEnabled)
-                    .map(key => ({
-                        key: key,
-                        label: (config.fields[key].label || key.replace(/_/g, ' ')).toUpperCase()
-                    }));
-
-                if (aiEnabledFields.length > 0) {
-                    aiEnabledFields.forEach(field => {
-                        const option = document.createElement('option');
-                        option.value = field.key;
-                        option.textContent = field.label;
-                        targetFieldSelect.appendChild(option);
-                    });
-                    aiAssistantModal.classList.remove('hidden');
-                } else {
-                    showError("No AI-enabled fields for this entry type.");
-                }
-            };
-
-            if (modalAiAssistBtn) {
-                modalAiAssistBtn.addEventListener('click', openAiAssistModal);
-            }
 
             if (finalEditMode) {
                 const saveButton = document.createElement('button');
@@ -2691,12 +2535,6 @@ When logged in, you can create and modify data using the **Entry Modal**.
             summaryButton.textContent = 'Summary';
             summaryButton.addEventListener('click', () => showSummaryModal('modal'));
             modalDataDropdown.appendChild(summaryButton);
-
-            const suggestImagePromptButton = document.createElement('button');
-            suggestImagePromptButton.id = 'modal-suggest-image-prompt-btn';
-            suggestImagePromptButton.textContent = 'Suggest Image Prompt';
-            suggestImagePromptButton.addEventListener('click', () => handleSuggestImagePrompt());
-            modalDataDropdown.appendChild(suggestImagePromptButton);
 
             const localMenuContainer = document.createElement('div');
             localMenuContainer.className = 'submenu-container';
@@ -2737,89 +2575,6 @@ When logged in, you can create and modify data using the **Entry Modal**.
             formFieldsContainer.querySelectorAll('button[data-manage-source]').forEach(button => {
                 button.addEventListener('click', () => handleManageClick(button.dataset.manageSource));
             });
-            // --- AI Assistant Event Handling ---
-            const handleAIAssistantClick = async (action, fieldKey) => {
-                const userGuidance = prompt(`Please provide brief guidance for the AI to "${action}":`);
-                if (userGuidance === null) return; // User cancelled
-
-                const apiKey = localStorage.getItem('geminiApiKey');
-                if (!apiKey) {
-                    showError("Please set your Gemini API key in settings first.");
-                    return;
-                }
-
-                const data = getFormDataObject();
-                const categoryKey = entryForm.dataset.collectionKey;
-                let resultText = '';
-
-                showAIStatus(`AI is starting to ${action}...`, false);
-
-                switch (action) {
-                    case 'brainstorm':
-                        resultText = await brainstormField(data, categoryKey, fieldKey, userGuidance, apiKey, appState.wikiEntries);
-                        // Display brainstorm results in a custom modal for the user to choose from
-                        if (resultText) {
-                            const choices = resultText.split('\n').map(s => s.replace(/^- /, '')).filter(Boolean);
-                             showCustomModal("Choose a brainstormed idea", choices, (choice) => {
-                                const targetInput = document.getElementById(fieldKey);
-                                if(targetInput) targetInput.value = choice;
-                             });
-                        }
-                        break;
-                    case 'elaborate':
-                        resultText = await elaborateField(data, categoryKey, fieldKey, userGuidance, apiKey, appState.wikiEntries);
-                        if (resultText) document.getElementById(fieldKey).value = resultText;
-                        break;
-                    case 'summarize':
-                        resultText = await summarizeField(data, categoryKey, fieldKey, userGuidance, apiKey, appState.wikiEntries);
-                        if (resultText) document.getElementById(fieldKey).value = resultText;
-                        break;
-                }
-
-                if (!resultText) {
-                    showAIStatus(`AI ${action} failed. See console for details.`, true);
-                } else {
-                    showAIStatus(`AI ${action} complete.`, false);
-                }
-            };
-
-            // --- END AI Assistant ---
-
-            document.querySelectorAll('.ai-suggest-btn').forEach(button => {
-                button.addEventListener('click', async (e) => {
-                    const fieldKey = e.target.dataset.fieldKey;
-                    const userGuidance = prompt(`(Optional) Provide brief guidance for the AI suggestion for "${fieldKey}":`);
-                    if (userGuidance === null) return;
-
-                    const apiKey = localStorage.getItem('geminiApiKey');
-                    if (!apiKey) {
-                        showError("Please set your Gemini API key in settings first.");
-                        return;
-                    }
-
-                    showAIStatus("AI is searching for suggestions...", false);
-                    const data = getFormDataObject();
-                    const categoryKey = entryForm.dataset.collectionKey;
-                    const suggestionsCsv = await suggestLinks(data, categoryKey, fieldKey, appState.wikiEntries, userGuidance, apiKey);
-
-                    if (suggestionsCsv) {
-                        const suggestions = suggestionsCsv.split(',').map(s => s.trim()).filter(Boolean);
-                        showCustomModal(`AI Suggestions for ${fieldKey}`, suggestions, (choice) => {
-                            const fieldElement = document.getElementById(fieldKey);
-                            if (fieldElement.type === 'select-one') {
-                                fieldElement.value = choice;
-                            } else if (fieldElement.type === 'select-multiple' || fieldElement.querySelector('input[type=checkbox]')) {
-                                const checkbox = fieldElement.querySelector(`input[value="${choice}"]`);
-                                if (checkbox) checkbox.checked = true;
-                            }
-                        });
-                        showAIStatus("Suggestions loaded.", false);
-                    } else {
-                        showAIStatus("AI suggestion failed or returned no results.", true);
-                    }
-                });
-            });
-
 
             if (finalEditMode) {
                 if (collectionKey === 'rules_codex') {
@@ -3314,249 +3069,6 @@ When logged in, you can create and modify data using the **Entry Modal**.
             document.getElementById('custom-modal-cancel-btn').onclick = () => modal.classList.add('hidden');
         }
 
-        async function handleSuggestImagePrompt() {
-            const userGuidance = prompt("Provide guidance for the image style (e.g., 'photorealistic, dark, gritty', 'anime, vibrant, cell-shaded'):");
-            if (userGuidance === null) return;
-
-            const apiKey = localStorage.getItem('geminiApiKey');
-            if (!apiKey) {
-                showError("Please set your Gemini API key in settings first.");
-                return;
-            }
-
-            const data = getFormDataObject();
-            const categoryKey = entryForm.dataset.collectionKey;
-
-            showAIStatus("Generating image prompt...", false);
-            const promptText = await suggestImagePrompt(data, categoryKey, userGuidance, apiKey);
-
-            if (promptText) {
-                const modal = document.getElementById('custom-modal');
-                const titleEl = document.getElementById('custom-modal-title');
-                const contentEl = document.getElementById('custom-modal-content');
-                const choicesEl = document.getElementById('custom-modal-choices');
-                titleEl.textContent = "Suggested Image Prompt";
-                contentEl.innerHTML = `<textarea class="global-form-input" rows="8" readonly>${promptText}</textarea>`;
-                choicesEl.innerHTML = ''; // No choices needed
-                modal.classList.remove('hidden');
-                showAIStatus("Prompt generated.", false);
-            } else {
-                showAIStatus("Failed to generate image prompt.", true);
-            }
-        }
-
-        // --- Pair-GM Modal Logic ---
-        const pairGmModal = document.getElementById('pair-gm-modal');
-        const pairGmCloseBtn = document.getElementById('pair-gm-close-btn');
-
-        function isPairGmDirty() {
-            const textareas = pairGmModal.querySelectorAll('textarea');
-            for (const textarea of textareas) {
-                if (textarea.value.trim() !== '') {
-                    return true;
-                }
-            }
-            const outputContainer = document.getElementById('pair-gm-output-container');
-            if (outputContainer && !outputContainer.classList.contains('hidden')) {
-                const outputDiv = document.getElementById('pair-gm-output');
-                const hasLoader = outputDiv.querySelector('.loader');
-                if (outputDiv.innerHTML.trim() !== '' && !hasLoader) {
-                   return true;
-                }
-            }
-            return false;
-        }
-
-        function closePairGmModal() {
-            if (isPairGmDirty()) {
-                showConfirmModal("You have unsaved changes in the Pair-GM assistant. Are you sure you want to close it?", () => {
-                    pairGmModal.classList.add('hidden');
-                });
-            } else {
-                pairGmModal.classList.add('hidden');
-            }
-        }
-
-        async function openPairGmModal() {
-            // Populate dropdowns
-            const personaContainer = document.getElementById('persona-generator-inputs');
-            const worldContainer = document.getElementById('world-generator-inputs');
-            const storyHookContainer = document.getElementById('story-hook-inputs');
-
-            const personaCategories = ['species', 'factions', 'origins', 'occupations'];
-            const worldCategories = ['societies'];
-            const allCategories = [...new Set([...personaCategories, ...worldCategories])];
-
-            personaContainer.innerHTML = 'Loading...';
-            worldContainer.innerHTML = 'Loading...';
-            storyHookContainer.innerHTML = 'Loading...';
-
-            const optionsCache = {};
-            for (const cat of allCategories) {
-                optionsCache[cat] = await getCollectionOptions(cat);
-            }
-
-            // Persona Generator
-            personaContainer.innerHTML = personaCategories.map(cat => `
-                <div>
-                    <label class="global-form-label">${cat.toUpperCase()}</label>
-                    <select class="global-form-input" data-category="${cat}">
-                        <option value="">--CHOOSE ${cat.toUpperCase()}--</option>
-                        ${optionsCache[cat].map(opt => `<option value="${opt.id}">${opt.name}</option>`).join('')}
-                    </select>
-                </div>
-            `).join('');
-
-            // World Generator
-            worldContainer.innerHTML = worldCategories.map(cat => `
-                 <div>
-                    <label class="global-form-label">${cat.toUpperCase()}</label>
-                    <select class="global-form-input" data-category="${cat}">
-                        <option value="">--CHOOSE ${cat.toUpperCase()}--</option>
-                        ${optionsCache[cat].map(opt => `<option value="${opt.id}">${opt.name}</option>`).join('')}
-                    </select>
-                </div>
-            `).join('');
-
-            // Story Hook Generator
-             storyHookContainer.innerHTML = [1, 2, 3].map(i => `
-                <div>
-                    <label class="global-form-label">ELEMENT ${i}</label>
-                    <select class="global-form-input story-hook-select">
-                        <option value="">--CHOOSE ELEMENT--</option>
-                        ${Object.entries(optionsCache).map(([cat, opts]) => `
-                            <optgroup label="${cat.toUpperCase()}">
-                                ${opts.map(opt => `<option value="${cat}:${opt.id}">${opt.name}</option>`).join('')}
-                            </optgroup>
-                        `).join('')}
-                    </select>
-                </div>
-            `).join('');
-
-            pairGmModal.classList.remove('hidden');
-        }
-
-        pairGmCloseBtn.addEventListener('click', closePairGmModal);
-
-        pairGmModal.addEventListener('click', (event) => {
-            if (event.target === pairGmModal) {
-                closePairGmModal();
-            }
-        });
-
-        document.getElementById('pair-gm-tabs').addEventListener('click', (event) => {
-            if (event.target.classList.contains('pair-gm-tab')) {
-                const tabName = event.target.dataset.tab;
-
-                // Deactivate all tabs and hide all panels
-                document.querySelectorAll('.pair-gm-tab').forEach(tab => tab.classList.remove('active'));
-                document.querySelectorAll('.pair-gm-tab-panel').forEach(panel => panel.classList.add('hidden'));
-
-                // Activate the clicked tab and show the corresponding panel
-                event.target.classList.add('active');
-                document.getElementById(`${tabName}-panel`).classList.remove('hidden');
-            }
-        });
-
-        document.getElementById('generate-persona-btn').addEventListener('click', async () => {
-            const selects = document.querySelectorAll('#persona-generator-inputs select');
-            const promises = Array.from(selects).filter(sel => sel.value).map(sel => {
-                const category = sel.dataset.category;
-                const docRef = doc(db, `artifacts/${appId}/public/data/${category}`, sel.value);
-                return getDoc(docRef).then(docSnap => {
-                    if (docSnap.exists()) {
-                        return { ...docSnap.data(), categoryLabel: category, name: docSnap.data().name || 'Unnamed' };
-                    }
-                    return null;
-                });
-            });
-
-            const selectedEntries = (await Promise.all(promises)).filter(Boolean);
-
-            if (selectedEntries.length === 0) {
-                showError("Please select at least one component to generate a persona.");
-                return;
-            }
-
-            const userGuidance = document.getElementById('persona-user-guidance').value;
-            const outputContainer = document.getElementById('pair-gm-output-container');
-            const outputDiv = document.getElementById('pair-gm-output');
-            outputDiv.innerHTML = '<div class="loader"></div>';
-            outputContainer.classList.remove('hidden');
-
-            const result = await generatePersona(selectedEntries, userGuidance, localStorage.getItem('geminiApiKey'));
-            outputDiv.innerHTML = result ? convertMarkdownToHtml(result) : '<p class="text-red-400">Failed to generate persona.</p>';
-        });
-
-        document.getElementById('generate-world-btn').addEventListener('click', async () => {
-            const select = document.querySelector('#world-generator-inputs select');
-            if (!select.value) {
-                showError("Please select a society.");
-                return;
-            }
-            const category = select.dataset.category;
-            const docRef = doc(db, `artifacts/${appId}/public/data/${category}`, select.value);
-            const docSnap = await getDoc(docRef);
-
-            if (docSnap.exists()) {
-                const userGuidance = document.getElementById('world-user-guidance').value;
-                const outputContainer = document.getElementById('pair-gm-output-container');
-                const outputDiv = document.getElementById('pair-gm-output');
-                outputDiv.innerHTML = '<div class="loader"></div>';
-                outputContainer.classList.remove('hidden');
-
-                const result = await generateWorldDescription(docSnap.data(), userGuidance, localStorage.getItem('geminiApiKey'));
-                outputDiv.innerHTML = result ? convertMarkdownToHtml(result) : '<p class="text-red-400">Failed to generate world description.</p>';
-            }
-        });
-
-        document.getElementById('generate-story-hook-btn').addEventListener('click', async () => {
-            const selects = document.querySelectorAll('.story-hook-select');
-            const promises = Array.from(selects).filter(sel => sel.value).map(sel => {
-                const [category, id] = sel.value.split(':');
-                const docRef = doc(db, `artifacts/${appId}/public/data/${category}`, id);
-                return getDoc(docRef).then(docSnap => {
-                    if (docSnap.exists()) {
-                        return { ...docSnap.data(), categoryLabel: category, name: docSnap.data().name || 'Unnamed' };
-                    }
-                    return null;
-                });
-            });
-
-            const selectedEntries = (await Promise.all(promises)).filter(Boolean);
-
-            if (selectedEntries.length === 0) {
-                showError("Please select at least one element for the story hook.");
-                return;
-            }
-
-            const userGuidance = document.getElementById('story-hook-user-guidance').value;
-            const outputContainer = document.getElementById('pair-gm-output-container');
-            const outputDiv = document.getElementById('pair-gm-output');
-            outputDiv.innerHTML = '<div class="loader"></div>';
-            outputContainer.classList.remove('hidden');
-
-            const result = await generateStoryHook(selectedEntries, userGuidance, localStorage.getItem('geminiApiKey'));
-            outputDiv.innerHTML = result ? convertMarkdownToHtml(result) : '<p class="text-red-400">Failed to generate story hook.</p>';
-        });
-
-        document.getElementById('edit-pair-gm-output-btn').addEventListener('click', (event) => {
-            const button = event.target;
-            const outputDiv = document.getElementById('pair-gm-output');
-            const isEditing = outputDiv.isContentEditable;
-
-            if (isEditing) {
-                outputDiv.contentEditable = false;
-                button.textContent = 'Edit';
-                outputDiv.classList.remove('border-2', 'border-blue-400');
-                // The content is already saved in the div's innerHTML
-            } else {
-                outputDiv.contentEditable = true;
-                button.textContent = 'Save';
-                outputDiv.classList.add('border-2', 'border-blue-400');
-                outputDiv.focus();
-            }
-        });
 
 
         function hideUnsavedChangesModal() {
@@ -3638,83 +3150,8 @@ When logged in, you can create and modify data using the **Entry Modal**.
             settingsModal.classList.add('hidden');
         });
 
-        // --- AI Assistant Modal Logic ---
-        const aiAssistantModal = document.getElementById('ai-assistant-modal');
-        const aiGenerateBtn = document.getElementById('ai-generate-btn');
-        const aiCancelBtn = document.getElementById('ai-cancel-btn');
-        const aiAcceptBtn = document.getElementById('ai-accept-btn');
-        const aiCopyBtn = document.getElementById('ai-copy-btn');
-        const aiCanvas = document.getElementById('ai-canvas');
-
-        aiCancelBtn.addEventListener('click', () => {
-            aiAssistantModal.classList.add('hidden');
-        });
-
-        aiGenerateBtn.addEventListener('click', async () => {
-            const apiKey = localStorage.getItem('geminiApiKey');
-            if (!apiKey) {
-                showError("Please set your Gemini API key in settings first.");
-                return;
-            }
-
-            const targetField = document.getElementById('ai-target-field').value;
-            const action = document.getElementById('ai-action').value;
-            const userGuidance = document.getElementById('ai-user-guidance').value;
-            const data = getFormDataObject();
-            const categoryKey = entryForm.dataset.collectionKey;
-
-            aiCanvas.innerHTML = '<div class="loader"></div>';
-            let resultText = '';
-
-            try {
-                switch (action) {
-                    case 'brainstorm':
-                        resultText = await brainstormField(data, categoryKey, targetField, userGuidance, apiKey, appState.wikiEntries);
-                        break;
-                    case 'elaborate':
-                        resultText = await elaborateField(data, categoryKey, targetField, userGuidance, apiKey, appState.wikiEntries);
-                        break;
-                    case 'summarize':
-                        resultText = await summarizeField(data, categoryKey, targetField, userGuidance, apiKey, appState.wikiEntries);
-                        break;
-                }
-                aiCanvas.innerHTML = marked.parse(resultText || '<p class="text-red-400">AI returned no content.</p>');
-            } catch (error) {
-                console.error("AI Generation Error:", error);
-                aiCanvas.innerHTML = `<p class="text-red-400">An error occurred: ${error.message}</p>`;
-            }
-        });
-
-        aiAcceptBtn.addEventListener('click', () => {
-            const targetFieldKey = document.getElementById('ai-target-field').value;
-            const targetInput = document.getElementById(targetFieldKey);
-            const targetQuillEditor = document.querySelector(`#editor-${targetFieldKey} .ql-editor`);
-
-            if (targetQuillEditor) {
-                targetQuillEditor.innerHTML = aiCanvas.innerHTML;
-                if(targetInput) targetInput.value = aiCanvas.innerHTML;
-            } else if (targetInput) {
-                if (targetInput.tagName === 'TEXTAREA') {
-                     targetInput.value = aiCanvas.innerText;
-                } else {
-                    targetInput.value = aiCanvas.innerText;
-                }
-            }
-            aiAssistantModal.classList.add('hidden');
-        });
-
-        aiCopyBtn.addEventListener('click', () => {
-            navigator.clipboard.writeText(aiCanvas.innerText).then(() => {
-                aiCopyBtn.textContent = 'Copied!';
-                setTimeout(() => { aiCopyBtn.textContent = 'Copy'; }, 2000);
-            }).catch(err => {
-                console.error('Failed to copy text: ', err);
-            });
-        });
-
-
         window.addEventListener('click', (event) => {
-            if (event.target == entryModal || event.target == confirmModal || event.target == errorModal || event.target == unsavedChangesModal || event.target == customModal || event.target == summaryModal || event.target == settingsModal || event.target == aiAssistantModal) {
+            if (event.target == entryModal || event.target == confirmModal || event.target == errorModal || event.target == unsavedChangesModal || event.target == customModal || event.target == summaryModal || event.target == settingsModal) {
                 if (event.target === entryModal) {
                     appState.navigationContext = null;
                     closeModal();
