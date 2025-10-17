@@ -653,68 +653,27 @@
         <div class="modal-content w-full max-w-3xl p-8 max-h-[90vh] flex flex-col">
             <h2 class="text-2xl font-bold mb-6 text-center">AI Assistant</h2>
 
-    <div id="feature-selector-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-[90] p-4 hidden modal-backdrop">
+    <div id="selector-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-[90] p-4 hidden modal-backdrop">
         <div class="modal-content w-full max-w-6xl p-8 max-h-[90vh] flex flex-col">
-            <h2 class="text-2xl font-bold mb-6 text-center">Manage Species Features</h2>
+            <h2 id="selector-modal-title" class="text-2xl font-bold mb-6 text-center"></h2>
             <div class="grid grid-cols-3 gap-4 flex-grow">
-                <!-- Available Features -->
+                <!-- Available Items -->
                 <div class="bg-gray-800 p-4 rounded-lg flex flex-col">
-                    <h3 class="text-lg font-bold mb-2">Available Features</h3>
-                    <input type="text" id="feature-search" class="global-form-input mb-2" placeholder="Search features...">
-                    <div id="available-features-list" class="flex-grow overflow-y-auto"></div>
+                    <h3 class="text-lg font-bold mb-2">Available</h3>
+                    <input type="text" id="selector-search-input" class="global-form-input mb-2" placeholder="Search...">
+                    <div id="selector-available-list" class="flex-grow overflow-y-auto"></div>
                 </div>
-                <!-- Granted Features -->
-                <div class="bg-gray-800 p-4 rounded-lg flex flex-col">
-                    <h3 class="text-lg font-bold mb-2">Granted Features</h3>
-                    <div id="granted-features-list" class="flex-grow overflow-y-auto min-h-[200px]"></div>
-                </div>
-                <!-- Recommended Features -->
-                <div class="bg-gray-800 p-4 rounded-lg flex flex-col">
-                    <h3 class="text-lg font-bold mb-2">Recommended Features (-1 CP, Min 1)</h3>
-                    <div id="recommended-features-list" class="flex-grow overflow-y-auto min-h-[200px]"></div>
+                <!-- Selection Lists -->
+                <div id="selector-lists-container" class="col-span-2 grid grid-cols-2 gap-4">
+                    <!-- Dynamically generated lists here -->
                 </div>
             </div>
             <div class="flex justify-end gap-4 mt-8">
-                <button id="feature-selector-cancel-btn" class="btn btn-secondary">Cancel</button>
-                <button id="feature-selector-save-btn" class="btn btn-primary">Save</button>
+                <button id="selector-cancel-btn" class="btn btn-secondary">Cancel</button>
+                <button id="selector-save-btn" class="btn btn-primary">Save</button>
             </div>
         </div>
     </div>
-
-    <div id="skill-selector-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-[90] p-4 hidden modal-backdrop">
-        <div class="modal-content w-full max-w-6xl p-8 max-h-[90vh] flex flex-col">
-            <h2 class="text-2xl font-bold mb-6 text-center">Manage Species Skills</h2>
-            <div class="grid grid-cols-3 gap-4 flex-grow">
-                <!-- Available Skills -->
-                <div class="bg-gray-800 p-4 rounded-lg flex flex-col">
-                    <h3 class="text-lg font-bold mb-2">Available Skills</h3>
-                    <input type="text" id="skill-search" class="global-form-input mb-2" placeholder="Search skills...">
-                    <div id="available-skills-list" class="flex-grow overflow-y-auto"></div>
-                </div>
-                <!-- Granted Skills -->
-                <div class="bg-gray-800 p-4 rounded-lg flex flex-col">
-                    <h3 class="text-lg font-bold mb-2">Granted Skills</h3>
-                    <div id="granted-skills-list" class="flex-grow overflow-y-auto min-h-[200px]"></div>
-                </div>
-                <!-- Selectable Skills -->
-                <div class="bg-gray-800 p-4 rounded-lg flex flex-col">
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="text-lg font-bold">Selectable Skills Pool</h3>
-                        <div class="flex items-center gap-2">
-                            <label for="skill-pool-points" class="text-sm">Points:</label>
-                            <input type="number" id="skill-pool-points" class="global-form-input !w-20" value="0">
-                        </div>
-                    </div>
-                    <div id="selectable-skills-list" class="flex-grow overflow-y-auto min-h-[200px]"></div>
-                </div>
-            </div>
-            <div class="flex justify-end gap-4 mt-8">
-                <button id="skill-selector-cancel-btn" class="btn btn-secondary">Cancel</button>
-                <button id="skill-selector-save-btn" class="btn btn-primary">Save</button>
-            </div>
-        </div>
-    </div>
-
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
                     <label for="ai-target-field" class="global-form-label">Target Field</label>
@@ -767,6 +726,7 @@
         } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
         import { getFirestore, doc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, getDocs, getDoc, setDoc, setLogLevel, serverTimestamp, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
         import { showAIStatus, callGeminiAPI, getFormContext, getRulesCodexContext, brainstormField, elaborateField, summarizeField, suggestImagePrompt, suggestLinks, generatePersona, generateWorldDescription, generateStoryHook } from './ai-assistant.js';
+        import { initializeModal as initializeSelectorModal, openSelectorModal } from './selector-modal.js';
 
         // --- Firebase Configuration ---
         const firebaseConfig = {
@@ -914,8 +874,32 @@
                     size: { type: 'multiselect', source: 'species_size', manageable: true },
                     movement: { type: 'multiselect', source: 'species_movement', manageable: true },
                     modifier: { type: 'multiselect', source: 'modifier', manageable: true },
-                    features: { type: 'feature_selector', label: 'Features' },
-                    skills: { type: 'skill_selector', label: 'Skills' },
+                    features: {
+                        type: 'selector',
+                        label: 'Features',
+                        selectorConfig: {
+                            title: 'Manage Species Features',
+                            source: 'features',
+                            selectionTypes: [
+                                { id: 'granted', label: 'Granted Features', addBtnLabel: 'Grant' },
+                                { id: 'recommended', label: 'Recommended Features', addBtnLabel: 'Recommend', showCost: true }
+                            ],
+                            summary: (state) => `Granted: ${(state.granted || []).length}, Recommended: ${(state.recommended || []).length}`
+                        }
+                    },
+                    skills: {
+                        type: 'selector',
+                        label: 'Skills',
+                        selectorConfig: {
+                            title: 'Manage Species Skills',
+                            source: 'skills',
+                            selectionTypes: [
+                                { id: 'granted', label: 'Granted Skills', addBtnLabel: 'Grant', hasModifier: true },
+                                { id: 'selectable', label: 'Selectable Skills Pool', addBtnLabel: 'Add to Pool', hasBonus: true, hasPoolPoints: true }
+                            ],
+                             summary: (state) => `Granted: ${(state.granted || []).length}, Selectable: ${(state.selectable || []).length}, Pool: ${state.selectablePoolPoints || 0}pts`
+                        }
+                    },
                     note: { type: 'textarea' },
                     cp: { type: 'readonlytext', label: 'CP' }
                 },
@@ -2058,6 +2042,7 @@ When logged in, you can create and modify data using the **Entry Modal**.
                 if (!appState.authReady) {
                     appState.authReady = true;
                     try {
+                        initializeSelectorModal(db, getCollectionOptions);
                         renderAppHeader();
                         await populateRulesCodexMap();
 
@@ -2896,27 +2881,19 @@ When logged in, you can create and modify data using the **Entry Modal**.
             `;
         }
 
-        function createSkillSelectorField(fieldKey, savedValue, isEditMode) {
-            let grantedCount = 0;
-            let selectableCount = 0;
-            let poolPoints = 0;
-            try {
-                const parsed = JSON.parse(savedValue || '{}');
-                grantedCount = (parsed.granted || []).length;
-                selectableCount = (parsed.selectable || []).length;
-                poolPoints = parsed.poolPoints || 0;
-            } catch { /* ignore */ }
+        function createSelectorField(fieldKey, fieldConfig, savedValue, isEditMode) {
+            const summaryText = fieldConfig.selectorConfig.summary(JSON.parse(savedValue || '{}'));
 
             if (!isEditMode) {
-                return `<div class="global-form-input display-only-input">GRANTED: ${grantedCount}, SELECTABLE: ${selectableCount}, POOL: ${poolPoints}pts</div>`;
+                return `<div class="global-form-input display-only-input">${summaryText}</div>`;
             }
 
             return `
                 <div>
-                    <input type="text" readonly value="GRANTED: ${grantedCount}, SELECTABLE: ${selectableCount}, POOL: ${poolPoints}pts"
+                    <input type="text" readonly value="${summaryText}"
                            class="global-form-input cursor-pointer hover:bg-gray-600"
-                           data-field-key="${fieldKey}" data-selector-type="skill">
-                    <textarea id="${fieldKey}" name="${fieldKey}" class="hidden">${savedValue || ''}</textarea>
+                           data-field-key="${fieldKey}">
+                    <textarea id="${fieldKey}" name="${fieldKey}" class="hidden">${savedValue || '{}'}</textarea>
                 </div>
             `;
         }
@@ -2955,8 +2932,7 @@ When logged in, you can create and modify data using the **Entry Modal**.
                 case 'textarea': fieldHtml = createTextareaField(fieldKey, savedValue, isEditMode, collectionKey); break;
                 case 'readonlytext': fieldHtml = createReadonlyTextField(fieldKey, savedValue); break;
                 case 'number': fieldHtml = createNumberField(fieldKey, savedValue, isEditMode); break;
-                case 'feature_selector': fieldHtml = createFeatureSelectorField(fieldKey, savedValue, isEditMode); break;
-                case 'skill_selector': fieldHtml = createSkillSelectorField(fieldKey, savedValue, isEditMode); break;
+                case 'selector': fieldHtml = createSelectorField(fieldKey, fieldConfig, savedValue, isEditMode); break;
                 default: fieldHtml = createTextField(fieldKey, savedValue, isEditMode);
             }
             return `<div>${buttonHtml || labelHtml}${fieldHtml}</div>`;
@@ -4003,15 +3979,15 @@ When logged in, you can create and modify data using the **Entry Modal**.
 
         formFieldsContainer.addEventListener('click', (event) => {
             const target = event.target;
-            if (target.matches('input[data-selector-type]')) {
+            if (target.matches('input[data-field-key]')) {
                 const fieldKey = target.dataset.fieldKey;
-                const selectorType = target.dataset.selectorType;
-                const data = document.getElementById(fieldKey).value;
+                const collectionKey = entryForm.dataset.collectionKey;
+                const config = getActiveConfig(collectionKey);
+                const fieldConfig = config.fields[fieldKey];
 
-                if (selectorType === 'feature') {
-                    openFeatureSelectorModal(fieldKey, data);
-                } else if (selectorType === 'skill') {
-                    openSkillSelectorModal(fieldKey, data);
+                if (fieldConfig && fieldConfig.type === 'selector') {
+                    const data = document.getElementById(fieldKey).value;
+                    openSelectorModal(fieldConfig.selectorConfig, fieldKey, data);
                 }
             }
         });
