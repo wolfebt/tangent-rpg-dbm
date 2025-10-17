@@ -3049,22 +3049,6 @@ When logged in, you can create and modify data using the **Entry Modal**.
 
             formFieldsContainer.innerHTML = formHtml.join('');
 
-            formFieldsContainer.querySelectorAll('input[data-selector-type="feature"]').forEach(input => {
-                input.addEventListener('click', () => {
-                    const fieldKey = input.dataset.fieldKey;
-                    const featureData = document.getElementById(fieldKey).value;
-                    openFeatureSelectorModal(fieldKey, featureData);
-                });
-            });
-
-            formFieldsContainer.querySelectorAll('input[data-selector-type="skill"]').forEach(input => {
-                input.addEventListener('click', () => {
-                    const fieldKey = input.dataset.fieldKey;
-                    const skillData = document.getElementById(fieldKey).value;
-                    openSkillSelectorModal(fieldKey, skillData);
-                });
-            });
-
             const creatorInfo = document.getElementById('creator-info');
             if (data.creatorEmail) {
                 creatorInfo.textContent = `Created by: ${data.creatorEmail}`;
@@ -4016,6 +4000,21 @@ When logged in, you can create and modify data using the **Entry Modal**.
                 return entryName;
             });
         }
+
+        formFieldsContainer.addEventListener('click', (event) => {
+            const target = event.target;
+            if (target.matches('input[data-selector-type]')) {
+                const fieldKey = target.dataset.fieldKey;
+                const selectorType = target.dataset.selectorType;
+                const data = document.getElementById(fieldKey).value;
+
+                if (selectorType === 'feature') {
+                    openFeatureSelectorModal(fieldKey, data);
+                } else if (selectorType === 'skill') {
+                    openSkillSelectorModal(fieldKey, data);
+                }
+            }
+        });
 
         entryModal.addEventListener('click', async (event) => {
             if (event.target.classList.contains('wiki-link')) {
