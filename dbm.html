@@ -1407,307 +1407,6 @@
             'modes', 'note', 'parent', 'order'
         ];
 
-        // --- Feature Selector Modal Logic ---
-        const featureSelectorModal = document.getElementById('feature-selector-modal');
-        const featureSelectorSaveBtn = document.getElementById('feature-selector-save-btn');
-        const featureSelectorCancelBtn = document.getElementById('feature-selector-cancel-btn');
-
-        let allFeaturesCache = null; // Cache all features to avoid repeated DB calls
-        let currentFeatureFieldKey = null; // Which field on the main form we are editing
-        let currentFeaturesState = { granted: [], recommended: [] }; // The state of the modal
-
-        async function openFeatureSelectorModal(fieldKey, currentDataString) {
-            currentFeatureFieldKey = fieldKey;
-            try {
-                currentFeaturesState = JSON.parse(currentDataString || '{"granted":[],"recommended":[]}');
-                if (!currentFeaturesState.granted) currentFeaturesState.granted = [];
-                if (!currentFeaturesState.recommended) currentFeaturesState.recommended = [];
-            } catch (e) {
-                console.error("Error parsing features data, resetting.", e);
-                currentFeaturesState = { granted: [], recommended: [] };
-            }
-
-            const availableList = document.getElementById('available-features-list');
-            if (!allFeaturesCache) {
-                availableList.innerHTML = '<div class="loader"></div>';
-                allFeaturesCache = await getCollectionOptions('features');
-            }
-
-            document.getElementById('feature-search').value = '';
-            renderFeatureLists();
-            featureSelectorModal.classList.remove('hidden');
-        }
-
-        function renderFeatureLists() {
-            const availableList = document.getElementById('available-features-list');
-            const grantedList = document.getElementById('granted-features-list');
-            const recommendedList = document.getElementById('recommended-features-list');
-            const searchTerm = document.getElementById('feature-search').value.toLowerCase();
-
-            availableList.innerHTML = '';
-            grantedList.innerHTML = '';
-            recommendedList.innerHTML = '';
-
-            const grantedIds = new Set(currentFeaturesState.granted.map(f => f.id));
-            const recommendedIds = new Set(currentFeaturesState.recommended.map(f => f.id));
-
-            if(allFeaturesCache) {
-                allFeaturesCache
-                    .filter(f => !grantedIds.has(f.id) && !recommendedIds.has(f.id))
-                    .filter(f => f.name.toLowerCase().includes(searchTerm))
-                    .forEach(feature => {
-                        availableList.appendChild(createFeatureItem(feature, 'available'));
-                    });
-            }
-
-            currentFeaturesState.granted.forEach(feature => {
-                grantedList.appendChild(createFeatureItem(feature, 'granted'));
-            });
-
-            currentFeaturesState.recommended.forEach(feature => {
-                recommendedList.appendChild(createFeatureItem(feature, 'recommended'));
-            });
-        }
-
-        function createFeatureItem(feature, type) {
-            const item = document.createElement('div');
-            item.className = 'p-2 rounded-md bg-gray-700 mb-2 flex justify-between items-center text-sm';
-            item.dataset.featureData = JSON.stringify(feature);
-
-            const cp = feature.cp ? Number(feature.cp) : 0;
-            const recommendedCp = Math.max(1, cp - 1);
-            const cpText = type === 'recommended' ? `(Cost: <s class="text-red-400">${cp}</s> ${recommendedCp} CP)` : `(Cost: ${cp} CP)`;
-
-            item.innerHTML = `<span>${feature.name} <span class="text-xs text-gray-400">${cpText}</span></span>`;
-
-            const buttons = document.createElement('div');
-            buttons.className = 'flex gap-1';
-
-            if (type === 'available') {
-                const grantBtn = document.createElement('button');
-                grantBtn.textContent = 'Grant';
-                grantBtn.className = 'btn !py-0 !px-1 !text-xs btn-primary';
-                grantBtn.onclick = () => moveFeature(feature, 'granted');
-                buttons.appendChild(grantBtn);
-
-                const recommendBtn = document.createElement('button');
-                recommendBtn.textContent = 'Recommend';
-                recommendBtn.className = 'btn !py-0 !px-1 !text-xs btn-secondary';
-                recommendBtn.onclick = () => moveFeature(feature, 'recommended');
-                buttons.appendChild(recommendBtn);
-            } else {
-                const removeBtn = document.createElement('button');
-                removeBtn.textContent = 'Remove';
-                removeBtn.className = 'btn !py-0 !px-1 !text-xs btn-danger';
-                removeBtn.onclick = () => moveFeature(feature, 'available', type);
-                buttons.appendChild(removeBtn);
-            }
-
-            item.appendChild(buttons);
-            return item;
-        }
-
-        function moveFeature(feature, to, from = null) {
-            if (from) {
-                currentFeaturesState[from] = currentFeaturesState[from].filter(f => f.id !== feature.id);
-            }
-
-            if (to !== 'available') {
-                const otherList = to === 'granted' ? 'recommended' : 'granted';
-                currentFeaturesState[otherList] = currentFeaturesState[otherList].filter(f => f.id !== feature.id);
-
-                if (!currentFeaturesState[to].some(f => f.id === feature.id)) {
-                    currentFeaturesState[to].push(feature);
-                }
-            }
-            renderFeatureLists();
-        }
-
-        document.getElementById('feature-search').addEventListener('input', renderFeatureLists);
-
-        featureSelectorCancelBtn.addEventListener('click', () => {
-            featureSelectorModal.classList.add('hidden');
-            currentFeatureFieldKey = null;
-        });
-
-        featureSelectorSaveBtn.addEventListener('click', () => {
-            if (currentFeatureFieldKey) {
-                const textarea = document.getElementById(currentFeatureFieldKey);
-                const displayInput = textarea.parentElement.querySelector('input');
-
-                textarea.value = JSON.stringify(currentFeaturesState);
-
-                const grantedCount = currentFeaturesState.granted.length;
-                const recommendedCount = currentFeaturesState.recommended.length;
-                if(displayInput) displayInput.value = `Granted: ${grantedCount}, Recommended: ${recommendedCount}`;
-            }
-            featureSelectorModal.classList.add('hidden');
-        });
-
-        // --- Skill Selector Modal Logic ---
-        const skillSelectorModal = document.getElementById('skill-selector-modal');
-        const skillSelectorSaveBtn = document.getElementById('skill-selector-save-btn');
-        const skillSelectorCancelBtn = document.getElementById('skill-selector-cancel-btn');
-
-        let allSkillsCache = null;
-        let currentSkillFieldKey = null;
-        let currentSkillsState = { granted: [], selectable: [], poolPoints: 0 };
-
-        async function openSkillSelectorModal(fieldKey, currentDataString) {
-            currentSkillFieldKey = fieldKey;
-            try {
-                currentSkillsState = JSON.parse(currentDataString || '{"granted":[],"selectable":[],"poolPoints":0}');
-                if (!currentSkillsState.granted) currentSkillsState.granted = [];
-                if (!currentSkillsState.selectable) currentSkillsState.selectable = [];
-                if (!currentSkillsState.poolPoints) currentSkillsState.poolPoints = 0;
-            } catch (e) {
-                console.error("Error parsing skills data, resetting.", e);
-                currentSkillsState = { granted: [], selectable: [], poolPoints: 0 };
-            }
-
-            const availableList = document.getElementById('available-skills-list');
-            if (!allSkillsCache) {
-                availableList.innerHTML = '<div class="loader"></div>';
-                allSkillsCache = await getCollectionOptions('skills');
-            }
-
-            document.getElementById('skill-search').value = '';
-            document.getElementById('skill-pool-points').value = currentSkillsState.poolPoints;
-            renderSkillLists();
-            skillSelectorModal.classList.remove('hidden');
-        }
-
-        function renderSkillLists() {
-            const availableList = document.getElementById('available-skills-list');
-            const grantedList = document.getElementById('granted-skills-list');
-            const selectableList = document.getElementById('selectable-skills-list');
-            const searchTerm = document.getElementById('skill-search').value.toLowerCase();
-
-            availableList.innerHTML = '';
-            grantedList.innerHTML = '';
-            selectableList.innerHTML = '';
-
-            const grantedIds = new Set(currentSkillsState.granted.map(s => s.id));
-            const selectableIds = new Set(currentSkillsState.selectable.map(s => s.id));
-
-            if (allSkillsCache) {
-                allSkillsCache
-                    .filter(s => !grantedIds.has(s.id) && !selectableIds.has(s.id))
-                    .filter(s => s.name.toLowerCase().includes(searchTerm))
-                    .forEach(skill => {
-                        availableList.appendChild(createSkillItem(skill, 'available'));
-                    });
-            }
-
-            currentSkillsState.granted.forEach(skill => {
-                grantedList.appendChild(createSkillItem(skill, 'granted'));
-            });
-
-            currentSkillsState.selectable.forEach(skill => {
-                selectableList.appendChild(createSkillItem(skill, 'selectable'));
-            });
-        }
-
-        function createSkillItem(skill, type) {
-            const item = document.createElement('div');
-            item.className = 'p-2 rounded-md bg-gray-700 mb-2 flex flex-col text-sm';
-            item.dataset.skillData = JSON.stringify(skill);
-
-            const header = document.createElement('div');
-            header.className = 'flex justify-between items-center';
-            header.innerHTML = `<span>${skill.name}</span>`;
-
-            const buttons = document.createElement('div');
-            buttons.className = 'flex gap-1';
-
-            if (type === 'available') {
-                const grantBtn = document.createElement('button');
-                grantBtn.textContent = 'Grant';
-                grantBtn.className = 'btn !py-0 !px-1 !text-xs btn-primary';
-                grantBtn.onclick = () => moveSkill(skill, 'granted');
-                buttons.appendChild(grantBtn);
-
-                const selectBtn = document.createElement('button');
-                selectBtn.textContent = 'Add to Pool';
-                selectBtn.className = 'btn !py-0 !px-1 !text-xs btn-secondary';
-                selectBtn.onclick = () => moveSkill(skill, 'selectable');
-                buttons.appendChild(selectBtn);
-            } else {
-                const removeBtn = document.createElement('button');
-                removeBtn.textContent = 'Remove';
-                removeBtn.className = 'btn !py-0 !px-1 !text-xs btn-danger';
-                removeBtn.onclick = () => moveSkill(skill, 'available', type);
-                buttons.appendChild(removeBtn);
-            }
-            header.appendChild(buttons);
-            item.appendChild(header);
-
-            if (type === 'granted') {
-                const modifierInput = document.createElement('input');
-                modifierInput.type = 'number';
-                modifierInput.className = 'global-form-input !text-xs !py-1 mt-2';
-                modifierInput.placeholder = 'Modifier (e.g., +2)';
-                modifierInput.value = skill.modifier || '';
-                modifierInput.onchange = (e) => {
-                    const skillIndex = currentSkillsState.granted.findIndex(s => s.id === skill.id);
-                    if (skillIndex !== -1) {
-                        currentSkillsState.granted[skillIndex].modifier = e.target.value;
-                    }
-                };
-                item.appendChild(modifierInput);
-            }
-             if (type === 'selectable') {
-                const modifierInput = document.createElement('input');
-                modifierInput.type = 'number';
-                modifierInput.className = 'global-form-input !text-xs !py-1 mt-2';
-                modifierInput.placeholder = 'Bonus (e.g., +1)';
-                modifierInput.value = skill.bonus || '';
-                modifierInput.onchange = (e) => {
-                    const skillIndex = currentSkillsState.selectable.findIndex(s => s.id === skill.id);
-                    if (skillIndex !== -1) {
-                        currentSkillsState.selectable[skillIndex].bonus = e.target.value;
-                    }
-                };
-                item.appendChild(modifierInput);
-            }
-
-
-            return item;
-        }
-
-        function moveSkill(skill, to, from = null) {
-            if (from) {
-                currentSkillsState[from] = currentSkillsState[from].filter(s => s.id !== skill.id);
-            }
-
-            if (to !== 'available') {
-                 if (!currentSkillsState[to].some(s => s.id === skill.id)) {
-                    currentSkillsState[to].push(skill);
-                }
-            }
-            renderSkillLists();
-        }
-
-        document.getElementById('skill-search').addEventListener('input', renderSkillLists);
-        skillSelectorCancelBtn.addEventListener('click', () => {
-            skillSelectorModal.classList.add('hidden');
-            currentSkillFieldKey = null;
-        });
-
-        skillSelectorSaveBtn.addEventListener('click', () => {
-            if (currentSkillFieldKey) {
-                const textarea = document.getElementById(currentSkillFieldKey);
-                const displayInput = textarea.parentElement.querySelector('input');
-
-                currentSkillsState.poolPoints = Number(document.getElementById('skill-pool-points').value) || 0;
-                textarea.value = JSON.stringify(currentSkillsState);
-
-                const grantedCount = currentSkillsState.granted.length;
-                const selectableCount = currentSkillsState.selectable.length;
-                if(displayInput) displayInput.value = `Granted: ${grantedCount}, Selectable: ${selectableCount}, Pool: ${currentSkillsState.poolPoints}pts`;
-            }
-            skillSelectorModal.classList.add('hidden');
-        });
         
         const helpMarkdown = `
 ### **Welcome to the Tangent SFF RPG Database Manager**
@@ -1748,9 +1447,27 @@ When logged in, you can create and modify data using the **Entry Modal**.
 * **Local Backup:** Inside the modal's **DATA** menu, the "Local" submenu allows you to save the current entry's data to a JSON file on your computer or load data from such a file to populate the form.
 `;
 
-        // --- UI Elements ---
-        const mainContentContainer = document.getElementById('main-content');
-        const entryModal = document.getElementById('entry-modal');
+        document.addEventListener('DOMContentLoaded', () => {
+            const formFieldsContainer = document.getElementById('form-fields');
+            if (formFieldsContainer) {
+                formFieldsContainer.addEventListener('click', (event) => {
+                    const target = event.target;
+                    if (target.matches('input[data-selector-type]')) {
+                        const fieldKey = target.dataset.fieldKey;
+                        const collectionKey = entryForm.dataset.collectionKey;
+                        const config = getActiveConfig(collectionKey);
+                        const fieldConfig = config.fields[fieldKey];
+
+                        if (fieldConfig && fieldConfig.type === 'selector') {
+                            const data = document.getElementById(fieldKey).value;
+                            openSelectorModal(fieldConfig.selectorConfig, fieldKey, data);
+                        }
+                    }
+                });
+            }
+            // --- UI Elements ---
+            const mainContentContainer = document.getElementById('main-content');
+            const entryModal = document.getElementById('entry-modal');
         const modalTitle = document.getElementById('modal-title');
         const entryForm = document.getElementById('entry-form');
         const formFieldsContainer = document.getElementById('form-fields');
@@ -2892,7 +2609,8 @@ When logged in, you can create and modify data using the **Entry Modal**.
                 <div>
                     <input type="text" readonly value="${summaryText}"
                            class="global-form-input cursor-pointer hover:bg-gray-600"
-                           data-field-key="${fieldKey}">
+                           data-field-key="${fieldKey}"
+                           data-selector-type="${fieldConfig.type}">
                     <textarea id="${fieldKey}" name="${fieldKey}" class="hidden">${savedValue || '{}'}</textarea>
                 </div>
             `;
@@ -3977,25 +3695,6 @@ When logged in, you can create and modify data using the **Entry Modal**.
             });
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const formFieldsContainer = document.getElementById('form-fields');
-            if (formFieldsContainer) {
-                formFieldsContainer.addEventListener('click', (event) => {
-                    const target = event.target;
-                    if (target.matches('input[data-field-key]')) {
-                        const fieldKey = target.dataset.fieldKey;
-                        const collectionKey = entryForm.dataset.collectionKey;
-                        const config = getActiveConfig(collectionKey);
-                        const fieldConfig = config.fields[fieldKey];
-
-                        if (fieldConfig && fieldConfig.type === 'selector') {
-                            const data = document.getElementById(fieldKey).value;
-                            openSelectorModal(fieldConfig.selectorConfig, fieldKey, data);
-                        }
-                    }
-                });
-            }
-        });
 
         entryModal.addEventListener('click', async (event) => {
             if (event.target.classList.contains('wiki-link')) {
@@ -4203,6 +3902,7 @@ When logged in, you can create and modify data using the **Entry Modal**.
             if (inList) { html += '</ul>'; }
             return html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
         }
+    });
     </script>
 </body>
 </html>
