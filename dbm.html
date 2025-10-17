@@ -3977,18 +3977,23 @@ When logged in, you can create and modify data using the **Entry Modal**.
             });
         }
 
-        formFieldsContainer.addEventListener('click', (event) => {
-            const target = event.target;
-            if (target.matches('input[data-field-key]')) {
-                const fieldKey = target.dataset.fieldKey;
-                const collectionKey = entryForm.dataset.collectionKey;
-                const config = getActiveConfig(collectionKey);
-                const fieldConfig = config.fields[fieldKey];
+        document.addEventListener('DOMContentLoaded', () => {
+            const formFieldsContainer = document.getElementById('form-fields');
+            if (formFieldsContainer) {
+                formFieldsContainer.addEventListener('click', (event) => {
+                    const target = event.target;
+                    if (target.matches('input[data-field-key]')) {
+                        const fieldKey = target.dataset.fieldKey;
+                        const collectionKey = entryForm.dataset.collectionKey;
+                        const config = getActiveConfig(collectionKey);
+                        const fieldConfig = config.fields[fieldKey];
 
-                if (fieldConfig && fieldConfig.type === 'selector') {
-                    const data = document.getElementById(fieldKey).value;
-                    openSelectorModal(fieldConfig.selectorConfig, fieldKey, data);
-                }
+                        if (fieldConfig && fieldConfig.type === 'selector') {
+                            const data = document.getElementById(fieldKey).value;
+                            openSelectorModal(fieldConfig.selectorConfig, fieldKey, data);
+                        }
+                    }
+                });
             }
         });
 
