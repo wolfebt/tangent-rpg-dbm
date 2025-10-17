@@ -579,6 +579,25 @@
         </div>
     </div>
 
+    <div id="unified-selector-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-[70] p-4 hidden modal-backdrop">
+        <div class="modal-content w-full max-w-3xl p-6 flex flex-col max-h-[80vh]">
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="unified-selector-title" class="text-2xl font-bold">Select Items</h2>
+                <div class="flex items-center gap-2">
+                    <input type="text" id="unified-selector-search" placeholder="Search..." class="global-form-input !w-auto">
+                    <button id="unified-selector-new-btn" class="btn btn-primary">New Entry</button>
+                </div>
+            </div>
+            <div id="unified-selector-list" class="flex-grow overflow-y-auto border border-gray-700 rounded-md p-2 bg-gray-900/50">
+                <!-- Items will be dynamically inserted here -->
+            </div>
+            <div class="flex justify-end gap-4 mt-6">
+                <button id="unified-selector-cancel-btn" class="btn btn-secondary">Cancel</button>
+                <button id="unified-selector-save-btn" class="btn btn-primary">Save Selection</button>
+            </div>
+        </div>
+    </div>
+
 
     
     <input type="file" id="json-file-input" class="hidden" accept=".json">
@@ -633,6 +652,7 @@
             wikiEntries: [],
             currentWikiEntryId: null,
             activeListeners: {},
+            onNewEntrySave: null,
         };
         window.appState = appState;
         
@@ -2238,6 +2258,133 @@ When logged in, you can create and modify data using the **Entry Modal**.
             });
         }
         
+        // --- Unified Selector Modal Logic ---
+
+        let unifiedSelectorState = {
+            isOpen: false,
+            fieldKey: null,
+            fieldConfig: null,
+            isMultiSelect: false,
+            currentSelections: new Set(),
+            allItems: [],
+            onSave: null,
+        };
+
+        function renderUnifiedSelectorList(searchTerm = '') {
+            const listEl = document.getElementById('unified-selector-list');
+            listEl.innerHTML = '';
+            const lowerSearchTerm = searchTerm.toLowerCase();
+
+            const filteredItems = unifiedSelectorState.allItems.filter(item =>
+                item.name.toLowerCase().includes(lowerSearchTerm)
+            );
+
+            if (filteredItems.length === 0) {
+                listEl.innerHTML = '<div class="text-center text-gray-400 p-4">No items found.</div>';
+                return;
+            }
+
+            filteredItems.forEach(item => {
+                const isSelected = unifiedSelectorState.currentSelections.has(item.name);
+                const itemEl = document.createElement('div');
+                itemEl.className = `p-2 rounded-md cursor-pointer flex justify-between items-center ${isSelected ? 'bg-blue-800/50' : 'hover:bg-gray-700/80'}`;
+                itemEl.textContent = item.name.toUpperCase();
+                itemEl.dataset.itemName = item.name;
+
+                itemEl.addEventListener('click', () => {
+                    const itemName = item.name;
+                    if (unifiedSelectorState.isMultiSelect) {
+                        if (unifiedSelectorState.currentSelections.has(itemName)) {
+                            unifiedSelectorState.currentSelections.delete(itemName);
+                        } else {
+                            unifiedSelectorState.currentSelections.add(itemName);
+                        }
+                    } else {
+                        if (unifiedSelectorState.currentSelections.has(itemName)) {
+                            unifiedSelectorState.currentSelections.clear();
+                        } else {
+                            unifiedSelectorState.currentSelections.clear();
+                            unifiedSelectorState.currentSelections.add(itemName);
+                        }
+                    }
+                    renderUnifiedSelectorList(document.getElementById('unified-selector-search').value);
+                });
+
+                listEl.appendChild(itemEl);
+            });
+        }
+
+        async function openUnifiedSelectorModal(fieldKey, fieldConfig, currentValue, onSaveCallback) {
+            const modal = document.getElementById('unified-selector-modal');
+            const titleEl = document.getElementById('unified-selector-title');
+            const listEl = document.getElementById('unified-selector-list');
+            const searchEl = document.getElementById('unified-selector-search');
+            const newBtn = document.getElementById('unified-selector-new-btn');
+            const saveBtn = document.getElementById('unified-selector-save-btn');
+            const cancelBtn = document.getElementById('unified-selector-cancel-btn');
+
+            unifiedSelectorState = {
+                isOpen: true,
+                fieldKey,
+                fieldConfig,
+                isMultiSelect: fieldConfig.type === 'multiselect',
+                currentSelections: new Set(fieldConfig.type === 'multiselect' ? (Array.isArray(currentValue) ? currentValue : (currentValue ? currentValue.split(',') : [])) : (currentValue ? [currentValue] : [])),
+                allItems: [],
+                onSave: onSaveCallback
+            };
+
+            titleEl.textContent = `Select ${fieldConfig.label || fieldKey}`;
+            listEl.innerHTML = '<div class="loader"></div>';
+            searchEl.value = '';
+
+            modal.classList.remove('hidden');
+
+            unifiedSelectorState.allItems = await getCollectionOptions(fieldConfig.source);
+            renderUnifiedSelectorList();
+
+            searchEl.oninput = () => renderUnifiedSelectorList(searchEl.value);
+
+            cancelBtn.onclick = () => {
+                modal.classList.add('hidden');
+                unifiedSelectorState.isOpen = false;
+                 if (appState.onNewEntrySave) {
+                    appState.onNewEntrySave(null, null);
+                }
+            };
+
+            saveBtn.onclick = () => {
+                if (unifiedSelectorState.onSave) {
+                    const selection = unifiedSelectorState.isMultiSelect
+                        ? Array.from(unifiedSelectorState.currentSelections)
+                        : (unifiedSelectorState.currentSelections.size > 0 ? unifiedSelectorState.currentSelections.values().next().value : '');
+                    unifiedSelectorState.onSave(selection);
+                }
+                modal.classList.add('hidden');
+                unifiedSelectorState.isOpen = false;
+            };
+
+            newBtn.onclick = () => {
+                modal.classList.add('hidden');
+                appState.onNewEntrySave = (newDocId, newName) => {
+                    if (newDocId) {
+                       if (unifiedSelectorState.isMultiSelect) {
+                           unifiedSelectorState.currentSelections.add(newName);
+                       } else {
+                           unifiedSelectorState.currentSelections.clear();
+                           unifiedSelectorState.currentSelections.add(newName);
+                       }
+                       const updatedValue = Array.from(unifiedSelectorState.currentSelections).join(',');
+                       openUnifiedSelectorModal(fieldKey, fieldConfig, updatedValue, onSaveCallback);
+                    } else {
+                        modal.classList.remove('hidden');
+                    }
+                    appState.onNewEntrySave = null;
+                };
+                openModal(fieldConfig.source, null, {}, true);
+            };
+        }
+        window.openUnifiedSelectorModal = openUnifiedSelectorModal;
+
         // --- Form Field Creation Helpers ---
 
         function createTextField(fieldKey, savedValue, isEditMode) {
@@ -2393,30 +2540,41 @@ When logged in, you can create and modify data using the **Entry Modal**.
 
         async function createFormFieldHtml(fieldKey, fieldConfig, savedValue, collectionKey, isEditMode) {
             const labelText = (fieldConfig.label || fieldKey.replace(/_/g, ' ')).toUpperCase();
-            let labelHtml = `<label for="${fieldKey}" class="global-form-label">${labelText}</label>`;
-
-            let buttonHtml = '';
-            if (fieldConfig.manageable) {
-                buttonHtml = `<button type="button" data-manage-source="${fieldConfig.source}" class="flex items-center gap-2 text-sm font-medium mb-1 underline hover:text-white w-full justify-start global-form-label">
-                                <span>${labelText}</span>
-                              </button>`;
-                labelHtml = '';
-            }
-
-
             let fieldHtml = '';
-            switch (fieldConfig.type) {
-                case 'boolean': fieldHtml = createBooleanField(fieldKey, savedValue, isEditMode); break;
-                case 'radio': fieldHtml = createRadioField(fieldKey, fieldConfig, savedValue, isEditMode); break; 
-                case 'select': fieldHtml = await createSelectField(fieldKey, fieldConfig, savedValue, isEditMode); break;
-                case 'multiselect': fieldHtml = await createMultiselectField(fieldKey, fieldConfig, savedValue, isEditMode); break;
-                case 'json_list': fieldHtml = createJsonListField(fieldKey, savedValue, isEditMode); break;
-                case 'textarea': fieldHtml = createTextareaField(fieldKey, savedValue, isEditMode, collectionKey); break;
-                case 'readonlytext': fieldHtml = createReadonlyTextField(fieldKey, savedValue); break;
-                case 'number': fieldHtml = createNumberField(fieldKey, savedValue, isEditMode); break;
-                default: fieldHtml = createTextField(fieldKey, savedValue, isEditMode);
+
+            if (fieldConfig.manageable && isEditMode) {
+                // Special rendering for manageable fields in edit mode
+                const displayValue = Array.isArray(savedValue) ? savedValue.join(', ') : savedValue;
+                fieldHtml = `
+                    <div id="unified-display-${fieldKey}" class="global-form-input display-only-input mb-2 min-h-[40px]">${displayValue || 'None'}</div>
+                    <input type="hidden" id="${fieldKey}" name="${fieldKey}" value="${savedValue || ''}">
+                    <button type="button" class="btn btn-secondary w-full"
+                            onclick="openUnifiedSelectorModal('${fieldKey}', { type: '${fieldConfig.type}', source: '${fieldConfig.source}', label: '${labelText}' }, document.getElementById('${fieldKey}').value, (selection) => {
+                                const fieldInput = document.getElementById('${fieldKey}');
+                                const displayDiv = document.getElementById('unified-display-${fieldKey}');
+                                fieldInput.value = selection;
+                                displayDiv.textContent = Array.isArray(selection) ? selection.join(', ') : selection || 'None';
+                            })">
+                        Select ${labelText}
+                    </button>
+                `;
+                return `<div><label class="global-form-label">${labelText}</label>${fieldHtml}</div>`;
+            } else {
+                 // Fallback to original rendering for non-manageable or non-edit-mode fields
+                let labelHtml = `<label for="${fieldKey}" class="global-form-label">${labelText}</label>`;
+                switch (fieldConfig.type) {
+                    case 'boolean': fieldHtml = createBooleanField(fieldKey, savedValue, isEditMode); break;
+                    case 'radio': fieldHtml = createRadioField(fieldKey, fieldConfig, savedValue, isEditMode); break;
+                    case 'select': fieldHtml = await createSelectField(fieldKey, fieldConfig, savedValue, isEditMode); break;
+                    case 'multiselect': fieldHtml = await createMultiselectField(fieldKey, fieldConfig, savedValue, isEditMode); break;
+                    case 'json_list': fieldHtml = createJsonListField(fieldKey, savedValue, isEditMode); break;
+                    case 'textarea': fieldHtml = createTextareaField(fieldKey, savedValue, isEditMode, collectionKey); break;
+                    case 'readonlytext': fieldHtml = createReadonlyTextField(fieldKey, savedValue); break;
+                    case 'number': fieldHtml = createNumberField(fieldKey, savedValue, isEditMode); break;
+                    default: fieldHtml = createTextField(fieldKey, savedValue, isEditMode);
+                }
+                return `<div>${labelHtml}${fieldHtml}</div>`;
             }
-            return `<div>${buttonHtml || labelHtml}${fieldHtml}</div>`;
         }
         
         window.openModal = openModal;
@@ -2879,6 +3037,9 @@ When logged in, you can create and modify data using the **Entry Modal**.
 
         function closeModal(force = false) {
             const isModalOpen = !entryModal.classList.contains('hidden');
+            if (appState.onNewEntrySave) {
+                appState.onNewEntrySave(null, null); // Signal cancellation
+            }
             if (!force && isModalOpen && isFormDirty()) {
                 appState.pendingNavigation = null; /* Clear pending nav if any */
                 unsavedChangesModal.classList.remove('hidden');
@@ -2994,10 +3155,14 @@ When logged in, you can create and modify data using the **Entry Modal**.
             e.preventDefault();
             const result = await saveCurrentForm();
             if (result.success) {
-                const { collectionKey, docId, data } = result;
-                // After a successful save, always reopen the modal in edit mode for the saved document
-                closeModal(true); // Force close the current modal
-                openModal(collectionKey, docId, data, true); // Reopen with the correct data and in edit mode
+                if (appState.onNewEntrySave) {
+                    closeModal(true);
+                    appState.onNewEntrySave(result.docId, result.data.name);
+                } else {
+                    const { collectionKey, docId, data } = result;
+                    closeModal(true);
+                    openModal(collectionKey, docId, data, true);
+                }
             }
         }
         
