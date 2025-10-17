@@ -2890,7 +2890,7 @@ When logged in, you can create and modify data using the **Entry Modal**.
                 <div>
                     <input type="text" readonly value="GRANTED: ${grantedCount}, RECOMMENDED: ${recommendedCount}"
                            class="global-form-input cursor-pointer hover:bg-gray-600"
-                           onclick="openFeatureSelectorModal('${fieldKey}', document.getElementById('${fieldKey}').value)">
+                           data-field-key="${fieldKey}" data-selector-type="feature">
                     <textarea id="${fieldKey}" name="${fieldKey}" class="hidden">${savedValue || ''}</textarea>
                 </div>
             `;
@@ -2915,7 +2915,7 @@ When logged in, you can create and modify data using the **Entry Modal**.
                 <div>
                     <input type="text" readonly value="GRANTED: ${grantedCount}, SELECTABLE: ${selectableCount}, POOL: ${poolPoints}pts"
                            class="global-form-input cursor-pointer hover:bg-gray-600"
-                           onclick="openSkillSelectorModal('${fieldKey}', document.getElementById('${fieldKey}').value)">
+                           data-field-key="${fieldKey}" data-selector-type="skill">
                     <textarea id="${fieldKey}" name="${fieldKey}" class="hidden">${savedValue || ''}</textarea>
                 </div>
             `;
@@ -3048,6 +3048,22 @@ When logged in, you can create and modify data using the **Entry Modal**.
             }));
 
             formFieldsContainer.innerHTML = formHtml.join('');
+
+            formFieldsContainer.querySelectorAll('input[data-selector-type="feature"]').forEach(input => {
+                input.addEventListener('click', () => {
+                    const fieldKey = input.dataset.fieldKey;
+                    const featureData = document.getElementById(fieldKey).value;
+                    openFeatureSelectorModal(fieldKey, featureData);
+                });
+            });
+
+            formFieldsContainer.querySelectorAll('input[data-selector-type="skill"]').forEach(input => {
+                input.addEventListener('click', () => {
+                    const fieldKey = input.dataset.fieldKey;
+                    const skillData = document.getElementById(fieldKey).value;
+                    openSkillSelectorModal(fieldKey, skillData);
+                });
+            });
 
             const creatorInfo = document.getElementById('creator-info');
             if (data.creatorEmail) {
