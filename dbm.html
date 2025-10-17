@@ -653,6 +653,68 @@
         <div class="modal-content w-full max-w-3xl p-8 max-h-[90vh] flex flex-col">
             <h2 class="text-2xl font-bold mb-6 text-center">AI Assistant</h2>
 
+    <div id="feature-selector-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-[90] p-4 hidden modal-backdrop">
+        <div class="modal-content w-full max-w-6xl p-8 max-h-[90vh] flex flex-col">
+            <h2 class="text-2xl font-bold mb-6 text-center">Manage Species Features</h2>
+            <div class="grid grid-cols-3 gap-4 flex-grow">
+                <!-- Available Features -->
+                <div class="bg-gray-800 p-4 rounded-lg flex flex-col">
+                    <h3 class="text-lg font-bold mb-2">Available Features</h3>
+                    <input type="text" id="feature-search" class="global-form-input mb-2" placeholder="Search features...">
+                    <div id="available-features-list" class="flex-grow overflow-y-auto"></div>
+                </div>
+                <!-- Granted Features -->
+                <div class="bg-gray-800 p-4 rounded-lg flex flex-col">
+                    <h3 class="text-lg font-bold mb-2">Granted Features</h3>
+                    <div id="granted-features-list" class="flex-grow overflow-y-auto min-h-[200px]"></div>
+                </div>
+                <!-- Recommended Features -->
+                <div class="bg-gray-800 p-4 rounded-lg flex flex-col">
+                    <h3 class="text-lg font-bold mb-2">Recommended Features (-1 CP, Min 1)</h3>
+                    <div id="recommended-features-list" class="flex-grow overflow-y-auto min-h-[200px]"></div>
+                </div>
+            </div>
+            <div class="flex justify-end gap-4 mt-8">
+                <button id="feature-selector-cancel-btn" class="btn btn-secondary">Cancel</button>
+                <button id="feature-selector-save-btn" class="btn btn-primary">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="skill-selector-modal" class="fixed inset-0 overflow-y-auto h-full w-full flex items-center justify-center z-[90] p-4 hidden modal-backdrop">
+        <div class="modal-content w-full max-w-6xl p-8 max-h-[90vh] flex flex-col">
+            <h2 class="text-2xl font-bold mb-6 text-center">Manage Species Skills</h2>
+            <div class="grid grid-cols-3 gap-4 flex-grow">
+                <!-- Available Skills -->
+                <div class="bg-gray-800 p-4 rounded-lg flex flex-col">
+                    <h3 class="text-lg font-bold mb-2">Available Skills</h3>
+                    <input type="text" id="skill-search" class="global-form-input mb-2" placeholder="Search skills...">
+                    <div id="available-skills-list" class="flex-grow overflow-y-auto"></div>
+                </div>
+                <!-- Granted Skills -->
+                <div class="bg-gray-800 p-4 rounded-lg flex flex-col">
+                    <h3 class="text-lg font-bold mb-2">Granted Skills</h3>
+                    <div id="granted-skills-list" class="flex-grow overflow-y-auto min-h-[200px]"></div>
+                </div>
+                <!-- Selectable Skills -->
+                <div class="bg-gray-800 p-4 rounded-lg flex flex-col">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-lg font-bold">Selectable Skills Pool</h3>
+                        <div class="flex items-center gap-2">
+                            <label for="skill-pool-points" class="text-sm">Points:</label>
+                            <input type="number" id="skill-pool-points" class="global-form-input !w-20" value="0">
+                        </div>
+                    </div>
+                    <div id="selectable-skills-list" class="flex-grow overflow-y-auto min-h-[200px]"></div>
+                </div>
+            </div>
+            <div class="flex justify-end gap-4 mt-8">
+                <button id="skill-selector-cancel-btn" class="btn btn-secondary">Cancel</button>
+                <button id="skill-selector-save-btn" class="btn btn-primary">Save</button>
+            </div>
+        </div>
+    </div>
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
                     <label for="ai-target-field" class="global-form-label">Target Field</label>
@@ -852,12 +914,14 @@
                     size: { type: 'multiselect', source: 'species_size', manageable: true },
                     movement: { type: 'multiselect', source: 'species_movement', manageable: true },
                     modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                    features: { type: 'feature_selector', label: 'Features' },
+                    skills: { type: 'skill_selector', label: 'Skills' },
                     note: { type: 'textarea' },
                     cp: { type: 'readonlytext', label: 'CP' }
                 },
                 subcategories: {
-                    species_type: { 
-                        label: 'TYPES', 
+                    species_type: {
+                        label: 'TYPES',
                         directory_columns: ['name', 'description', 'modifier'],
                         fields: { 
                             name: { type:'text', required: true},
@@ -1356,8 +1420,310 @@
             'attitude', 'social_strengths', 'social_weaknesses', 'society', 'goals',
             'component', 'integration',
             'special',
-            'modes', 'note', 'parent', 'order' 
+            'modes', 'note', 'parent', 'order'
         ];
+
+        // --- Feature Selector Modal Logic ---
+        const featureSelectorModal = document.getElementById('feature-selector-modal');
+        const featureSelectorSaveBtn = document.getElementById('feature-selector-save-btn');
+        const featureSelectorCancelBtn = document.getElementById('feature-selector-cancel-btn');
+
+        let allFeaturesCache = null; // Cache all features to avoid repeated DB calls
+        let currentFeatureFieldKey = null; // Which field on the main form we are editing
+        let currentFeaturesState = { granted: [], recommended: [] }; // The state of the modal
+
+        async function openFeatureSelectorModal(fieldKey, currentDataString) {
+            currentFeatureFieldKey = fieldKey;
+            try {
+                currentFeaturesState = JSON.parse(currentDataString || '{"granted":[],"recommended":[]}');
+                if (!currentFeaturesState.granted) currentFeaturesState.granted = [];
+                if (!currentFeaturesState.recommended) currentFeaturesState.recommended = [];
+            } catch (e) {
+                console.error("Error parsing features data, resetting.", e);
+                currentFeaturesState = { granted: [], recommended: [] };
+            }
+
+            const availableList = document.getElementById('available-features-list');
+            if (!allFeaturesCache) {
+                availableList.innerHTML = '<div class="loader"></div>';
+                allFeaturesCache = await getCollectionOptions('features');
+            }
+
+            document.getElementById('feature-search').value = '';
+            renderFeatureLists();
+            featureSelectorModal.classList.remove('hidden');
+        }
+
+        function renderFeatureLists() {
+            const availableList = document.getElementById('available-features-list');
+            const grantedList = document.getElementById('granted-features-list');
+            const recommendedList = document.getElementById('recommended-features-list');
+            const searchTerm = document.getElementById('feature-search').value.toLowerCase();
+
+            availableList.innerHTML = '';
+            grantedList.innerHTML = '';
+            recommendedList.innerHTML = '';
+
+            const grantedIds = new Set(currentFeaturesState.granted.map(f => f.id));
+            const recommendedIds = new Set(currentFeaturesState.recommended.map(f => f.id));
+
+            if(allFeaturesCache) {
+                allFeaturesCache
+                    .filter(f => !grantedIds.has(f.id) && !recommendedIds.has(f.id))
+                    .filter(f => f.name.toLowerCase().includes(searchTerm))
+                    .forEach(feature => {
+                        availableList.appendChild(createFeatureItem(feature, 'available'));
+                    });
+            }
+
+            currentFeaturesState.granted.forEach(feature => {
+                grantedList.appendChild(createFeatureItem(feature, 'granted'));
+            });
+
+            currentFeaturesState.recommended.forEach(feature => {
+                recommendedList.appendChild(createFeatureItem(feature, 'recommended'));
+            });
+        }
+
+        function createFeatureItem(feature, type) {
+            const item = document.createElement('div');
+            item.className = 'p-2 rounded-md bg-gray-700 mb-2 flex justify-between items-center text-sm';
+            item.dataset.featureData = JSON.stringify(feature);
+
+            const cp = feature.cp ? Number(feature.cp) : 0;
+            const recommendedCp = Math.max(1, cp - 1);
+            const cpText = type === 'recommended' ? `(Cost: <s class="text-red-400">${cp}</s> ${recommendedCp} CP)` : `(Cost: ${cp} CP)`;
+
+            item.innerHTML = `<span>${feature.name} <span class="text-xs text-gray-400">${cpText}</span></span>`;
+
+            const buttons = document.createElement('div');
+            buttons.className = 'flex gap-1';
+
+            if (type === 'available') {
+                const grantBtn = document.createElement('button');
+                grantBtn.textContent = 'Grant';
+                grantBtn.className = 'btn !py-0 !px-1 !text-xs btn-primary';
+                grantBtn.onclick = () => moveFeature(feature, 'granted');
+                buttons.appendChild(grantBtn);
+
+                const recommendBtn = document.createElement('button');
+                recommendBtn.textContent = 'Recommend';
+                recommendBtn.className = 'btn !py-0 !px-1 !text-xs btn-secondary';
+                recommendBtn.onclick = () => moveFeature(feature, 'recommended');
+                buttons.appendChild(recommendBtn);
+            } else {
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = 'Remove';
+                removeBtn.className = 'btn !py-0 !px-1 !text-xs btn-danger';
+                removeBtn.onclick = () => moveFeature(feature, 'available', type);
+                buttons.appendChild(removeBtn);
+            }
+
+            item.appendChild(buttons);
+            return item;
+        }
+
+        function moveFeature(feature, to, from = null) {
+            if (from) {
+                currentFeaturesState[from] = currentFeaturesState[from].filter(f => f.id !== feature.id);
+            }
+
+            if (to !== 'available') {
+                const otherList = to === 'granted' ? 'recommended' : 'granted';
+                currentFeaturesState[otherList] = currentFeaturesState[otherList].filter(f => f.id !== feature.id);
+
+                if (!currentFeaturesState[to].some(f => f.id === feature.id)) {
+                    currentFeaturesState[to].push(feature);
+                }
+            }
+            renderFeatureLists();
+        }
+
+        document.getElementById('feature-search').addEventListener('input', renderFeatureLists);
+
+        featureSelectorCancelBtn.addEventListener('click', () => {
+            featureSelectorModal.classList.add('hidden');
+            currentFeatureFieldKey = null;
+        });
+
+        featureSelectorSaveBtn.addEventListener('click', () => {
+            if (currentFeatureFieldKey) {
+                const textarea = document.getElementById(currentFeatureFieldKey);
+                const displayInput = textarea.parentElement.querySelector('input');
+
+                textarea.value = JSON.stringify(currentFeaturesState);
+
+                const grantedCount = currentFeaturesState.granted.length;
+                const recommendedCount = currentFeaturesState.recommended.length;
+                if(displayInput) displayInput.value = `Granted: ${grantedCount}, Recommended: ${recommendedCount}`;
+            }
+            featureSelectorModal.classList.add('hidden');
+        });
+
+        // --- Skill Selector Modal Logic ---
+        const skillSelectorModal = document.getElementById('skill-selector-modal');
+        const skillSelectorSaveBtn = document.getElementById('skill-selector-save-btn');
+        const skillSelectorCancelBtn = document.getElementById('skill-selector-cancel-btn');
+
+        let allSkillsCache = null;
+        let currentSkillFieldKey = null;
+        let currentSkillsState = { granted: [], selectable: [], poolPoints: 0 };
+
+        async function openSkillSelectorModal(fieldKey, currentDataString) {
+            currentSkillFieldKey = fieldKey;
+            try {
+                currentSkillsState = JSON.parse(currentDataString || '{"granted":[],"selectable":[],"poolPoints":0}');
+                if (!currentSkillsState.granted) currentSkillsState.granted = [];
+                if (!currentSkillsState.selectable) currentSkillsState.selectable = [];
+                if (!currentSkillsState.poolPoints) currentSkillsState.poolPoints = 0;
+            } catch (e) {
+                console.error("Error parsing skills data, resetting.", e);
+                currentSkillsState = { granted: [], selectable: [], poolPoints: 0 };
+            }
+
+            const availableList = document.getElementById('available-skills-list');
+            if (!allSkillsCache) {
+                availableList.innerHTML = '<div class="loader"></div>';
+                allSkillsCache = await getCollectionOptions('skills');
+            }
+
+            document.getElementById('skill-search').value = '';
+            document.getElementById('skill-pool-points').value = currentSkillsState.poolPoints;
+            renderSkillLists();
+            skillSelectorModal.classList.remove('hidden');
+        }
+
+        function renderSkillLists() {
+            const availableList = document.getElementById('available-skills-list');
+            const grantedList = document.getElementById('granted-skills-list');
+            const selectableList = document.getElementById('selectable-skills-list');
+            const searchTerm = document.getElementById('skill-search').value.toLowerCase();
+
+            availableList.innerHTML = '';
+            grantedList.innerHTML = '';
+            selectableList.innerHTML = '';
+
+            const grantedIds = new Set(currentSkillsState.granted.map(s => s.id));
+            const selectableIds = new Set(currentSkillsState.selectable.map(s => s.id));
+
+            if (allSkillsCache) {
+                allSkillsCache
+                    .filter(s => !grantedIds.has(s.id) && !selectableIds.has(s.id))
+                    .filter(s => s.name.toLowerCase().includes(searchTerm))
+                    .forEach(skill => {
+                        availableList.appendChild(createSkillItem(skill, 'available'));
+                    });
+            }
+
+            currentSkillsState.granted.forEach(skill => {
+                grantedList.appendChild(createSkillItem(skill, 'granted'));
+            });
+
+            currentSkillsState.selectable.forEach(skill => {
+                selectableList.appendChild(createSkillItem(skill, 'selectable'));
+            });
+        }
+
+        function createSkillItem(skill, type) {
+            const item = document.createElement('div');
+            item.className = 'p-2 rounded-md bg-gray-700 mb-2 flex flex-col text-sm';
+            item.dataset.skillData = JSON.stringify(skill);
+
+            const header = document.createElement('div');
+            header.className = 'flex justify-between items-center';
+            header.innerHTML = `<span>${skill.name}</span>`;
+
+            const buttons = document.createElement('div');
+            buttons.className = 'flex gap-1';
+
+            if (type === 'available') {
+                const grantBtn = document.createElement('button');
+                grantBtn.textContent = 'Grant';
+                grantBtn.className = 'btn !py-0 !px-1 !text-xs btn-primary';
+                grantBtn.onclick = () => moveSkill(skill, 'granted');
+                buttons.appendChild(grantBtn);
+
+                const selectBtn = document.createElement('button');
+                selectBtn.textContent = 'Add to Pool';
+                selectBtn.className = 'btn !py-0 !px-1 !text-xs btn-secondary';
+                selectBtn.onclick = () => moveSkill(skill, 'selectable');
+                buttons.appendChild(selectBtn);
+            } else {
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = 'Remove';
+                removeBtn.className = 'btn !py-0 !px-1 !text-xs btn-danger';
+                removeBtn.onclick = () => moveSkill(skill, 'available', type);
+                buttons.appendChild(removeBtn);
+            }
+            header.appendChild(buttons);
+            item.appendChild(header);
+
+            if (type === 'granted') {
+                const modifierInput = document.createElement('input');
+                modifierInput.type = 'number';
+                modifierInput.className = 'global-form-input !text-xs !py-1 mt-2';
+                modifierInput.placeholder = 'Modifier (e.g., +2)';
+                modifierInput.value = skill.modifier || '';
+                modifierInput.onchange = (e) => {
+                    const skillIndex = currentSkillsState.granted.findIndex(s => s.id === skill.id);
+                    if (skillIndex !== -1) {
+                        currentSkillsState.granted[skillIndex].modifier = e.target.value;
+                    }
+                };
+                item.appendChild(modifierInput);
+            }
+             if (type === 'selectable') {
+                const modifierInput = document.createElement('input');
+                modifierInput.type = 'number';
+                modifierInput.className = 'global-form-input !text-xs !py-1 mt-2';
+                modifierInput.placeholder = 'Bonus (e.g., +1)';
+                modifierInput.value = skill.bonus || '';
+                modifierInput.onchange = (e) => {
+                    const skillIndex = currentSkillsState.selectable.findIndex(s => s.id === skill.id);
+                    if (skillIndex !== -1) {
+                        currentSkillsState.selectable[skillIndex].bonus = e.target.value;
+                    }
+                };
+                item.appendChild(modifierInput);
+            }
+
+
+            return item;
+        }
+
+        function moveSkill(skill, to, from = null) {
+            if (from) {
+                currentSkillsState[from] = currentSkillsState[from].filter(s => s.id !== skill.id);
+            }
+
+            if (to !== 'available') {
+                 if (!currentSkillsState[to].some(s => s.id === skill.id)) {
+                    currentSkillsState[to].push(skill);
+                }
+            }
+            renderSkillLists();
+        }
+
+        document.getElementById('skill-search').addEventListener('input', renderSkillLists);
+        skillSelectorCancelBtn.addEventListener('click', () => {
+            skillSelectorModal.classList.add('hidden');
+            currentSkillFieldKey = null;
+        });
+
+        skillSelectorSaveBtn.addEventListener('click', () => {
+            if (currentSkillFieldKey) {
+                const textarea = document.getElementById(currentSkillFieldKey);
+                const displayInput = textarea.parentElement.querySelector('input');
+
+                currentSkillsState.poolPoints = Number(document.getElementById('skill-pool-points').value) || 0;
+                textarea.value = JSON.stringify(currentSkillsState);
+
+                const grantedCount = currentSkillsState.granted.length;
+                const selectableCount = currentSkillsState.selectable.length;
+                if(displayInput) displayInput.value = `Granted: ${grantedCount}, Selectable: ${selectableCount}, Pool: ${currentSkillsState.poolPoints}pts`;
+            }
+            skillSelectorModal.classList.add('hidden');
+        });
         
         const helpMarkdown = `
 ### **Welcome to the Tangent SFF RPG Database Manager**
@@ -2507,6 +2873,54 @@ When logged in, you can create and modify data using the **Entry Modal**.
             return `<input type="text" id="${fieldKey}" name="${fieldKey}" value="${savedValue || 0}" class="global-form-input cursor-not-allowed display-only-input" readonly>`;
         }
 
+        function createFeatureSelectorField(fieldKey, savedValue, isEditMode) {
+            let grantedCount = 0;
+            let recommendedCount = 0;
+            try {
+                const parsed = JSON.parse(savedValue || '{}');
+                grantedCount = (parsed.granted || []).length;
+                recommendedCount = (parsed.recommended || []).length;
+            } catch { /* ignore */ }
+
+            if (!isEditMode) {
+                return `<div class="global-form-input display-only-input">GRANTED: ${grantedCount}, RECOMMENDED: ${recommendedCount}</div>`;
+            }
+
+            return `
+                <div>
+                    <input type="text" readonly value="GRANTED: ${grantedCount}, RECOMMENDED: ${recommendedCount}"
+                           class="global-form-input cursor-pointer hover:bg-gray-600"
+                           onclick="openFeatureSelectorModal('${fieldKey}', document.getElementById('${fieldKey}').value)">
+                    <textarea id="${fieldKey}" name="${fieldKey}" class="hidden">${savedValue || ''}</textarea>
+                </div>
+            `;
+        }
+
+        function createSkillSelectorField(fieldKey, savedValue, isEditMode) {
+            let grantedCount = 0;
+            let selectableCount = 0;
+            let poolPoints = 0;
+            try {
+                const parsed = JSON.parse(savedValue || '{}');
+                grantedCount = (parsed.granted || []).length;
+                selectableCount = (parsed.selectable || []).length;
+                poolPoints = parsed.poolPoints || 0;
+            } catch { /* ignore */ }
+
+            if (!isEditMode) {
+                return `<div class="global-form-input display-only-input">GRANTED: ${grantedCount}, SELECTABLE: ${selectableCount}, POOL: ${poolPoints}pts</div>`;
+            }
+
+            return `
+                <div>
+                    <input type="text" readonly value="GRANTED: ${grantedCount}, SELECTABLE: ${selectableCount}, POOL: ${poolPoints}pts"
+                           class="global-form-input cursor-pointer hover:bg-gray-600"
+                           onclick="openSkillSelectorModal('${fieldKey}', document.getElementById('${fieldKey}').value)">
+                    <textarea id="${fieldKey}" name="${fieldKey}" class="hidden">${savedValue || ''}</textarea>
+                </div>
+            `;
+        }
+
         async function createFormFieldHtml(fieldKey, fieldConfig, savedValue, collectionKey, isEditMode) {
             const labelText = (fieldConfig.label || fieldKey.replace(/_/g, ' ')).toUpperCase();
             let labelHtml = `<label for="${fieldKey}" class="global-form-label">${labelText}</label>`;
@@ -2541,6 +2955,8 @@ When logged in, you can create and modify data using the **Entry Modal**.
                 case 'textarea': fieldHtml = createTextareaField(fieldKey, savedValue, isEditMode, collectionKey); break;
                 case 'readonlytext': fieldHtml = createReadonlyTextField(fieldKey, savedValue); break;
                 case 'number': fieldHtml = createNumberField(fieldKey, savedValue, isEditMode); break;
+                case 'feature_selector': fieldHtml = createFeatureSelectorField(fieldKey, savedValue, isEditMode); break;
+                case 'skill_selector': fieldHtml = createSkillSelectorField(fieldKey, savedValue, isEditMode); break;
                 default: fieldHtml = createTextField(fieldKey, savedValue, isEditMode);
             }
             return `<div>${buttonHtml || labelHtml}${fieldHtml}</div>`;
@@ -2549,10 +2965,14 @@ When logged in, you can create and modify data using the **Entry Modal**.
         window.openModal = openModal;
         function getSingularLabel(label) {
             if (!label) return '';
-            if (label.toUpperCase().endsWith('IES')) {
+            const upperLabel = label.toUpperCase();
+            if (upperLabel === 'SPECIES') {
+                return 'SPECIES';
+            }
+            if (upperLabel.endsWith('IES')) {
                 return label.slice(0, -3) + 'Y';
             }
-            if (label.toUpperCase().endsWith('S')) {
+            if (upperLabel.endsWith('S')) {
                 return label.slice(0, -1);
             }
             return label;
