@@ -767,20 +767,22 @@ function renderTableView(collectionKey, title, container, parentCategoryKey = nu
     appState.searchTerm = '';
 
     container.innerHTML = `
-        <div class="flex flex-col sm:flex-row justify-between sm:items-center my-4 gap-4">
-            <div class="flex-grow min-w-0">
-                <h2 id="table-title-${collectionKey}" class="text-3xl font-bold truncate uppercase">${title}</h2>
+        <div class="table-view-container">
+            <div class="flex flex-col sm:flex-row justify-between sm:items-center my-4 gap-4">
+                <div class="flex-grow min-w-0">
+                    <h2 id="table-title-${collectionKey}" class="text-3xl font-bold truncate uppercase">${title}</h2>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="text" id="search-input-${collectionKey}" placeholder="Search by name..." class="global-form-input !w-auto" value="" autocomplete="new-password">
+                    <button id="add-new-btn-${collectionKey}" class="btn btn-primary auth-required hidden">ADD NEW</button>
+                </div>
             </div>
-            <div class="flex items-center gap-2">
-                <input type="text" id="search-input-${collectionKey}" placeholder="Search by name..." class="global-form-input !w-auto" value="" autocomplete="new-password">
-                <button id="add-new-btn-${collectionKey}" class="btn btn-primary auth-required hidden">ADD NEW</button>
+            <div class="shadow-lg rounded-lg overflow-x-auto">
+                <table class="data-table min-w-full">
+                    <thead id="table-header-${collectionKey}"></thead>
+                    <tbody id="table-body-${collectionKey}"></tbody>
+                </table>
             </div>
-        </div>
-        <div class="shadow-lg rounded-lg overflow-x-auto">
-            <table class="data-table min-w-full">
-                <thead id="table-header-${collectionKey}"></thead>
-                <tbody id="table-body-${collectionKey}"></tbody>
-            </table>
         </div>
     `;
 

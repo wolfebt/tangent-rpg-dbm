@@ -500,11 +500,11 @@ label {
     border-right: 1px solid var(--border-blue) !important;
 }
 
-#main-content > * {
+.table-view-container {
     border: 1px solid var(--border-blue);
     border-radius: 0.75rem;
     overflow: hidden;
-    height: 100%;
+    padding: 1rem;
 }
 
 #wiki-directory-list a.active {
