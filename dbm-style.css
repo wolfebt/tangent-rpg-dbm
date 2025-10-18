@@ -464,7 +464,6 @@ label {
     padding: 0.5rem 1rem;
     border-radius: 0.5rem;
     background-color: var(--glass-bg);
-    border: 1px solid var(--border-blue);
     margin-bottom: 0.25rem;
     transition: background-color 0.2s;
 }
@@ -474,7 +473,23 @@ label {
 }
 
 #wiki-content-main {
-    border: 1px solid var(--border-blue);
     padding: 1.5rem;
-    border-radius: 0.5rem;
+}
+
+/* Add a border around the entire wiki container */
+#main-content > .flex {
+    border: 1px solid var(--border-blue);
+    border-radius: 0.75rem;
+    overflow: hidden;
+}
+
+#wiki-directory-main {
+    border-right: 1px solid var(--border-blue) !important;
+}
+
+#wiki-directory-list a.active {
+    background-color: #63b3ed; /* New bright blue background */
+    color: var(--dark-bg); /* Changed for better contrast */
+    border-color: #63b3ed; /* Match background color */
+    box-shadow: 0 0 20px var(--accent-green);
 }
