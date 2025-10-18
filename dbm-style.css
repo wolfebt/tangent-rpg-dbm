@@ -140,7 +140,6 @@ body {
     flex-grow: 1;
     /* Added for smooth transition effect */
     overflow: hidden;
-    border-right: 1px solid var(--border-blue);
 }
 
 /* Glass Panel Style - a key part of the sci-fi aesthetic */
@@ -192,10 +191,10 @@ body {
 .sidebar-tab.active::after {
     content: '';
     position: absolute;
-    right: -26px;
+    right: -25px;
     top: 50%;
     transform: translateY(-50%);
-    width: 25px;
+    width: 24px;
     height: 2px;
     background-color: var(--border-blue);
 }
@@ -499,6 +498,13 @@ label {
 
 #wiki-directory-main {
     border-right: 1px solid var(--border-blue) !important;
+}
+
+#main-content > * {
+    border: 1px solid var(--border-blue);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    height: 100%;
 }
 
 #wiki-directory-list a.active {
