@@ -1280,8 +1280,10 @@ function renderCategoryView(categoryKey) {
                 <div class="flex-grow p-6 overflow-y-auto">
                     <div class="wiki-content prose prose-invert max-w-none" id="wiki-content-main">
                         <div class="flex justify-end gap-2 mb-4">
-                            <button id="wiki-edit-btn" class="btn btn-secondary hidden">Edit</button>
-                            <button id="wiki-delete-btn" class="btn btn-danger hidden">Delete</button>
+                            <div class="file-menu">
+                                <button id="wiki-data-btn" class="file-menu-button hidden">DATA</button>
+                                <div id="wiki-data-dropdown" class="file-menu-dropdown"></div>
+                            </div>
                         </div>
                         <h2 id="wiki-entry-title">Select an Entry</h2>
                         <div id="wiki-entry-body">
@@ -1294,19 +1296,6 @@ function renderCategoryView(categoryKey) {
 
          document.getElementById('add-wiki-entry-btn').addEventListener('click', () => openModal('rules_codex', null, {}, true));
 
-         document.getElementById('wiki-edit-btn').addEventListener('click', () => {
-            if (appState.currentWikiEntryId) {
-                const entry = appState.wikiEntries.find(e => e.id === appState.currentWikiEntryId);
-                if (entry) {
-                    openModal('rules_codex', entry.id, entry, appState.devMode);
-                }
-            }
-        });
-        document.getElementById('wiki-delete-btn').addEventListener('click', () => {
-            if (appState.currentWikiEntryId) {
-                deleteEntry('rules_codex', appState.currentWikiEntryId);
-            }
-        });
         listenForWikiEntries();
 
     } else if (config.viewType === 'guide') {
@@ -1382,15 +1371,16 @@ async function renderWikiDirectory(container, entries, parent = null, level = 0)
 async function displayWikiEntry(docId) {
     const wikiTitle = document.getElementById('wiki-entry-title');
     const wikiBody = document.getElementById('wiki-entry-body');
-    const wikiEditBtn = document.getElementById('wiki-edit-btn');
-    const wikiDeleteBtn = document.getElementById('wiki-delete-btn');
+    const wikiDataBtn = document.getElementById('wiki-data-btn');
+    const wikiDataDropdown = document.getElementById('wiki-data-dropdown');
 
-    if(!wikiTitle || !wikiBody) return;
+    if (!wikiTitle || !wikiBody || !wikiDataBtn || !wikiDataDropdown) return;
 
     wikiTitle.textContent = 'Loading...';
     wikiBody.innerHTML = '<p class="text-center text-gray-400">Loading entry...</p>';
-    if(wikiEditBtn) wikiEditBtn.classList.add('hidden');
-    if(wikiDeleteBtn) wikiDeleteBtn.classList.add('hidden');
+    wikiDataBtn.classList.add('hidden');
+    wikiDataDropdown.classList.remove('show');
+    wikiDataDropdown.innerHTML = '';
     appState.currentWikiEntryId = null;
 
     try {
@@ -1411,11 +1401,36 @@ async function displayWikiEntry(docId) {
             wikiBody.innerHTML = contentHtml;
             appState.currentWikiEntryId = docId;
 
-            if (hasPermission('edit', entry)) {
-                if(wikiEditBtn) wikiEditBtn.classList.remove('hidden');
-            }
-             if (hasPermission('delete', entry)) {
-                if(wikiDeleteBtn) wikiDeleteBtn.classList.remove('hidden');
+            const canEdit = hasPermission('edit', entry);
+            const canDelete = hasPermission('delete', entry);
+
+            if (canEdit || canDelete) {
+                wikiDataBtn.classList.remove('hidden');
+
+                if (canEdit) {
+                    const editButton = document.createElement('button');
+                    editButton.textContent = 'Edit';
+                    editButton.addEventListener('click', () => {
+                        openModal('rules_codex', entry.id, entry, appState.devMode);
+                    });
+                    wikiDataDropdown.appendChild(editButton);
+                }
+
+                if (canDelete) {
+                    const deleteButton = document.createElement('button');
+                    deleteButton.textContent = 'Delete';
+                    deleteButton.className = 'text-red-400 hover:bg-red-800';
+                    deleteButton.addEventListener('click', () => {
+                        deleteEntry('rules_codex', entry.id);
+                    });
+                    wikiDataDropdown.appendChild(deleteButton);
+                }
+
+                wikiDataBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    wikiDataDropdown.classList.toggle('show');
+                };
+
             }
 
         } else {
@@ -2001,10 +2016,14 @@ async function createFormFieldHtml(fieldKey, fieldConfig, savedValue, collection
 window.openModal = openModal;
 function getSingularLabel(label) {
     if (!label) return '';
-    if (label.toUpperCase().endsWith('IES')) {
+    const upperLabel = label.toUpperCase();
+    if (upperLabel === 'SPECIES') {
+        return 'Species';
+    }
+    if (upperLabel.endsWith('IES')) {
         return label.slice(0, -3) + 'Y';
     }
-    if (label.toUpperCase().endsWith('S')) {
+    if (upperLabel.endsWith('S')) {
         return label.slice(0, -1);
     }
     return label;
@@ -2765,6 +2784,12 @@ window.addEventListener('click', (event) => {
     const modalDataDropdown = document.getElementById('modal-data-dropdown');
     if (modalDataBtn && modalDataDropdown && !modalDataBtn.contains(event.target) && !modalDataDropdown.contains(event.target)) {
         modalDataDropdown.classList.remove('show');
+    }
+
+    const wikiDataBtnInContent = document.getElementById('wiki-data-btn');
+    const wikiDataDropdownInContent = document.getElementById('wiki-data-dropdown');
+    if (wikiDataBtnInContent && wikiDataDropdownInContent && !wikiDataBtnInContent.contains(event.target) && !wikiDataDropdownInContent.contains(event.target)) {
+        wikiDataDropdownInContent.classList.remove('show');
     }
 });
 

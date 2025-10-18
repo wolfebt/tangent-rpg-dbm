@@ -12,6 +12,7 @@
     --accent-green: #0D5C63; /* New Dark Green */
     --accent-red: #F87171; /* Red for missing key */
     --font-main: 'Inter', sans-serif;
+    --border-blue: #63b3ed; /* Thin blue line for frames */
 }
 
 /* Utility Classes */
@@ -339,10 +340,7 @@ label {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border-radius: 0.75rem;
-    border-width: 1px;
-    border-style: solid;
-    border-image-slice: 1;
-    border-image-source: linear-gradient(to bottom right, var(--accent-green), var(--accent-blue));
+    border: 1px solid var(--border-blue); /* Thin blue border */
     box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2), inset 0 0 15px rgba(13, 92, 99, 0.2);
 }
 
@@ -384,10 +382,7 @@ label {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border-radius: 0.75rem;
-    border-width: 1px;
-    border-style: solid;
-    border-image-slice: 1;
-    border-image-source: linear-gradient(to bottom right, var(--accent-green), var(--accent-blue));
+    border: 1px solid var(--border-blue); /* Thin blue border */
     box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2), inset 0 0 15px rgba(13, 92, 99, 0.2);
 }
 
@@ -436,8 +431,14 @@ label {
 
 .global-form-input:focus, .global-form-select:focus, .global-form-textarea:focus {
     outline: none;
-    border-color: var(--accent-blue);
-    box-shadow: 0 0 10px rgba(10, 36, 99, 0.3);
+    border-color: var(--border-blue);
+    box-shadow: 0 0 10px rgba(99, 179, 237, 0.3);
+}
+
+.data-table {
+    border: 1px solid var(--border-blue);
+    border-radius: 0.75rem;
+    overflow: hidden;
 }
 
 /* Custom arrow for select elements */
