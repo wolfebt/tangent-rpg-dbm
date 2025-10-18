@@ -436,8 +436,8 @@ label {
 
 .global-form-input, .global-form-select, .global-form-textarea {
     width: 100%;
-    background-color: var(--dark-bg);
-    border: 1px solid #30363d;
+    background-color: rgba(13, 17, 23, 0.9); /* 90% opaque dark background */
+    border: 1px solid var(--border-blue); /* Use standard blue for border */
     border-radius: 8px;
     padding: 0.75rem;
     color: var(--light-text);
@@ -450,7 +450,7 @@ label {
 .global-form-input:focus, .global-form-select:focus, .global-form-textarea:focus {
     outline: none;
     border-color: var(--border-blue);
-    box-shadow: 0 0 10px rgba(99, 179, 237, 0.3);
+    box-shadow: 0 0 15px rgba(99, 179, 237, 0.6); /* Enhanced blue glow */
 }
 
 .data-table {
