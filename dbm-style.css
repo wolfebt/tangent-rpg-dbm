@@ -463,7 +463,8 @@ label {
     display: block;
     padding: 0.5rem 1rem;
     border-radius: 0.5rem;
-    background-color: var(--glass-bg);
+    background-color: var(--dark-bg);
+    border: 1px solid var(--border-blue);
     margin-bottom: 0.25rem;
     transition: background-color 0.2s;
 }
@@ -491,5 +492,4 @@ label {
     background-color: #63b3ed; /* New bright blue background */
     color: var(--dark-bg); /* Changed for better contrast */
     border-color: #63b3ed; /* Match background color */
-    box-shadow: 0 0 20px var(--accent-green);
 }
