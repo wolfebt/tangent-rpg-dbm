@@ -1273,7 +1273,7 @@ function renderCategoryView(categoryKey) {
     if (config.viewType === 'wiki') {
         mainContentContainer.innerHTML = `
             <div class="flex" style="height: calc(100vh - var(--header-height) - 3rem);">
-                <div id="wiki-directory-main" class="w-80 flex-shrink-0 p-4 overflow-y-auto border-r-2 border-gray-700">
+                <div id="wiki-directory-main" class="w-80 flex-shrink-0 p-4 overflow-y-auto">
                     <button id="add-wiki-entry-btn" class="btn btn-primary w-full mb-4 auth-required hidden">Add New Entry</button>
                     <ul id="wiki-directory-list"></ul>
                 </div>
@@ -1372,6 +1372,14 @@ async function renderWikiDirectory(container, entries, parent = null, level = 0)
 }
 
 async function displayWikiEntry(docId) {
+    // Active state switching
+    const allLinks = document.querySelectorAll('#wiki-directory-list a');
+    allLinks.forEach(link => link.classList.remove('active'));
+    const activeLink = document.querySelector(`#wiki-directory-list a[data-entry-id="${docId}"]`);
+    if (activeLink) {
+        activeLink.classList.add('active');
+    }
+
     const wikiTitle = document.getElementById('wiki-entry-title');
     const wikiBody = document.getElementById('wiki-entry-body');
     const wikiDataBtn = document.getElementById('wiki-data-btn');
