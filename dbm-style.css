@@ -513,3 +513,35 @@ label {
     border-color: #63b3ed; /* Match background color */
     font-size: 1.2em; /* 20% increase in text size */
 }
+
+.header-title-container {
+    color: var(--light-text);
+    text-shadow: 0 0 10px var(--border-blue);
+    animation: pulse 4s infinite;
+    padding: 1rem;
+}
+
+.tangent-title {
+    font-size: 3rem;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.header-title-container p {
+    margin: 0;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+@keyframes pulse {
+    0% {
+        text-shadow: 0 0 5px rgba(99, 179, 237, 0.7), 0 0 10px rgba(99, 179, 237, 0.7);
+    }
+    50% {
+        text-shadow: 0 0 15px rgba(99, 179, 237, 1), 0 0 25px rgba(99, 179, 237, 1);
+    }
+    100% {
+        text-shadow: 0 0 5px rgba(99, 179, 237, 0.7), 0 0 10px rgba(99, 179, 237, 0.7);
+    }
+}
