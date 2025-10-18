@@ -140,6 +140,7 @@ body {
     flex-grow: 1;
     /* Added for smooth transition effect */
     overflow: hidden;
+    border-right: 1px solid var(--border-blue);
 }
 
 /* Glass Panel Style - a key part of the sci-fi aesthetic */
@@ -169,7 +170,7 @@ body {
     text-transform: uppercase;
     transition: all 0.2s;
     border: 2px solid transparent;
-    background-color: rgba(139, 148, 158, 0.1);
+    background-color: var(--dark-bg);
     color: var(--medium-text);
     cursor: pointer;
 }
@@ -184,7 +185,19 @@ body {
     border-color: #63b3ed; /* Match background color */
     /* New back glow effect */
     box-shadow: 0 0 20px var(--accent-green);
-    font-size: 1.3em; /* 30% increase in text size */
+    font-size: 1.2em; /* 20% increase in text size */
+    position: relative;
+}
+
+.sidebar-tab.active::after {
+    content: '';
+    position: absolute;
+    right: -26px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 25px;
+    height: 2px;
+    background-color: var(--border-blue);
 }
 
 /* Main content card styling */
@@ -492,4 +505,5 @@ label {
     background-color: #63b3ed; /* New bright blue background */
     color: var(--dark-bg); /* Changed for better contrast */
     border-color: #63b3ed; /* Match background color */
+    font-size: 1.2em; /* 20% increase in text size */
 }
