@@ -1390,15 +1390,18 @@ async function displayWikiEntry(docId) {
             wikiTitle.textContent = entry.name.toUpperCase();
             let contentHtml = '';
 
-            // Rich text fields are now parsed for wiki links and displayed
-            if (entry.description) contentHtml += parseWikiLinks(entry.description);
-            if (entry.mechanic) contentHtml += `<h3>Mechanics</h3>` + parseWikiLinks(entry.mechanic);
-            if (entry.guide) contentHtml += `<h3>Guide</h3>` + parseWikiLinks(entry.guide);
-            if (entry.note) contentHtml += `<h3>Notes</h3>` + parseWikiLinks(entry.note);
+            // The content from the editor is already HTML. Display it directly.
+            if (entry.description) contentHtml += entry.description;
+            if (entry.mechanic) contentHtml += `<h3>Mechanics</h3>` + entry.mechanic;
+            if (entry.guide) contentHtml += `<h3>Guide</h3>` + entry.guide;
+            if (entry.note) contentHtml += `<h3>Notes</h3>` + entry.note;
 
-            if (!contentHtml) contentHtml = '<p class="text-gray-400">No content available for this entry.</p>';
+            if (!contentHtml) {
+                contentHtml = '<p class="text-gray-400">No content available for this entry.</p>';
+            }
 
-            wikiBody.innerHTML = contentHtml;
+            // Parse for [[...]] links after assembling the raw HTML
+            wikiBody.innerHTML = parseWikiLinks(contentHtml);
             appState.currentWikiEntryId = docId;
 
             const canEdit = hasPermission('edit', entry);
