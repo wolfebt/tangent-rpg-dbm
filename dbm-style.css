@@ -226,6 +226,15 @@ body {
     max-width: 500px;
     padding: 1.5rem 2rem;
     animation: modal-fade-in 0.3s ease-out;
+    background-color: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 0.75rem;
+    border-width: 1px;
+    border-style: solid;
+    border-image-slice: 1;
+    border-image-source: linear-gradient(to bottom right, var(--accent-green), var(--accent-blue));
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2), inset 0 0 15px rgba(13, 92, 99, 0.2);
 }
 
 @keyframes modal-fade-in {
