@@ -344,6 +344,11 @@ label {
     box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2), inset 0 0 15px rgba(13, 92, 99, 0.2);
 }
 
+/* Add borders to all buttons for visibility and consistency */
+.btn, .sidebar-tab, .file-menu-button {
+    border: 1px solid var(--border-blue) !important;
+}
+
 /* File Menu & Dropdown */
 .file-menu {
     position: relative;
