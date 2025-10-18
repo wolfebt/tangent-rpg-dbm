@@ -184,6 +184,7 @@ body {
     border-color: #63b3ed; /* Match background color */
     /* New back glow effect */
     box-shadow: 0 0 20px var(--accent-green);
+    font-size: 1.3em; /* 30% increase in text size */
 }
 
 /* Main content card styling */
