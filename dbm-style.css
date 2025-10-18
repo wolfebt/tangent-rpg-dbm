@@ -545,3 +545,9 @@ label {
         text-shadow: 0 0 5px rgba(99, 179, 237, 0.7), 0 0 10px rgba(99, 179, 237, 0.7);
     }
 }
+
+.guide-content {
+    border: 1px solid var(--border-blue);
+    border-radius: 0.75rem;
+    padding: 1rem;
+}
