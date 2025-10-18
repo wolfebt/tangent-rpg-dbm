@@ -226,15 +226,6 @@ body {
     max-width: 500px;
     padding: 1.5rem 2rem;
     animation: modal-fade-in 0.3s ease-out;
-    background-color: var(--glass-bg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-radius: 0.75rem;
-    border-width: 1px;
-    border-style: solid;
-    border-image-slice: 1;
-    border-image-source: linear-gradient(to bottom right, var(--accent-green), var(--accent-blue));
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2), inset 0 0 15px rgba(13, 92, 99, 0.2);
 }
 
 @keyframes modal-fade-in {
@@ -338,4 +329,125 @@ label {
 }
 .data-table tbody tr:hover {
     background-color: rgba(139, 148, 158, 0.1);
+}
+
+/* --- Jules' Fixes --- */
+
+/* Apply Glass Panel to all modals for consistency */
+.modal-backdrop > .modal-content {
+    background-color: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 0.75rem;
+    border-width: 1px;
+    border-style: solid;
+    border-image-slice: 1;
+    border-image-source: linear-gradient(to bottom right, var(--accent-green), var(--accent-blue));
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2), inset 0 0 15px rgba(13, 92, 99, 0.2);
+}
+
+/* File Menu & Dropdown */
+.file-menu {
+    position: relative;
+    display: inline-block;
+}
+
+.file-menu-button {
+    color: var(--light-text);
+    font-weight: bold;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--panel-border);
+    background-color: rgba(139, 148, 158, 0.1);
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.file-menu-button:hover {
+    background-color: rgba(139, 148, 158, 0.2);
+    border-color: var(--accent-green);
+}
+
+.file-menu-dropdown {
+    display: none; /* Hidden by default */
+    position: absolute;
+    right: 0;
+    min-width: 200px;
+    z-index: 1010; /* High z-index to appear above modals */
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+}
+
+/* Apply glass-panel to dropdown */
+.file-menu > .file-menu-dropdown {
+    background-color: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 0.75rem;
+    border-width: 1px;
+    border-style: solid;
+    border-image-slice: 1;
+    border-image-source: linear-gradient(to bottom right, var(--accent-green), var(--accent-blue));
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2), inset 0 0 15px rgba(13, 92, 99, 0.2);
+}
+
+.file-menu-dropdown.show {
+    display: block; /* Show when active */
+}
+
+.file-menu-dropdown button {
+    display: block;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    text-align: left;
+    color: var(--light-text);
+    background-color: transparent;
+    border: none;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.file-menu-dropdown button:hover {
+    background-color: rgba(139, 148, 158, 0.2);
+}
+
+/* Global Form Styles */
+.global-form-label {
+    color: var(--medium-text);
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    margin-bottom: 0.25rem;
+    display: block;
+}
+
+.global-form-input, .global-form-select, .global-form-textarea {
+    width: 100%;
+    background-color: var(--dark-bg);
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 0.75rem;
+    color: var(--light-text);
+    font-family: var(--font-main);
+    font-size: 1rem;
+    box-sizing: border-box;
+    transition: all 0.2s;
+}
+
+.global-form-input:focus, .global-form-select:focus, .global-form-textarea:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 10px rgba(10, 36, 99, 0.3);
+}
+
+/* Custom arrow for select elements */
+.form-select-arrow {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
