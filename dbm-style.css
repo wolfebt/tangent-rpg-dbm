@@ -458,3 +458,23 @@ label {
   -moz-appearance: none;
   appearance: none;
 }
+
+#wiki-directory-list a {
+    display: block;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    background-color: var(--glass-bg);
+    border: 1px solid var(--border-blue);
+    margin-bottom: 0.25rem;
+    transition: background-color 0.2s;
+}
+
+#wiki-directory-list a:hover {
+    background-color: rgba(99, 179, 237, 0.2);
+}
+
+#wiki-content-main {
+    border: 1px solid var(--border-blue);
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+}

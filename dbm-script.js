@@ -1326,19 +1326,18 @@ async function renderWikiDirectory(container, entries, parent = null, level = 0)
         const li = document.createElement('li');
         const hasChildren = entries.some(e => e.parent === entry.name);
 
-        const itemContent = document.createElement('div');
-        itemContent.className = 'flex items-center text-sm';
-
-        let toggleBtnHtml = `<span class="w-6"></span>`;
+        let arrowHtml = `<span class="inline-block w-6"></span>`;
         if (hasChildren) {
-            toggleBtnHtml = `<button class="toggle-btn w-6 text-center" data-toggle-id="${entry.id}">▸</button>`;
+            arrowHtml = `<span class="arrow-indicator inline-block w-6 text-center">▸</span>`;
         }
 
-        itemContent.innerHTML = `
-            ${toggleBtnHtml}
-            <a href="#" class="flex-grow p-1 rounded hover:bg-gray-700" data-entry-id="${entry.id}">${entry.name}</a>
-        `;
-        li.appendChild(itemContent);
+        const link = document.createElement('a');
+        link.href = '#';
+        link.dataset.entryId = entry.id;
+        link.className = 'flex items-center'; // Make link a flex container for arrow and text
+        link.innerHTML = `${arrowHtml}<span>${entry.name}</span>`;
+
+        li.appendChild(link);
 
         if (hasChildren) {
             const childrenContainer = document.createElement('div');
@@ -1347,20 +1346,24 @@ async function renderWikiDirectory(container, entries, parent = null, level = 0)
             await renderWikiDirectory(childrenContainer, entries, entry.name, level + 1);
             li.appendChild(childrenContainer);
 
-            const toggleButton = itemContent.querySelector('.toggle-btn');
-            toggleButton.addEventListener('click', (e) => {
-                e.stopPropagation();
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                displayWikiEntry(entry.id);
+
                 const isHidden = childrenContainer.style.display === 'none';
                 childrenContainer.style.display = isHidden ? 'block' : 'none';
-                toggleButton.innerHTML = isHidden ? '▾' : '▸';
+
+                const arrowIndicator = link.querySelector('.arrow-indicator');
+                if (arrowIndicator) {
+                    arrowIndicator.textContent = isHidden ? '▾' : '▸';
+                }
+            });
+        } else {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                displayWikiEntry(entry.id);
             });
         }
-
-        const link = itemContent.querySelector('a');
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            displayWikiEntry(entry.id);
-        });
 
         ul.appendChild(li);
     }
