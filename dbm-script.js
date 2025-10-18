@@ -1273,7 +1273,7 @@ function renderCategoryView(categoryKey) {
     if (config.viewType === 'wiki') {
         mainContentContainer.innerHTML = `
             <div class="flex" style="height: calc(100vh - var(--header-height) - 3rem);">
-                <div id="wiki-directory-main" class="w-80 flex-shrink-0 bg-gray-800 p-4 overflow-y-auto border-r-2 border-gray-700">
+                <div id="wiki-directory-main" class="w-80 flex-shrink-0 p-4 overflow-y-auto border-r-2 border-gray-700">
                     <button id="add-wiki-entry-btn" class="btn btn-primary w-full mb-4 auth-required hidden">Add New Entry</button>
                     <ul id="wiki-directory-list"></ul>
                 </div>
