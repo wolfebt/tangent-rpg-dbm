@@ -1738,7 +1738,11 @@
             const finalData = sessionData || folioData;
 
             container.innerHTML = `
-                <div id="app-sidebar" class="glass-panel">
+                <div class="header-title-container">
+                    <h1 class="tangent-title" style="font-size: 3rem;">Tangent SFF RPG</h1>
+                    <p>Persona Folio: <span id="actor-display-header">${finalData['char-name'] ? finalData['char-name'].toUpperCase() : 'UNNAMED'}</span></p>
+                </div>
+                <div id="app-sidebar">
                     <div id="tabs-container">
                         <button class="sidebar-tab active" data-tab-target="#identity-tab">Identity</button>
                         <button class="sidebar-tab" data-tab-target="#core-stats-tab">Core Stats</button>
@@ -1753,10 +1757,6 @@
                         <input type="hidden" id="character-doc-id" name="character-doc-id" value="${finalData['character-doc-id'] || ''}">
                         <header class="sheet-header folio-header">
                             <div class="folio-header-left">
-                                <h1 class="sci-fi-title-text folio-title">Tangent SFF RPG</h1>
-                                <div class="sci-fi-title-text folio-subtitle">Persona Folio: <span id="actor-display-header"></span></div>
-                            </div>
-                            <div class="folio-header-center">
                                 <div id="header-cp-tracker">
                                     <div id="header-spent-cp">Spent CP: 0</div>
                                     <button type="button" id="economy-btn" class="economy-btn">Economy</button>
