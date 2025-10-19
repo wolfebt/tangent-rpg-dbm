@@ -303,24 +303,23 @@ label {
 }
 
 .action-btn {
-    color: var(--dark-bg);
+    color: var(--light-text); /* Light text */
     font-weight: bold;
-    padding: 12px 24px;
+    padding: 8px 16px; /* Smaller padding */
     border-radius: 8px;
-    border: none;
+    border: 1px solid var(--border-blue); /* Blue line border */
     cursor: pointer;
     transition: all 0.3s;
     width: 100%;
-    font-size: 1.1rem;
+    font-size: 0.9rem; /* Smaller font size */
     text-align: center;
-    background-color: #63b3ed;
-    box-shadow: 0 0 15px rgba(99, 179, 237, 0.4);
+    background-color: var(--dark-bg); /* Dark background */
+    box-shadow: none; /* Remove glow */
 }
 
 .action-btn:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 0 25px rgba(99, 179, 237, 0.6);
-    filter: brightness(0.95);
+    background-color: rgba(99, 179, 237, 0.2); /* Blue tint on hover */
+    box-shadow: 0 0 10px rgba(99, 179, 237, 0.4);
 }
 
 /* New Table Styles for mock content */
@@ -357,9 +356,9 @@ label {
     box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2), inset 0 0 15px rgba(13, 92, 99, 0.2);
 }
 
-/* Add borders to all buttons for visibility and consistency */
+/* General button border consistency */
 .btn, .sidebar-tab, .file-menu-button {
-    border: 1px solid var(--border-blue) !important;
+    border: 1px solid var(--border-blue);
 }
 
 /* File Menu & Dropdown */
@@ -373,15 +372,15 @@ label {
     font-weight: bold;
     padding: 8px 16px;
     border-radius: 8px;
-    border: 1px solid var(--panel-border);
-    background-color: rgba(139, 148, 158, 0.1);
+    border: 1px solid var(--border-blue);
+    background-color: var(--dark-bg);
     cursor: pointer;
     transition: all 0.3s;
 }
 
 .file-menu-button:hover {
-    background-color: rgba(139, 148, 158, 0.2);
-    border-color: var(--accent-green);
+    background-color: rgba(99, 179, 237, 0.2);
+    box-shadow: 0 0 10px rgba(99, 179, 237, 0.4);
 }
 
 .file-menu-dropdown {
@@ -577,3 +576,134 @@ label {
     border-color: var(--border-blue);
     box-shadow: 0 0 15px rgba(99, 179, 237, 0.6);
 }
+
+/* --- Persona Folio Specific Refactoring --- */
+
+/* Layout & Containers */
+.folio-container {
+    max-width: 1600px;
+    margin: auto;
+    padding: 2rem;
+}
+.folio-form {
+    padding: 2rem;
+}
+.folio-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+.folio-header-left { flex: 1; }
+.folio-header-center { flex-grow: 1; text-align: center; }
+.folio-header-right {
+    flex: 1;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* Typography */
+.folio-title { font-size: 1.5rem; }
+.folio-subtitle { font-size: 1.2rem; color: var(--border-blue); }
+
+/* Buttons */
+.economy-btn {
+    color: var(--border-blue);
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+.action-btn-small {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.875rem;
+}
+.remove-btn-icon {
+    padding: 0.5rem;
+}
+.remove-btn-compact {
+    padding: 0.25rem 0.5rem;
+}
+.add-button {
+    width: 100%;
+    margin-top: 1rem;
+}
+
+/* Dividers */
+.menu-divider {
+    border-color: var(--panel-border);
+    margin: 0.25rem 0;
+}
+.section-divider {
+    border-color: var(--panel-border);
+    margin: 1rem 0;
+}
+
+/* Forms & Grids */
+.browse-input { cursor: pointer; }
+.attribute-grid-header {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 0.5rem;
+    text-align: center;
+}
+.attribute-grid-header span:first-child { text-align: left; }
+.attribute-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 0.5rem;
+    align-items: center;
+}
+.attribute-row.primary {
+    background: rgba(0,0,0,0.2);
+    padding: 0.25rem;
+    border-radius: 4px;
+}
+.attribute-label.sub-attribute {
+    font-style: italic;
+    padding-left: 1rem;
+}
+.attribute-label.primary-attribute { font-weight: bold; }
+.attribute-input { text-align: center; }
+.attribute-total {
+    text-align: center;
+    font-weight: bold;
+}
+
+/* Dynamic Item Lists */
+.item-list-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background: var(--dark-bg);
+    border-radius: 4px;
+}
+.note-row {
+    display: flex;
+    gap: 0.5rem;
+}
+.note-input { flex-grow: 1; }
+
+/* Modal Specific */
+.modal-controls {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+.economy-details-panel {
+    max-height: 300px;
+    overflow-y: auto;
+    background: var(--dark-bg);
+    padding: 1rem;
+    border-radius: 8px;
+}
+.add-skill-modal-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 0.5rem;
+    align-items: center;
+}
+.text-disabled { color: var(--medium-text); }

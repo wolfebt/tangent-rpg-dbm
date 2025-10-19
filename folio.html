@@ -47,7 +47,7 @@
     </style>
 </head>
 <body>
-    <div class="container" style="max-width: 1600px; margin: auto; padding: 2rem;">
+    <div class="folio-container">
         <div id="folio-container" class="app-container"></div>
     
         <div id="custom-modal" class="modal-overlay hidden">
@@ -57,9 +57,9 @@
                     <button id="modal-close-btn" class="modal-close-btn">&times;</button>
                 </div>
                 <div id="modal-choices"></div>
-                <div style="display: flex; justify-content: center; gap: 1rem; margin-top: 1rem;">
-                    <button id="modal-ok-btn" class="action-btn" style="display: none;">OK</button>
-                    <button id="modal-cancel-btn" class="action-btn" style="display: none;">Cancel</button>
+                <div class="modal-controls">
+                    <button id="modal-ok-btn" class="action-btn hidden">OK</button>
+                    <button id="modal-cancel-btn" class="action-btn hidden">Cancel</button>
                 </div>
             </div>
         </div>
@@ -70,7 +70,7 @@
                     <h3 id="confirm-title">Are you sure?</h3>
                 </div>
                 <p id="confirm-message">This action cannot be undone.</p>
-                <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem;">
+                <div class="modal-controls" style="justify-content: flex-end;">
                     <button id="confirm-cancel-btn" class="action-btn">CANCEL</button>
                     <button id="confirm-ok-btn" class="action-btn">CONFIRM</button>
                 </div>
@@ -79,7 +79,7 @@
 
         <div id="preview-modal" class="modal-overlay hidden">
             <div id="preview-modal-content" class="glass-panel" style="color: var(--text-light); max-width: 8.5in;">
-                <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
+                <div class="modal-controls" style="justify-content: flex-end; margin-bottom: 1rem;">
                     <button id="preview-print-btn" class="action-btn" style="margin-right: 1rem;">Print</button>
                     <button id="preview-close-btn" class="action-btn">Close</button>
                 </div>
@@ -106,9 +106,8 @@
                         <input type="number" id="economy-remaining-cp" class="global-form-input" readonly>
                     </div>
                 </div>
-                <div id="economy-details" style="max-height: 300px; overflow-y: auto; background: var(--dark-bg); padding: 1rem; border-radius: 8px;">
-                    </div>
-                <div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
+                <div id="economy-details" class="economy-details-panel"></div>
+                <div class="modal-controls" style="justify-content: flex-end;">
                      <button id="economy-close-btn" class="action-btn">Close</button>
                 </div>
             </div>
@@ -960,7 +959,7 @@
 
             modalTitle.textContent = 'ADD SKILL';
             modalChoices.innerHTML = ''; 
-            cancelBtn.style.display = 'block';
+            cancelBtn.classList.remove('hidden');
 
             const allSkills = await getCollectionOptions('skills');
             const existingSkillElements = document.querySelectorAll('.skill-row:not(.header) label, .skill-row.specialization .skill-name-input');
@@ -969,13 +968,10 @@
             allSkills.sort((a, b) => a.name.localeCompare(b.name)).forEach(skill => {
                 const isAdded = existingSkillNames.includes(skill.name);
                 const skillRow = document.createElement('div');
-                skillRow.style.display = 'grid';
-                skillRow.style.gridTemplateColumns = '2fr 1fr 1fr';
-                skillRow.style.gap = '0.5rem';
-                skillRow.style.alignItems = 'center';
+                skillRow.className = 'add-skill-modal-row';
                 
                 skillRow.innerHTML = `
-                    <span style="${isAdded ? 'color: var(--medium-text)' : ''}">${skill.name}</span>
+                    <span class="${isAdded ? 'text-disabled' : ''}">${skill.name}</span>
                     <input type="number" placeholder="Rank" class="global-form-input" ${isAdded ? 'disabled' : ''}>
                     <button class="action-btn" ${isAdded ? 'disabled' : ''}>Add</button>
                 `;
@@ -1144,7 +1140,7 @@
                     <input type="text" class="global-form-input" value="${attack.score}" readonly>
                     <input type="text" class="global-form-input" value="${attack.damage}" readonly>
                     <input type="text" class="global-form-input" placeholder="Notes...">
-                    <button type="button" class="action-btn" style="padding: 0.5rem;">&times;</button>
+                    <button type="button" class="action-btn remove-btn-icon">&times;</button>
                 `;
                 row.querySelector('button').addEventListener('click', () => {
                     attacks.splice(index, 1);
@@ -1247,7 +1243,7 @@
                     <input type="text" class="global-form-input" value="${armor.name}" readonly>
                     <input type="text" class="global-form-input" value="${armor.resistance}" readonly>
                     <input type="text" class="global-form-input" value="${armor.notes}" readonly>
-                    <button type="button" class="action-btn" style="padding: 0.5rem;">&times;</button>
+                    <button type="button" class="action-btn remove-btn-icon">&times;</button>
                 `;
                 row.querySelector('button').addEventListener('click', () => {
                     armorList.splice(index, 1);
@@ -1282,12 +1278,11 @@
 
             notes.forEach((note, index) => {
                 const row = document.createElement('div');
-                row.style.display = 'flex';
-                row.style.gap = '0.5rem';
+                row.className = 'note-row';
 
                 row.innerHTML = `
-                    <input type="text" class="global-form-input" value="${note.text}" style="flex-grow: 1;">
-                    <button type="button" class="action-btn" style="padding: 0.5rem;">&times;</button>
+                    <input type="text" class="global-form-input note-input" value="${note.text}">
+                    <button type="button" class="action-btn remove-btn-icon">&times;</button>
                 `;
 
                 row.querySelector('input').oninput = () => {
@@ -1440,19 +1435,13 @@
             container.innerHTML = '';
             items.forEach((item, index) => {
                 const itemEl = document.createElement('div');
-                itemEl.style.display = 'flex';
-                itemEl.style.justifyContent = 'space-between';
-                itemEl.style.alignItems = 'center';
-                itemEl.style.padding = '0.5rem';
-                itemEl.style.background = 'var(--dark-bg)';
-                itemEl.style.borderRadius = '4px';
+                itemEl.className = 'item-list-row';
                 itemEl.textContent = item;
                 
                 const removeBtn = document.createElement('button');
                 removeBtn.type = 'button';
                 removeBtn.innerHTML = '&times;';
-                removeBtn.className = 'action-btn';
-                removeBtn.style.padding = '0.25rem 0.5rem';
+                removeBtn.className = 'action-btn remove-btn-compact';
                 removeBtn.onclick = (e) => {
                     e.stopPropagation();
                     items.splice(index, 1);
@@ -1760,30 +1749,30 @@
                     </div>
                 </div>
                 <div id="main-content">
-                    <form id="persona-folio-form" onsubmit="return false;" class="glass-panel" style="padding: 2rem;">
+                    <form id="persona-folio-form" onsubmit="return false;" class="glass-panel folio-form">
                         <input type="hidden" id="character-doc-id" name="character-doc-id" value="${finalData['character-doc-id'] || ''}">
-                        <header class="sheet-header" style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
-                            <div class="header-title-container" style="flex: 1;">
-                                <h1 class="sci-fi-title-text" style="font-size: 1.5rem;">Tangent SFF RPG</h1>
-                                <div class="sci-fi-title-text" style="font-size: 1.2rem; color: var(--border-blue);">Persona Folio: <span id="actor-display-header"></span></div>
+                        <header class="sheet-header folio-header">
+                            <div class="folio-header-left">
+                                <h1 class="sci-fi-title-text folio-title">Tangent SFF RPG</h1>
+                                <div class="sci-fi-title-text folio-subtitle">Persona Folio: <span id="actor-display-header"></span></div>
                             </div>
-                            <div style="flex-grow: 1; text-align: center;">
+                            <div class="folio-header-center">
                                 <div id="header-cp-tracker">
                                     <div id="header-spent-cp">Spent CP: 0</div>
-                                    <button type="button" id="economy-btn" style="color: var(--border-blue); background: none; border: none; cursor: pointer;">Economy</button>
+                                    <button type="button" id="economy-btn" class="economy-btn">Economy</button>
                                 </div>
                             </div>
-                            <div style="flex: 1; display: flex; justify-content: flex-end; align-items: center; gap: 1rem;">
+                            <div class="folio-header-right">
                                 <div class="file-menu">
                                     <button type="button" class="file-menu-button">DATA</button>
                                     <div class="file-menu-dropdown">
                                         <button type="button" id="new-char-btn">New</button>
-                                        <hr style="border-color: var(--panel-border); margin: 0.25rem 0;">
+                                        <hr class="menu-divider">
                                         <button type="button" id="preview-btn">Preview</button>
-                                        <hr style="border-color: var(--panel-border); margin: 0.25rem 0;">
+                                        <hr class="menu-divider">
                                         <button type="button" id="cloud-save-btn">Save to Cloud</button>
                                         <button type="button" id="cloud-load-btn">Load from Cloud</button>
-                                        <hr style="border-color: var(--panel-border); margin: 0.25rem 0;">
+                                        <hr class="menu-divider">
                                         <button type="button" id="local-save-btn">Save to File</button>
                                         <button type="button" id="local-load-btn">Load from File</button>
                                     </div>
@@ -1798,10 +1787,10 @@
                                     <div>
                                         <div class="form-group"><label for="char-name">Name</label><input type="text" id="char-name" name="char-name" class="global-form-input"></div>
                                         <div class="form-group"><label for="char-concept">Concept</label><input type="text" id="char-concept" name="char-concept" class="global-form-input"></div>
-                                        <div class="form-group"><label for="char-species">Species</label><input type="text" id="char-species" name="char-species" data-browse-path="species" readonly class="global-form-input" style="cursor: pointer;" placeholder="-- SELECT --"></div>
-                                        <div class="form-group"><label for="char-occu">Occupation</label><input type="text" id="char-occu" name="char-occu" data-browse-path="occupations" readonly class="global-form-input" style="cursor: pointer;" placeholder="-- SELECT --"></div>
-                                        <div class="form-group"><label for="char-origin">Origin</label><input type="text" id="char-origin" name="char-origin" data-browse-path="origins" readonly class="global-form-input" style="cursor: pointer;" placeholder="-- SELECT --"></div>
-                                        <div class="form-group"><label for="char-faction">Faction</label><input type="text" id="char-faction" name="char-faction" data-browse-path="factions" readonly class="global-form-input" style="cursor: pointer;" placeholder="-- SELECT --"></div>
+                                        <div class="form-group"><label for="char-species">Species</label><input type="text" id="char-species" name="char-species" data-browse-path="species" readonly class="global-form-input browse-input" placeholder="-- SELECT --"></div>
+                                        <div class="form-group"><label for="char-occu">Occupation</label><input type="text" id="char-occu" name="char-occu" data-browse-path="occupations" readonly class="global-form-input browse-input" placeholder="-- SELECT --"></div>
+                                        <div class="form-group"><label for="char-origin">Origin</label><input type="text" id="char-origin" name="char-origin" data-browse-path="origins" readonly class="global-form-input browse-input" placeholder="-- SELECT --"></div>
+                                        <div class="form-group"><label for="char-faction">Faction</label><input type="text" id="char-faction" name="char-faction" data-browse-path="factions" readonly class="global-form-input browse-input" placeholder="-- SELECT --"></div>
                                     </div>
                                     <div>
                                         <div class="form-group"><label for="char-age">Age</label><input type="text" id="char-age" name="char-age" class="global-form-input"></div>
@@ -1950,18 +1939,14 @@
             authContainer.innerHTML = ''; 
             if (appState.isAnonymous) {
                 const loginButton = document.createElement('button');
-                loginButton.className = 'action-btn';
+                loginButton.className = 'action-btn action-btn-small';
                 loginButton.textContent = 'LOGIN';
-                loginButton.style.padding = '0.25rem 0.75rem'; // smaller padding
-                loginButton.style.fontSize = '0.875rem'; // smaller font
                 loginButton.addEventListener('click', handleLogin);
                 authContainer.appendChild(loginButton);
             } else {
                 const logoutButton = document.createElement('button');
-                logoutButton.className = 'action-btn';
+                logoutButton.className = 'action-btn action-btn-small';
                 logoutButton.textContent = 'LOGOUT';
-                logoutButton.style.padding = '0.25rem 0.75rem'; // smaller padding
-                logoutButton.style.fontSize = '0.875rem'; // smaller font
                 logoutButton.addEventListener('click', handleLogout);
                 authContainer.appendChild(logoutButton);
             }
