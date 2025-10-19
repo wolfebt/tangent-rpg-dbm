@@ -1748,10 +1748,11 @@
             const finalData = sessionData || folioData;
 
             container.innerHTML = `
-                    <div id="app-sidebar" class="glass-panel">
+                    <div id="app-sidebar">
                         <div class="header-title-container">
                             <h1 class="tangent-title">Tangent SFF RPG</h1>
-                            <p class="tangent-subtitle">Persona Folio: <span id="actor-display-header">${finalData['char-name'] ? finalData['char-name'].toUpperCase() : 'UNNAMED'}</span></p>
+                            <p class="tangent-subtitle">Persona Folio</p>
+                            <h2 class="character-name-header" id="actor-display-header">${finalData['char-name'] ? finalData['char-name'].toUpperCase() : 'UNNAMED'}</h2>
                         </div>
                         <div id="tabs-container">
                             <button class="sidebar-tab active" data-tab-target="#identity-tab">Identity</button>
