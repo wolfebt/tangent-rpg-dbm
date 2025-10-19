@@ -311,7 +311,10 @@
             }
 
             const name = data['char-name'] || 'UNNAMED';
-            document.getElementById('actor-display-header').textContent = name.toUpperCase();
+            const headerSpan = document.getElementById('actor-display-header');
+            if (headerSpan) {
+                headerSpan.textContent = name.toUpperCase();
+            }
             updateAllTraits();
         }
 
@@ -1713,8 +1716,10 @@
                 const form = event.target.closest('#persona-folio-form');
                 if (form) {
                     if (event.target.matches('#char-name')) {
-                        const header = document.getElementById('actor-display-header');
-                        if (header) header.textContent = event.target.value.toUpperCase() || 'UNNAMED';
+                        const headerSpan = document.getElementById('actor-display-header');
+                        if (headerSpan) {
+                            headerSpan.textContent = event.target.value.toUpperCase() || 'UNNAMED';
+                        }
                     }
 
                     if (event.target.matches('.skill-rank, .attribute-value') || event.target.closest('.single-column-grid')) {
@@ -1757,29 +1762,31 @@
                 <div id="main-content">
                     <form id="persona-folio-form" onsubmit="return false;" class="glass-panel" style="padding: 2rem;">
                         <input type="hidden" id="character-doc-id" name="character-doc-id" value="${finalData['character-doc-id'] || ''}">
-                        <header class="sheet-header">
-                            <div class="file-menu">
-                                <button type="button" class="file-menu-button">DATA</button>
-                                <div class="file-menu-dropdown">
-                                    <button type="button" id="new-char-btn">New</button>
-                                    <hr style="border-color: var(--panel-border); margin: 0.25rem 0;">
-                                    <button type="button" id="preview-btn">Preview</button>
-                                    <hr style="border-color: var(--panel-border); margin: 0.25rem 0;">
-                                    <button type="button" id="cloud-save-btn">Save to Cloud</button>
-                                    <button type="button" id="cloud-load-btn">Load from Cloud</button>
-                                    <hr style="border-color: var(--panel-border); margin: 0.25rem 0;">
-                                    <button type="button" id="local-save-btn">Save to File</button>
-                                    <button type="button" id="local-load-btn">Load from File</button>
-                                </div>
-                            </div>
-                            <div style="text-align: center;">
+                        <header class="sheet-header" style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+                            <div class="header-title-container" style="flex: 1;">
                                 <h1 class="sci-fi-title-text" style="font-size: 1.5rem;">Tangent SFF RPG</h1>
-                                <div id="actor-display-header" class="sci-fi-title-text" style="font-size: 1.2rem;"></div>
+                                <div class="sci-fi-title-text" style="font-size: 1.2rem; color: var(--border-blue);">Persona Folio: <span id="actor-display-header"></span></div>
                             </div>
-                            <div>
-                                <div id="header-cp-tracker" style="margin-right: 1rem; text-align: right;">
+                            <div style="flex-grow: 1; text-align: center;">
+                                <div id="header-cp-tracker">
                                     <div id="header-spent-cp">Spent CP: 0</div>
                                     <button type="button" id="economy-btn" style="color: var(--border-blue); background: none; border: none; cursor: pointer;">Economy</button>
+                                </div>
+                            </div>
+                            <div style="flex: 1; display: flex; justify-content: flex-end; align-items: center; gap: 1rem;">
+                                <div class="file-menu">
+                                    <button type="button" class="file-menu-button">DATA</button>
+                                    <div class="file-menu-dropdown">
+                                        <button type="button" id="new-char-btn">New</button>
+                                        <hr style="border-color: var(--panel-border); margin: 0.25rem 0;">
+                                        <button type="button" id="preview-btn">Preview</button>
+                                        <hr style="border-color: var(--panel-border); margin: 0.25rem 0;">
+                                        <button type="button" id="cloud-save-btn">Save to Cloud</button>
+                                        <button type="button" id="cloud-load-btn">Load from Cloud</button>
+                                        <hr style="border-color: var(--panel-border); margin: 0.25rem 0;">
+                                        <button type="button" id="local-save-btn">Save to File</button>
+                                        <button type="button" id="local-load-btn">Load from File</button>
+                                    </div>
                                 </div>
                                 <div id="auth-container"></div>
                             </div>
@@ -1945,14 +1952,16 @@
                 const loginButton = document.createElement('button');
                 loginButton.className = 'action-btn';
                 loginButton.textContent = 'LOGIN';
-                loginButton.style.padding = '0.5rem 1rem';
+                loginButton.style.padding = '0.25rem 0.75rem'; // smaller padding
+                loginButton.style.fontSize = '0.875rem'; // smaller font
                 loginButton.addEventListener('click', handleLogin);
                 authContainer.appendChild(loginButton);
             } else {
                 const logoutButton = document.createElement('button');
                 logoutButton.className = 'action-btn';
                 logoutButton.textContent = 'LOGOUT';
-                logoutButton.style.padding = '0.5rem 1rem';
+                logoutButton.style.padding = '0.25rem 0.75rem'; // smaller padding
+                logoutButton.style.fontSize = '0.875rem'; // smaller font
                 logoutButton.addEventListener('click', handleLogout);
                 authContainer.appendChild(logoutButton);
             }
