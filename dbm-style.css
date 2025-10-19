@@ -736,3 +736,29 @@ label {
     color: var(--medium-text);
     font-weight: 200;
 }
+/* --- Gem-Style Button for Modals --- */
+.gem-style-button {
+    background: rgba(10, 36, 99, 0.4); /* Dark blue, semi-transparent */
+    border: 1px solid var(--border-blue);
+    border-radius: 8px;
+    padding: 1rem;
+    color: var(--light-text);
+    text-align: center;
+    text-transform: uppercase;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    box-shadow: inset 0 0 10px rgba(99, 179, 237, 0.2); /* Inner glow */
+}
+
+.gem-style-button:hover {
+    background: rgba(99, 179, 237, 0.3); /* Lighter blue on hover */
+    box-shadow: 0 0 15px rgba(99, 179, 237, 0.6); /* Outer glow on hover */
+    transform: translateY(-2px);
+}
+
+#modal-choices {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+}
