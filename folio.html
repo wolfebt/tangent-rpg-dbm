@@ -771,7 +771,7 @@
 
             const totalCP = parseInt(totalCpInput.value) || 150;
             
-            if(spentCpHeader) spentCpHeader.textContent = `Spent CP: ${spentCP}`;
+            if(spentCpHeader) spentCpHeader.textContent = spentCP;
             if(economySpentCp) economySpentCp.value = spentCP;
             if(economyRemainingCp) economyRemainingCp.value = totalCP - spentCP;
             
@@ -1769,12 +1769,13 @@
                     <div id="main-content">
                         <form id="persona-folio-form" onsubmit="return false;" class="glass-panel folio-form">
                             <input type="hidden" id="character-doc-id" name="character-doc-id" value="${finalData['character-doc-id'] || ''}">
-                            <header class="sheet-header folio-header">
+                            <header class="sheet-header folio-header bordered-header">
                             <div class="folio-header-left">
-                                <div id="header-cp-tracker">
-                                    <span id="header-spent-cp">Spent CP: 0</span>
-                                    <button type="button" id="economy-btn" class="action-btn">Economy</button>
-                                </div>
+                            </div>
+                            <div class="folio-header-center">
+                                <button type="button" id="economy-btn" class="action-btn">
+                                    Spent CP: <span id="header-spent-cp">0</span>
+                                </button>
                             </div>
                             <div class="folio-header-right">
                                 <div class="file-menu">
