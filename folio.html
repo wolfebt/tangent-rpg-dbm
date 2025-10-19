@@ -44,6 +44,16 @@
         .tab-panel.active {
             display: block;
         }
+        .app-container {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            height: 100vh;
+        }
+        #app-sidebar {
+            padding: 1rem;
+            height: 100%;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body>
@@ -1738,25 +1748,25 @@
             const finalData = sessionData || folioData;
 
             container.innerHTML = `
-                <div class="header-title-container">
-                    <h1 class="tangent-title" style="font-size: 3rem;">Tangent SFF RPG</h1>
-                    <p>Persona Folio: <span id="actor-display-header">${finalData['char-name'] ? finalData['char-name'].toUpperCase() : 'UNNAMED'}</span></p>
-                </div>
                 <div class="app-container">
-                    <div id="app-sidebar">
+                    <div id="app-sidebar" class="glass-panel">
+                        <div class="header-title-container">
+                            <h1 class="tangent-title">Tangent SFF RPG</h1>
+                            <p class="tangent-subtitle">Persona Folio: <span id="actor-display-header">${finalData['char-name'] ? finalData['char-name'].toUpperCase() : 'UNNAMED'}</span></p>
+                        </div>
                         <div id="tabs-container">
                             <button class="sidebar-tab active" data-tab-target="#identity-tab">Identity</button>
-                        <button class="sidebar-tab" data-tab-target="#core-stats-tab">Core Stats</button>
-                        <button class="sidebar-tab" data-tab-target="#skills-tab">Skills</button>
-                        <button class="sidebar-tab" data-tab-target="#abilities-tab">Abilities</button>
-                        <button class="sidebar-tab" data-tab-target="#combat-gear-tab">Combat & Gear</button>
-                        <button class="sidebar-tab" data-tab-target="#other-tab">Other</button>
+                            <button class="sidebar-tab" data-tab-target="#core-stats-tab">Core Stats</button>
+                            <button class="sidebar-tab" data-tab-target="#skills-tab">Skills</button>
+                            <button class="sidebar-tab" data-tab-target="#abilities-tab">Abilities</button>
+                            <button class="sidebar-tab" data-tab-target="#combat-gear-tab">Combat & Gear</button>
+                            <button class="sidebar-tab" data-tab-target="#other-tab">Other</button>
+                        </div>
                     </div>
-                </div>
-                <div id="main-content">
-                    <form id="persona-folio-form" onsubmit="return false;" class="glass-panel folio-form">
-                        <input type="hidden" id="character-doc-id" name="character-doc-id" value="${finalData['character-doc-id'] || ''}">
-                        <header class="sheet-header folio-header">
+                    <div id="main-content">
+                        <form id="persona-folio-form" onsubmit="return false;" class="glass-panel folio-form">
+                            <input type="hidden" id="character-doc-id" name="character-doc-id" value="${finalData['character-doc-id'] || ''}">
+                            <header class="sheet-header folio-header">
                             <div class="folio-header-left">
                                 <div id="header-cp-tracker">
                                     <span id="header-spent-cp">Spent CP: 0</span>
