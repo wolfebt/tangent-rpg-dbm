@@ -1860,7 +1860,7 @@ function createTextareaField(fieldKey, savedValue, isEditMode, collectionKey) {
     }
 
     if (collectionKey === 'rules_codex') {
-        return `<div id="editor-${fieldKey}" class="quill-editor-container"></div><input type="hidden" id="${fieldKey}" name="${fieldKey}">`;
+        return `<div class="quill-editor-frame"><div id="editor-${fieldKey}"></div></div><input type="hidden" id="${fieldKey}" name="${fieldKey}">`;
     } else {
         return `<textarea id="${fieldKey}" name="${fieldKey}" class="global-form-input" rows="1">${savedValue || ''}</textarea>`;
     }
