@@ -38,6 +38,12 @@
             height: calc(100vh - 4rem);
             overflow-y: auto;
         }
+        .tab-panel {
+            display: none;
+        }
+        .tab-panel.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -1280,7 +1286,7 @@
                     <input type="text" class="global-form-input" value="${note.text}" style="flex-grow: 1;">
                     <button type="button" class="action-btn" style="padding: 0.5rem;">&times;</button>
                 `;
-                
+
                 row.querySelector('input').oninput = () => {
                     notes[index].text = row.querySelector('input').value;
                     document.getElementById('notes-data').value = JSON.stringify(notes);
@@ -1687,7 +1693,7 @@
                     }
                 }
         
-                if (target.matches('.tab-btn')) {
+                if (target.matches('.sidebar-tab')) {
                     const tabsContainer = document.getElementById('tabs-container');
                     const tabPanelsContainer = document.getElementById('tab-panels');
                     const currentActiveTab = tabsContainer.querySelector('.active');
