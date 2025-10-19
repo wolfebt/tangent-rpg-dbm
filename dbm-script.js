@@ -2201,6 +2201,18 @@ async function openModal(collectionKey, docId = null, data = {}, isEditMode = fa
                 quill.root.innerHTML = data[fieldKey] || '';
                 hiddenInput.value = data[fieldKey] || '';
                 quill.on('text-change', () => { hiddenInput.value = quill.root.innerHTML; });
+
+                // Add event listeners to toggle a class on the parent frame for focus glow
+                quill.on('selection-change', (range) => {
+                    const frame = container.closest('.quill-editor-frame');
+                    if (frame) {
+                        if (range) {
+                            frame.classList.add('frame-focused');
+                        } else {
+                            frame.classList.remove('frame-focused');
+                        }
+                    }
+                });
             });
         } else {
             const textareas = formFieldsContainer.querySelectorAll('textarea');

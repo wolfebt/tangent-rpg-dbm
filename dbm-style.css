@@ -572,7 +572,7 @@ label {
 }
 
 /* Apply focus glow to the frame when the editor inside is focused */
-.quill-editor-frame:has(.ql-container.ql-focus) {
+.quill-editor-frame.frame-focused {
     outline: none;
     border-color: var(--border-blue);
     box-shadow: 0 0 15px rgba(99, 179, 237, 0.6);
