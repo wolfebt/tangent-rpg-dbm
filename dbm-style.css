@@ -714,3 +714,19 @@ label {
     text-shadow: none;
     animation: none;
 }
+.bordered-header {
+    border: 1px solid var(--border-blue);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+.folio-header-center {
+    text-align: center;
+}
+#header-cp-tracker {
+    display: inline-block;
+}
+#economy-btn {
+    width: auto;
+    padding: 8px 16px;
+}
