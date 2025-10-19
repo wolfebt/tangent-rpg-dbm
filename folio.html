@@ -67,7 +67,7 @@
             <div class="modal-content glass-panel">
                 <div class="modal-header">
                     <h3 id="modal-title"></h3>
-                    <button id="modal-close-btn" class="modal-close-btn">&times;</button>
+                    <button id="modal-close-btn" class="modal-close-btn modal-close-trigger">&times;</button>
                 </div>
                 <div id="modal-choices"></div>
                 <div class="modal-controls">
@@ -94,7 +94,7 @@
             <div id="preview-modal-content" class="glass-panel" style="color: var(--text-light); max-width: 8.5in;">
                 <div class="modal-controls" style="justify-content: flex-end; margin-bottom: 1rem;">
                     <button id="preview-print-btn" class="action-btn" style="margin-right: 1rem;">Print</button>
-                    <button id="preview-close-btn" class="action-btn">Close</button>
+                    <button id="preview-close-btn" class="action-btn modal-close-trigger">Close</button>
                 </div>
                 <div id="preview-content"></div>
             </div>
@@ -121,7 +121,7 @@
                 </div>
                 <div id="economy-details" class="economy-details-panel"></div>
                 <div class="modal-controls" style="justify-content: flex-end;">
-                     <button id="economy-close-btn" class="action-btn">Close</button>
+                     <button id="economy-close-btn" class="action-btn modal-close-trigger">Close</button>
                 </div>
             </div>
         </div>
@@ -1401,7 +1401,7 @@
                 availableItems.forEach(item => {
                     const btn = document.createElement('button');
                     btn.textContent = item.name.toUpperCase();
-                    btn.className = 'btn btn-primary w-full text-left';
+                    btn.className = 'gem-style-button'; // Use the new gem-style button class
                     btn.onclick = () => {
                         handleItemSelection(targetListKey, item.name, isMultiSelect);
                         modal.classList.add('hidden');
@@ -1655,6 +1655,11 @@
                             dropdown.classList.remove('show');
                         }
                     });
+                }
+
+                // Click-out functionality for all modals
+                if (event.target.classList.contains('modal-overlay')) {
+                    event.target.classList.add('hidden');
                 }
             });
 
@@ -2017,11 +2022,13 @@
 
         // Setup listeners for modals that are always in the DOM
         document.getElementById('preview-print-btn').addEventListener('click', () => window.print());
-        document.getElementById('preview-close-btn').addEventListener('click', () => {
-            document.getElementById('preview-modal').classList.add('hidden');
-        });
-        document.getElementById('economy-close-btn').addEventListener('click', () => {
-            document.getElementById('economy-modal').classList.add('hidden');
+        document.addEventListener('click', function(event) {
+            if (event.target.matches('.modal-close-trigger')) {
+                const modal = event.target.closest('.modal-overlay');
+                if (modal) {
+                    modal.classList.add('hidden');
+                }
+            }
         });
         document.getElementById('starting-cp').addEventListener('input', calculateCharacterPoints);
 
