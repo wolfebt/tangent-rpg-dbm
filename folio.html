@@ -1742,9 +1742,10 @@
                     <h1 class="tangent-title" style="font-size: 3rem;">Tangent SFF RPG</h1>
                     <p>Persona Folio: <span id="actor-display-header">${finalData['char-name'] ? finalData['char-name'].toUpperCase() : 'UNNAMED'}</span></p>
                 </div>
-                <div id="app-sidebar">
-                    <div id="tabs-container">
-                        <button class="sidebar-tab active" data-tab-target="#identity-tab">Identity</button>
+                <div class="app-container">
+                    <div id="app-sidebar">
+                        <div id="tabs-container">
+                            <button class="sidebar-tab active" data-tab-target="#identity-tab">Identity</button>
                         <button class="sidebar-tab" data-tab-target="#core-stats-tab">Core Stats</button>
                         <button class="sidebar-tab" data-tab-target="#skills-tab">Skills</button>
                         <button class="sidebar-tab" data-tab-target="#abilities-tab">Abilities</button>
@@ -1758,14 +1759,14 @@
                         <header class="sheet-header folio-header">
                             <div class="folio-header-left">
                                 <div id="header-cp-tracker">
-                                    <div id="header-spent-cp">Spent CP: 0</div>
-                                    <button type="button" id="economy-btn" class="economy-btn">Economy</button>
+                                    <span id="header-spent-cp">Spent CP: 0</span>
+                                    <button type="button" id="economy-btn" class="action-btn">Economy</button>
                                 </div>
                             </div>
                             <div class="folio-header-right">
                                 <div class="file-menu">
-                                    <button type="button" class="file-menu-button">DATA</button>
-                                    <div class="file-menu-dropdown">
+                                    <button type="button" class="file-menu-button action-btn">DATA</button>
+                                    <div class="file-menu-dropdown glass-panel">
                                         <button type="button" id="new-char-btn">New</button>
                                         <hr class="menu-divider">
                                         <button type="button" id="preview-btn">Preview</button>
