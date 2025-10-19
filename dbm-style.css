@@ -553,7 +553,7 @@ label {
 }
 
 /* --- Quill Editor Styles --- */
-.quill-editor-container .ql-toolbar {
+#entry-modal .quill-editor-container .ql-toolbar {
     background-color: rgba(13, 17, 23, 0.9) !important;
     border: 1px solid var(--border-blue) !important;
     border-top-left-radius: 8px;
@@ -561,7 +561,7 @@ label {
     border-bottom: none !important; /* Remove bottom border to merge with container */
 }
 
-.quill-editor-container .ql-container {
+#entry-modal .quill-editor-container .ql-container {
     background-color: rgba(13, 17, 23, 0.9) !important;
     border: 1px solid var(--border-blue) !important;
     border-bottom-left-radius: 8px;
@@ -572,19 +572,19 @@ label {
 }
 
 /* Style for when the editor is focused */
-.quill-editor-container .ql-container.ql-focus {
+#entry-modal .quill-editor-container .ql-container.ql-focus {
     outline: none;
     border-color: var(--border-blue) !important;
     box-shadow: 0 0 15px rgba(99, 179, 237, 0.6);
 }
 
 /* Style for Quill editor toolbar buttons */
-.ql-snow .ql-picker-label,
-.ql-snow .ql-stroke {
+#entry-modal .ql-snow .ql-picker-label,
+#entry-modal .ql-snow .ql-stroke {
     color: var(--light-text) !important;
 }
 
-.ql-snow .ql-picker-options {
+#entry-modal .ql-snow .ql-picker-options {
     background-color: var(--dark-bg);
     border: 1px solid var(--border-blue);
 }
