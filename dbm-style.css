@@ -271,10 +271,7 @@ body {
 
 /* Form & Button Styles */
 .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    justify-content: flex-end;
+    margin-bottom: 1rem;
 }
 
 label {
