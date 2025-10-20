@@ -28,13 +28,14 @@
             break-inside: avoid;
             margin-bottom: 1rem;
         }
-        .skill-row, .attack-grid {
+        .skill-row, .attack-grid, .armor-grid {
             display: grid;
             gap: 0.5rem;
             align-items: center;
         }
         .skill-row { grid-template-columns: 2fr 1fr 1fr 1fr 1fr; }
         .attack-grid { grid-template-columns: 2fr 1fr 2fr 3fr auto; }
+        .armor-grid { grid-template-columns: 2fr 2fr 3fr auto; }
         .single-column-grid { display: grid; grid-template-columns: 1fr; gap: 0.5rem; }
         #main-content {
             padding-top: 1.5rem;
@@ -305,6 +306,8 @@
                         dataInput.value = JSON.stringify(values);
                         if (key === 'attacks') {
                             renderAttackRows(values);
+                        } else if (key === 'armor') {
+                            renderArmorRows(values);
                         } else if (key === 'notes') {
                             renderNoteRows(values);
                         }
@@ -585,7 +588,6 @@
                     }
                 }
             }
-             renderModifierRows(modifiers);
 
             for (const key in modifiers) {
                 const value = modifiers[key];
@@ -804,10 +806,29 @@
             if(!sheet) return;
             
             const skillData = {
-                "Physical": { "skills": ["Acrobatics", "Athletics", "Piloting", "Stealth"] },
-                "Mental": { "skills": ["Alertness"], "subcategories": { "Knowledge": ["Academics", "Appraisal", "Computers", "Culture", "History", "Investigation", "Language", "Medicine", "Nature", "Navigation", "Nobility", "Physics", "Religion", "Science", "Survival", "Tactics", "Technology"], "Vocation": ["Administrator", "Alchemist", "Ambassador", "Architect", "Archivist", "Armorer", "Artist", "Artificer", "Broker", "Celebrity", "Constable", "Courtesan", "Culinarian", "Demolitionist", "Electrician", "Engineer", "Groundskeeper", "Handler", "Laborer", "Mechanic", "Researcher", "Salvager", "Soldier", "Tailor", "Transporter", "Weaponsmith"]}},
-                "Social": { "subcategories": { "Manipulation": ["Insight", "Bluff", "Diplomacy", "Intimidate", "Streetwise"], "Expression": ["Acting", "Comedy", "Dancing", "Disguise", "Keyboard", "Legerdemain", "Oratory", "Percussion", "Singing", "String", "Style", "Wind"]}},
-                "Combat": { "subcategories": { "Archaic": ["Defense", "Melee", "Ranged", "Unarmed"], "Modern": ["Ballistic", "Heavy Weapons"],"Advanced": ["Energy", "Heavy Energy"]}}
+                "Combat": {
+                    "subcategories": {
+                        "Advanced": ["Energy", "Heavy Energy"],
+                        "Archaic": ["Defense", "Melee", "Ranged", "Unarmed"],
+                        "Modern": ["Ballistic", "Heavy Weapons"]
+                    }
+                },
+                "Mental": {
+                    "skills": ["Alertness"],
+                    "subcategories": {
+                        "Knowledge": ["Academics", "Appraisal", "Computers", "Culture", "History", "Investigation", "Language", "Medicine", "Nature", "Navigation", "Nobility", "Physics", "Religion", "Science", "Survival", "Tactics", "Technology"],
+                        "Vocation": ["Administrator", "Alchemist", "Ambassador", "Architect", "Archivist", "Armorer", "Artist", "Artificer", "Broker", "Celebrity", "Constable", "Courtesan", "Culinarian", "Demolitionist", "Electrician", "Engineer", "Groundskeeper", "Handler", "Laborer", "Mechanic", "Researcher", "Salvager", "Soldier", "Tailor", "Transporter", "Weaponsmith"]
+                    }
+                },
+                "Physical": {
+                    "skills": ["Acrobatics", "Athletics", "Piloting", "Stealth"]
+                },
+                "Social": {
+                    "subcategories": {
+                        "Expression": ["Acting", "Comedy", "Dancing", "Disguise", "Keyboard", "Legerdemain", "Oratory", "Percussion", "Singing", "String", "Style", "Wind"],
+                        "Manipulation": ["Bluff", "Diplomacy", "Insight", "Intimidate", "Streetwise"]
+                    }
+                }
             };
             const skillOrder = ['Physical', 'Mental', 'Social', 'Combat'];
             const skillsContainer = document.getElementById('skills-list');
@@ -828,10 +849,9 @@
                 populatePersonaFolioForm(folioData);
             } else {
                 renderAttackRows([]);
+                renderArmorRows([]);
                 renderNoteRows([]);
             }
-
-            renderArmorRows(); // Always render the static armor grid
 
             appState.initialFormState = JSON.stringify(getPersonaFolioFormData());
 
@@ -1165,60 +1185,107 @@
             });
         }
 
-        function renderArmorRows() {
-            const container = document.getElementById('armor-grid-container');
-            if (!container) return;
+        async function showArmorSelectionModal() {
+            const speciesInput = document.getElementById('char-species');
+            const equipmentDataInput = document.getElementById('equipment-data');
+            const augmentationsDataInput = document.getElementById('augmentations-data');
 
-            const locations = [
-                { id: 'head', label: 'Head' },
-                { id: 'torso', label: 'Torso' },
-                { id: 'right-arm', label: 'Right Arm' },
-                { id: 'left-arm', label: 'Left Arm' },
-                { id: 'right-leg', label: 'Right Leg' },
-                { id: 'left-leg', label: 'Left Leg' }
-            ];
+            let currentEquipment = [];
+            let currentAugmentations = [];
 
-            let html = `
-                <div class="armor-grid">
-                    <div class="armor-grid-header">
-                        <span>Location</span>
-                        <span>Total DR</span>
-                        <span>Notes</span>
-                    </div>`;
+            try {
+                if (equipmentDataInput && equipmentDataInput.value) currentEquipment = JSON.parse(equipmentDataInput.value);
+                if (augmentationsDataInput && augmentationsDataInput.value) currentAugmentations = JSON.parse(augmentationsDataInput.value);
+            } catch(e) {}
 
-            locations.forEach(loc => {
-                html += `
-                    <label for="armor-${loc.id}-dr" class="armor-location-label">${loc.label}</label>
-                    <input type="text" id="armor-${loc.id}-dr" name="armor-${loc.id}-dr" class="global-form-input">
-                    <input type="text" id="armor-${loc.id}-notes" name="armor-${loc.id}-notes" class="global-form-input">
-                `;
+            const allSpecies = await getCollectionOptions('species');
+            const allEquipment = await getCollectionOptions('armoring');
+            const allAugmentations = await getCollectionOptions('augmentations');
+
+            const availableArmor = [];
+
+            if (speciesInput && speciesInput.value) {
+                const species = allSpecies.find(s => s.name === speciesInput.value && s.resistance);
+                if (species) availableArmor.push({ ...species, source: 'Species' });
+            }
+            currentEquipment.forEach(name => {
+                const item = allEquipment.find(eq => eq.name === name && eq.resistance);
+                if (item) availableArmor.push({ ...item, source: 'Equipment' });
+            });
+            currentAugmentations.forEach(name => {
+                const item = allAugmentations.find(aug => aug.name === name && aug.resistance);
+                if (item) availableArmor.push({ ...item, source: 'Augmentations' });
             });
 
-            html += `</div>`;
-            container.innerHTML = html;
-        }
-
-        function renderModifierRows(modifiers) {
-            const container = document.getElementById('modifiers-list');
-            if (!container) return;
-
-            container.innerHTML = ''; // Clear existing modifiers
-
-            if (Object.keys(modifiers).length === 0) {
-                container.innerHTML = '<p>No active modifiers.</p>';
+            if (availableArmor.length === 0) {
+                showCustomAlert("No available armor from species, equipment, or augmentations.");
                 return;
             }
 
-            for (const key in modifiers) {
-                const value = modifiers[key];
+            const modal = document.getElementById('custom-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalChoices = document.getElementById('modal-choices');
+            const cancelBtn = document.getElementById('modal-cancel-btn');
+
+            modalTitle.textContent = "SELECT ARMOR";
+            modalChoices.innerHTML = '';
+            cancelBtn.style.display = 'block';
+
+            availableArmor.forEach(armor => {
+                const btn = document.createElement('button');
+                btn.textContent = `${armor.name.toUpperCase()} (${armor.source})`;
+                btn.className = 'action-btn';
+                btn.onclick = () => {
+                    addArmorToList(armor);
+                    modal.classList.add('hidden');
+                };
+                modalChoices.appendChild(btn);
+            });
+
+            modal.classList.remove('hidden');
+            cancelBtn.onclick = () => modal.classList.add('hidden');
+        }
+
+        function addArmorToList(armorData) {
+            const armorDataInput = document.getElementById('armor-data');
+            let currentArmor = [];
+            try {
+                if (armorDataInput.value) currentArmor = JSON.parse(armorDataInput.value);
+            } catch(e) {}
+
+            const newArmor = {
+                name: armorData.name,
+                resistance: armorData.resistance || '',
+                notes: armorData.source || ''
+            };
+
+            currentArmor.push(newArmor);
+            armorDataInput.value = JSON.stringify(currentArmor);
+            renderArmorRows(currentArmor);
+        }
+
+        function renderArmorRows(armorList = []) {
+            const container = document.getElementById('armor-rows');
+            if (!container) return;
+
+            while(container.children.length > 1) container.removeChild(container.lastChild);
+
+            armorList.forEach((armor, index) => {
                 const row = document.createElement('div');
-                row.className = 'modifier-row';
+                row.className = 'armor-grid';
                 row.innerHTML = `
-                    <span>${key.replace(/_/g, ' ')}</span>
-                    <span>${value > 0 ? '+' : ''}${value}</span>
+                    <input type="text" class="global-form-input" value="${armor.name}" readonly>
+                    <input type="text" class="global-form-input" value="${armor.resistance}" readonly>
+                    <input type="text" class="global-form-input" value="${armor.notes}" readonly>
+                    <button type="button" class="action-btn remove-btn-icon">&times;</button>
                 `;
+                row.querySelector('button').addEventListener('click', () => {
+                    armorList.splice(index, 1);
+                    document.getElementById('armor-data').value = JSON.stringify(armorList);
+                    renderArmorRows(armorList);
+                });
                 container.appendChild(row);
-            }
+            });
         }
 
         function addNoteToList() {
@@ -1643,6 +1710,7 @@
                 if (target.id === 'preview-btn') showPreviewModal();
                 if (target.id === 'economy-btn') showEconomyModal();
                 if (target.id === 'add-attack-btn') showAttackSelectionModal();
+                if (target.id === 'add-armor-btn') showArmorSelectionModal();
                 if (target.id === 'add-note-btn') addNoteToList();
                 if (target.id === 'add-skill-btn') showAddSkillModal();
                 
@@ -1720,7 +1788,6 @@
                             <button class="sidebar-tab" data-tab-target="#core-stats-tab">Core Stats</button>
                             <button class="sidebar-tab" data-tab-target="#skills-tab">Skills</button>
                             <button class="sidebar-tab" data-tab-target="#abilities-tab">Abilities</button>
-                            <button class="sidebar-tab" data-tab-target="#modifiers-tab">Modifiers</button>
                             <button class="sidebar-tab" data-tab-target="#combat-gear-tab">Combat & Gear</button>
                             <button class="sidebar-tab" data-tab-target="#other-tab">Other</button>
                         </div>
@@ -1773,19 +1840,13 @@
                                         <div class="form-group"><label for="char-style">Description / Style</label><textarea id="char-style" name="char-style" rows="2" class="global-form-textarea"></textarea></div>
                                         <div class="form-group"><label for="char-motive">Personality / Motive</label><textarea id="char-motive" name="char-motive" rows="2" class="global-form-textarea"></textarea></div>
                                     </div>
-                                    <div>
-                                        <div class="form-group"><label for="char-karma">Karma</label><input type="number" id="char-karma" name="char-karma" class="global-form-input"></div>
-                                        <div class="form-group"><label for="char-plot-points">Plot Points</label><input type="number" id="char-plot-points" name="char-plot-points" class="global-form-input"></div>
-                                        <div class="form-group"><label for="char-tech-level">Tech Level</label><input type="text" id="char-tech-level" name="char-tech-level" class="global-form-input"></div>
-                                        <div class="form-group"><label for="char-wealth">Wealth Rating</label><input type="text" id="char-wealth" name="char-wealth" class="global-form-input"></div>
-                                    </div>
                                 </section>
                             </div>
                             <div id="core-stats-tab" class="tab-panel">
-                                <section id="attributes-stats-section" class="columns-3">
-                                    <div class="attributes-column">
-                                        <div class="attribute-grid-header">
-                                            <span>Attribute</span>
+                                <section id="attributes-stats-section" class="columns-2">
+                                    <div>
+                                        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 0.5rem; text-align: center;">
+                                            <span style="text-align: left;">Attribute</span>
                                             <span>Value</span>
                                             <span>Mod</span>
                                             <span>Total</span>
@@ -1798,34 +1859,21 @@
                                             { name: 'Wisdom', id: 'attr-wisdom' }, { name: 'Will', id: 'attr-will', sub: true },
                                             { name: 'Charisma', id: 'attr-charisma' }, { name: 'Etiquette', id: 'attr-etiquette', sub: true }
                                         ].map(attr => `
-                                            <div class="attribute-grid-row ${!attr.sub ? 'primary-attribute' : ''}">
-                                                <label for="${attr.id}" class="${attr.sub ? 'sub-attribute-label' : 'primary-attribute-label'}">${attr.name}</label>
-                                                <input type="number" id="${attr.id}" name="${attr.id}" class="global-form-input attribute-value" value="0" ${attr.sub ? 'readonly' : ''}>
-                                                <input type="number" id="${attr.id}-mod" name="${attr.id}-mod" class="global-form-input attribute-mod" value="0" readonly>
-                                                <input type="number" id="${attr.id}-total" name="${attr.id}-total" class="global-form-input attribute-total" readonly value="0">
+                                            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 0.5rem; align-items: center; ${!attr.sub ? 'background: rgba(0,0,0,0.2); padding: 0.25rem; border-radius: 4px;' : ''}">
+                                                <label for="${attr.id}" style="${attr.sub ? 'font-style: italic; padding-left: 1rem;' : 'font-weight: bold;'}">${attr.name}</label>
+                                                <input type="number" id="${attr.id}" name="${attr.id}" class="global-form-input" style="text-align: center;" value="0" ${attr.sub ? 'readonly' : ''}>
+                                                <input type="number" id="${attr.id}-mod" name="${attr.id}-mod" class="global-form-input" style="text-align: center;" value="0" readonly>
+                                                <input type="number" id="${attr.id}-total" name="${attr.id}-total" class="global-form-input" style="text-align: center; font-weight: bold;" readonly value="0">
                                             </div>
                                         `).join('')}
                                     </div>
-                                    <div class="vitals-column">
-                                        <div class="vitals-section">
-                                            <h4>Vitals</h4>
-                                            <div class="form-group"><label for="health">Health</label><input type="number" id="health" name="health" class="global-form-input"></div>
-                                            <div class="form-group"><label for="vitality">Vitality</label><input type="number" id="vitality" name="vitality" class="global-form-input"></div>
-                                            <div class="form-group"><label for="initiative-total">Initiative</label><input type="number" id="initiative-total" name="initiative-total" class="global-form-input" readonly></div>
-                                        </div>
-                                        <div class="perception-section">
-                                            <h4>Perception</h4>
-                                            <div class="form-group"><label for="perception-meta">Meta</label><input type="number" id="perception-meta" name="perception-meta" class="global-form-input" readonly></div>
-                                            <div class="form-group"><label for="perception-social">Social</label><input type="number" id="perception-social" name="perception-social" class="global-form-input" readonly></div>
-                                            <div class="form-group"><label for="perception-tech">Technology</label><input type="number" id="perception-tech" name="perception-tech" class="global-form-input" readonly></div>
-                                        </div>
-                                        <div class="move-section">
-                                            <h4>Move</h4>
-                                            <div class="form-group"><label for="move-walk">Walk</label><input type="text" id="move-walk" name="move-walk" class="global-form-input"></div>
-                                            <div class="form-group"><label for="move-climb">Climb</label><input type="text" id="move-climb" name="move-climb" class="global-form-input"></div>
-                                            <div class="form-group"><label for="move-swim">Swim</label><input type="text" id="move-swim" name="move-swim" class="global-form-input"></div>
-                                            <div class="form-group"><label for="move-fly">Fly</label><input type="text" id="move-fly" name="move-fly" class="global-form-input"></div>
-                                        </div>
+                                    <div>
+                                        <div class="form-group"><label for="initiative-total">Initiative</label><input type="number" id="initiative-total" name="initiative-total" class="global-form-input" readonly></div>
+                                        <div class="form-group"><label for="health">Health</label><input type="number" id="health" name="health" class="global-form-input"></div>
+                                        <div class="form-group"><label for="vitality">Vitality</label><input type="number" id="vitality" name="vitality" class="global-form-input"></div>
+                                        <div class="form-group"><label for="karma">Karma</label><input type="number" id="karma" name="karma" class="global-form-input"></div>
+                                        <div class="form-group"><label for="plot-points">Plot Points</label><input type="number" id="plot-points" name="plot-points" class="global-form-input"></div>
+                                        <div class="form-group"><label for="wealth">Wealth</label><input type="text" id="wealth" name="wealth" class="global-form-input"></div>
                                     </div>
                                 </section>
                             </div>
@@ -1833,13 +1881,6 @@
                                 <section id="skills-section">
                                     <div id="skills-list" class="skills-column"></div>
                                     <button type="button" id="add-skill-btn" class="action-btn" style="width: 100%; margin-top: 1rem;">Add Skill</button>
-                                </section>
-                            </div>
-                            <div id="modifiers-tab" class="tab-panel">
-                                <section id="modifiers-section">
-                                    <div id="modifiers-list" class="single-column-grid">
-                                        <!-- Modifiers will be dynamically inserted here -->
-                                    </div>
                                 </section>
                             </div>
                              <div id="abilities-tab" class="tab-panel">
@@ -1872,10 +1913,13 @@
 
                                         <hr style="border-color: var(--panel-border); margin: 1rem 0;">
 
-                                        <div id="armor-grid-container">
-                                            <!-- Armor grid will be dynamically inserted here -->
+                                        <div id="armor-rows">
+                                            <div class="armor-grid">
+                                                <span>Armor</span><span>Resistance</span><span>Notes</span><span></span>
+                                            </div>
                                         </div>
                                         <input type="hidden" id="armor-data" name="armor">
+                                        <button type="button" id="add-armor-btn" class="action-btn" style="width: 100%; margin-top: 1rem;">Add Armor</button>
                                      </div>
                                       <div>
                                         <h4>Equipment</h4>
