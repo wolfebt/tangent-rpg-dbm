@@ -59,6 +59,29 @@
             height: 100vh;
             overflow-y: auto;
         }
+        .perception-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            align-items: end;
+            margin-top: 1rem;
+        }
+        .perception-grid .grid-header {
+            grid-column: 1 / 2;
+        }
+        .perception-grid .form-group {
+            grid-column: 2 / 3;
+        }
+        .move-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            align-items: end;
+            margin-top: 1rem;
+        }
+        .move-grid .grid-header {
+            grid-column: 1 / -1;
+        }
     </style>
 </head>
 <body>
@@ -1874,7 +1897,25 @@
                                         <div class="form-group"><label for="vitality">Vitality</label><input type="number" id="vitality" name="vitality" class="global-form-input"></div>
                                         <div class="form-group"><label for="karma">Karma</label><input type="number" id="karma" name="karma" class="global-form-input"></div>
                                         <div class="form-group"><label for="plot-points">Plot Points</label><input type="number" id="plot-points" name="plot-points" class="global-form-input"></div>
-                                        <div class="form-group"><label for="wealth">Wealth</label><input type="text" id="wealth" name="wealth" class="global-form-input"></div>
+                                        <div class="form-group"><label for="tech-level">Tech Level</label><input type="number" id="tech-level" name="tech-level" class="global-form-input"></div>
+                                        <div class="form-group"><label for="wealth-rating">Wealth Rating</label><input type="number" id="wealth-rating" name="wealth-rating" class="global-form-input"></div>
+
+                                        <div class="perception-grid">
+                                            <label class="grid-header" for="perception">Perception</label>
+                                            <input type="number" id="perception" name="perception" readonly class="global-form-input">
+                                            <div class="form-group"><label for="perception-meta">Meta</label><input type="number" id="perception-meta" name="perception-meta" class="global-form-input"></div>
+                                            <div class="form-group"><label for="perception-social">Social</label><input type="number" id="perception-social" name="perception-social" class="global-form-input"></div>
+                                            <div class="form-group"><label for="perception-tech">Technology</label><input type="number" id="perception-tech" name="perception-tech" class="global-form-input"></div>
+                                        </div>
+
+                                        <div class="move-grid">
+                                            <label class="grid-header">Move</label>
+                                            <div></div>
+                                            <div class="form-group"><label for="move-walk">Walk</label><input type="number" id="move-walk" name="move-walk" class="global-form-input"></div>
+                                            <div class="form-group"><label for="move-climb">Climb</label><input type="number" id="move-climb" name="move-climb" class="global-form-input"></div>
+                                            <div class="form-group"><label for="move-swim">Swim</label><input type="number" id="move-swim" name="move-swim" class="global-form-input"></div>
+                                            <div class="form-group"><label for="move-fly">Fly</label><input type="number" id="move-fly" name="move-fly" class="global-form-input"></div>
+                                        </div>
                                     </div>
                                 </section>
                             </div>
