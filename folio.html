@@ -806,27 +806,25 @@
             if(!sheet) return;
             
             const skillData = {
-                "Combat": {
-                    "subcategories": {
-                        "Advanced": ["Energy", "Heavy Energy"],
-                        "Archaic": ["Defense", "Melee", "Ranged", "Unarmed"],
-                        "Modern": ["Ballistic", "Heavy Weapons"]
-                    }
-                },
+                "Physical": { "skills": ["Acrobatics", "Athletics", "Piloting", "Stealth"] },
                 "Mental": {
-                    "skills": ["Alertness"],
+                    "skills": ["Alertness", "Academics"],
                     "subcategories": {
-                        "Knowledge": ["Academics", "Appraisal", "Computers", "Culture", "History", "Investigation", "Language", "Medicine", "Nature", "Navigation", "Nobility", "Physics", "Religion", "Science", "Survival", "Tactics", "Technology"],
+                        "Knowledge": ["Appraisal", "Computers", "Culture", "History", "Investigation", "Language", "Medicine", "Nature", "Navigation", "Nobility", "Physics", "Religion", "Science", "Survival", "Tactics", "Technology"],
                         "Vocation": ["Administrator", "Alchemist", "Ambassador", "Architect", "Archivist", "Armorer", "Artist", "Artificer", "Broker", "Celebrity", "Constable", "Courtesan", "Culinarian", "Demolitionist", "Electrician", "Engineer", "Groundskeeper", "Handler", "Laborer", "Mechanic", "Researcher", "Salvager", "Soldier", "Tailor", "Transporter", "Weaponsmith"]
                     }
                 },
-                "Physical": {
-                    "skills": ["Acrobatics", "Athletics", "Piloting", "Stealth"]
-                },
                 "Social": {
                     "subcategories": {
-                        "Expression": ["Acting", "Comedy", "Dancing", "Disguise", "Keyboard", "Legerdemain", "Oratory", "Percussion", "Singing", "String", "Style", "Wind"],
-                        "Manipulation": ["Bluff", "Diplomacy", "Insight", "Intimidate", "Streetwise"]
+                        "Manipulation": ["Insight", "Bluff", "Diplomacy", "Intimidate", "Streetwise"],
+                        "Expression": ["Acting", "Comedy", "Dancing", "Disguise", "Keyboard", "Legerdemain", "Oratory", "Percussion", "Singing", "String", "Style", "Wind"]
+                    }
+                },
+                "Combat": {
+                    "subcategories": {
+                        "Archaic": ["Defense", "Melee", "Ranged", "Unarmed"],
+                        "Modern": ["Ballistic", "Heavy Weapons"],
+                        "Advanced": ["Energy", "Heavy Energy"]
                     }
                 }
             };
@@ -885,10 +883,13 @@
                 groupData.skills.forEach(skillName => {
                     const skillId = `${groupName}-${skillName}`.toLowerCase().replace(/\s+/g, '-');
                     const skillRow = createSkillRow(skillName, skillId);
-                    if (skillName === 'Alertness') {
-                        skillRow.querySelector('.skill-base-select').outerHTML = `<input type="number" id="skill-${skillId}-base" name="skill-${skillId}-base" class="skill-base-input" readonly placeholder="0">`;
-                    }
                     skillRowsContainer.appendChild(skillRow);
+                    if (skillName === 'Alertness') {
+                        const baseSelect = skillRow.querySelector('.skill-base-select');
+                        if (baseSelect) {
+                            baseSelect.outerHTML = `<input type="number" id="skill-${skillId}-base" name="skill-${skillId}-base" class="skill-base-input" readonly placeholder="0">`;
+                        }
+                    }
                 });
                 groupDiv.appendChild(skillRowsContainer);
             }
