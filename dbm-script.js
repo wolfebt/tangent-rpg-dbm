@@ -290,7 +290,9 @@ const categoryConfig = {
             modifier: { type: 'multiselect', source: 'modifier', manageable: true },
             cp: { type: 'readonlytext', label: 'TOTAL CP' },
             mechanic: { type: 'textarea' },
-            note: { type: 'textarea' }
+            note: { type: 'textarea' },
+            multi: { type: 'boolean', label: 'Multi' },
+            staged: { type: 'boolean', label: 'Staged' }
         }
     },
     disadvantages: {
@@ -882,6 +884,7 @@ function renderManagementView(collectionKey, parentCollectionKey) {
 }
 
 const viewFunctions = { renderCategoryView, renderManagementView };
+window.viewFunctions = viewFunctions;
 
 function navigateTo(viewDescriptor, pushState = true) {
     if (pushState && appState.currentView) {
@@ -949,6 +952,69 @@ function requestNavigation(viewDescriptor) {
     }
 }
 
+
+function updateUIAfterAuthChange() {
+    const authContainer = document.getElementById('auth-container');
+    const userIdDisplay = document.getElementById('userIdDisplay');
+
+    if (authContainer) {
+        authContainer.innerHTML = '';
+        if (appState.isAnonymous) {
+            const loginButton = document.createElement('button');
+            loginButton.className = 'btn btn-primary !py-1 !px-3';
+            loginButton.textContent = 'LOGIN';
+            loginButton.addEventListener('click', handleLogin);
+            authContainer.appendChild(loginButton);
+        } else {
+            const logoutButton = document.createElement('button');
+            logoutButton.className = 'btn btn-secondary !py-1 !px-3';
+            logoutButton.textContent = 'LOGOUT';
+            logoutButton.addEventListener('click', handleLogout);
+            authContainer.appendChild(logoutButton);
+        }
+    }
+
+    if(userIdDisplay) {
+         userIdDisplay.textContent = appState.isAnonymous ? 'ANONYMOUS' : (auth.currentUser?.email || appState.userId);
+    }
+
+    const canEditContent = appState.userRole === 'owner' || appState.userRole === 'admin' || appState.userRole === 'contributor';
+
+    // Generic auth-required elements (like ADD NEW) respect devMode via hasPermission
+    const authRequiredElements = document.querySelectorAll('.auth-required');
+    authRequiredElements.forEach(el => {
+        if (hasPermission('create')) {
+             el.classList.remove('hidden');
+        } else {
+            el.classList.add('hidden');
+        }
+    });
+
+    // Special handling for PAIR-GM button and Mode Toggle visibility (devMode independent)
+    const pairGmBtn = document.getElementById('pair-gm-btn');
+    if (pairGmBtn) {
+        if (canEditContent) pairGmBtn.classList.remove('hidden');
+        else pairGmBtn.classList.add('hidden');
+    }
+    const modeToggleContainer = document.getElementById('mode-toggle-container');
+    if (modeToggleContainer) {
+        if (canEditContent) modeToggleContainer.classList.remove('hidden');
+        else modeToggleContainer.classList.add('hidden');
+    }
+
+    // Update interactivity of table titles based on auth state
+    const allTableTitles = document.querySelectorAll('h2[id^="table-title-"]');
+    allTableTitles.forEach(title => {
+        if (hasPermission('create')) {
+            title.style.cursor = 'pointer';
+            title.classList.add('hover:underline');
+        } else {
+            title.style.cursor = 'default';
+            title.classList.remove('hover:underline');
+        }
+    });
+}
+window.updateUIAfterAuthChange = updateUIAfterAuthChange;
 
 async function handleLogin() {
     const provider = new GoogleAuthProvider();
@@ -1982,6 +2048,7 @@ function createBooleanField(fieldKey, savedValue, isEditMode) {
 }
 
 function createRadioField(fieldKey, fieldConfig, savedValue, isEditMode) {
+    console.log('createRadioField', fieldKey, fieldConfig, savedValue, isEditMode);
     const options = fieldConfig.options || [];
     const valueToSelect = (savedValue === '' && fieldKey === 'modifier_type') ? 'constant' : savedValue;
     if (!isEditMode) {
