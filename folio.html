@@ -31,7 +31,8 @@
             gap: 1rem;
         }
         .skills-column {
-            column-count: 2;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
             gap: 2rem;
         }
         .skill-group {
@@ -854,15 +855,33 @@
                     }
                 }
             };
-            const skillOrder = ['Physical', 'Mental', 'Social', 'Combat'];
-            const skillsContainer = document.getElementById('skills-list');
+            const skillsCol1 = document.getElementById('skills-col-1');
+            const skillsCol2 = document.getElementById('skills-col-2');
             
-            if(skillsContainer) skillsContainer.innerHTML = '';
+            const headerHtml = `
+                <div class="skill-row header" style="font-weight: bold; border-bottom: 1px solid var(--panel-border); margin-bottom: 0.5rem; padding-bottom: 0.5rem;">
+                    <span>SKILL</span>
+                    <span style="text-align: center;">RANK</span>
+                    <span style="text-align: center;">ATT</span>
+                    <span style="text-align: center;">MOD</span>
+                    <span style="text-align: center;">TTL</span>
+                </div>
+            `;
 
-            skillOrder.forEach(groupName => {
+            if(skillsCol1) skillsCol1.innerHTML = headerHtml;
+            if(skillsCol2) skillsCol2.innerHTML = headerHtml;
+
+            ['Physical', 'Mental'].forEach(groupName => {
                 const groupData = skillData[groupName];
                 if (groupData) {
-                    populateSkillGroup(skillsContainer, groupName, groupData);
+                    populateSkillGroup(skillsCol1, groupName, groupData);
+                }
+            });
+
+            ['Social', 'Combat'].forEach(groupName => {
+                const groupData = skillData[groupName];
+                if (groupData) {
+                    populateSkillGroup(skillsCol2, groupName, groupData);
                 }
             });
 
@@ -1947,7 +1966,10 @@
                             </div>
                             <div id="skills-tab" class="tab-panel">
                                 <section id="skills-section">
-                                    <div id="skills-list" class="skills-column"></div>
+                                    <div class="skills-column">
+                                        <div id="skills-col-1"></div>
+                                        <div id="skills-col-2"></div>
+                                    </div>
                                     <button type="button" id="add-skill-btn" class="action-btn" style="width: 100%; margin-top: 1rem;">Add Skill</button>
                                 </section>
                             </div>
