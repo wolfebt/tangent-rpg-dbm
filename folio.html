@@ -648,6 +648,7 @@
             calculateAlertness();
             calculatePerceptionScores();
             calculateCharacterPoints();
+            updateAbilityCounters();
         }
 
         function getAggregatedBonuses() {
@@ -659,6 +660,8 @@
             const allBonusFeatureOptions = [];
             let totalSkillChoices = 0;
             let totalFeatureChoices = 0;
+            let totalDisciplines = 0;
+            let totalSpecialAbilities = 0;
 
             const sources = [
                 { name: data['char-species'], db: appState.allSpecies },
@@ -687,11 +690,13 @@
                         if (item.bonus_feature_options) allBonusFeatureOptions.push(...item.bonus_feature_options);
                         if (item.bonus_skill_choices) totalSkillChoices += item.bonus_skill_choices;
                         if (item.bonus_feature_choices) totalFeatureChoices += item.bonus_feature_choices;
+                        if (item.bonus_disciplines) totalDisciplines += item.bonus_disciplines;
+                        if (item.bonus_special_abilities) totalSpecialAbilities += item.bonus_special_abilities;
                     }
                 }
             });
 
-            return { allBonusSkillRanks, allBonusFeatures, allRecommendedFeatures, allBonusSkillOptions, allBonusFeatureOptions, totalSkillChoices, totalFeatureChoices };
+            return { allBonusSkillRanks, allBonusFeatures, allRecommendedFeatures, allBonusSkillOptions, allBonusFeatureOptions, totalSkillChoices, totalFeatureChoices, totalDisciplines, totalSpecialAbilities };
         }
 
         function calculateCharacterPoints() {
@@ -909,6 +914,7 @@
                 });
             }
             recalculateAllModifiers();
+            updateAbilityCounters();
         }
 
         function populateSkillGroup(container, groupName, groupData) {
@@ -1562,6 +1568,40 @@
             });
 
             recalculateAllModifiers();
+            updateAbilityCounters();
+        }
+
+        function updateAbilityCounters() {
+            const data = getPersonaFolioFormData();
+            const { totalDisciplines, totalSpecialAbilities } = getAggregatedBonuses();
+
+            // Awakened (Disciplines)
+            const awakenedCount = data.awakened ? data.awakened.length : 0;
+            const awakenedCounter = document.getElementById('awakened-counter');
+            const addAwakenedBtn = document.getElementById('add-awakened-btn');
+            const addInvocationBtn = document.getElementById('add-invocation-btn');
+
+            if (awakenedCounter) {
+                awakenedCounter.textContent = `[${awakenedCount}/${totalDisciplines}]`;
+            }
+            if (addAwakenedBtn) {
+                addAwakenedBtn.disabled = awakenedCount >= totalDisciplines;
+            }
+            if (addInvocationBtn) {
+                addInvocationBtn.disabled = awakenedCount >= totalDisciplines;
+            }
+
+            // Special Abilities
+            const specialAbilitiesCount = data.special_abilities ? data.special_abilities.length : 0;
+            const specialAbilitiesCounter = document.getElementById('special-abilities-counter');
+            const addSpecialAbilityBtn = document.getElementById('add-special-ability-btn');
+
+            if (specialAbilitiesCounter) {
+                specialAbilitiesCounter.textContent = `[${specialAbilitiesCount}/${totalSpecialAbilities}]`;
+            }
+            if (addSpecialAbilityBtn) {
+                addSpecialAbilityBtn.disabled = specialAbilitiesCount >= totalSpecialAbilities;
+            }
         }
 
         async function showAwakenedModal() {
@@ -2125,19 +2165,19 @@
                                         <input type="hidden" id="augmentations-data" name="augmentations">
                                     </div>
                                     <div>
-                                        <h4>Invocations</h4>
-                                        <div id="invocations-display" class="single-column-grid"></div>
-                                        <button type="button" data-target-list="invocations" data-browse-path="invocations" class="action-btn" style="width: 100%; margin-top: 1rem;">Add Invocation</button>
-                                        <input type="hidden" id="invocations-data" name="invocations">
-                                    </div>
-                                    <div>
-                                        <h4>Awakened</h4>
+                                        <h4>Awakened <span id="awakened-counter"></span></h4>
                                         <div id="awakened-display" class="single-column-grid"></div>
-                                        <button type="button" id="add-awakened-btn" class="action-btn" style="width: 100%; margin-top: 1rem;">Add Awakened</button>
+                                        <button type="button" id="add-awakened-btn" class="action-btn" style="width: 100%; margin-top: 1rem;">Add Discipline</button>
                                         <input type="hidden" id="awakened-data" name="awakened">
                                     </div>
                                     <div>
-                                        <h4>Special Abilities</h4>
+                                        <h4>Invocations</h4>
+                                        <div id="invocations-display" class="single-column-grid"></div>
+                                        <button type="button" id="add-invocation-btn" data-target-list="invocations" data-browse-path="invocations" class="action-btn" style="width: 100%; margin-top: 1rem;">Add Invocation</button>
+                                        <input type="hidden" id="invocations-data" name="invocations">
+                                    </div>
+                                    <div>
+                                        <h4>Special Abilities <span id="special-abilities-counter"></span></h4>
                                         <div id="special_abilities-display" class="single-column-grid"></div>
                                         <button type="button" id="add-special-ability-btn" class="action-btn" style="width: 100%; margin-top: 1rem;">Add Special Ability</button>
                                         <input type="hidden" id="special_abilities-data" name="special_abilities">
