@@ -430,10 +430,11 @@ const categoryConfig = {
             }
         }
     },
-    equipment: {
-        label: 'EQUIPMENT',
+    personal_property: {
+        label: 'PERSONAL PROPERTY',
         isParent: true,
-        subItems: [],
+        viewType: 'landing',
+        subItems: ['gear', 'weaponry', 'armoring', 'mecha'],
     },
     user_guide: {
         label: 'User Guide',
@@ -553,7 +554,7 @@ const categoryConfig = {
     armoring: {
         label: 'Armoring',
         viewType: 'table',
-        parent: 'equipment',
+        parent: 'personal_property',
         directory_columns: ['name', 'tl', 'ml', 'description', 'cost', 'resistance', 'design_dc'],
         fields: {
             name: { type: 'text', required: true, label: 'Armor Name' },
@@ -597,7 +598,7 @@ const categoryConfig = {
     weaponry: {
         label: 'Weaponry',
         viewType: 'table',
-        parent: 'equipment',
+        parent: 'personal_property',
         directory_columns: ['name', 'tl', 'ml', 'description', 'cost', 'effect', 'design_dc'],
         fields: {
             name: { type: 'text', required: true, label: 'Weapon Name' },
@@ -650,7 +651,7 @@ const categoryConfig = {
         gear: {
         label: 'Gear',
         viewType: 'table',
-        parent: 'equipment',
+        parent: 'personal_property',
         directory_columns: ['name', 'category', 'description', 'cost', 'weight'],
         fields: {
             name: { type: 'text', required: true, label: 'Item Name' },
@@ -674,7 +675,7 @@ const categoryConfig = {
     mecha: {
         label: 'Mecha',
         viewType: 'table',
-        parent: 'equipment',
+        parent: 'personal_property',
         directory_columns: ['name', 'tl', 'ml', 'description', 'cost', 'design_dc'],
         fields: {
             name: { type: 'text', required: true, label: 'Mecha Name' },
@@ -1365,11 +1366,46 @@ function renderCategoryView(categoryKey) {
 
     } else if (config.viewType === 'guide') {
         renderGuideView(mainContentContainer);
+    } else if (config.viewType === 'landing') {
+        renderLandingView(categoryKey, config.label, mainContentContainer);
     }
     else {
          renderTableView(categoryKey, config.label, mainContentContainer);
     }
     updateUIAfterAuthChange();
+}
+
+function renderLandingView(categoryKey, title, container) {
+    const config = categoryConfig[categoryKey];
+    if (!config || !config.subItems) {
+        showError(`Configuration for landing page "${categoryKey}" is missing subItems.`);
+        return;
+    }
+
+    const subItemsHtml = config.subItems.map(subKey => {
+        const subConfig = categoryConfig[subKey];
+        if (!subConfig) return '';
+        return `
+            <button class="landing-page-button" data-navigate-to="${subKey}">
+                <span class="text-2xl font-bold uppercase">${subConfig.label}</span>
+            </button>
+        `;
+    }).join('');
+
+    container.innerHTML = `
+        <div class="landing-page-container">
+            <h2 class="text-3xl font-bold uppercase mb-8">${title}</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                ${subItemsHtml}
+            </div>
+        </div>
+    `;
+
+    container.querySelectorAll('.landing-page-button').forEach(button => {
+        button.addEventListener('click', () => {
+            requestNavigation({ view: 'renderCategoryView', args: [button.dataset.navigateTo] });
+        });
+    });
 }
 
 function renderGuideView(container) {
