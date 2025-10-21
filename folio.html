@@ -20,6 +20,11 @@
             grid-template-columns: repeat(2, 1fr);
             gap: 2rem;
         }
+        .row-2-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
         .skills-column {
             column-count: 2;
             gap: 2rem;
@@ -1885,12 +1890,18 @@
                                     </div>
                                     <div>
                                         <div class="form-group"><label for="initiative-total">Initiative</label><input type="number" id="initiative-total" name="initiative-total" class="global-form-input" readonly></div>
-                                        <div class="form-group"><label for="health">Health</label><input type="number" id="health" name="health" class="global-form-input"></div>
-                                        <div class="form-group"><label for="vitality">Vitality</label><input type="number" id="vitality" name="vitality" class="global-form-input"></div>
-                                        <div class="form-group"><label for="karma">Karma</label><input type="number" id="karma" name="karma" class="global-form-input"></div>
-                                        <div class="form-group"><label for="plot-points">Plot Points</label><input type="number" id="plot-points" name="plot-points" class="global-form-input"></div>
-                                        <div class="form-group"><label for="tech-level">Tech Level</label><input type="number" id="tech-level" name="tech-level" class="global-form-input"></div>
-                                        <div class="form-group"><label for="wealth-rating">Wealth Rating</label><input type="number" id="wealth-rating" name="wealth-rating" class="global-form-input"></div>
+                                        <div class="row-2-columns" style="margin-bottom: 1rem;">
+                                            <div class="form-group"><label for="health">Health</label><input type="number" id="health" name="health" class="global-form-input"></div>
+                                            <div class="form-group"><label for="vitality">Vitality</label><input type="number" id="vitality" name="vitality" class="global-form-input"></div>
+                                        </div>
+                                        <div class="row-2-columns" style="margin-bottom: 1rem;">
+                                            <div class="form-group"><label for="karma">Karma</label><input type="number" id="karma" name="karma" class="global-form-input"></div>
+                                            <div class="form-group"><label for="plot-points">Plot Points</label><input type="number" id="plot-points" name="plot-points" class="global-form-input"></div>
+                                        </div>
+                                        <div class="row-2-columns" style="margin-bottom: 1rem;">
+                                            <div class="form-group"><label for="tech-level">Tech Level</label><input type="number" id="tech-level" name="tech-level" class="global-form-input"></div>
+                                            <div class="form-group"><label for="wealth-rating">Wealth Rating</label><input type="number" id="wealth-rating" name="wealth-rating" class="global-form-input"></div>
+                                        </div>
 
                                         <div class="form-group">
                                             <label for="perception">Perception</label>
