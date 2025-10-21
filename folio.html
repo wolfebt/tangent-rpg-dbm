@@ -20,6 +20,11 @@
             grid-template-columns: repeat(2, 1fr);
             gap: 2rem;
         }
+        .columns-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
         .row-2-columns {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -1402,7 +1407,7 @@
             confirmModal.classList.remove('hidden');
         }
 
-        async function showDirectoryModal(targetListKey, startPathKey) {
+        async function showDirectoryModal(targetListKey, startPathKey, triggerElement) {
             const modal = document.getElementById('custom-modal');
             const modalTitle = document.getElementById('modal-title');
             const modalChoices = document.getElementById('modal-choices');
@@ -1412,14 +1417,23 @@
             modalTitle.textContent = `BROWSE: ${categoryConfig[startPathKey]?.label || startPathKey.toUpperCase()}`;
             modalChoices.innerHTML = '<p class="text-center">Loading...</p>';
             
-            // Reset modal state
             modalChoices.style.display = 'flex'; 
             okBtn.style.display = 'none';
             cancelBtn.style.display = 'block';
 
             modal.classList.remove('hidden');
 
-            const items = await getCollectionOptions(startPathKey);
+            let items = await getCollectionOptions(startPathKey);
+
+            const filterCategory = triggerElement ? triggerElement.dataset.filterCategory : null;
+            const filterCategoryExclude = triggerElement ? triggerElement.dataset.filterCategoryExclude : null;
+
+            if (filterCategory) {
+                items = items.filter(item => item.category === filterCategory);
+            }
+            if (filterCategoryExclude) {
+                items = items.filter(item => item.category !== filterCategoryExclude);
+            }
             
             modalChoices.innerHTML = '';
 
@@ -1443,7 +1457,7 @@
                 availableItems.forEach(item => {
                     const btn = document.createElement('button');
                     btn.textContent = item.name.toUpperCase();
-                    btn.className = 'gem-style-button'; // Use the new gem-style button class
+                    btn.className = 'gem-style-button';
                     btn.onclick = () => {
                         handleItemSelection(targetListKey, item.name, isMultiSelect);
                         modal.classList.add('hidden');
@@ -1738,11 +1752,8 @@
                 const browseButton = target.closest('[data-browse-path]');
                 if (browseButton) {
                     const targetList = browseButton.dataset.targetList || browseButton.id;
-                    if(browseButton.hasAttribute('readonly')) {
-                        showDirectoryModal(browseButton.id, browseButton.dataset.browsePath);
-                    } else {
-                         showDirectoryModal(targetList, browseButton.dataset.browsePath);
-                    }
+                    const path = browseButton.dataset.browsePath;
+                    showDirectoryModal(targetList, path, browseButton);
                 }
         
                 if (target.matches('.sidebar-tab')) {
@@ -1940,11 +1951,11 @@
                                 </section>
                             </div>
                              <div id="abilities-tab" class="tab-panel">
-                                <section class="columns-2">
+                                <section class="columns-3">
                                     <div>
                                         <h4>Features</h4>
                                         <div id="features-display" class="single-column-grid"></div>
-                                        <button type="button" data-target-list="features" data-browse-path="features" class="action-btn" style="width: 100%; margin-top: 1rem;">Add Feature</button>
+                                        <button type="button" data-target-list="features" data-browse-path="features" data-filter-category-exclude="Special Ability" class="action-btn" style="width: 100%; margin-top: 1rem;">Add Feature</button>
                                         <input type="hidden" id="features-data" name="features">
                                     </div>
                                     <div>
@@ -1952,6 +1963,24 @@
                                         <div id="disadvantages-display" class="single-column-grid"></div>
                                         <button type="button" data-target-list="disadvantages" data-browse-path="disadvantages" class="action-btn" style="width: 100%; margin-top: 1rem;">Add Disadvantage</button>
                                         <input type="hidden" id="disadvantages-data" name="disadvantages">
+                                    </div>
+                                    <div>
+                                        <h4>Augmentations</h4>
+                                        <div id="augmentations-display" class="single-column-grid"></div>
+                                        <button type="button" data-target-list="augmentations" data-browse-path="augmentations" class="action-btn" style="width: 100%; margin-top: 1rem;">Add Augmentation</button>
+                                        <input type="hidden" id="augmentations-data" name="augmentations">
+                                    </div>
+                                    <div>
+                                        <h4>Invocations</h4>
+                                        <div id="invocations-display" class="single-column-grid"></div>
+                                        <button type="button" data-target-list="invocations" data-browse-path="invocations" class="action-btn" style="width: 100%; margin-top: 1rem;">Add Invocation</button>
+                                        <input type="hidden" id="invocations-data" name="invocations">
+                                    </div>
+                                    <div>
+                                        <h4>Special Abilities</h4>
+                                        <div id="special_abilities-display" class="single-column-grid"></div>
+                                        <button type="button" data-target-list="special_abilities" data-browse-path="features" data-filter-category="Special Ability" class="action-btn" style="width: 100%; margin-top: 1rem;">Add Special Ability</button>
+                                        <input type="hidden" id="special_abilities-data" name="special_abilities">
                                     </div>
                                 </section>
                             </div>
