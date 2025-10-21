@@ -1099,7 +1099,7 @@ onAuthStateChanged(auth, async (user) => {
                 }
 
                 if (!navigatedFromSession) {
-                    navigateTo({ view: 'renderCategoryView', args: ['user_guide'] });
+                    navigateTo({ view: 'renderCategoryView', args: ['rules_codex'] });
                 }
 
             } catch (error) {
@@ -1673,6 +1673,11 @@ function listenForWikiEntries() {
                 renderWikiDirectory(wikiDirectory, appState.wikiEntries, null);
                 if (appState.currentWikiEntryId && appState.wikiEntries.some(e => e.id === appState.currentWikiEntryId)) {
                     displayWikiEntry(appState.currentWikiEntryId);
+                } else {
+                    const defaultEntry = appState.wikiEntries.find(e => e.name === 'Tangent SFF RPG');
+                    if (defaultEntry) {
+                        displayWikiEntry(defaultEntry.id);
+                    }
                 }
             }
         }
