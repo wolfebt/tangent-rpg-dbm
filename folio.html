@@ -305,7 +305,7 @@
                 }
             }
             // Parse JSON data from hidden inputs
-            ['features', 'disadvantages', 'augmentations', 'invocations', 'special_abilities', 'gear', 'weapons', 'armoring', 'mecha', 'other', 'associates', 'attacks', 'armor', 'notes'].forEach(key => {
+            ['features', 'disadvantages', 'augmentations', 'invocations', 'special_abilities', 'awakened', 'gear', 'weapons', 'armoring', 'mecha', 'other', 'associates', 'attacks', 'armor', 'notes'].forEach(key => {
                 const element = document.getElementById(`${key}-data`);
                 if (element && element.value) {
                     try {
@@ -326,7 +326,7 @@
                 const elements = sheet.elements[key];
                 if (!elements) continue;
 
-                if (['features', 'disadvantages', 'augmentations', 'invocations', 'special_abilities', 'gear', 'weapons', 'armoring', 'mecha', 'other', 'associates', 'attacks', 'armor', 'notes'].includes(key)) {
+                if (['features', 'disadvantages', 'augmentations', 'invocations', 'special_abilities', 'awakened', 'gear', 'weapons', 'armoring', 'mecha', 'other', 'associates', 'attacks', 'armor', 'notes'].includes(key)) {
                     const dataInput = document.getElementById(`${key}-data`);
                     if(dataInput) {
                         const values = Array.isArray(data[key]) ? data[key] : [];
@@ -725,7 +725,8 @@
             const itemLists = {
                 features: 'Features',
                 disadvantages: 'Disadvantages',
-                special_abilities: 'Special Abilities'
+                special_abilities: 'Special Abilities',
+                awakened: 'Awakened'
             };
 
             for (const [listKey, categoryName] of Object.entries(itemLists)) {
@@ -1491,7 +1492,7 @@
             };
         }
         
-        function handleItemSelection(targetId, value, isMultiSelect) {
+        async function handleItemSelection(targetId, value, isMultiSelect) {
             if (isMultiSelect) {
                 const displayContainer = document.getElementById(`${targetId}-display`);
                 const dataInput = document.getElementById(`${targetId}-data`);
@@ -1508,6 +1509,25 @@
                 if (!currentValues.includes(value)) {
                     currentValues.push(value);
                     dataInput.value = JSON.stringify(currentValues);
+
+                    if (targetId === 'awakened') {
+                        const allDisciplines = await getCollectionOptions('discipline');
+                        const disciplineData = allDisciplines.find(d => d.name === value);
+
+                        if (disciplineData) {
+                            const allSkills = await getCollectionOptions('skills');
+                            const focusSkill = allSkills.find(s => s.name === 'Focus');
+                            if (focusSkill) await addSkillToSheet(focusSkill, 1);
+
+                            if (disciplineData.discipline_skills && disciplineData.discipline_skills.length > 0) {
+                                for (const skillName of disciplineData.discipline_skills) {
+                                    const skillData = allSkills.find(s => s.name === skillName);
+                                    if (skillData) await addSkillToSheet(skillData, 1);
+                                }
+                            }
+                        }
+                    }
+
                     renderItemList(displayContainer, currentValues, targetId);
                 }
             } else {
@@ -1519,7 +1539,7 @@
             }
         }
 
-        function renderItemList(container, items, targetId) {
+        async function renderItemList(container, items, targetId) {
             if (!container) return;
             container.innerHTML = '';
             items.forEach((item, index) => {
@@ -1540,7 +1560,116 @@
                 itemEl.appendChild(removeBtn);
                 container.appendChild(itemEl);
             });
+
             recalculateAllModifiers();
+        }
+
+        async function showAwakenedModal() {
+            const modal = document.getElementById('custom-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalChoices = document.getElementById('modal-choices');
+            const okBtn = document.getElementById('modal-ok-btn');
+            const cancelBtn = document.getElementById('modal-cancel-btn');
+
+            modalTitle.textContent = 'SELECT DISCIPLINE';
+            modalChoices.innerHTML = '<p class="text-center">Loading...</p>';
+
+            modalChoices.style.display = 'flex';
+            okBtn.style.display = 'none';
+            cancelBtn.style.display = 'block';
+
+            modal.classList.remove('hidden');
+
+            const allDisciplines = await getCollectionOptions('discipline');
+            const awakenedDataInput = document.getElementById('awakened-data');
+            let currentDisciplines = [];
+            if (awakenedDataInput.value) {
+                try {
+                    currentDisciplines = JSON.parse(awakenedDataInput.value);
+                } catch(e) {}
+            }
+
+            const availableDisciplines = allDisciplines.filter(d => !currentDisciplines.includes(d.name));
+
+            modalChoices.innerHTML = '';
+
+            if (availableDisciplines.length === 0) {
+                modalChoices.innerHTML = '<p class="text-gray-400 text-center">No available disciplines to add.</p>';
+            } else {
+                availableDisciplines.forEach(discipline => {
+                    const btn = document.createElement('button');
+                    btn.textContent = discipline.name.toUpperCase();
+                    btn.className = 'gem-style-button';
+                    btn.onclick = () => {
+                        handleDisciplineSelection(discipline.name);
+                        modal.classList.add('hidden');
+                    };
+                    modalChoices.appendChild(btn);
+                });
+            }
+
+            cancelBtn.onclick = () => {
+                modal.classList.add('hidden');
+            };
+        }
+
+        async function handleDisciplineSelection(disciplineName) {
+            handleItemSelection('awakened', disciplineName, true);
+        }
+
+        async function handleSpecialAbilitySelection(abilityName) {
+            handleItemSelection('special_abilities', abilityName, true);
+        }
+
+        async function showSpecialAbilityModal() {
+            const modal = document.getElementById('custom-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalChoices = document.getElementById('modal-choices');
+            const okBtn = document.getElementById('modal-ok-btn');
+            const cancelBtn = document.getElementById('modal-cancel-btn');
+
+            modalTitle.textContent = 'SELECT SPECIAL ABILITY';
+            modalChoices.innerHTML = '<p class="text-center">Loading...</p>';
+
+            modalChoices.style.display = 'flex';
+            okBtn.style.display = 'none';
+            cancelBtn.style.display = 'block';
+
+            modal.classList.remove('hidden');
+
+            const allFeatures = await getCollectionOptions('features');
+            const specialAbilities = allFeatures.filter(f => f.category === 'Special Ability');
+
+            const specialAbilitiesDataInput = document.getElementById('special_abilities-data');
+            let currentAbilities = [];
+            if (specialAbilitiesDataInput.value) {
+                try {
+                    currentAbilities = JSON.parse(specialAbilitiesDataInput.value);
+                } catch(e) {}
+            }
+
+            const availableAbilities = specialAbilities.filter(a => !currentAbilities.includes(a.name));
+
+            modalChoices.innerHTML = '';
+
+            if (availableAbilities.length === 0) {
+                modalChoices.innerHTML = '<p class="text-gray-400 text-center">No available special abilities to add.</p>';
+            } else {
+                availableAbilities.forEach(ability => {
+                    const btn = document.createElement('button');
+                    btn.textContent = ability.name.toUpperCase();
+                    btn.className = 'gem-style-button';
+                    btn.onclick = () => {
+                        handleSpecialAbilitySelection(ability.name);
+                        modal.classList.add('hidden');
+                    };
+                    modalChoices.appendChild(btn);
+                });
+            }
+
+            cancelBtn.onclick = () => {
+                modal.classList.add('hidden');
+            };
         }
 
         function showCustomAlert(text) {
@@ -1768,6 +1897,8 @@
                 if (target.id === 'add-armor-btn') showArmorSelectionModal();
                 if (target.id === 'add-note-btn') addNoteToList();
                 if (target.id === 'add-skill-btn') showAddSkillModal();
+                if (target.id === 'add-awakened-btn') showAwakenedModal();
+                if (target.id === 'add-special-ability-btn') showSpecialAbilityModal();
                 
                 const browseButton = target.closest('[data-browse-path]');
                 if (browseButton) {
@@ -2000,9 +2131,15 @@
                                         <input type="hidden" id="invocations-data" name="invocations">
                                     </div>
                                     <div>
+                                        <h4>Awakened</h4>
+                                        <div id="awakened-display" class="single-column-grid"></div>
+                                        <button type="button" id="add-awakened-btn" class="action-btn" style="width: 100%; margin-top: 1rem;">Add Awakened</button>
+                                        <input type="hidden" id="awakened-data" name="awakened">
+                                    </div>
+                                    <div>
                                         <h4>Special Abilities</h4>
                                         <div id="special_abilities-display" class="single-column-grid"></div>
-                                        <button type="button" data-target-list="special_abilities" data-browse-path="features" data-filter-category="Special Ability" class="action-btn" style="width: 100%; margin-top: 1rem;">Add Special Ability</button>
+                                        <button type="button" id="add-special-ability-btn" class="action-btn" style="width: 100%; margin-top: 1rem;">Add Special Ability</button>
                                         <input type="hidden" id="special_abilities-data" name="special_abilities">
                                     </div>
                                 </section>
