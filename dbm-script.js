@@ -254,6 +254,8 @@ const categoryConfig = {
             recommended_features: { type: 'multiselect', source: 'features', label: 'Recommended Features', manageable: true },
             trait: { type: 'multiselect', source: 'trait', manageable: true },
             mechanic: { type: 'textarea' },
+            tech_level: { type: 'select', label: 'Tech Level', options: [0, 1, 2, 3, 4, 5] },
+            meta_level: { type: 'select', label: 'Meta Level', options: [0, 1, 2, 3, 4, 5] },
             note: { type: 'textarea' }
         }
     },
@@ -326,6 +328,8 @@ const categoryConfig = {
             critical_failure_effect: { type: 'multiselect', source: 'critical_failure_effect', manageable: true },
             design_dc: { type: 'readonlytext', label: 'DESIGN DC' },
             mechanic: { type: 'textarea' },
+            tech_level: { type: 'select', label: 'Tech Level', options: [0, 1, 2, 3, 4, 5] },
+            meta_level: { type: 'select', label: 'Meta Level', options: [0, 1, 2, 3, 4, 5] },
             note: { type: 'textarea' }
         },
         subcategories: {
@@ -337,6 +341,7 @@ const categoryConfig = {
                     description: { type: 'textarea' },
                     prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
                     modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                    discipline_skills: { type: 'multiselect', source: 'skills', label: 'Discipline Skills', manageable: true },
                     mechanic: { type: 'textarea' },
                     note: { type: 'textarea' }
                 }
@@ -362,6 +367,8 @@ const categoryConfig = {
             critical_failure_effect: { type: 'multiselect', source: 'critical_failure_effect', manageable: true },
             design_dc: { type: 'readonlytext', label: 'DESIGN DC' },
             mechanic: { type: 'textarea' },
+            tech_level: { type: 'select', label: 'Tech Level', options: [0, 1, 2, 3, 4, 5] },
+            meta_level: { type: 'select', label: 'Meta Level', options: [0, 1, 2, 3, 4, 5] },
             note: { type: 'textarea' }
         },
         subcategories: {
@@ -373,6 +380,7 @@ const categoryConfig = {
                     description: { type: 'textarea' },
                     prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
                     modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                    discipline_skills: { type: 'multiselect', source: 'skills', label: 'Discipline Skills', manageable: true },
                     mechanic: { type: 'textarea' },
                     note: { type: 'textarea' }
                 }
