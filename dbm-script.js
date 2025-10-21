@@ -433,7 +433,7 @@ const categoryConfig = {
     equipment: {
         label: 'EQUIPMENT',
         isParent: true,
-        subItems: ['armoring', 'weaponry', 'gear', 'mecha'],
+        subItems: [],
     },
     user_guide: {
         label: 'User Guide',
@@ -554,7 +554,6 @@ const categoryConfig = {
         label: 'Armoring',
         viewType: 'table',
         parent: 'equipment',
-        hideFromMenu: true,
         directory_columns: ['name', 'tl', 'ml', 'description', 'cost', 'resistance', 'design_dc'],
         fields: {
             name: { type: 'text', required: true, label: 'Armor Name' },
@@ -599,7 +598,6 @@ const categoryConfig = {
         label: 'Weaponry',
         viewType: 'table',
         parent: 'equipment',
-        hideFromMenu: true,
         directory_columns: ['name', 'tl', 'ml', 'description', 'cost', 'effect', 'design_dc'],
         fields: {
             name: { type: 'text', required: true, label: 'Weapon Name' },
@@ -653,7 +651,6 @@ const categoryConfig = {
         label: 'Gear',
         viewType: 'table',
         parent: 'equipment',
-        hideFromMenu: true,
         directory_columns: ['name', 'category', 'description', 'cost', 'weight'],
         fields: {
             name: { type: 'text', required: true, label: 'Item Name' },
@@ -678,7 +675,6 @@ const categoryConfig = {
         label: 'Mecha',
         viewType: 'table',
         parent: 'equipment',
-        hideFromMenu: true,
         directory_columns: ['name', 'tl', 'ml', 'description', 'cost', 'design_dc'],
         fields: {
             name: { type: 'text', required: true, label: 'Mecha Name' },
@@ -1254,7 +1250,8 @@ function renderSidebar(activeCategoryKey) {
     const activeConfig = categoryConfig[activeCategoryKey] || {};
     const activeParentKey = activeConfig.parent || activeCategoryKey;
 
-    const mainCategories = Object.keys(categoryConfig).filter(key => !categoryConfig[key].hideFromMenu && !categoryConfig[key].parent);
+    const excludedCategories = ['values', 'secondary_values', 'tertiary_values'];
+    const mainCategories = Object.keys(categoryConfig).filter(key => !categoryConfig[key].hideFromMenu && !categoryConfig[key].parent && !excludedCategories.includes(key));
 
     mainCategories.forEach(key => {
         const config = categoryConfig[key];
