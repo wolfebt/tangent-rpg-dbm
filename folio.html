@@ -250,10 +250,11 @@
             await authReadyPromise;
 
             if (collectionName === 'equipment') {
-                const equipmentTypes = ['armoring', 'weaponry', 'mecha', 'gear'];
+                const equipmentTypes = ['armoring', 'weaponry', 'mecha', 'gear', 'other'];
                 let allOptions = [];
                 for (const type of equipmentTypes) {
                     const options = await getCollectionOptions(type);
+                    options.forEach(o => o.category = type);
                     allOptions.push(...options);
                 }
                 return allOptions.sort((a,b) => a.name.localeCompare(b.name));
@@ -303,7 +304,7 @@
                 }
             }
             // Parse JSON data from hidden inputs
-            ['features', 'disadvantages', 'augmentations', 'invocations', 'special_abilities', 'equipment', 'associates', 'attacks', 'armor', 'notes'].forEach(key => {
+            ['features', 'disadvantages', 'augmentations', 'invocations', 'special_abilities', 'gear', 'weapons', 'armoring', 'mecha', 'other', 'associates', 'attacks', 'armor', 'notes'].forEach(key => {
                 const element = document.getElementById(`${key}-data`);
                 if (element && element.value) {
                     try {
@@ -324,7 +325,7 @@
                 const elements = sheet.elements[key];
                 if (!elements) continue;
 
-                if (['features', 'disadvantages', 'augmentations', 'invocations', 'special_abilities', 'equipment', 'associates', 'attacks', 'armor', 'notes'].includes(key)) {
+                if (['features', 'disadvantages', 'augmentations', 'invocations', 'special_abilities', 'gear', 'weapons', 'armoring', 'mecha', 'other', 'associates', 'attacks', 'armor', 'notes'].includes(key)) {
                     const dataInput = document.getElementById(`${key}-data`);
                     if(dataInput) {
                         const values = Array.isArray(data[key]) ? data[key] : [];
@@ -1985,9 +1986,10 @@
                                 </section>
                             </div>
                              <div id="combat-gear-tab" class="tab-panel">
+                                <h4>COMBAT</h4>
                                 <section class="columns-2">
                                      <div>
-                                        <h4>Combat</h4>
+                                        <h5>Attack</h5>
                                         <div id="attack-rows">
                                             <div class="attack-grid">
                                                 <span>Attack</span><span>Score</span><span>Effect</span><span>Notes</span><span></span>
@@ -1995,23 +1997,51 @@
                                         </div>
                                         <input type="hidden" id="attacks-data" name="attacks">
                                         <button type="button" id="add-attack-btn" class="action-btn" style="width: 100%; margin-top: 1rem;">Add Attack</button>
-
-                                        <hr style="border-color: var(--panel-border); margin: 1rem 0;">
-
+                                     </div>
+                                      <div>
+                                        <h5>Defense</h5>
                                         <div id="armor-rows">
                                             <div class="armor-grid">
-                                                <span>Armor</span><span>Resistance</span><span>Notes</span><span></span>
+                                                <span>Defense</span><span>Resistance</span><span>Notes</span><span></span>
                                             </div>
                                         </div>
                                         <input type="hidden" id="armor-data" name="armor">
-                                        <button type="button" id="add-armor-btn" class="action-btn" style="width: 100%; margin-top: 1rem;">Add Armor</button>
-                                     </div>
-                                      <div>
-                                        <h4>Equipment</h4>
-                                        <div id="equipment-display" class="single-column-grid"></div>
-                                        <button type="button" data-target-list="equipment" data-browse-path="equipment" class="action-btn" style="width: 100%; margin-top: 1rem;">Add Equipment</button>
-                                        <input type="hidden" id="equipment-data" name="equipment">
+                                        <button type="button" id="add-armor-btn" class="action-btn" style="width: 100%; margin-top: 1rem;">Add Defense</button>
                                       </div>
+                                </section>
+                                <hr style="border-color: var(--panel-border); margin: 1rem 0;">
+                                <h4>PERSONAL PROPERTY</h4>
+                                <section>
+                                    <div>
+                                        <h5>Gear</h5>
+                                        <div id="gear-display" class="single-column-grid"></div>
+                                        <button type="button" data-target-list="gear" data-browse-path="equipment" data-filter-category="gear" class="action-btn" style="width: 100%; margin-top: 1rem;">Add Gear</button>
+                                        <input type="hidden" id="gear-data" name="gear">
+                                    </div>
+                                    <div>
+                                        <h5>Weapons</h5>
+                                        <div id="weapons-display" class="single-column-grid"></div>
+                                        <button type="button" data-target-list="weapons" data-browse-path="equipment" data-filter-category="weaponry" class="action-btn" style="width: 100%; margin-top: 1rem;">Add Weapon</button>
+                                        <input type="hidden" id="weapons-data" name="weapons">
+                                    </div>
+                                    <div>
+                                        <h5>Armor</h5>
+                                        <div id="armoring-display" class="single-column-grid"></div>
+                                        <button type="button" data-target-list="armoring" data-browse-path="equipment" data-filter-category="armoring" class="action-btn" style="width: 100%; margin-top: 1rem;">Add Armor</button>
+                                        <input type="hidden" id="armoring-data" name="armoring">
+                                    </div>
+                                    <div>
+                                        <h5>Mecha</h5>
+                                        <div id="mecha-display" class="single-column-grid"></div>
+                                        <button type="button" data-target-list="mecha" data-browse-path="equipment" data-filter-category="mecha" class="action-btn" style="width: 100%; margin-top: 1rem;">Add Mecha</button>
+                                        <input type="hidden" id="mecha-data" name="mecha">
+                                    </div>
+                                    <div>
+                                        <h5>Other</h5>
+                                        <div id="other-display" class="single-column-grid"></div>
+                                        <button type="button" data-target-list="other" data-browse-path="equipment" data-filter-category="other" class="action-btn" style="width: 100%; margin-top: 1rem;">Add Other</button>
+                                        <input type="hidden" id="other-data" name="other">
+                                    </div>
                                 </section>
                              </div>
                              <div id="other-tab" class="tab-panel">
