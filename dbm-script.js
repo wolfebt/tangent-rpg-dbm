@@ -316,7 +316,7 @@ const categoryConfig = {
         directory_columns: ['name', 'type', 'description', 'cp'],
         fields: {
             name: { type:'text', required: true},
-            type: { type: 'select', options: ['ability', 'combat', 'meta', 'general', 'karma', 'skill', 'exotic', 'Special Ability'] },
+            type: { type: 'select', options: ['ability', 'combat', 'meta', 'general', 'karma', 'skill', 'exotic'] },
             description: { type:'textarea', aiEnabled: true},
             tech_level: { type: 'select', label: 'Tech Level', options: [0, 1, 2, 3, 4, 5] },
             meta_level: { type: 'select', label: 'Meta Level', options: [0, 1, 2, 3, 4, 5] },
@@ -408,6 +408,42 @@ const categoryConfig = {
         subcategories: {
             augmentation_type: {
                 label: 'AUGMENTATION TYPES',
+                directory_columns: ['name', 'description'],
+                fields: {
+                    name: { type: 'text', required: true },
+                    description: { type: 'textarea' },
+                    prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+                    modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+                    mechanic: { type: 'textarea' },
+                    note: { type: 'textarea' }
+                }
+            }
+        }
+    },
+    special_abilities: {
+        label: 'SPECIAL ABILITIES',
+        viewType: 'table',
+        directory_columns: ['name', 'description', 'discipline', 'meta_skill', 'design_dc'],
+        fields: {
+            name: { type: 'text', required: true },
+            description: { type: 'textarea', aiEnabled: true },
+            discipline: { type: 'select', source: 'discipline', manageable: true },
+            meta_skill: { type: 'select', source: 'skills_meta', label: 'Meta Skill' },
+            area: { type: 'multiselect', source: 'area', manageable: true },
+            effect: { type: 'multiselect', source: 'effect', manageable: true },
+            range: { type: 'multiselect', source: 'range', manageable: true },
+            target: { type: 'multiselect', source: 'target', manageable: true },
+            prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+            critical_success_effect: { type: 'multiselect', source: 'critical_success_effect', manageable: true },
+            critical_failure_effect: { type: 'multiselect', source: 'critical_failure_effect', manageable: true },
+            design_dc: { type: 'readonlytext', label: 'DESIGN DC' },
+            mechanic: { type: 'textarea' },
+            note: { type: 'textarea' }
+        },
+        subcategories: {
+            discipline: {
+                label: 'DISCIPLINES',
                 directory_columns: ['name', 'description'],
                 fields: {
                     name: { type: 'text', required: true },
@@ -1476,7 +1512,7 @@ async function getCollectionOptions(collectionName) {
     if (collectionName === 'skills_meta') {
         const allSkills = await getCollectionOptions('skills');
         const metaSkills = allSkills.filter(skill => skill.type === 'meta');
-        return [{ name: 'Special Ability'}, ...metaSkills];
+        return metaSkills;
     }
     if (collectionName === 'rules_codex') {
         const allEntries = appState.wikiEntries.filter(entry => entry.id !== appState.editingDocId);
@@ -1903,7 +1939,7 @@ async function createSelectField(fieldKey, fieldConfig, savedValue, isEditMode) 
     if (fieldConfig.source === 'skills_meta') {
         const allSkills = await getCollectionOptions('skills');
         const metaSkills = allSkills.filter(skill => skill.type === 'meta');
-        options = [{ name: 'Special Ability'}, ...metaSkills];
+        options = metaSkills;
     } else if (fieldConfig.source) {
         options = await getCollectionOptions(fieldConfig.source);
     } else if (fieldConfig.options) {
