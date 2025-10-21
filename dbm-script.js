@@ -92,10 +92,6 @@ function hasPermission(action, itemData = null) {
 
 // --- RPG System Configuration ---
 const categoryConfig = {
-    user_guide: {
-        label: 'User Guide',
-        viewType: 'guide'
-    },
     rules_codex: {
         label: 'RULES CODEX',
         viewType: 'wiki',
@@ -107,39 +103,6 @@ const categoryConfig = {
             guide: { type: 'textarea' },
             parent: { type: 'select', source: 'rules_codex', label: 'Parent Entry', manageable: false },
             order: { type: 'number', label: 'Order', default: 0 },
-        }
-    },
-    values: {
-        label: 'VALUES',
-        hideFromMenu: true,
-        fields: {
-            name: { type: 'text', required: true },
-            description: { type: 'textarea', aiEnabled: true },
-            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
-            mechanic: { type: 'textarea' },
-            cp: { type: 'number' }
-        }
-    },
-    secondary_values: {
-        label: 'SECONDARY VALUES',
-        hideFromMenu: true,
-        fields: {
-            name: { type: 'text', required: true },
-            description: { type: 'textarea', aiEnabled: true },
-            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
-            mechanic: { type: 'textarea' },
-            cp: { type: 'number' }
-        }
-    },
-    tertiary_values: {
-        label: 'TERTIARY VALUES',
-        hideFromMenu: true,
-        fields: {
-            name: { type: 'text', required: true },
-            description: { type: 'textarea', aiEnabled: true },
-            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
-            mechanic: { type: 'textarea' },
-            cp: { type: 'number' }
         }
     },
     species: {
@@ -294,18 +257,19 @@ const categoryConfig = {
             note: { type: 'textarea' }
         }
     },
-    disadvantages: {
-        label: 'DISADVANTAGES',
+    skills: {
+        label: 'SKILLS',
         viewType: 'table',
-        directory_columns: ['name', 'description', 'cp'],
+        directory_columns: ['name', 'type', 'subtype', 'description'],
         fields: {
             name: { type:'text', required: true},
+            type: { type: 'select', options: ['mental', 'physical', 'social', 'combat', 'meta'], required: true },
+            subtype: { type: 'select' },
+            is_specialization: { type: 'boolean', label: 'SPECIALIZATION' },
+            base_skill: { type: 'select', source: 'skills', label: 'BASE SKILL' },
             description: { type:'textarea', aiEnabled: true},
             tech_level: { type: 'select', label: 'Tech Level', options: [0, 1, 2, 3, 4, 5] },
             meta_level: { type: 'select', label: 'Meta Level', options: [0, 1, 2, 3, 4, 5] },
-            prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
-            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
-            cp: { type: 'number'},
             mechanic: { type: 'textarea' },
             note: { type: 'textarea' }
         }
@@ -327,87 +291,46 @@ const categoryConfig = {
             note: { type: 'textarea' }
         }
     },
-    skills: {
-        label: 'SKILLS',
+    disadvantages: {
+        label: 'DISADVANTAGES',
         viewType: 'table',
-        directory_columns: ['name', 'type', 'subtype', 'description'],
+        directory_columns: ['name', 'description', 'cp'],
         fields: {
             name: { type:'text', required: true},
-            type: { type: 'select', options: ['mental', 'physical', 'social', 'combat', 'meta'], required: true },
-            subtype: { type: 'select' },
-            is_specialization: { type: 'boolean', label: 'SPECIALIZATION' },
-            base_skill: { type: 'select', source: 'skills', label: 'BASE SKILL' },
             description: { type:'textarea', aiEnabled: true},
             tech_level: { type: 'select', label: 'Tech Level', options: [0, 1, 2, 3, 4, 5] },
             meta_level: { type: 'select', label: 'Meta Level', options: [0, 1, 2, 3, 4, 5] },
+            prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+            cp: { type: 'number'},
             mechanic: { type: 'textarea' },
             note: { type: 'textarea' }
         }
     },
-    prerequisite: {
-        label: 'PREREQUISITES',
-        hideFromMenu: true,
-        directory_columns: ['name', 'aspect', 'aspect_subtype', 'value', 'note', 'cp'],
-        fields: {
-            name: { type: 'text', required: true},
-            description: { type: 'textarea', aiEnabled: true},
-            aspect: { type: 'select', options: ['attribute', 'skill', 'combat', 'meta', 'other'] },
-            aspect_subtype: { type: 'select' },
-            value: { type: 'number' },
-            dc: { type: 'number', label: 'DC' },
-            mechanic: { type: 'textarea'},
-            note: { type: 'textarea'},
-            cp: { type: 'number' }
-        }
-    },
-    modifier: {
-        label: 'MODIFIERS',
-        hideFromMenu: true,
-        directory_columns: ['name', 'aspect', 'aspect_subtype', 'value', 'note', 'cp'],
-        fields: {
-            name: { type: 'text', required: true},
-            description: { type: 'textarea', aiEnabled: true},
-            aspect: { type: 'select', options: ['attribute', 'skill', 'combat', 'meta', 'other'] },
-            aspect_subtype: { type: 'select' },
-            value: { type: 'number' },
-            modifier_type: { type: 'radio', label: 'Modifier Type', options: ['constant', 'situational', 'optional', 'temporary'] },
-            dc: { type: 'number', label: 'DC' },
-            mechanic: { type: 'textarea'},
-            note: { type: 'textarea'},
-            cp: { type: 'number' }
-        }
-    },
-    augmentations: {
-        label: 'AUGMENTATIONS',
+    invocations: {
+        label: 'INVOCATIONS',
         viewType: 'table',
-        directory_columns: ['name', 'type', 'description', 'design_dc'],
+        directory_columns: ['name', 'description', 'discipline', 'meta_skill', 'design_dc'],
         fields: {
-            name: { type:'text', required: true},
-            type: { type: 'select', source: 'augmentation_type', manageable: true },
-            classification: { type: 'multiselect', source: 'classification', manageable: true, label: 'Classification' },
-            location: { type: 'multiselect', source: 'body_location', manageable: true },
-            description: { type:'textarea', aiEnabled: true},
-            tech_level: { type: 'select', label: 'Tech Level', options: [0, 1, 2, 3, 4, 5] },
-            meta_level: { type: 'select', label: 'Meta Level', options: [0, 1, 2, 3, 4, 5] },
-            creator: { type: 'multiselect', source: 'creator', manageable: true },
-            design: { type: 'multiselect', source: 'design', manageable: true },
-            component: { type: 'multiselect', source: 'component', manageable: true },
-            prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true},
+            name: { type: 'text', required: true },
+            description: { type: 'textarea', aiEnabled: true },
+            discipline: { type: 'select', source: 'discipline', manageable: true },
+            meta_skill: { type: 'select', source: 'skills_meta', label: 'Meta Skill' },
+            area: { type: 'multiselect', source: 'area', manageable: true },
+            effect: { type: 'multiselect', source: 'effect', manageable: true },
+            range: { type: 'multiselect', source: 'range', manageable: true },
+            target: { type: 'multiselect', source: 'target', manageable: true },
+            prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
             modifier: { type: 'multiselect', source: 'modifier', manageable: true },
             critical_success_effect: { type: 'multiselect', source: 'critical_success_effect', manageable: true },
             critical_failure_effect: { type: 'multiselect', source: 'critical_failure_effect', manageable: true },
-            cost: { type: 'number', label: 'Cost' },
-            availability: { type: 'select', source: 'availability', manageable: true },
-            cr: { type: 'number', label: 'CR' },
-            restricted: { type: 'boolean', label: 'Restricted' },
             design_dc: { type: 'readonlytext', label: 'DESIGN DC' },
-            cp: { type: 'number' },
             mechanic: { type: 'textarea' },
             note: { type: 'textarea' }
         },
         subcategories: {
-            augmentation_type: {
-                label: 'AUGMENTATION TYPES',
+            discipline: {
+                label: 'DISCIPLINES',
                 directory_columns: ['name', 'description'],
                 fields: {
                     name: { type: 'text', required: true },
@@ -456,30 +379,37 @@ const categoryConfig = {
             }
         }
     },
-    invocations: {
-        label: 'INVOCATIONS',
+    augmentations: {
+        label: 'AUGMENTATIONS',
         viewType: 'table',
-        directory_columns: ['name', 'description', 'discipline', 'meta_skill', 'design_dc'],
+        directory_columns: ['name', 'type', 'description', 'design_dc'],
         fields: {
-            name: { type: 'text', required: true },
-            description: { type: 'textarea', aiEnabled: true },
-            discipline: { type: 'select', source: 'discipline', manageable: true },
-            meta_skill: { type: 'select', source: 'skills_meta', label: 'Meta Skill' },
-            area: { type: 'multiselect', source: 'area', manageable: true },
-            effect: { type: 'multiselect', source: 'effect', manageable: true },
-            range: { type: 'multiselect', source: 'range', manageable: true },
-            target: { type: 'multiselect', source: 'target', manageable: true },
-            prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+            name: { type:'text', required: true},
+            type: { type: 'select', source: 'augmentation_type', manageable: true },
+            classification: { type: 'multiselect', source: 'classification', manageable: true, label: 'Classification' },
+            location: { type: 'multiselect', source: 'body_location', manageable: true },
+            description: { type:'textarea', aiEnabled: true},
+            tech_level: { type: 'select', label: 'Tech Level', options: [0, 1, 2, 3, 4, 5] },
+            meta_level: { type: 'select', label: 'Meta Level', options: [0, 1, 2, 3, 4, 5] },
+            creator: { type: 'multiselect', source: 'creator', manageable: true },
+            design: { type: 'multiselect', source: 'design', manageable: true },
+            component: { type: 'multiselect', source: 'component', manageable: true },
+            prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true},
             modifier: { type: 'multiselect', source: 'modifier', manageable: true },
             critical_success_effect: { type: 'multiselect', source: 'critical_success_effect', manageable: true },
             critical_failure_effect: { type: 'multiselect', source: 'critical_failure_effect', manageable: true },
+            cost: { type: 'number', label: 'Cost' },
+            availability: { type: 'select', source: 'availability', manageable: true },
+            cr: { type: 'number', label: 'CR' },
+            restricted: { type: 'boolean', label: 'Restricted' },
             design_dc: { type: 'readonlytext', label: 'DESIGN DC' },
+            cp: { type: 'number' },
             mechanic: { type: 'textarea' },
             note: { type: 'textarea' }
         },
         subcategories: {
-            discipline: {
-                label: 'DISCIPLINES',
+            augmentation_type: {
+                label: 'AUGMENTATION TYPES',
                 directory_columns: ['name', 'description'],
                 fields: {
                     name: { type: 'text', required: true },
@@ -496,6 +426,121 @@ const categoryConfig = {
         label: 'EQUIPMENT',
         isParent: true,
         subItems: ['armoring', 'weaponry', 'gear', 'mecha'],
+    },
+    user_guide: {
+        label: 'User Guide',
+        viewType: 'guide'
+    },
+    // --- DEV-MODE ONLY CATEGORIES ---
+    societies: {
+        label: 'SOCIETIES',
+        hideFromMenu: true,
+        viewType: 'table',
+        directory_columns: ['name', 'description', 'tech_level', 'meta_level'],
+        fields: {
+            name: { type:'text', required: true},
+            description: { type:'textarea', aiEnabled: true},
+            tech_level: { type: 'select', label: 'Tech Level', options: [0, 1, 2, 3, 4, 5] },
+            meta_level: { type: 'select', label: 'Meta Level', options: [0, 1, 2, 3, 4, 5] },
+            prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+            agriculture: { type: 'multiselect', source: 'society_agriculture', manageable: true },
+            architecture: { type: 'multiselect', source: 'society_architecture', manageable: true },
+            biotechnology: { type: 'multiselect', source: 'society_biotechnology', manageable: true },
+            commerce: { type: 'multiselect', source: 'society_commerce', manageable: true },
+            communication: { type: 'multiselect', source: 'society_communication', manageable: true },
+            devices: { type: 'multiselect', source: 'society_devices', manageable: true },
+            education: { type: 'multiselect', source: 'society_education', manageable: true },
+            energy: { type: 'multiselect', source: 'society_energy', manageable: true },
+            manufacturing: { type: 'multiselect', source: 'society_manufacturing', manageable: true },
+            materials: { type: 'multiselect', source: 'society_materials', manageable: true },
+            medicine: { type: 'multiselect', source: 'society_medicine', manageable: true },
+            synthetics: { type: 'multiselect', source: 'society_synthetics', manageable: true, label: 'Synthetics' },
+            weaponry: { type: 'multiselect', source: 'society_weaponry', manageable: true },
+            mechanic: { type: 'textarea'},
+            note: { type: 'textarea'}
+        },
+        subcategories: {
+            society_agriculture: { label: 'AGRICULTURE', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+            society_architecture: { label: 'ARCHITECTURE', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+            society_biotechnology: { label: 'BIOTECHNOLOGY', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+            society_commerce: { label: 'COMMERCE', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+            society_communication: { label: 'COMMUNICATION', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+            society_devices: { label: 'DEVICES', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+            society_education: { label: 'EDUCATION', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+            society_energy: { label: 'ENERGY', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+            society_manufacturing: { label: 'MANUFACTURING', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+            society_materials: { label: 'MATERIALS', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+            society_medicine: { label: 'MEDICINE', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+            society_society: { label: 'SOCIETY', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+            society_synthetics: { label: 'SYNTHETICS', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
+            society_weaponry: { label: 'WEAPONRY', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }}}
+    },
+    values: {
+        label: 'VALUES',
+        hideFromMenu: true,
+        fields: {
+            name: { type: 'text', required: true },
+            description: { type: 'textarea', aiEnabled: true },
+            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+            mechanic: { type: 'textarea' },
+            cp: { type: 'number' }
+        }
+    },
+    secondary_values: {
+        label: 'SECONDARY VALUES',
+        hideFromMenu: true,
+        fields: {
+            name: { type: 'text', required: true },
+            description: { type: 'textarea', aiEnabled: true },
+            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+            mechanic: { type: 'textarea' },
+            cp: { type: 'number' }
+        }
+    },
+    tertiary_values: {
+        label: 'TERTIARY VALUES',
+        hideFromMenu: true,
+        fields: {
+            name: { type: 'text', required: true },
+            description: { type: 'textarea', aiEnabled: true },
+            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+            mechanic: { type: 'textarea' },
+            cp: { type: 'number' }
+        }
+    },
+    prerequisite: {
+        label: 'PREREQUISITES',
+        hideFromMenu: true,
+        directory_columns: ['name', 'aspect', 'aspect_subtype', 'value', 'note', 'cp'],
+        fields: {
+            name: { type: 'text', required: true},
+            description: { type: 'textarea', aiEnabled: true},
+            aspect: { type: 'select', options: ['attribute', 'skill', 'combat', 'meta', 'other'] },
+            aspect_subtype: { type: 'select' },
+            value: { type: 'number' },
+            dc: { type: 'number', label: 'DC' },
+            mechanic: { type: 'textarea'},
+            note: { type: 'textarea'},
+            cp: { type: 'number' }
+        }
+    },
+    modifier: {
+        label: 'MODIFIERS',
+        hideFromMenu: true,
+        directory_columns: ['name', 'aspect', 'aspect_subtype', 'value', 'note', 'cp'],
+        fields: {
+            name: { type: 'text', required: true},
+            description: { type: 'textarea', aiEnabled: true},
+            aspect: { type: 'select', options: ['attribute', 'skill', 'combat', 'meta', 'other'] },
+            aspect_subtype: { type: 'select' },
+            value: { type: 'number' },
+            modifier_type: { type: 'radio', label: 'Modifier Type', options: ['constant', 'situational', 'optional', 'temporary'] },
+            dc: { type: 'number', label: 'DC' },
+            mechanic: { type: 'textarea'},
+            note: { type: 'textarea'},
+            cp: { type: 'number' }
+        }
     },
     armoring: {
         label: 'Armoring',
@@ -660,49 +705,6 @@ const categoryConfig = {
             mechanic: { type: 'textarea' },
             note: { type: 'textarea' }
         }
-    },
-    societies: {
-        label: 'SOCIETIES',
-        viewType: 'table',
-        directory_columns: ['name', 'description', 'tech_level', 'meta_level'],
-        fields: {
-            name: { type:'text', required: true},
-            description: { type:'textarea', aiEnabled: true},
-            tech_level: { type: 'select', label: 'Tech Level', options: [0, 1, 2, 3, 4, 5] },
-            meta_level: { type: 'select', label: 'Meta Level', options: [0, 1, 2, 3, 4, 5] },
-            prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
-            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
-            agriculture: { type: 'multiselect', source: 'society_agriculture', manageable: true },
-            architecture: { type: 'multiselect', source: 'society_architecture', manageable: true },
-            biotechnology: { type: 'multiselect', source: 'society_biotechnology', manageable: true },
-            commerce: { type: 'multiselect', source: 'society_commerce', manageable: true },
-            communication: { type: 'multiselect', source: 'society_communication', manageable: true },
-            devices: { type: 'multiselect', source: 'society_devices', manageable: true },
-            education: { type: 'multiselect', source: 'society_education', manageable: true },
-            energy: { type: 'multiselect', source: 'society_energy', manageable: true },
-            manufacturing: { type: 'multiselect', source: 'society_manufacturing', manageable: true },
-            materials: { type: 'multiselect', source: 'society_materials', manageable: true },
-            medicine: { type: 'multiselect', source: 'society_medicine', manageable: true },
-            synthetics: { type: 'multiselect', source: 'society_synthetics', manageable: true, label: 'Synthetics' },
-            weaponry: { type: 'multiselect', source: 'society_weaponry', manageable: true },
-            mechanic: { type: 'textarea'},
-            note: { type: 'textarea'}
-        },
-        subcategories: {
-            society_agriculture: { label: 'AGRICULTURE', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
-            society_architecture: { label: 'ARCHITECTURE', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
-            society_biotechnology: { label: 'BIOTECHNOLOGY', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
-            society_commerce: { label: 'COMMERCE', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
-            society_communication: { label: 'COMMUNICATION', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
-            society_devices: { label: 'DEVICES', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
-            society_education: { label: 'EDUCATION', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
-            society_energy: { label: 'ENERGY', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
-            society_manufacturing: { label: 'MANUFACTURING', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
-            society_materials: { label: 'MATERIALS', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
-            society_medicine: { label: 'MEDICINE', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
-            society_society: { label: 'SOCIETY', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
-            society_synthetics: { label: 'SYNTHETICS', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }},
-            society_weaponry: { label: 'WEAPONRY', directory_columns: ['name', 'description', 'level'], fields: { name: { type: 'text' }, description: { type: 'textarea', aiEnabled: true }, level: { type: 'select', options: [0, 1, 2, 3, 4, 5] }, prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true }, modifier: { type: 'multiselect', source: 'modifier', manageable: true }, note: { type: 'textarea' }, mechanic: { type: 'textarea'} }}}
     }
 };
 
@@ -1290,6 +1292,25 @@ function renderSidebar(activeCategoryKey) {
             sidebar.appendChild(subDirContainer);
         }
     });
+
+    if (appState.devMode) {
+        const separator = document.createElement('div');
+        separator.className = 'sidebar-separator';
+        separator.textContent = 'OTHER';
+        sidebar.appendChild(separator);
+
+        const devCategories = Object.keys(categoryConfig).filter(key => categoryConfig[key].hideFromMenu);
+        devCategories.forEach(key => {
+            const config = categoryConfig[key];
+            const tab = document.createElement('button');
+            tab.className = `sidebar-tab ${key === activeParentKey ? 'active' : ''}`;
+            tab.textContent = config.label;
+            tab.addEventListener('click', () => {
+                requestNavigation({ view: 'renderCategoryView', args: [key] });
+            });
+            sidebar.appendChild(tab);
+        });
+    }
 }
 
 function renderCategoryView(categoryKey) {
