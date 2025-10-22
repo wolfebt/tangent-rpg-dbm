@@ -159,6 +159,18 @@
                         <!-- Rows will be dynamically inserted here by showEconomyModal -->
                     </div>
                 </div>
+                <div class="feature-point-economy" style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--panel-border);">
+                    <h4 style="margin-bottom: .5rem;">Feature Point Economy</h4>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; text-align: center; margin-bottom: .5rem; font-weight: bold;">
+                        <span>Category</span>
+                        <span>Awarded</span>
+                        <span>Spent</span>
+                        <span>Remaining</span>
+                    </div>
+                    <div id="feature-point-pools-display" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem .5rem; text-align: center;">
+                        <!-- Rows will be dynamically inserted here by showEconomyModal -->
+                    </div>
+                </div>
                 <div id="economy-details" class="economy-details-panel"></div>
                 <div class="modal-controls" style="justify-content: flex-end;">
                      <button id="economy-close-btn" class="action-btn modal-close-trigger">Close</button>
@@ -693,6 +705,15 @@
                     combat: { total: 0, sources: {} },
                     meta: { total: 0, sources: {} },
                     general: { total: 0, sources: {} },
+                },
+                featurePointPools: {
+                    ability: { total: 0, sources: {} },
+                    combat: { total: 0, sources: {} },
+                    meta: { total: 0, sources: {} },
+                    general: { total: 0, sources: {} },
+                    karma: { total: 0, sources: {} },
+                    skill: { total: 0, sources: {} },
+                    exotic: { total: 0, sources: {} },
                 }
             };
 
@@ -713,6 +734,7 @@
 
 
             const skillPointCategories = ['physical', 'mental', 'social', 'combat', 'meta', 'general'];
+            const featurePointCategories = ['ability', 'combat', 'meta', 'general', 'karma', 'skill', 'exotic'];
 
             sources.forEach(source => {
                 const item = source.db.find(i => i.name === source.name);
@@ -726,6 +748,18 @@
                             if (points > 0) {
                                 const sourceLabel = (source.label === 'Feature') ? item.name : source.label;
                                 bonuses.skillPointPools[category].sources[sourceLabel] = (bonuses.skillPointPools[category].sources[sourceLabel] || 0) + points;
+                            }
+                        }
+                    });
+
+                    featurePointCategories.forEach(category => {
+                        const key = (category === 'general') ? `bonus_feature_points` : `bonus_feature_points_${category}`;
+                        if (item[key] && typeof item[key] === 'number') {
+                            const points = item[key];
+                            bonuses.featurePointPools[category].total += points;
+                            if (points > 0) {
+                                const sourceLabel = (source.label === 'Feature') ? item.name : source.label;
+                                bonuses.featurePointPools[category].sources[sourceLabel] = (bonuses.featurePointPools[category].sources[sourceLabel] || 0) + points;
                             }
                         }
                     });
@@ -815,43 +849,73 @@
                 }
             });
 
-            // Features, Disadvantages, Special Abilities (Cost specified in data or defaults)
-            const itemLists = {
+            // --- Feature Costing ---
+            let featureChoicesMade = 0;
+            let spentFeaturePoints = { ability: 0, combat: 0, meta: 0, general: 0, karma: 0, skill: 0, exotic: 0 };
+
+            const featureLists = {
                 features: 'Features',
-                disadvantages: 'Disadvantages',
                 special_abilities: 'Special Abilities',
                 awakened: 'Awakened'
             };
 
-            for (const [listKey, categoryName] of Object.entries(itemLists)) {
+            for (const [listKey, categoryName] of Object.entries(featureLists)) {
                 const selectedItems = data[listKey] || [];
-                let bonusChoicesMade = 0;
                 selectedItems.forEach(itemName => {
+                    let cost = appState.allFeatures.find(f => f.name === itemName)?.cp ?? 3;
+                    let nameSuffix = '';
+                    const itemData = appState.allFeatures.find(f => f.name === itemName);
+                    const featureType = itemData?.type;
+
                     if (listKey === 'features') {
                         if (bonuses.bonusFeatures.includes(itemName)) {
                             economyDetails[categoryName].push({ name: `${itemName} (Bonus)`, cost: 0, value: 1 });
                             return;
                         }
-                        if (bonuses.featureOptions.includes(itemName) && bonusChoicesMade < bonuses.featureChoiceTotals.total) {
+                        if (bonuses.featureOptions.includes(itemName) && featureChoicesMade < bonuses.featureChoiceTotals.total) {
                             economyDetails[categoryName].push({ name: `${itemName} (Bonus Choice)`, cost: 0, value: 1 });
-                            bonusChoicesMade++;
+                            featureChoicesMade++;
                             return;
+                        }
+                        if (bonuses.recommendedFeatures.includes(itemName)) {
+                            cost = Math.max(1, cost - 1);
+                            nameSuffix = ' (Recommended)';
                         }
                     }
 
-                    const itemData = appState.allFeatures.find(f => f.name === itemName) || { cp: 3 };
-                    let cost = itemData.cp !== undefined ? itemData.cp : 3;
-                    let nameSuffix = '';
-
-                    if (listKey === 'features' && bonuses.recommendedFeatures.includes(itemName)) {
-                        cost = Math.max(1, cost - 1); // Recommended features get a 1 CP discount, minimum 1.
-                        nameSuffix = ' (Recommended)';
+                    let ranksToPay = cost;
+                    if (featureType && bonuses.featurePointPools[featureType] && (bonuses.featurePointPools[featureType].total - spentFeaturePoints[featureType]) > 0) {
+                        const availablePoints = bonuses.featurePointPools[featureType].total - spentFeaturePoints[featureType];
+                        const pointsToSpend = Math.min(ranksToPay, availablePoints);
+                        spentFeaturePoints[featureType] += pointsToSpend;
+                        ranksToPay -= pointsToSpend;
+                        economyDetails[categoryName].push({ name: `${itemName} (FP)`, cost: 0, source: `${featureType.charAt(0).toUpperCase() + featureType.slice(1)} Pool`, value: pointsToSpend });
                     }
 
-                    spentCP += cost;
-                    economyDetails[categoryName].push({ name: itemName + nameSuffix, cost: cost, value: 1 });
+                    if (ranksToPay > 0 && (bonuses.featurePointPools.general.total - spentFeaturePoints.general) > 0) {
+                        const availablePoints = bonuses.featurePointPools.general.total - spentFeaturePoints.general;
+                        const pointsToSpend = Math.min(ranksToPay, availablePoints);
+                        spentFeaturePoints.general += pointsToSpend;
+                        ranksToPay -= pointsToSpend;
+                        economyDetails[categoryName].push({ name: `${itemName} (FP)`, cost: 0, source: 'General Pool', value: pointsToSpend });
+                    }
+
+                    if (ranksToPay > 0) {
+                        spentCP += ranksToPay;
+                        economyDetails[categoryName].push({ name: `${itemName}${nameSuffix} (CP)`, cost: ranksToPay, value: ranksToPay });
+                    }
                 });
             }
+
+            // Disadvantages (give CP back)
+            const disadvantages = data.disadvantages || [];
+            disadvantages.forEach(itemName => {
+                const itemData = appState.allFeatures.find(f => f.name === itemName) || { cp: 0 };
+                let cost = itemData.cp !== undefined ? itemData.cp : 0;
+                spentCP -= cost;
+                economyDetails['Disadvantages'].push({ name: itemName, cost: -cost, value: 1 });
+            });
+
 
             // --- Skills Costing ---
             let skillChoicesMade = 0;
@@ -932,6 +996,7 @@
 
             // Store spent skill points for the modal
             economyDetails.spentSkillPoints = spentSkillPoints;
+            economyDetails.spentFeaturePoints = spentFeaturePoints;
 
             // Update UI
             const totalCpInput = document.getElementById('starting-cp') || {value: 150};
@@ -952,6 +1017,7 @@
             const modal = document.getElementById('economy-modal');
             const detailsContainer = document.getElementById('economy-details');
             const skillPoolsContainer = document.getElementById('skill-point-pools-display');
+            const featurePoolsContainer = document.getElementById('feature-point-pools-display');
             
             const economyDetails = calculateCharacterPoints();
             const bonuses = getAggregatedBonuses();
@@ -966,6 +1032,22 @@
                 const name = poolName.charAt(0).toUpperCase() + poolName.slice(1);
 
                 skillPoolsContainer.innerHTML += `
+                    <span style="text-align: left; padding-left: .5rem;">${name}</span>
+                    <span>${awarded}</span>
+                    <span>${spent}</span>
+                    <span>${remaining}</span>
+                `;
+            }
+
+            // --- Populate Feature Point Pools ---
+            featurePoolsContainer.innerHTML = '';
+            for(const poolName in bonuses.featurePointPools) {
+                const awarded = bonuses.featurePointPools[poolName].total;
+                const spent = economyDetails.spentFeaturePoints[poolName] || 0;
+                const remaining = awarded - spent;
+                const name = poolName.charAt(0).toUpperCase() + poolName.slice(1);
+
+                featurePoolsContainer.innerHTML += `
                     <span style="text-align: left; padding-left: .5rem;">${name}</span>
                     <span>${awarded}</span>
                     <span>${spent}</span>
