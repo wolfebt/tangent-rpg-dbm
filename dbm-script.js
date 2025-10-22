@@ -560,7 +560,7 @@ const categoryConfig = {
             bonus_feature_categories: {
                 type: 'multiselect',
                 label: 'Feature Categories',
-                source: 'features',
+                options: ['ability', 'combat', 'meta', 'general', 'karma', 'skill', 'exotic'],
                 hidden: true
             },
             bonus_skill_categories: {
@@ -2070,7 +2070,7 @@ async function createSelectField(fieldKey, fieldConfig, savedValue, isEditMode) 
 
 
 async function createMultiselectField(fieldKey, fieldConfig, savedValue, isEditMode) {
-    const savedArray = Array.isArray(savedValue) ? savedValue : [];
+    const savedArray = Array.isArray(savedValue) ? savedValue : (savedValue ? String(savedValue).split(',') : []);
 
     if (!isEditMode) {
         const displayValue = savedArray.length > 0 ? savedArray.join(', ').toUpperCase() : 'NONE';
@@ -2080,9 +2080,8 @@ async function createMultiselectField(fieldKey, fieldConfig, savedValue, isEditM
     if (fieldConfig.source === 'all_equipment') {
         const equipmentGroups = await getCollectionOptions(fieldConfig.source);
         let groupedCheckboxHtml = '';
-
         equipmentGroups.forEach(group => {
-            if(group.options.length > 0) {
+            if (group.options.length > 0) {
                 groupedCheckboxHtml += `<h5 class="font-bold text-sm uppercase text-gray-400 mt-2 first:mt-0">${group.label}</h5>`;
                 groupedCheckboxHtml += group.options.map(opt => `
                     <label class="flex items-center space-x-2 p-1 rounded-md pl-2">
@@ -2091,11 +2090,16 @@ async function createMultiselectField(fieldKey, fieldConfig, savedValue, isEditM
                     </label>`).join('');
             }
         });
-
         return `<div class="multiselect-container">${groupedCheckboxHtml || `<span class="text-gray-500">No equipment available.</span>`}</div>`;
     }
 
-    let options = await getCollectionOptions(fieldConfig.source);
+    let options = [];
+    if (fieldConfig.options) {
+        options = fieldConfig.options.map(opt => ({ name: opt }));
+    } else if (fieldConfig.source) {
+        options = await getCollectionOptions(fieldConfig.source);
+    }
+
     if (fieldKey === 'prerequisite' && appState.editingDocId) {
         options = options.filter(opt => opt.id !== appState.editingDocId);
     }
