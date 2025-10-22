@@ -653,21 +653,23 @@
 
         function getAggregatedBonuses() {
             const data = getPersonaFolioFormData();
-            const allBonusSkillRanks = [];
-            const allBonusFeatures = [];
-            const allRecommendedFeatures = [];
-            const allBonusSkillOptions = [];
-            const allBonusFeatureOptions = [];
-            let totalSkillChoices = 0;
-            let totalFeatureChoices = 0;
-            let totalDisciplines = 0;
-            let totalSpecialAbilities = 0;
+            const bonuses = {
+                bonusSkillRanks: [],
+                bonusFeatures: [],
+                recommendedFeatures: [],
+                skillOptions: [],
+                skillChoiceTotals: { total: 0, sources: {} },
+                featureOptions: [],
+                featureChoiceTotals: { total: 0, sources: {} },
+                totalDisciplines: 0,
+                totalSpecialAbilities: 0,
+            };
 
             const sources = [
-                { name: data['char-species'], db: appState.allSpecies },
-                { name: data['char-occu'], db: appState.allOccupations },
-                { name: data['char-origin'], db: appState.allOrigins },
-                { name: data['char-faction'], db: appState.allFactions },
+                { name: data['char-species'], db: appState.allSpecies, label: 'Species' },
+                { name: data['char-occu'], db: appState.allOccupations, label: 'Occupation' },
+                { name: data['char-origin'], db: appState.allOrigins, label: 'Origin' },
+                { name: data['char-faction'], db: appState.allFactions, label: 'Faction' },
             ];
 
             sources.forEach(source => {
@@ -676,27 +678,36 @@
                     if (item) {
                         if (item.bonus_skills) {
                             try {
-                                const skills = JSON.parse(item.bonus_skills);
+                                const skills = Array.isArray(item.bonus_skills) ? item.bonus_skills : JSON.parse(item.bonus_skills);
                                 if (Array.isArray(skills)) {
-                                    allBonusSkillRanks.push(...skills.map(s => ({ skill: s.name, ranks: s.value })));
+                                    bonuses.bonusSkillRanks.push(...skills.map(s => ({ skill: s.name, ranks: s.value, source: source.label })));
                                 }
-                            } catch(e) {
-                                console.error("Could not parse bonus_skills JSON", e);
+                            } catch (e) {
+                                console.error(`Could not parse bonus_skills for ${source.label} '${source.name}':`, item.bonus_skills, e);
                             }
                         }
-                        if (item.bonus_features) allBonusFeatures.push(...item.bonus_features);
-                        if (item.recommended_features) allRecommendedFeatures.push(...item.recommended_features);
-                        if (item.bonus_skill_options) allBonusSkillOptions.push(...item.bonus_skill_options);
-                        if (item.bonus_feature_options) allBonusFeatureOptions.push(...item.bonus_feature_options);
-                        if (item.bonus_skill_choices) totalSkillChoices += item.bonus_skill_choices;
-                        if (item.bonus_feature_choices) totalFeatureChoices += item.bonus_feature_choices;
-                        if (item.bonus_disciplines) totalDisciplines += item.bonus_disciplines;
-                        if (item.bonus_special_abilities) totalSpecialAbilities += item.bonus_special_abilities;
+                        if (item.bonus_features) bonuses.bonusFeatures.push(...item.bonus_features);
+                        if (item.recommended_features) bonuses.recommendedFeatures.push(...item.recommended_features);
+                        if (item.bonus_skill_options) bonuses.skillOptions.push(...item.bonus_skill_options);
+                        if (item.bonus_skill_choices) {
+                            bonuses.skillChoiceTotals.total += item.bonus_skill_choices;
+                            bonuses.skillChoiceTotals.sources[source.label] = (bonuses.skillChoiceTotals.sources[source.label] || 0) + item.bonus_skill_choices;
+                        }
+                        if (item.bonus_feature_options) bonuses.featureOptions.push(...item.bonus_feature_options);
+                        if (item.bonus_feature_choices) {
+                            bonuses.featureChoiceTotals.total += item.bonus_feature_choices;
+                            bonuses.featureChoiceTotals.sources[source.label] = (bonuses.featureChoiceTotals.sources[source.label] || 0) + item.bonus_feature_choices;
+                        }
+                        if (item.bonus_disciplines) bonuses.totalDisciplines += item.bonus_disciplines;
+                        if (item.bonus_special_abilities) bonuses.totalSpecialAbilities += item.bonus_special_abilities;
                     }
                 }
             });
 
-            return { allBonusSkillRanks, allBonusFeatures, allRecommendedFeatures, allBonusSkillOptions, allBonusFeatureOptions, totalSkillChoices, totalFeatureChoices, totalDisciplines, totalSpecialAbilities };
+            bonuses.skillOptions = [...new Set(bonuses.skillOptions)];
+            bonuses.featureOptions = [...new Set(bonuses.featureOptions)];
+
+            return bonuses;
         }
 
         function calculateCharacterPoints() {
@@ -705,28 +716,50 @@
             let spentCP = 0;
             let economyDetails = {
                 'Attributes': [],
+                'Sub-Attributes': [],
                 'Skills': [],
                 'Features': [],
                 'Disadvantages': [],
                 'Special Abilities': [],
+                'Awakened': []
             };
 
             const data = getPersonaFolioFormData();
-            const { allBonusSkillRanks, allBonusFeatures, allRecommendedFeatures, allBonusSkillOptions, allBonusFeatureOptions, totalSkillChoices, totalFeatureChoices } = getAggregatedBonuses();
+            const bonuses = getAggregatedBonuses();
 
-            // Attributes
-            document.querySelectorAll('.attribute-value').forEach(input => {
-                if(input.readOnly) return; 
-                const value = parseInt(input.value) || 0;
-                if (value > 0) {
-                    const cost = value * 5;
-                    spentCP += cost;
-                    const label = document.querySelector(`label[for="${input.id}"]`).textContent;
-                    economyDetails['Attributes'].push({name: label, cost: cost});
+            // Primary Attributes (5 CP per point)
+            const primaryAttrIds = ['attr-strength', 'attr-agility', 'attr-stamina', 'attr-intellect', 'attr-wisdom', 'attr-charisma'];
+            primaryAttrIds.forEach(attrId => {
+                const input = document.getElementById(attrId);
+                if (input) {
+                    const value = parseInt(input.value) || 0;
+                    if (value > 0) {
+                        const cost = value * 5;
+                        spentCP += cost;
+                        const label = document.querySelector(`label[for="${attrId}"]`).textContent;
+                        economyDetails['Attributes'].push({ name: label, cost: cost });
+                    }
                 }
             });
 
-            // Features, Disadvantages, Special Abilities
+            // Sub-Attributes (2 CP per point of change from base)
+            const subAttrIds = ['attr-might', 'attr-reflex', 'attr-fortitude', 'attr-logic', 'attr-will', 'attr-etiquette'];
+            subAttrIds.forEach(attrId => {
+                const subAttrInput = document.getElementById(attrId);
+                if (subAttrInput) {
+                    const subAttrValue = parseInt(subAttrInput.value) || 0;
+                    const baseValue = 2; // Base value for sub-attributes when primary is 0
+                    if (subAttrValue > baseValue) {
+                        const pointsOfChange = subAttrValue - baseValue;
+                        const cost = pointsOfChange * 2;
+                        spentCP += cost;
+                        const label = document.querySelector(`label[for="${attrId}"]`).textContent;
+                        economyDetails['Sub-Attributes'].push({ name: label, cost: cost });
+                    }
+                }
+            });
+
+            // Features, Disadvantages, Special Abilities (Cost specified in data or defaults)
             const itemLists = {
                 features: 'Features',
                 disadvantages: 'Disadvantages',
@@ -739,31 +772,32 @@
                 let bonusChoicesMade = 0;
                 selectedItems.forEach(itemName => {
                     if (listKey === 'features') {
-                        if (allBonusFeatures.includes(itemName)) {
+                        if (bonuses.bonusFeatures.includes(itemName)) {
                             economyDetails[categoryName].push({ name: `${itemName} (Bonus)`, cost: 0 });
                             return;
                         }
-                        if (allBonusFeatureOptions.includes(itemName) && bonusChoicesMade < totalFeatureChoices) {
+                        if (bonuses.featureOptions.includes(itemName) && bonusChoicesMade < bonuses.featureChoiceTotals.total) {
                             economyDetails[categoryName].push({ name: `${itemName} (Bonus Choice)`, cost: 0 });
                             bonusChoicesMade++;
                             return;
                         }
                     }
 
-                    const itemData = appState.allFeatures.find(f => f.name === itemName) || { cp_cost: 3 };
-                    let cost = itemData.cp_cost !== undefined ? itemData.cp_cost : 3;
+                    const itemData = appState.allFeatures.find(f => f.name === itemName) || { cp: 3 };
+                    let cost = itemData.cp !== undefined ? itemData.cp : 3;
                     let nameSuffix = '';
 
-                    if (listKey === 'features' && allRecommendedFeatures.includes(itemName)) {
-                        cost = Math.max(1, cost - 1);
+                    if (listKey === 'features' && bonuses.recommendedFeatures.includes(itemName)) {
+                        cost = Math.max(1, cost - 1); // Recommended features get a 1 CP discount, minimum 1.
                         nameSuffix = ' (Recommended)';
                     }
+
                     spentCP += cost;
                     economyDetails[categoryName].push({ name: itemName + nameSuffix, cost: cost });
                 });
             }
 
-            // Skills
+            // Skills (1 CP per rank)
             let skillChoicesMade = 0;
             document.querySelectorAll('.skill-row:not(.header):not(.specialization)').forEach(row => {
                 const label = row.querySelector('label');
@@ -771,10 +805,10 @@
                 const rank = parseInt(row.querySelector('.skill-rank')?.value) || 0;
                 
                 if (rank > 0) {
-                    const bonus = allBonusSkillRanks.find(b => b.skill === skillName);
+                    const bonus = bonuses.bonusSkillRanks.find(b => b.skill === skillName);
                     let bonusRanks = bonus ? bonus.ranks : 0;
 
-                    if (allBonusSkillOptions.includes(skillName) && skillChoicesMade < totalSkillChoices) {
+                    if (bonuses.skillOptions.includes(skillName) && skillChoicesMade < bonuses.skillChoiceTotals.total) {
                         bonusRanks += rank; // The chosen rank is free
                         skillChoicesMade++;
                         economyDetails['Skills'].push({ name: `${skillName} (Bonus Choice)`, cost: 0 });
@@ -785,7 +819,7 @@
                         spentCP += paidRanks;
                         economyDetails['Skills'].push({ name: `${skillName} (Ranks)`, cost: paidRanks });
                     }
-                    if (bonusRanks > 0 && rank > 0 && !(allBonusSkillOptions.includes(skillName) && skillChoicesMade <= totalSkillChoices)) {
+                    if (bonusRanks > 0 && rank > 0 && !(bonuses.skillOptions.includes(skillName) && skillChoicesMade <= bonuses.skillChoiceTotals.total)) {
                          economyDetails['Skills'].push({ name: `${skillName} (Bonus Ranks)`, cost: 0 });
                     }
                 }
@@ -799,6 +833,7 @@
                 }
             });
 
+            // Update UI
             const totalCpInput = document.getElementById('starting-cp') || {value: 150};
             const spentCpHeader = document.getElementById('header-spent-cp');
             const economySpentCp = document.getElementById('economy-spent-cp');
@@ -818,19 +853,83 @@
             const detailsContainer = document.getElementById('economy-details');
             
             const economyDetails = calculateCharacterPoints();
+            const bonuses = getAggregatedBonuses();
+            const data = getPersonaFolioFormData();
+
+            let countersHtml = '<div class="economy-counters" style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--panel-border);">';
+            countersHtml += '<h3>Bonus Point Allocation</h3>';
             
-            let html = '';
+            // --- Skill Choices Counter ---
+            if (bonuses.skillChoiceTotals.total > 0) {
+                let skillChoicesMade = 0;
+                document.querySelectorAll('.skill-row:not(.header):not(.specialization)').forEach(row => {
+                    if (skillChoicesMade >= bonuses.skillChoiceTotals.total) return;
+                    const label = row.querySelector('label');
+                    const skillName = label ? label.textContent : '';
+                    const rank = parseInt(row.querySelector('.skill-rank')?.value) || 0;
+                    if (rank > 0 && bonuses.skillOptions.includes(skillName)) {
+                        skillChoicesMade++;
+                    }
+                });
+                const remainingSkillChoices = bonuses.skillChoiceTotals.total - skillChoicesMade;
+                countersHtml += `<h4>Skill Choices [${remainingSkillChoices}]</h4><ul>`;
+                for(const source in bonuses.skillChoiceTotals.sources) {
+                    countersHtml += `<li class="flex justify-between"><span>From ${source}</span><span>${bonuses.skillChoiceTotals.sources[source]}</span></li>`;
+                }
+                countersHtml += `</ul>`;
+            }
+
+            // --- Feature Choices Counter ---
+            if (bonuses.featureChoiceTotals.total > 0) {
+                let featureChoicesMade = 0;
+                const selectedFeatures = data.features || [];
+                selectedFeatures.forEach(featureName => {
+                    if (featureChoicesMade >= bonuses.featureChoiceTotals.total) return;
+                    if(bonuses.featureOptions.includes(featureName)) {
+                        featureChoicesMade++;
+                    }
+                });
+                const remainingFeatureChoices = bonuses.featureChoiceTotals.total - featureChoicesMade;
+                countersHtml += `<h4>Feature Choices [${remainingFeatureChoices}]</h4><ul>`;
+                 for(const source in bonuses.featureChoiceTotals.sources) {
+                    countersHtml += `<li class="flex justify-between"><span>From ${source}</span><span>${bonuses.featureChoiceTotals.sources[source]}</span></li>`;
+                }
+                countersHtml += `</ul>`;
+            }
+
+            // --- Disciplines Counter ---
+            const awakenedCount = data.awakened ? data.awakened.length : 0;
+            const remainingDisciplines = bonuses.totalDisciplines - awakenedCount;
+            if (bonuses.totalDisciplines > 0) {
+                countersHtml += `<h4>Disciplines [${remainingDisciplines}]</h4><ul>`;
+                countersHtml += `<li class="flex justify-between"><span>Total</span><span>${bonuses.totalDisciplines}</span></li>`;
+                countersHtml += `</ul>`;
+            }
+
+
+            // --- Special Abilities Counter ---
+            const specialAbilitiesCount = data.special_abilities ? data.special_abilities.length : 0;
+            const remainingSpecialAbilities = bonuses.totalSpecialAbilities - specialAbilitiesCount;
+            if (bonuses.totalSpecialAbilities > 0) {
+                countersHtml += `<h4>Special Abilities [${remainingSpecialAbilities}]</h4><ul>`;
+                countersHtml += `<li class="flex justify-between"><span>Total</span><span>${bonuses.totalSpecialAbilities}</span></li>`;
+                countersHtml += `</ul>`;
+            }
+
+            countersHtml += '</div>';
+
+            let detailsHtml = '<h3>CP Expenditures</h3>';
             for(const category in economyDetails) {
                 const items = economyDetails[category];
                 if(items.length > 0) {
-                    html += `<h4 class="font-bold text-lg border-b border-gray-600">${category}</h4><ul>`;
+                    detailsHtml += `<h4>${category}</h4><ul>`;
                     items.forEach(item => {
-                        html += `<li class="flex justify-between"><span>${item.name}</span><span>${item.cost} CP</span></li>`;
+                        detailsHtml += `<li class="flex justify-between"><span>${item.name}</span><span>${item.cost} CP</span></li>`;
                     });
-                    html += `</ul>`;
+                    detailsHtml += `</ul>`;
                 }
             }
-            detailsContainer.innerHTML = html;
+            detailsContainer.innerHTML = countersHtml + detailsHtml;
             modal.classList.remove('hidden');
         }
 
