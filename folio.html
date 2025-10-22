@@ -430,29 +430,43 @@
         function calculatePerceptionScores() {
             const getValue = (id) => parseInt(document.getElementById(id)?.value) || 0;
             
-            const alertnessTotal = getValue('skill-mental-alertness-total');
-            const perceptionInput = document.getElementById('perception');
-            if (perceptionInput) perceptionInput.value = alertnessTotal;
-
             const intellectTotal = getValue('attr-intellect-total');
             const wisdomTotal = getValue('attr-wisdom-total');
             const alertnessMod = getValue('skill-mental-alertness-mod');
+            const alertnessRank = getValue('skill-mental-alertness-rank');
+
+            // a. Base Perception
+            const perceptionInput = document.getElementById('perception');
+            if (perceptionInput) {
+                perceptionInput.value = intellectTotal + wisdomTotal + alertnessMod + alertnessRank;
+            }
+
+            // Find Focus skill rank dynamically. It's added when a character is 'awakened'.
+            let focusRank = 0;
+            const allSkillRows = document.querySelectorAll('.skill-row:not(.header)');
+            const focusRow = Array.from(allSkillRows).find(row => {
+                const label = row.querySelector('label');
+                return label && label.textContent.trim() === 'Focus';
+            });
+            if (focusRow) {
+                const rankInput = focusRow.querySelector('.skill-rank');
+                if(rankInput) focusRank = parseInt(rankInput.value) || 0;
+            }
+
             const commonBase = intellectTotal + wisdomTotal + alertnessMod;
 
-            const attuneRank = getValue('skill-meta-attune-rank');
-            const attuneMod = getValue('skill-meta-attune-mod');
+            // b. Meta Perception
             const metaInput = document.getElementById('perception-meta');
-            if (metaInput) metaInput.value = commonBase + attuneRank + attuneMod;
+            if (metaInput) {
+                metaInput.value = commonBase + focusRank;
+            }
 
+            // c. Social Perception
             const insightRank = getValue('skill-social-manipulation-insight-rank');
-            const insightMod = getValue('skill-social-manipulation-insight-mod');
             const socialInput = document.getElementById('perception-social');
-            if (socialInput) socialInput.value = commonBase + insightRank + insightMod;
-
-            const technologyRank = getValue('skill-mental-knowledge-technology-rank');
-            const technologyMod = getValue('skill-mental-knowledge-technology-mod');
-            const techInput = document.getElementById('perception-tech');
-            if (techInput) techInput.value = commonBase + technologyRank + technologyMod;
+            if (socialInput) {
+                socialInput.value = commonBase + insightRank;
+            }
         }
 
         function calculateAlertness() {
@@ -1151,7 +1165,7 @@
                     if (skillName === 'Alertness') {
                         const baseSelect = skillRow.querySelector('.skill-base-select');
                         if (baseSelect) {
-                            baseSelect.outerHTML = `<input type="number" id="skill-${skillId}-base" name="skill-${skillId}-base" class="skill-base-input" readonly placeholder="0">`;
+                            baseSelect.outerHTML = `<input type="number" id="skill-${skillId}-base" name="skill-${skillId}-base" class="skill-base-input global-form-input" readonly placeholder="0">`;
                         }
                     }
                 });
