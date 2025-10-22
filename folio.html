@@ -147,6 +147,18 @@
                         <input type="number" id="economy-remaining-cp" class="global-form-input" readonly>
                     </div>
                 </div>
+                <div class="skill-point-economy" style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--panel-border);">
+                    <h4 style="margin-bottom: .5rem;">Skill Point Economy</h4>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; text-align: center; margin-bottom: .5rem; font-weight: bold;">
+                        <span>Category</span>
+                        <span>Awarded</span>
+                        <span>Spent</span>
+                        <span>Remaining</span>
+                    </div>
+                    <div id="skill-point-pools-display" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem .5rem; text-align: center;">
+                        <!-- Rows will be dynamically inserted here by showEconomyModal -->
+                    </div>
+                </div>
                 <div id="economy-details" class="economy-details-panel"></div>
                 <div class="modal-controls" style="justify-content: flex-end;">
                      <button id="economy-close-btn" class="action-btn modal-close-trigger">Close</button>
@@ -665,6 +677,14 @@
                 featureChoiceTotals: { total: 0, sources: {} },
                 totalDisciplines: 0,
                 totalSpecialAbilities: 0,
+                skillPointPools: {
+                    physical: { total: 0, sources: {} },
+                    mental: { total: 0, sources: {} },
+                    social: { total: 0, sources: {} },
+                    combat: { total: 0, sources: {} },
+                    meta: { total: 0, sources: {} },
+                    general: { total: 0, sources: {} },
+                }
             };
 
             const sources = [
@@ -674,35 +694,57 @@
                 { name: data['char-faction'], db: appState.allFactions, label: 'Faction' },
             ];
 
+            const selectedFeatures = data.features || [];
+            selectedFeatures.forEach(featureName => {
+                const featureData = appState.allFeatures.find(f => f.name === featureName);
+                if (featureData) {
+                    sources.push({ name: featureName, db: [featureData], label: 'Feature' });
+                }
+            });
+
+
+            const skillPointCategories = ['physical', 'mental', 'social', 'combat', 'meta', 'general'];
+
             sources.forEach(source => {
-                if (source.name && source.db) {
-                    const item = source.db.find(i => i.name === source.name);
-                    if (item) {
-                        if (item.bonus_skills) {
-                            try {
-                                const skills = Array.isArray(item.bonus_skills) ? item.bonus_skills : JSON.parse(item.bonus_skills);
-                                if (Array.isArray(skills)) {
-                                    bonuses.bonusSkillRanks.push(...skills.map(s => ({ skill: s.name, ranks: s.value, source: source.label })));
-                                }
-                            } catch (e) {
-                                console.error(`Could not parse bonus_skills for ${source.label} '${source.name}':`, item.bonus_skills, e);
+                const item = source.db.find(i => i.name === source.name);
+                if (item) {
+                    // Handle categorized skill points
+                    skillPointCategories.forEach(category => {
+                        const key = (category === 'general') ? `bonus_skill_points` : `bonus_skill_points_${category}`;
+                        if (item[key] && typeof item[key] === 'number') {
+                            const points = item[key];
+                            bonuses.skillPointPools[category].total += points;
+                            if (points > 0) {
+                                const sourceLabel = (source.label === 'Feature') ? item.name : source.label;
+                                bonuses.skillPointPools[category].sources[sourceLabel] = (bonuses.skillPointPools[category].sources[sourceLabel] || 0) + points;
                             }
                         }
-                        if (item.bonus_features) bonuses.bonusFeatures.push(...item.bonus_features);
-                        if (item.recommended_features) bonuses.recommendedFeatures.push(...item.recommended_features);
-                        if (item.bonus_skill_options) bonuses.skillOptions.push(...item.bonus_skill_options);
-                        if (item.bonus_skill_choices) {
-                            bonuses.skillChoiceTotals.total += item.bonus_skill_choices;
-                            bonuses.skillChoiceTotals.sources[source.label] = (bonuses.skillChoiceTotals.sources[source.label] || 0) + item.bonus_skill_choices;
+                    });
+
+                    if (item.bonus_skills) {
+                        try {
+                            const skills = Array.isArray(item.bonus_skills) ? item.bonus_skills : JSON.parse(item.bonus_skills);
+                            if (Array.isArray(skills)) {
+                                bonuses.bonusSkillRanks.push(...skills.map(s => ({ skill: s.name, ranks: s.value, source: source.label })));
+                            }
+                        } catch (e) {
+                            console.error(`Could not parse bonus_skills for ${source.label} '${source.name}':`, item.bonus_skills, e);
                         }
-                        if (item.bonus_feature_options) bonuses.featureOptions.push(...item.bonus_feature_options);
-                        if (item.bonus_feature_choices) {
-                            bonuses.featureChoiceTotals.total += item.bonus_feature_choices;
-                            bonuses.featureChoiceTotals.sources[source.label] = (bonuses.featureChoiceTotals.sources[source.label] || 0) + item.bonus_feature_choices;
-                        }
-                        if (item.bonus_disciplines) bonuses.totalDisciplines += item.bonus_disciplines;
-                        if (item.bonus_special_abilities) bonuses.totalSpecialAbilities += item.bonus_special_abilities;
                     }
+                    if (item.bonus_features) bonuses.bonusFeatures.push(...item.bonus_features);
+                    if (item.recommended_features) bonuses.recommendedFeatures.push(...item.recommended_features);
+                    if (item.bonus_skill_options) bonuses.skillOptions.push(...item.bonus_skill_options);
+                    if (item.bonus_skill_choices) {
+                        bonuses.skillChoiceTotals.total += item.bonus_skill_choices;
+                        bonuses.skillChoiceTotals.sources[source.label] = (bonuses.skillChoiceTotals.sources[source.label] || 0) + item.bonus_skill_choices;
+                    }
+                    if (item.bonus_feature_options) bonuses.featureOptions.push(...item.bonus_feature_options);
+                    if (item.bonus_feature_choices) {
+                        bonuses.featureChoiceTotals.total += item.bonus_feature_choices;
+                        bonuses.featureChoiceTotals.sources[source.label] = (bonuses.featureChoiceTotals.sources[source.label] || 0) + item.bonus_feature_choices;
+                    }
+                    if (item.bonus_disciplines) bonuses.totalDisciplines += item.bonus_disciplines;
+                    if (item.bonus_special_abilities) bonuses.totalSpecialAbilities += item.bonus_special_abilities;
                 }
             });
 
@@ -802,41 +844,84 @@
                 });
             }
 
-            // Skills (1 CP per rank)
+            // --- Skills Costing ---
             let skillChoicesMade = 0;
+            let spentSkillPoints = { physical: 0, mental: 0, social: 0, combat: 0, meta: 0, general: 0 };
+
             document.querySelectorAll('.skill-row:not(.header):not(.specialization)').forEach(row => {
                 const label = row.querySelector('label');
                 const skillName = label ? label.textContent : '';
                 const rank = parseInt(row.querySelector('.skill-rank')?.value) || 0;
-                
-                if (rank > 0) {
-                    const bonus = bonuses.bonusSkillRanks.find(b => b.skill === skillName);
-                    let bonusRanks = bonus ? bonus.ranks : 0;
+                const skillGroup = row.dataset.skillGroup;
 
-                    if (bonuses.skillOptions.includes(skillName) && skillChoicesMade < bonuses.skillChoiceTotals.total) {
-                        bonusRanks += rank; // The chosen rank is free
+                if (rank > 0) {
+                    // 1. Apply free ranks from specific bonuses (e.g., Species)
+                    const bonus = bonuses.bonusSkillRanks.find(b => b.skill === skillName);
+                    let ranksToPay = rank;
+
+                    if (bonus && bonus.ranks > 0) {
+                        const freeRanks = Math.min(ranksToPay, bonus.ranks);
+                        ranksToPay -= freeRanks;
+                        economyDetails['Skills'].push({ name: `${skillName} (Bonus Ranks)`, cost: 0, source: bonus.source });
+                    }
+
+                    // 2. Apply free ranks from Skill Choices (e.g., Occupation)
+                    if (ranksToPay > 0 && bonuses.skillOptions.includes(skillName) && skillChoicesMade < bonuses.skillChoiceTotals.total) {
                         skillChoicesMade++;
+                        ranksToPay = 0; // The entire rank is free
                         economyDetails['Skills'].push({ name: `${skillName} (Bonus Choice)`, cost: 0 });
                     }
 
-                    const paidRanks = Math.max(0, rank - bonusRanks);
-                    if (paidRanks > 0) {
-                        spentCP += paidRanks;
-                        economyDetails['Skills'].push({ name: `${skillName} (Ranks)`, cost: paidRanks });
+                    // 3. Spend from categorized skill point pool
+                    if (ranksToPay > 0 && skillGroup && bonuses.skillPointPools[skillGroup] && (bonuses.skillPointPools[skillGroup].total - spentSkillPoints[skillGroup]) > 0) {
+                        const availablePoints = bonuses.skillPointPools[skillGroup].total - spentSkillPoints[skillGroup];
+                        const pointsToSpend = Math.min(ranksToPay, availablePoints);
+                        spentSkillPoints[skillGroup] += pointsToSpend;
+                        ranksToPay -= pointsToSpend;
+                        economyDetails['Skills'].push({ name: `${skillName} (SP)`, cost: 0, source: `${skillGroup.charAt(0).toUpperCase() + skillGroup.slice(1)} Pool` });
                     }
-                    if (bonusRanks > 0 && rank > 0 && !(bonuses.skillOptions.includes(skillName) && skillChoicesMade <= bonuses.skillChoiceTotals.total)) {
-                         economyDetails['Skills'].push({ name: `${skillName} (Bonus Ranks)`, cost: 0 });
+
+                    // 4. Spend from general skill point pool
+                    if (ranksToPay > 0 && (bonuses.skillPointPools.general.total - spentSkillPoints.general) > 0) {
+                        const availablePoints = bonuses.skillPointPools.general.total - spentSkillPoints.general;
+                        const pointsToSpend = Math.min(ranksToPay, availablePoints);
+                        spentSkillPoints.general += pointsToSpend;
+                        ranksToPay -= pointsToSpend;
+                        economyDetails['Skills'].push({ name: `${skillName} (SP)`, cost: 0, source: 'General Pool' });
+                    }
+
+                    // 5. Pay with CP
+                    if (ranksToPay > 0) {
+                        spentCP += ranksToPay;
+                        economyDetails['Skills'].push({ name: `${skillName} (CP)`, cost: ranksToPay });
                     }
                 }
             });
-             document.querySelectorAll('.skill-row.specialization').forEach(row => {
+
+            document.querySelectorAll('.skill-row.specialization').forEach(row => {
                 const rank = parseInt(row.querySelector('.skill-rank')?.value) || 0;
-                 if (rank > 0) {
+                if (rank > 0) {
                     const name = row.querySelector('.skill-name-input')?.value;
-                    spentCP += rank;
-                    economyDetails['Skills'].push({ name: `${name} (Specialization)`, cost: rank });
+                    let ranksToPay = rank;
+
+                    // Specializations can only be paid for with General SP or CP
+                    if (ranksToPay > 0 && (bonuses.skillPointPools.general.total - spentSkillPoints.general) > 0) {
+                        const availablePoints = bonuses.skillPointPools.general.total - spentSkillPoints.general;
+                        const pointsToSpend = Math.min(ranksToPay, availablePoints);
+                        spentSkillPoints.general += pointsToSpend;
+                        ranksToPay -= pointsToSpend;
+                        economyDetails['Skills'].push({ name: `${name} (Spec. SP)`, cost: 0, source: 'General Pool' });
+                    }
+
+                    if (ranksToPay > 0) {
+                        spentCP += ranksToPay;
+                        economyDetails['Skills'].push({ name: `${name} (Spec. CP)`, cost: ranksToPay });
+                    }
                 }
             });
+
+            // Store spent skill points for the modal
+            economyDetails.spentSkillPoints = spentSkillPoints;
 
             // Update UI
             const totalCpInput = document.getElementById('starting-cp') || {value: 150};
@@ -856,10 +941,28 @@
         function showEconomyModal() {
             const modal = document.getElementById('economy-modal');
             const detailsContainer = document.getElementById('economy-details');
+            const skillPoolsContainer = document.getElementById('skill-point-pools-display');
             
             const economyDetails = calculateCharacterPoints();
             const bonuses = getAggregatedBonuses();
             const data = getPersonaFolioFormData();
+
+            // --- Populate Skill Point Pools ---
+            skillPoolsContainer.innerHTML = '';
+            for(const poolName in bonuses.skillPointPools) {
+                const awarded = bonuses.skillPointPools[poolName].total;
+                const spent = economyDetails.spentSkillPoints[poolName] || 0;
+                const remaining = awarded - spent;
+                const name = poolName.charAt(0).toUpperCase() + poolName.slice(1);
+
+                skillPoolsContainer.innerHTML += `
+                    <span style="text-align: left; padding-left: .5rem;">${name}</span>
+                    <span>${awarded}</span>
+                    <span>${spent}</span>
+                    <span>${remaining}</span>
+                `;
+            }
+
 
             let countersHtml = '<div class="economy-counters" style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--panel-border);">';
             countersHtml += '<h3>Bonus Point Allocation</h3>';
@@ -923,17 +1026,20 @@
 
             countersHtml += '</div>';
 
-            let detailsHtml = '<h3>CP Expenditures</h3>';
-            for(const category in economyDetails) {
+            let detailsHtml = '<h3>CP & SP Expenditures</h3>';
+            const categoriesToDisplay = ['Attributes', 'Sub-Attributes', 'Skills', 'Features', 'Disadvantages', 'Special Abilities', 'Awakened'];
+            categoriesToDisplay.forEach(category => {
                 const items = economyDetails[category];
-                if(items.length > 0) {
+                if (items && items.length > 0) {
                     detailsHtml += `<h4>${category}</h4><ul>`;
                     items.forEach(item => {
-                        detailsHtml += `<li class="flex justify-between"><span>${item.name}</span><span>${item.cost} CP</span></li>`;
+                        const cost = item.cost > 0 ? `${item.cost} CP` : (item.cost === 0 ? `0 CP` : 'N/A');
+                         detailsHtml += `<li class="flex justify-between"><span>${item.name}</span><span>${cost}</span></li>`;
                     });
                     detailsHtml += `</ul>`;
                 }
-            }
+            });
+
             detailsContainer.innerHTML = countersHtml + detailsHtml;
             modal.classList.remove('hidden');
         }
@@ -1038,7 +1144,7 @@
                 skillRowsContainer.dataset.group = groupName.toLowerCase();
                 groupData.skills.forEach(skillName => {
                     const skillId = `${groupName}-${skillName}`.toLowerCase().replace(/\s+/g, '-');
-                    const skillRow = createSkillRow(skillName, skillId);
+                    const skillRow = createSkillRow(skillName, skillId, groupName.toLowerCase());
                     skillRowsContainer.appendChild(skillRow);
                     if (skillName === 'Alertness') {
                         const baseSelect = skillRow.querySelector('.skill-base-select');
@@ -1049,7 +1155,7 @@
                 });
                 groupDiv.appendChild(skillRowsContainer);
             }
-            
+
             if (groupData.subcategories) {
                 for (const subcatName in groupData.subcategories) {
                     const subcatHeader = document.createElement('h5');
@@ -1060,10 +1166,10 @@
                     const subcatRowsContainer = document.createElement('div');
                     subcatRowsContainer.className = 'skill-rows-container';
                     subcatRowsContainer.dataset.group = `${groupName.toLowerCase()}-${subcatName.toLowerCase()}`;
-                    
+
                     groupData.subcategories[subcatName].forEach(skillName => {
                         const skillId = `${groupName}-${subcatName}-${skillName}`.toLowerCase().replace(/\s+/g, '-');
-                        subcatRowsContainer.appendChild(createSkillRow(skillName, skillId));
+                        subcatRowsContainer.appendChild(createSkillRow(skillName, skillId, groupName.toLowerCase()));
                     });
                     groupDiv.appendChild(subcatRowsContainer);
                 }
@@ -1073,18 +1179,18 @@
 
         function populateMeta(metaData) {
             const container = document.getElementById('meta-skills-list');
-            if(!container) return;
+            if (!container) return;
             container.innerHTML = '';
 
             const headerRow = document.createElement('div');
             headerRow.className = 'skill-row header';
             headerRow.innerHTML = `<span>Skill</span><span>Rank</span><span>Base</span><span>Mod</span><span>Total</span>`;
             container.appendChild(headerRow);
-            
+
             const attuneContainer = document.createElement('div');
             attuneContainer.className = 'skill-rows-container';
             attuneContainer.dataset.group = 'meta';
-            const attuneRow = createSkillRow("Attune", "meta-attune");
+            const attuneRow = createSkillRow("Attune", "meta-attune", 'meta');
             attuneContainer.appendChild(attuneRow);
             container.appendChild(attuneContainer);
 
@@ -1097,33 +1203,36 @@
                     subcatHeader.className = 'skill-subcategory-header';
                     subcatHeader.textContent = subcatName;
                     container.appendChild(subcatHeader);
-                    
+
                     const subcatRowsContainer = document.createElement('div');
                     subcatRowsContainer.className = 'skill-rows-container';
                     subcatRowsContainer.dataset.group = `meta-${subcatName.toLowerCase()}`;
-                    
+
                     skills.forEach(skillName => {
-                         const skillId = `meta-${subcatName}-${skillName}`.toLowerCase().replace(/\s+/g, '-');
-                         subcatRowsContainer.appendChild(createSkillRow(skillName, skillId));
+                        const skillId = `meta-${subcatName}-${skillName}`.toLowerCase().replace(/\s+/g, '-');
+                        subcatRowsContainer.appendChild(createSkillRow(skillName, skillId, 'meta'));
                     });
                     container.appendChild(subcatRowsContainer);
                 }
             });
         }
 
-        function createSkillRow(skillName, skillId) {
+        function createSkillRow(skillName, skillId, skillGroup) {
             const row = document.createElement('div');
             row.className = 'skill-row';
             row.dataset.skillId = skillId;
-            const attributeOptions = [{ value: 'attr-strength', text: 'STR' }, { value: 'attr-agility', text: 'AGI' },{ value: 'attr-stamina', text: 'STA' }, { value: 'attr-intellect', text: 'INT' },{ value: 'attr-wisdom', text: 'WIS' }, { value: 'attr-charisma', text: 'CHA' }];
+            if (skillGroup) {
+                row.dataset.skillGroup = skillGroup;
+            }
+            const attributeOptions = [{ value: 'attr-strength', text: 'STR' }, { value: 'attr-agility', text: 'AGI' }, { value: 'attr-stamina', text: 'STA' }, { value: 'attr-intellect', text: 'INT' }, { value: 'attr-wisdom', text: 'WIS' }, { value: 'attr-charisma', text: 'CHA' }];
             let optionsHtml = '<option value="">--</option>' + attributeOptions.map(opt => `<option value="${opt.value}">${opt.text}</option>`).join('');
-            
+
             row.innerHTML = `
                 <label for="skill-${skillId}-rank">${skillName}</label>
-                <input type="number" id="skill-${skillId}-rank" name="skill-${skillId}-rank" class="global-form-input" placeholder="0">
-                <select id="skill-${skillId}-base" name="skill-${skillId}-base" class="global-form-select">${optionsHtml}</select>
-                <input type="number" id="skill-${skillId}-mod" name="skill-${skillId}-mod" class="global-form-input" placeholder="0" readonly>
-                <input type="number" id="skill-${skillId}-total" name="skill-${skillId}-total" class="global-form-input" style="font-weight: bold;" readonly value="0">`;
+                <input type="number" id="skill-${skillId}-rank" name="skill-${skillId}-rank" class="global-form-input skill-rank" placeholder="0">
+                <select id="skill-${skillId}-base" name="skill-${skillId}-base" class="global-form-select skill-base-select">${optionsHtml}</select>
+                <input type="number" id="skill-${skillId}-mod" name="skill-${skillId}-mod" class="global-form-input skill-mod" placeholder="0" readonly>
+                <input type="number" id="skill-${skillId}-total" name="skill-${skillId}-total" class="global-form-input skill-total" style="font-weight: bold;" readonly value="0">`;
             return row;
         };
         
