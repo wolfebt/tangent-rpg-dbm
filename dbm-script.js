@@ -543,8 +543,43 @@ const categoryConfig = {
         fields: {
             name: { type: 'text', required: true},
             description: { type: 'textarea', aiEnabled: true},
-            aspect: { type: 'select', options: ['attribute', 'skill', 'combat', 'meta', 'other'] },
+            aspect: { type: 'select', options: ['attribute', 'skill', 'combat', 'meta', 'other', 'bonus'] },
             aspect_subtype: { type: 'select' },
+            bonus_type: {
+                type: 'select',
+                label: 'Bonus Type',
+                options: ['feature', 'skill', 'attribute'],
+                hidden: true
+            },
+            bonus_scope: {
+                type: 'radio',
+                label: 'Scope',
+                options: ['any', 'specific'],
+                hidden: true
+            },
+            bonus_feature_categories: {
+                type: 'multiselect',
+                label: 'Feature Categories',
+                source: 'features',
+                hidden: true
+            },
+            bonus_skill_categories: {
+                type: 'multiselect',
+                label: 'Skill Categories',
+                options: ['mental', 'physical', 'social', 'combat', 'meta'],
+                hidden: true
+            },
+            bonus_attribute_group: {
+                type: 'select',
+                label: 'Attribute Group',
+                options: ['primary', 'secondary'],
+                hidden: true
+            },
+            bonus_count: {
+                type: 'number',
+                label: 'Bonus Count',
+                hidden: true
+            },
             value: { type: 'number' },
             modifier_type: { type: 'radio', label: 'Modifier Type', options: ['constant', 'situational', 'optional', 'temporary'] },
             dc: { type: 'number', label: 'DC' },
@@ -2099,6 +2134,7 @@ function createReadonlyTextField(fieldKey, savedValue) {
 async function createFormFieldHtml(fieldKey, fieldConfig, savedValue, collectionKey, isEditMode) {
     const labelText = (fieldConfig.label || fieldKey.replace(/_/g, ' ')).toUpperCase();
     let fieldHtml = '';
+    const isHidden = fieldConfig.hidden || false;
 
     if (fieldConfig.manageable && isEditMode) {
         // Special rendering for manageable fields in edit mode
@@ -2116,7 +2152,7 @@ async function createFormFieldHtml(fieldKey, fieldConfig, savedValue, collection
                 Select ${labelText}
             </button>
         `;
-        return `<div><label class="global-form-label">${labelText}</label>${fieldHtml}</div>`;
+        return `<div class="${isHidden ? 'hidden' : ''}" data-field-key="${fieldKey}"><label class="global-form-label">${labelText}</label>${fieldHtml}</div>`;
     } else {
          // Fallback to original rendering for non-manageable or non-edit-mode fields
         let labelHtml = `<label for="${fieldKey}" class="global-form-label">${labelText}</label>`;
@@ -2131,7 +2167,7 @@ async function createFormFieldHtml(fieldKey, fieldConfig, savedValue, collection
             case 'number': fieldHtml = createNumberField(fieldKey, savedValue, isEditMode); break;
             default: fieldHtml = createTextField(fieldKey, savedValue, isEditMode);
         }
-        return `<div>${labelHtml}${fieldHtml}</div>`;
+        return `<div class="${isHidden ? 'hidden' : ''}" data-field-key="${fieldKey}">${labelHtml}${fieldHtml}</div>`;
     }
 }
 
@@ -2347,6 +2383,37 @@ async function openModal(collectionKey, docId = null, data = {}, isEditMode = fa
         const aspectSelect = formFieldsContainer.querySelector('#aspect');
         const aspectSubtypeContainer = formFieldsContainer.querySelector('#aspect_subtype')?.parentElement;
 
+        const updateBonusOptions = () => {
+            const bonusTypeSelect = formFieldsContainer.querySelector('#bonus_type');
+            const selectedBonusType = bonusTypeSelect ? bonusTypeSelect.value : null;
+
+            const toggleField = (fieldName, show) => {
+                const fieldContainer = formFieldsContainer.querySelector(`[data-field-key="${fieldName}"]`);
+                if (fieldContainer) {
+                    fieldContainer.classList.toggle('hidden', !show);
+                }
+            };
+
+            const allBonusFields = ['bonus_scope', 'bonus_feature_categories', 'bonus_skill_categories', 'bonus_attribute_group', 'bonus_count'];
+            allBonusFields.forEach(field => toggleField(field, false));
+
+            if (!selectedBonusType) return;
+
+            toggleField('bonus_count', true);
+
+            if (selectedBonusType === 'feature') {
+                toggleField('bonus_scope', true);
+                const scope = formFieldsContainer.querySelector('input[name="bonus_scope"]:checked')?.value;
+                toggleField('bonus_feature_categories', scope === 'specific');
+            } else if (selectedBonusType === 'skill') {
+                toggleField('bonus_scope', true);
+                const scope = formFieldsContainer.querySelector('input[name="bonus_scope"]:checked')?.value;
+                toggleField('bonus_skill_categories', scope === 'specific');
+            } else if (selectedBonusType === 'attribute') {
+                toggleField('bonus_attribute_group', true);
+            }
+        };
+
         const updateSubtypeOptions = async () => {
             const selectedAspect = aspectSelect.value;
             const subtypeSelect = formFieldsContainer.querySelector('#aspect_subtype');
@@ -2355,6 +2422,14 @@ async function openModal(collectionKey, docId = null, data = {}, isEditMode = fa
             const currentSubtypeValue = data.aspect_subtype || '';
             subtypeSelect.innerHTML = '<option value="">--CHOOSE--</option>';
             aspectSubtypeContainer.style.display = 'none';
+
+            const bonusFields = ['bonus_type', 'bonus_scope', 'bonus_feature_categories', 'bonus_skill_categories', 'bonus_attribute_group', 'bonus_count'];
+            bonusFields.forEach(fieldName => {
+                const fieldContainer = formFieldsContainer.querySelector(`[data-field-key="${fieldName}"]`);
+                if (fieldContainer) {
+                    fieldContainer.classList.add('hidden');
+                }
+            });
 
             let options = [];
 
@@ -2388,6 +2463,12 @@ async function openModal(collectionKey, docId = null, data = {}, isEditMode = fa
                 ];
             } else if (selectedAspect.includes('other')) {
                 options = otherOptions;
+            } else if (selectedAspect.includes('bonus')) {
+                const bonusTypeContainer = formFieldsContainer.querySelector('[data-field-key="bonus_type"]');
+                if (bonusTypeContainer) {
+                    bonusTypeContainer.classList.remove('hidden');
+                }
+                updateBonusOptions();
             }
 
 
@@ -2402,6 +2483,14 @@ async function openModal(collectionKey, docId = null, data = {}, isEditMode = fa
 
         if(aspectSelect && finalEditMode){
             aspectSelect.addEventListener('change', updateSubtypeOptions);
+
+            const bonusTypeSelect = formFieldsContainer.querySelector('#bonus_type');
+            if (bonusTypeSelect) {
+                bonusTypeSelect.addEventListener('change', updateBonusOptions);
+            }
+            const bonusScopeRadios = formFieldsContainer.querySelectorAll('input[name="bonus_scope"]');
+            bonusScopeRadios.forEach(radio => radio.addEventListener('change', updateBonusOptions));
+
             await updateSubtypeOptions();
         }
     }
