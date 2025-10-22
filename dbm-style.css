@@ -788,3 +788,19 @@ label {
     box-shadow: 0 0 20px rgba(99, 179, 237, 0.7); /* Outer glow on hover */
     transform: translateY(-5px);
 }
+
+.primary-attribute label,
+.primary-attribute input {
+    font-size: 1.5rem;
+}
+
+.stat-block {
+    border: 1px solid var(--border-blue);
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+#core-stats-tab .global-form-input {
+    text-align: center;
+}
