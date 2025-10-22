@@ -543,14 +543,8 @@ const categoryConfig = {
         fields: {
             name: { type: 'text', required: true},
             description: { type: 'textarea', aiEnabled: true},
-            aspect: { type: 'select', options: ['attribute', 'skill', 'combat', 'meta', 'other', 'bonus'] },
+            aspect: { type: 'select', options: ['attribute', 'skill', 'combat', 'meta', 'other', 'feature'] },
             aspect_subtype: { type: 'select' },
-            bonus_type: {
-                type: 'select',
-                label: 'Bonus Type',
-                options: ['feature', 'skill', 'attribute'],
-                hidden: true
-            },
             bonus_scope: {
                 type: 'radio',
                 label: 'Scope',
@@ -573,11 +567,6 @@ const categoryConfig = {
                 type: 'select',
                 label: 'Attribute Group',
                 options: ['primary', 'secondary'],
-                hidden: true
-            },
-            bonus_count: {
-                type: 'number',
-                label: 'Bonus Count',
                 hidden: true
             },
             value: { type: 'number' },
@@ -752,13 +741,13 @@ const categoryConfig = {
 
 // --- Field Order Configuration ---
 const masterFieldOrder = [
-    'name', 'description', 'mechanic', 'guide', 'effect_type', 'value', 'shape', 'dimensions', 'number_of_targets',
+    'name', 'description', 'mechanic', 'guide', 'effect_type', 'value', 'aspect', 'aspect_subtype', 'bonus_scope', 'bonus_feature_categories', 'bonus_skill_categories', 'bonus_attribute_group', 'modifier_type', 'shape', 'dimensions', 'number_of_targets',
     'tech_level', 'meta_level', 'class', 'classification', 'category', 'type', 'subtype',
     'cr', 'cost', 'availability', 'dc', 'cp', 'restricted', 'component_slots',
     'location', 'size', 'height', 'weight', 'scaling', 'height_length_range', 'weight_range', 'personnel', 'cargo', 'reach', 'weapon_effect', 'wielding',
     'movement', 'speed',
     'quality', 'material', 'durability', 'resistance',
-    'prerequisite', 'modifier', 'aspect', 'bonus_type', 'aspect_subtype', 'bonus_scope', 'bonus_feature_categories', 'bonus_skill_categories', 'bonus_attribute_group', 'bonus_count', 'modifier_type', 'abilities',
+    'prerequisite', 'modifier', 'abilities',
     'ammunition_type', 'ap', 'area', 'attack_rate', 'damage', 'damage_type', 'damage_value', 'effect', 'effect_subtype', 'range', 'target', 'critical_score', 'critical_success_effect', 'critical_failure_effect', 'critical_effect',
     'skill', 'meta_skill', 'faction_skill', 'profession_skill', 'species_skill', 'is_specialization', 'base_skill', 'discipline', 'accuracy', 'control', 'maneuverability',
     'faction_feat', 'recommended_feature',
@@ -2390,10 +2379,6 @@ async function openModal(collectionKey, docId = null, data = {}, isEditMode = fa
         const aspectSelect = formFieldsContainer.querySelector('#aspect');
         const aspectSubtypeContainer = formFieldsContainer.querySelector('#aspect_subtype')?.parentElement;
 
-        const updateBonusOptions = () => {
-            const bonusTypeSelect = formFieldsContainer.querySelector('#bonus_type');
-            const selectedBonusType = bonusTypeSelect ? bonusTypeSelect.value : null;
-
             const toggleField = (fieldName, show) => {
                 const fieldContainer = formFieldsContainer.querySelector(`[data-field-key="${fieldName}"]`);
                 if (fieldContainer) {
@@ -2401,25 +2386,15 @@ async function openModal(collectionKey, docId = null, data = {}, isEditMode = fa
                 }
             };
 
-            const allBonusFields = ['bonus_scope', 'bonus_feature_categories', 'bonus_skill_categories', 'bonus_attribute_group', 'bonus_count'];
-            allBonusFields.forEach(field => toggleField(field, false));
-
-            if (!selectedBonusType) return;
-
-            toggleField('bonus_count', true);
-
-            if (selectedBonusType === 'feature') {
-                toggleField('bonus_scope', true);
+            const handleBonusScopeChange = () => {
+                const selectedAspect = aspectSelect.value;
                 const scope = formFieldsContainer.querySelector('input[name="bonus_scope"]:checked')?.value;
-                toggleField('bonus_feature_categories', scope === 'specific');
-            } else if (selectedBonusType === 'skill') {
-                toggleField('bonus_scope', true);
-                const scope = formFieldsContainer.querySelector('input[name="bonus_scope"]:checked')?.value;
-                toggleField('bonus_skill_categories', scope === 'specific');
-            } else if (selectedBonusType === 'attribute') {
-                toggleField('bonus_attribute_group', true);
-            }
-        };
+                if (selectedAspect === 'feature') {
+                    toggleField('bonus_feature_categories', scope === 'specific');
+                } else if (selectedAspect === 'skill') {
+                    toggleField('bonus_skill_categories', scope === 'specific');
+                }
+            };
 
         const updateSubtypeOptions = async () => {
             const selectedAspect = aspectSelect.value;
@@ -2430,13 +2405,9 @@ async function openModal(collectionKey, docId = null, data = {}, isEditMode = fa
             subtypeSelect.innerHTML = '<option value="">--CHOOSE--</option>';
             aspectSubtypeContainer.style.display = 'none';
 
-            const bonusFields = ['bonus_type', 'bonus_scope', 'bonus_feature_categories', 'bonus_skill_categories', 'bonus_attribute_group', 'bonus_count'];
-            bonusFields.forEach(fieldName => {
-                const fieldContainer = formFieldsContainer.querySelector(`[data-field-key="${fieldName}"]`);
-                if (fieldContainer) {
-                    fieldContainer.classList.add('hidden');
-                }
-            });
+                // Hide all bonus-related fields by default
+                const allBonusFields = ['bonus_scope', 'bonus_feature_categories', 'bonus_skill_categories', 'bonus_attribute_group'];
+                allBonusFields.forEach(field => toggleField(field, false));
 
             let options = [];
 
@@ -2455,29 +2426,28 @@ async function openModal(collectionKey, docId = null, data = {}, isEditMode = fa
             ];
             const otherOptions = ['karma', 'plot points', 'tech level', 'meta level', 'size', 'durability', 'carry capacity', 'component slot', 'ammunition capacity', 'wealth', 'Walk Speed', 'Swim Speed', 'Climb Speed', 'Fly Speed', 'Perception', 'Meta Perception', 'Social Perception', 'Technology Perception', 'aid'];
 
-            if (selectedAspect.includes('attribute')) {
+                if (selectedAspect === 'attribute') {
                 options = attributeOptions;
-            } else if (selectedAspect.includes('skill')) {
+                    toggleField('bonus_attribute_group', true);
+                } else if (selectedAspect === 'skill') {
                 options = await skillOptions();
-            } else if (selectedAspect.includes('combat')) {
+                    toggleField('bonus_scope', true);
+                    handleBonusScopeChange(); // Also call it here to set initial state
+                } else if (selectedAspect === 'feature') {
+                    toggleField('bonus_scope', true);
+                    handleBonusScopeChange(); // Also call it here to set initial state
+                } else if (selectedAspect === 'combat') {
                 options = combatOptions;
-            } else if (selectedAspect.includes('meta')) {
+                } else if (selectedAspect === 'meta') {
                 const disciplineOptions = await getCollectionOptions('discipline');
                 const invocationOptions = await getCollectionOptions('invocations');
                 options = [
                     ...disciplineOptions.map(d => d.name),
                     ...invocationOptions.map(i => i.name)
                 ];
-            } else if (selectedAspect.includes('other')) {
+                } else if (selectedAspect === 'other') {
                 options = otherOptions;
-            } else if (selectedAspect.includes('bonus')) {
-                const bonusTypeContainer = formFieldsContainer.querySelector('[data-field-key="bonus_type"]');
-                if (bonusTypeContainer) {
-                    bonusTypeContainer.classList.remove('hidden');
-                }
-                updateBonusOptions();
             }
-
 
             if (options.length > 0) {
                 options.forEach(opt => {
@@ -2491,12 +2461,8 @@ async function openModal(collectionKey, docId = null, data = {}, isEditMode = fa
         if(aspectSelect && finalEditMode){
             aspectSelect.addEventListener('change', updateSubtypeOptions);
 
-            const bonusTypeSelect = formFieldsContainer.querySelector('#bonus_type');
-            if (bonusTypeSelect) {
-                bonusTypeSelect.addEventListener('change', updateBonusOptions);
-            }
             const bonusScopeRadios = formFieldsContainer.querySelectorAll('input[name="bonus_scope"]');
-            bonusScopeRadios.forEach(radio => radio.addEventListener('change', updateBonusOptions));
+                bonusScopeRadios.forEach(radio => radio.addEventListener('change', handleBonusScopeChange));
 
             await updateSubtypeOptions();
         }
