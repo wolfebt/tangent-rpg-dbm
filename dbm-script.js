@@ -758,7 +758,7 @@ const masterFieldOrder = [
     'location', 'size', 'height', 'weight', 'scaling', 'height_length_range', 'weight_range', 'personnel', 'cargo', 'reach', 'weapon_effect', 'wielding',
     'movement', 'speed',
     'quality', 'material', 'durability', 'resistance',
-    'prerequisite', 'modifier', 'modifier_type', 'abilities',
+    'prerequisite', 'modifier', 'aspect', 'bonus_type', 'aspect_subtype', 'bonus_scope', 'bonus_feature_categories', 'bonus_skill_categories', 'bonus_attribute_group', 'bonus_count', 'modifier_type', 'abilities',
     'ammunition_type', 'ap', 'area', 'attack_rate', 'damage', 'damage_type', 'damage_value', 'effect', 'effect_subtype', 'range', 'target', 'critical_score', 'critical_success_effect', 'critical_failure_effect', 'critical_effect',
     'skill', 'meta_skill', 'faction_skill', 'profession_skill', 'species_skill', 'is_specialization', 'base_skill', 'discipline', 'accuracy', 'control', 'maneuverability',
     'faction_feat', 'recommended_feature',
@@ -2242,6 +2242,7 @@ async function openModal(collectionKey, docId = null, data = {}, isEditMode = fa
 
     const availableFields = Object.keys(config.fields);
 
+    // This sort logic was already correct. Re-applying for clarity.
     const sortedFieldKeys = availableFields.sort((a, b) => {
         const indexA = masterFieldOrder.indexOf(a);
         const indexB = masterFieldOrder.indexOf(b);
@@ -2251,11 +2252,13 @@ async function openModal(collectionKey, docId = null, data = {}, isEditMode = fa
         return a.localeCompare(b);
     });
 
-    const formHtml = await Promise.all(sortedFieldKeys.map(async (fieldKey) => {
+    const formHtmlPromises = sortedFieldKeys.map(fieldKey => {
         const fieldConfig = config.fields[fieldKey];
         const savedValue = data[fieldKey] === undefined ? (fieldConfig.type === 'multiselect' ? [] : (fieldConfig.type === 'json_list' ? '[]' : (fieldConfig.type === 'number' ? 0 : ''))) : data[fieldKey];
         return createFormFieldHtml(fieldKey, fieldConfig, savedValue, collectionKey, finalEditMode);
-    }));
+    });
+
+    const formHtml = await Promise.all(formHtmlPromises);
 
     formFieldsContainer.innerHTML = formHtml.join('');
 
