@@ -369,17 +369,6 @@
                 headerSpan.textContent = name.toUpperCase();
             }
             updateAllTraits();
-            setMovementPlaceholders();
-        }
-
-        function setMovementPlaceholders() {
-            const movementIds = ['move-walk', 'move-swim', 'move-climb', 'move-fly'];
-            movementIds.forEach(id => {
-                const input = document.getElementById(id);
-                if (input && !input.value) {
-                    input.placeholder = "---";
-                }
-            });
         }
 
         function saveLocal() {
@@ -2354,7 +2343,7 @@
                                         </div>
 
                                         <div class="form-group stat-block">
-                                            <label for="perception">Perception</label>
+                                            <label for="perception" style="font-weight: bold;">Perception</label>
                                             <div class="perception-container">
                                                 <input type="number" id="perception" name="perception" readonly class="global-form-input stat-main-value">
                                                 <div class="stat-sub-grid">
@@ -2368,16 +2357,20 @@
                                             </div>
                                         </div>
                                         <div class="form-group stat-block">
-                                            <label>Move</label>
+                                            <label style="font-weight: bold;">Movement</label>
                                             <div class="stat-sub-grid move-sub-grid">
                                                 <label for="move-walk">Walk</label>
-                                                <input type="number" id="move-walk" name="move-walk" class="global-form-input">
+                                                <input type="number" id="move-walk" name="move-walk" class="global-form-input" readonly>
                                                 <label for="move-swim">Swim</label>
-                                                <input type="number" id="move-swim" name="move-swim" class="global-form-input">
+                                                <input type="number" id="move-swim" name="move-swim" class="global-form-input" readonly>
                                                 <label for="move-climb">Climb</label>
-                                                <input type="number" id="move-climb" name="move-climb" class="global-form-input">
+                                                <input type="number" id="move-climb" name="move-climb" class="global-form-input" readonly>
                                                 <label for="move-fly">Fly</label>
-                                                <input type="number" id="move-fly" name="move-fly" class="global-form-input">
+                                                <input type="number" id="move-fly" name="move-fly" class="global-form-input" readonly>
+                                                <label for="move-burrow">Burrow</label>
+                                                <input type="number" id="move-burrow" name="move-burrow" class="global-form-input" readonly>
+                                                <label for="move-flicker">Flicker</label>
+                                                <input type="number" id="move-flicker" name="move-flicker" class="global-form-input" readonly>
                                             </div>
                                         </div>
                                     </div>
