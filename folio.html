@@ -781,7 +781,7 @@
                         const cost = value * 5;
                         spentCP += cost;
                         const label = document.querySelector(`label[for="${attrId}"]`).textContent;
-                        economyDetails['Attributes'].push({ name: label, cost: cost });
+                        economyDetails['Attributes'].push({ name: label, cost: cost, value: value });
                     }
                 }
             });
@@ -801,7 +801,7 @@
                         const cost = pointsOfChange * 2;
                         spentCP += cost;
                         const label = document.querySelector(`label[for="${attrId}"]`).textContent;
-                        economyDetails['Sub-Attributes'].push({ name: label, cost: cost });
+                        economyDetails['Sub-Attributes'].push({ name: label, cost: cost, value: subAttrValue });
                     }
                 }
             });
@@ -820,11 +820,11 @@
                 selectedItems.forEach(itemName => {
                     if (listKey === 'features') {
                         if (bonuses.bonusFeatures.includes(itemName)) {
-                            economyDetails[categoryName].push({ name: `${itemName} (Bonus)`, cost: 0 });
+                            economyDetails[categoryName].push({ name: `${itemName} (Bonus)`, cost: 0, value: 1 });
                             return;
                         }
                         if (bonuses.featureOptions.includes(itemName) && bonusChoicesMade < bonuses.featureChoiceTotals.total) {
-                            economyDetails[categoryName].push({ name: `${itemName} (Bonus Choice)`, cost: 0 });
+                            economyDetails[categoryName].push({ name: `${itemName} (Bonus Choice)`, cost: 0, value: 1 });
                             bonusChoicesMade++;
                             return;
                         }
@@ -840,7 +840,7 @@
                     }
 
                     spentCP += cost;
-                    economyDetails[categoryName].push({ name: itemName + nameSuffix, cost: cost });
+                    economyDetails[categoryName].push({ name: itemName + nameSuffix, cost: cost, value: 1 });
                 });
             }
 
@@ -862,14 +862,15 @@
                     if (bonus && bonus.ranks > 0) {
                         const freeRanks = Math.min(ranksToPay, bonus.ranks);
                         ranksToPay -= freeRanks;
-                        economyDetails['Skills'].push({ name: `${skillName} (Bonus Ranks)`, cost: 0, source: bonus.source });
+                        economyDetails['Skills'].push({ name: `${skillName} (Bonus Ranks)`, cost: 0, source: bonus.source, value: freeRanks });
                     }
 
                     // 2. Apply free ranks from Skill Choices (e.g., Occupation)
                     if (ranksToPay > 0 && bonuses.skillOptions.includes(skillName) && skillChoicesMade < bonuses.skillChoiceTotals.total) {
                         skillChoicesMade++;
+                        const freeRanks = ranksToPay;
                         ranksToPay = 0; // The entire rank is free
-                        economyDetails['Skills'].push({ name: `${skillName} (Bonus Choice)`, cost: 0 });
+                        economyDetails['Skills'].push({ name: `${skillName} (Bonus Choice)`, cost: 0, value: freeRanks });
                     }
 
                     // 3. Spend from categorized skill point pool
@@ -878,7 +879,7 @@
                         const pointsToSpend = Math.min(ranksToPay, availablePoints);
                         spentSkillPoints[skillGroup] += pointsToSpend;
                         ranksToPay -= pointsToSpend;
-                        economyDetails['Skills'].push({ name: `${skillName} (SP)`, cost: 0, source: `${skillGroup.charAt(0).toUpperCase() + skillGroup.slice(1)} Pool` });
+                        economyDetails['Skills'].push({ name: `${skillName} (SP)`, cost: 0, source: `${skillGroup.charAt(0).toUpperCase() + skillGroup.slice(1)} Pool`, value: pointsToSpend });
                     }
 
                     // 4. Spend from general skill point pool
@@ -887,13 +888,13 @@
                         const pointsToSpend = Math.min(ranksToPay, availablePoints);
                         spentSkillPoints.general += pointsToSpend;
                         ranksToPay -= pointsToSpend;
-                        economyDetails['Skills'].push({ name: `${skillName} (SP)`, cost: 0, source: 'General Pool' });
+                        economyDetails['Skills'].push({ name: `${skillName} (SP)`, cost: 0, source: 'General Pool', value: pointsToSpend });
                     }
 
                     // 5. Pay with CP
                     if (ranksToPay > 0) {
                         spentCP += ranksToPay;
-                        economyDetails['Skills'].push({ name: `${skillName} (CP)`, cost: ranksToPay });
+                        economyDetails['Skills'].push({ name: `${skillName} (CP)`, cost: ranksToPay, value: ranksToPay });
                     }
                 }
             });
@@ -910,12 +911,12 @@
                         const pointsToSpend = Math.min(ranksToPay, availablePoints);
                         spentSkillPoints.general += pointsToSpend;
                         ranksToPay -= pointsToSpend;
-                        economyDetails['Skills'].push({ name: `${name} (Spec. SP)`, cost: 0, source: 'General Pool' });
+                        economyDetails['Skills'].push({ name: `${name} (Spec. SP)`, cost: 0, source: 'General Pool', value: pointsToSpend });
                     }
 
                     if (ranksToPay > 0) {
                         spentCP += ranksToPay;
-                        economyDetails['Skills'].push({ name: `${name} (Spec. CP)`, cost: ranksToPay });
+                        economyDetails['Skills'].push({ name: `${name} (Spec. CP)`, cost: ranksToPay, value: ranksToPay });
                     }
                 }
             });
@@ -1034,7 +1035,8 @@
                     detailsHtml += `<h4>${category}</h4><ul>`;
                     items.forEach(item => {
                         const cost = item.cost > 0 ? `${item.cost} CP` : (item.cost === 0 ? `0 CP` : 'N/A');
-                         detailsHtml += `<li class="flex justify-between"><span>${item.name}</span><span>${cost}</span></li>`;
+                        const valueDisplay = item.value ? ` (Rank ${item.value})` : '';
+                        detailsHtml += `<li class="flex justify-between"><span>${item.name}${valueDisplay}</span><span>${cost}</span></li>`;
                     });
                     detailsHtml += `</ul>`;
                 }
