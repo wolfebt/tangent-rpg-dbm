@@ -467,6 +467,12 @@
             if (socialInput) {
                 socialInput.value = commonBase + insightRank;
             }
+
+            const technologyRank = getValue('skill-mental-knowledge-technology-rank');
+            const techInput = document.getElementById('perception-tech');
+            if (techInput) {
+                techInput.value = commonBase + technologyRank;
+            }
         }
 
         function calculateAlertness() {
@@ -2356,7 +2362,7 @@
                                                     <input type="number" id="perception-meta" name="perception-meta" class="global-form-input">
                                                     <label for="perception-social">Social</label>
                                                     <input type="number" id="perception-social" name="perception-social" class="global-form-input">
-                                                    <label for="perception-tech">Technology</label>
+                                                    <label for="perception-tech">Tech</label>
                                                     <input type="number" id="perception-tech" name="perception-tech" class="global-form-input">
                                                 </div>
                                             </div>
