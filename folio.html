@@ -2072,8 +2072,12 @@
                         }
                     }
 
-                    if (event.target.matches('.skill-rank, .attribute-value') || event.target.closest('.single-column-grid')) {
-                         recalculateAllModifiers();
+                    if (event.target.matches('.skill-rank') || event.target.closest('.single-column-grid')) {
+                        recalculateAllModifiers();
+                    } else if (event.target.matches('.attribute-value')) {
+                        const attributeId = event.target.id;
+                        calculateAttributeTotal(attributeId);
+                        calculateCharacterPoints();
                     }
                     saveToSession();
                 }
@@ -2183,7 +2187,7 @@
                                         ].map(attr => `
                                             <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 0.5rem; align-items: center; ${!attr.sub ? 'background: rgba(0,0,0,0.2); padding: 0.25rem; border-radius: 4px;' : ''}">
                                                 <label for="${attr.id}" style="${attr.sub ? 'font-style: italic; padding-left: 1rem;' : 'font-weight: bold;'}">${attr.name}</label>
-                                                <input type="number" id="${attr.id}" name="${attr.id}" class="global-form-input" style="text-align: center;" value="0" ${attr.sub ? 'readonly' : ''}>
+                                                <input type="number" id="${attr.id}" name="${attr.id}" class="global-form-input${!attr.sub ? ' attribute-value' : ''}" style="text-align: center;" value="0" ${attr.sub ? 'readonly' : ''}>
                                                 <input type="number" id="${attr.id}-mod" name="${attr.id}-mod" class="global-form-input" style="text-align: center;" value="0" readonly>
                                                 <input type="number" id="${attr.id}-total" name="${attr.id}-total" class="global-form-input" style="text-align: center; font-weight: bold;" readonly value="0">
                                             </div>
