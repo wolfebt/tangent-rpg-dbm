@@ -699,14 +699,15 @@
                 totalDisciplines: 0,
                 totalSpecialAbilities: 0,
                 skillPointPools: {
+                    any: { total: 0, sources: {} },
                     physical: { total: 0, sources: {} },
                     mental: { total: 0, sources: {} },
                     social: { total: 0, sources: {} },
                     combat: { total: 0, sources: {} },
                     meta: { total: 0, sources: {} },
-                    general: { total: 0, sources: {} },
                 },
                 featurePointPools: {
+                    any: { total: 0, sources: {} },
                     ability: { total: 0, sources: {} },
                     combat: { total: 0, sources: {} },
                     meta: { total: 0, sources: {} },
@@ -733,15 +734,15 @@
             });
 
 
-            const skillPointCategories = ['physical', 'mental', 'social', 'combat', 'meta', 'general'];
-            const featurePointCategories = ['ability', 'combat', 'meta', 'general', 'karma', 'skill', 'exotic'];
+            const skillPointCategories = ['any', 'physical', 'mental', 'social', 'combat', 'meta'];
+            const featurePointCategories = ['any', 'ability', 'combat', 'meta', 'general', 'karma', 'skill', 'exotic'];
 
             sources.forEach(source => {
                 const item = source.db.find(i => i.name === source.name);
                 if (item) {
                     // Handle categorized skill points
                     skillPointCategories.forEach(category => {
-                        const key = (category === 'general') ? `bonus_skill_points` : `bonus_skill_points_${category}`;
+                        const key = (category === 'any') ? `bonus_skill_points` : `bonus_skill_points_${category}`;
                         if (item[key] && typeof item[key] === 'number') {
                             const points = item[key];
                             bonuses.skillPointPools[category].total += points;
@@ -753,7 +754,13 @@
                     });
 
                     featurePointCategories.forEach(category => {
-                        const key = (category === 'general') ? `bonus_feature_points` : `bonus_feature_points_${category}`;
+                        let key;
+                        if (category === 'any') {
+                            key = 'bonus_feature_points';
+                        } else {
+                            key = `bonus_feature_points_${category}`;
+                        }
+
                         if (item[key] && typeof item[key] === 'number') {
                             const points = item[key];
                             bonuses.featurePointPools[category].total += points;
@@ -851,7 +858,7 @@
 
             // --- Feature Costing ---
             let featureChoicesMade = 0;
-            let spentFeaturePoints = { ability: 0, combat: 0, meta: 0, general: 0, karma: 0, skill: 0, exotic: 0 };
+            let spentFeaturePoints = { any: 0, ability: 0, combat: 0, meta: 0, general: 0, karma: 0, skill: 0, exotic: 0 };
 
             const featureLists = {
                 features: 'Features',
@@ -892,12 +899,12 @@
                         economyDetails[categoryName].push({ name: `${itemName} (FP)`, cost: 0, source: `${featureType.charAt(0).toUpperCase() + featureType.slice(1)} Pool`, value: pointsToSpend });
                     }
 
-                    if (ranksToPay > 0 && (bonuses.featurePointPools.general.total - spentFeaturePoints.general) > 0) {
-                        const availablePoints = bonuses.featurePointPools.general.total - spentFeaturePoints.general;
+                    if (ranksToPay > 0 && (bonuses.featurePointPools.any.total - spentFeaturePoints.any) > 0) {
+                        const availablePoints = bonuses.featurePointPools.any.total - spentFeaturePoints.any;
                         const pointsToSpend = Math.min(ranksToPay, availablePoints);
-                        spentFeaturePoints.general += pointsToSpend;
+                        spentFeaturePoints.any += pointsToSpend;
                         ranksToPay -= pointsToSpend;
-                        economyDetails[categoryName].push({ name: `${itemName} (FP)`, cost: 0, source: 'General Pool', value: pointsToSpend });
+                        economyDetails[categoryName].push({ name: `${itemName} (FP)`, cost: 0, source: 'ANY Pool', value: pointsToSpend });
                     }
 
                     if (ranksToPay > 0) {
@@ -919,7 +926,7 @@
 
             // --- Skills Costing ---
             let skillChoicesMade = 0;
-            let spentSkillPoints = { physical: 0, mental: 0, social: 0, combat: 0, meta: 0, general: 0 };
+            let spentSkillPoints = { any: 0, physical: 0, mental: 0, social: 0, combat: 0, meta: 0 };
 
             document.querySelectorAll('.skill-row:not(.header):not(.specialization)').forEach(row => {
                 const label = row.querySelector('label');
@@ -955,13 +962,13 @@
                         economyDetails['Skills'].push({ name: `${skillName} (SP)`, cost: 0, source: `${skillGroup.charAt(0).toUpperCase() + skillGroup.slice(1)} Pool`, value: pointsToSpend });
                     }
 
-                    // 4. Spend from general skill point pool
-                    if (ranksToPay > 0 && (bonuses.skillPointPools.general.total - spentSkillPoints.general) > 0) {
-                        const availablePoints = bonuses.skillPointPools.general.total - spentSkillPoints.general;
+                    // 4. Spend from any skill point pool
+                    if (ranksToPay > 0 && (bonuses.skillPointPools.any.total - spentSkillPoints.any) > 0) {
+                        const availablePoints = bonuses.skillPointPools.any.total - spentSkillPoints.any;
                         const pointsToSpend = Math.min(ranksToPay, availablePoints);
-                        spentSkillPoints.general += pointsToSpend;
+                        spentSkillPoints.any += pointsToSpend;
                         ranksToPay -= pointsToSpend;
-                        economyDetails['Skills'].push({ name: `${skillName} (SP)`, cost: 0, source: 'General Pool', value: pointsToSpend });
+                        economyDetails['Skills'].push({ name: `${skillName} (SP)`, cost: 0, source: 'ANY Pool', value: pointsToSpend });
                     }
 
                     // 5. Pay with CP
@@ -979,12 +986,12 @@
                     let ranksToPay = rank;
 
                     // Specializations can only be paid for with General SP or CP
-                    if (ranksToPay > 0 && (bonuses.skillPointPools.general.total - spentSkillPoints.general) > 0) {
-                        const availablePoints = bonuses.skillPointPools.general.total - spentSkillPoints.general;
+                    if (ranksToPay > 0 && (bonuses.skillPointPools.any.total - spentSkillPoints.any) > 0) {
+                        const availablePoints = bonuses.skillPointPools.any.total - spentSkillPoints.any;
                         const pointsToSpend = Math.min(ranksToPay, availablePoints);
-                        spentSkillPoints.general += pointsToSpend;
+                        spentSkillPoints.any += pointsToSpend;
                         ranksToPay -= pointsToSpend;
-                        economyDetails['Skills'].push({ name: `${name} (Spec. SP)`, cost: 0, source: 'General Pool', value: pointsToSpend });
+                        economyDetails['Skills'].push({ name: `${name} (Spec. SP)`, cost: 0, source: 'ANY Pool', value: pointsToSpend });
                     }
 
                     if (ranksToPay > 0) {
@@ -1025,11 +1032,12 @@
 
             // --- Populate Skill Point Pools ---
             skillPoolsContainer.innerHTML = '';
-            for(const poolName in bonuses.skillPointPools) {
+            // Use Object.keys to maintain the intended order ('any' first)
+            Object.keys(bonuses.skillPointPools).forEach(poolName => {
                 const awarded = bonuses.skillPointPools[poolName].total;
                 const spent = economyDetails.spentSkillPoints[poolName] || 0;
                 const remaining = awarded - spent;
-                const name = poolName.charAt(0).toUpperCase() + poolName.slice(1);
+                const name = poolName.toUpperCase();
 
                 skillPoolsContainer.innerHTML += `
                     <span style="text-align: left; padding-left: .5rem;">${name}</span>
@@ -1037,15 +1045,16 @@
                     <span>${spent}</span>
                     <span>${remaining}</span>
                 `;
-            }
+            });
 
             // --- Populate Feature Point Pools ---
             featurePoolsContainer.innerHTML = '';
-            for(const poolName in bonuses.featurePointPools) {
+            // Use Object.keys to maintain the intended order ('any' first)
+            Object.keys(bonuses.featurePointPools).forEach(poolName => {
                 const awarded = bonuses.featurePointPools[poolName].total;
                 const spent = economyDetails.spentFeaturePoints[poolName] || 0;
                 const remaining = awarded - spent;
-                const name = poolName.charAt(0).toUpperCase() + poolName.slice(1);
+                const name = poolName.toUpperCase();
 
                 featurePoolsContainer.innerHTML += `
                     <span style="text-align: left; padding-left: .5rem;">${name}</span>
@@ -1053,7 +1062,7 @@
                     <span>${spent}</span>
                     <span>${remaining}</span>
                 `;
-            }
+            });
 
 
             let countersHtml = '<div class="economy-counters" style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--panel-border);">';
