@@ -543,7 +543,7 @@ const categoryConfig = {
         fields: {
             name: { type: 'text', required: true},
             description: { type: 'textarea', aiEnabled: true},
-            aspect: { type: 'select', options: ['attribute', 'skill', 'combat', 'meta', 'other', 'feature'] },
+            aspect: { type: 'select', options: ['attribute', 'skill', 'combat', 'other', 'feature'] },
             aspect_subtype: { type: 'select' },
             bonus_scope: {
                 type: 'radio',
@@ -2438,13 +2438,6 @@ async function openModal(collectionKey, docId = null, data = {}, isEditMode = fa
                     handleBonusScopeChange(); // Also call it here to set initial state
                 } else if (selectedAspect === 'combat') {
                 options = combatOptions;
-                } else if (selectedAspect === 'meta') {
-                const disciplineOptions = await getCollectionOptions('discipline');
-                const invocationOptions = await getCollectionOptions('invocations');
-                options = [
-                    ...disciplineOptions.map(d => d.name),
-                    ...invocationOptions.map(i => i.name)
-                ];
                 } else if (selectedAspect === 'other') {
                 options = otherOptions;
             }
