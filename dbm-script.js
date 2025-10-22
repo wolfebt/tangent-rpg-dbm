@@ -563,10 +563,10 @@ const categoryConfig = {
                 options: ['mental', 'physical', 'social', 'combat', 'meta'],
                 hidden: true
             },
-            bonus_attribute_group: {
-                type: 'select',
-                label: 'Attribute Group',
-                options: ['primary', 'secondary'],
+            bonus_attribute_options: {
+                type: 'multiselect',
+                label: 'Attribute Options',
+                options: ['Strength', 'Agility', 'Constitution', 'Intellect', 'Wisdom', 'Charisma', 'Might', 'Reflex', 'Fortitude', 'Logic', 'Will', 'Etiquette'],
                 hidden: true
             },
             value: { type: 'number' },
@@ -741,7 +741,7 @@ const categoryConfig = {
 
 // --- Field Order Configuration ---
 const masterFieldOrder = [
-    'name', 'description', 'mechanic', 'guide', 'effect_type', 'value', 'aspect', 'aspect_subtype', 'bonus_scope', 'bonus_feature_categories', 'bonus_skill_categories', 'bonus_attribute_group', 'modifier_type', 'shape', 'dimensions', 'number_of_targets',
+    'name', 'description', 'mechanic', 'guide', 'effect_type', 'value', 'aspect', 'aspect_subtype', 'bonus_scope', 'bonus_feature_categories', 'bonus_skill_categories', 'bonus_attribute_options', 'modifier_type', 'shape', 'dimensions', 'number_of_targets',
     'tech_level', 'meta_level', 'class', 'classification', 'category', 'type', 'subtype',
     'cr', 'cost', 'availability', 'dc', 'cp', 'restricted', 'component_slots',
     'location', 'size', 'height', 'weight', 'scaling', 'height_length_range', 'weight_range', 'personnel', 'cargo', 'reach', 'weapon_effect', 'wielding',
@@ -2393,6 +2393,8 @@ async function openModal(collectionKey, docId = null, data = {}, isEditMode = fa
                     toggleField('bonus_feature_categories', scope === 'specific');
                 } else if (selectedAspect === 'skill') {
                     toggleField('bonus_skill_categories', scope === 'specific');
+                } else if (selectedAspect === 'attribute') {
+                    toggleField('bonus_attribute_options', scope === 'specific');
                 }
             };
 
@@ -2406,7 +2408,7 @@ async function openModal(collectionKey, docId = null, data = {}, isEditMode = fa
             aspectSubtypeContainer.style.display = 'none';
 
                 // Hide all bonus-related fields by default
-                const allBonusFields = ['bonus_scope', 'bonus_feature_categories', 'bonus_skill_categories', 'bonus_attribute_group'];
+                const allBonusFields = ['bonus_scope', 'bonus_feature_categories', 'bonus_skill_categories', 'bonus_attribute_options'];
                 allBonusFields.forEach(field => toggleField(field, false));
 
             let options = [];
@@ -2427,8 +2429,8 @@ async function openModal(collectionKey, docId = null, data = {}, isEditMode = fa
             const otherOptions = ['karma', 'plot points', 'tech level', 'meta level', 'size', 'durability', 'carry capacity', 'component slot', 'ammunition capacity', 'wealth', 'Walk Speed', 'Swim Speed', 'Climb Speed', 'Fly Speed', 'Perception', 'Meta Perception', 'Social Perception', 'Technology Perception', 'aid'];
 
                 if (selectedAspect === 'attribute') {
-                options = attributeOptions;
-                    toggleField('bonus_attribute_group', true);
+                    toggleField('bonus_scope', true);
+                    handleBonusScopeChange(); // Also call it here to set initial state
                 } else if (selectedAspect === 'skill') {
                 options = await skillOptions();
                     toggleField('bonus_scope', true);
