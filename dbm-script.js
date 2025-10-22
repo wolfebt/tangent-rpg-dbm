@@ -792,41 +792,54 @@ const masterFieldOrder = [
 
 const helpMarkdown = `
 ### **Welcome to the Tangent SFF RPG Database Manager**
-This guide provides a comprehensive overview of how to use this tool to browse and manage your game world's data, which is stored and shared in real-time using Firebase.
+This guide provides a comprehensive overview of how to use this tool to browse and manage your game world's data.
 
-### **Core Concepts & User Roles**
-The Database Manager has different capabilities based on your login status and assigned role.
-* **Guest (Anonymous):** As a guest, you have complete read-only access to all entries in the database. You can navigate all sections, open items to see their details, and explore the rules codex. This is the default mode for players or viewers.
-* **Contributor (Logged-in):** After logging in with a Google account, you are assigned the 'Contributor' role. You can **create** new entries in any category and **edit** or **delete** the entries that you have created. You cannot modify entries created by other users.
-* **Admin/Owner (Logged-in):** These roles have full administrative rights. You can create, edit, and delete **any** data in the database, regardless of who created it.
+### **Project Overview**
+The DBM is a real-time, collaborative database designed for the Tangent SFF RPG. All data is stored on Firebase, allowing for live updates and seamless collaboration. Access and permissions are managed through Google Authentication, ensuring that your data is secure while remaining easily accessible to authorized users.
 
-### **Navigating the Application**
-Your primary navigation tools are the **Header** and the **Sidebar**.
-* **Sidebar:** This is your main navigation hub. Click any category (e.g., "Species", "Factions") to view its content. The active category is highlighted. For categories with sub-pages, like "Equipment," a nested list of links will appear below the main tab.
-* **Header:** Use the back and forward arrows to move through your viewing history. The top-right corner displays your login status and provides the **LOGIN/LOGOUT** button.
+### **User Roles & Permissions**
+Your capabilities within the DBM depend on your assigned role:
+*   **Guest (Anonymous):** Guests have complete read-only access. You can browse all categories, view entry details, and read the Rules Codex, but you cannot make any changes.
+*   **Contributor (Logged-in):** Upon logging in with a Google account, you become a Contributor. You can **create** new entries and **edit** or **delete** any entry that you have created yourself.
+*   **Admin/Owner (Logged-in):** These roles have full administrative rights, allowing them to **create, edit, and delete any entry** across the entire database.
 
-### **Viewing & Finding Data**
-* **Table Views:** Most categories are presented in a table format.
-    * **Sorting:** Click on any column header to sort the table by that column's data.
-    * **Searching:** Use the search bar at the top-right of a table to filter entries by name in real-time.
-    * **Viewing Details:** Click anywhere on a row to open a detailed view of that item in a pop-up modal.
-* **Wiki View (Rules Codex):** This special section has a two-column layout. The directory of all rules articles is on the left. Clicking an article title displays its full content on the right.
+### **Game Mode vs. Dev Mode**
+The application features a master toggle in the header that switches between two distinct modes:
+*   **Game Mode (Read-Only):** This is the default mode, designed for use during gameplay. It provides a clean, read-only view of the data, preventing accidental edits.
+*   **Dev Mode (Editable):** For authorized users (Contributors, Admins, Owners), this mode unlocks all data management features. The "ADD NEW" buttons appear, and the Entry Modal can be opened in an editable state.
 
-### **Managing Data (Logged-in Users)**
-When logged in, you can create and modify data using the **Entry Modal**.
-1.  **Creating an Entry:** Click the **ADD NEW** button at the top of any table. This opens the modal with a blank, editable form.
-2.  **Editing an Entry:**
-    * Click on an existing row to open its details in the modal (read-only view).
-    * Click the **DATA** button in the top-right corner of the modal.
-3.  **Saving:** After making changes in edit mode, click the **DATA** button and select **Save**. The modal will remain open in edit mode, allowing for further changes.
-4.  **Deleting:** To remove an entry permanently (if you have permission), open it, click the **DATA** button, and select **Delete**.
-5.  **Managing Linked Data:** Some fields (like "Modifiers" on a species) are managed in other database categories. To add or edit these, click the underlined label for the field (e.g., the word **MODIFIER**). This will navigate you to that category's management table.
+### **Navigating the Interface**
+*   **Header:**
+    *   **Navigation:** Use the back and forward arrows to move through your viewing history.
+    *   **User Info:** The top-right corner displays your login status and provides the LOGIN/LOGOUT button.
+    *   **Settings:** The gear icon opens the settings modal.
+*   **Sidebar:** This is your primary navigation tool. Click any category (e.g., "SPECIES," "FACTIONS") to view its content. Categories like "PERSONAL PROPERTY" are parents that expand to show sub-categories.
+*   **"OTHER" Menu (Dev Mode Only):** In Dev Mode, a special "OTHER" section appears in the sidebar. This section contains foundational data types like "MODIFIERS" and "PREREQUISITES" that are used to build other entries.
 
-### **Special Features**
-* **AI-Powered Generation:** In fields like "Description," logged-in users can click the **GENERATE** button. This uses the Gemini API to create descriptive text based on the entry's other data, like its name and type. You must provide your own Gemini API key in the settings for this to work.
-* **Settings:** Click the gear icon in the bottom-left corner to open the settings modal, where you can enter and save your Gemini API key.
-* **Wiki-Linking:** In text areas within the "Rules Codex," you can create links to other entries by wrapping the exact entry name in double square brackets, for example: \`[[Some Rule Name]]\`. When viewed, this becomes a clickable link that opens the corresponding entry.
-* **Local Backup:** Inside the modal's **DATA** menu, the "Local" submenu allows you to save the current entry's data to a JSON file on your computer or load data from such a file to populate the form.
+### **Viewing Data**
+*   **Table View:** Most categories are displayed in a table.
+    *   **Sort:** Click any column header to sort the data.
+    *   **Search:** Use the search bar to filter entries by name.
+    *   **View Details:** Click any row to open that entry's details in a pop-up modal.
+*   **Rules Codex:** This section uses a two-panel layout, with a directory of articles on the left and the content on the right.
+
+### **Managing Data (In Dev Mode)**
+All data management is handled through the **Entry Modal**.
+1.  **Create:** Click the **ADD NEW** button in a table view to open a blank modal.
+2.  **Edit:** Click an existing entry to open its details, then click the **DATA** button and select **Edit**.
+3.  **The "DATA" Menu:** This menu is your command center within the modal.
+    *   **Save:** Saves your changes.
+    *   **Summary:** Provides a condensed, read-only overview of the entry.
+    *   **Local:** Allows you to save the entry's data to a local JSON file or load data from one.
+    *   **Cancel:** Closes the modal. If you have unsaved changes, you'll be prompted to save or dismiss them.
+    *   **Delete:** Permanently removes the entry (with confirmation).
+
+### **Working with Linked Data**
+Many entries are linked together (e.g., a Species has Modifiers).
+*   **Unified Selector Modal:** Instead of navigating away, you now use a dedicated modal for linking entries.
+*   **How it Works:** When in edit mode, click the **"Select [Item]"** button for a field. This opens the selector modal, where you can:
+    *   **Search and Select:** Find and choose one or more existing entries.
+    *   **Create New:** If an entry doesn't exist, click the **"New Entry"** button to create it on-the-fly. Once saved, it will be automatically selected and available for others.
 `;
 
 // --- UI Elements ---
