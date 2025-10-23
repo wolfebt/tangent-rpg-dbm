@@ -8,6 +8,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Trebuchet+MS:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
     <style>
         :root {
             --bg-color: #111827; /* gray-900 */
@@ -251,90 +253,69 @@
             text-decoration-style: solid;
         }
         
-        /* WYSIWYG Editor Styles */
-        .editor-toolbar {
-            background-color: #374151;
-            border: 1px solid var(--border-color);
-            border-bottom: none;
-            padding: 0.25rem;
-            display: flex;
-            gap: 0.25rem;
+        .ql-editor {
+            min-height: 150px;
+            font-size: 1rem;
+            line-height: 1.6;
+            color: var(--text-color);
+        }
+        .ql-toolbar {
             border-top-left-radius: 0.375rem;
             border-top-right-radius: 0.375rem;
-        }
-        .editor-toolbar button {
-            background: none;
-            border: none;
-            color: var(--text-color);
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.25rem;
-            cursor: pointer;
-        }
-        .editor-toolbar button:hover {
-            background-color: var(--active-bg);
-        }
-        .editor-toolbar button.bold { font-weight: bold; }
-        .editor-toolbar button.italic { font-style: italic; }
-        .editor-toolbar button.underline { text-decoration: underline; }
-
-        .wysiwyg-editor {
+            border-color: var(--border-color) !important;
             background-color: var(--panel-bg);
-            border: 1px solid var(--border-color);
+        }
+        .ql-container.ql-snow {
             border-bottom-left-radius: 0.375rem;
             border-bottom-right-radius: 0.375rem;
-            padding: 0.75rem;
-            min-height: 150px;
-            outline: none;
-            color: var(--text-color);
-            line-height: 1.6;
+            border-color: var(--border-color) !important;
         }
-        .wysiwyg-editor:focus {
-            border-color: var(--link-color);
-            box-shadow: 0 0 0 1px var(--link-color);
+        .ql-snow .ql-stroke {
+            stroke: var(--text-muted);
         }
-        .wysiwyg-editor b, .wysiwyg-editor strong {
-            font-weight: bold;
+        .ql-snow .ql-picker-label {
+            color: var(--text-muted);
+        }
+        .ql-snow .ql-picker-options {
+            background-color: var(--panel-bg);
+            border-color: var(--border-color) !important;
+        }
+        .ql-snow .ql-picker-item:hover {
             color: var(--active-text);
         }
-        .wysiwyg-editor i, .wysiwyg-editor em {
-            font-style: italic;
+        .ql-snow .ql-toolbar button .ql-ai:after {
+            content: "AI";
+            font-weight: bold;
         }
-        .wysiwyg-editor u {
-            text-decoration: underline;
+        .ql-snow .ql-toolbar button .ql-internalLink:after {
+            content: "Link";
+            font-weight: bold;
         }
-        .wysiwyg-editor .internal-link {
+        .internal-link {
             color: var(--link-color);
             text-decoration: underline;
             text-decoration-style: dashed;
             background-color: rgba(147, 197, 253, 0.1);
             padding: 0.1em 0.2em;
             border-radius: 0.2em;
+            cursor: pointer;
         }
 
 
         /* Styling for rendered content in GM View */
         .book-prose > *:first-child { margin-top: 0; }
-        .book-prose h3 {
-            font-size: 1.25em;
-            text-transform: none;
-            margin-top: 1.5em;
-            margin-bottom: 0.75em;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 0.25em;
-        }
-        .book-prose h4 {
-            font-size: 1.1em;
-            text-transform: none;
-            margin-top: 1.25em;
-            margin-bottom: 0.5em;
-        }
-        .book-prose p { margin-bottom: 1em; line-height: 1.6; }
-        .book-prose ul { padding-left: 1.5em; margin-bottom: 1em; list-style-type: disc; }
-        .book-prose li { margin-bottom: 0.5em; }
+        .book-prose h1, .ql-editor h1 { font-size: 2em; text-transform: none; margin-top: 1em; margin-bottom: 0.5em; border-bottom: 1px solid var(--border-color); padding-bottom: 0.25em; }
+        .book-prose h2, .ql-editor h2 { font-size: 1.5em; text-transform: none; margin-top: 1.25em; margin-bottom: 0.5em; border-bottom: 1px solid var(--border-color); padding-bottom: 0.25em; }
+        .book-prose h3, .ql-editor h3 { font-size: 1.17em; text-transform: none; margin-top: 1em; margin-bottom: 0.5em; }
+        .book-prose h4, .ql-editor h4 { font-size: 1em; text-transform: none; margin-top: 1em; margin-bottom: 0.5em; }
+        .book-prose p, .ql-editor p { margin-bottom: 1em; line-height: 1.6; }
+        .book-prose ul, .ql-editor ul { padding-left: 1.5em; margin-bottom: 1em; list-style-type: disc; }
+        .book-prose ol, .ql-editor ol { padding-left: 1.5em; margin-bottom: 1em; list-style-type: decimal; }
+        .book-prose li, .ql-editor li { margin-bottom: 0.5em; }
         .book-prose a { color: var(--link-color); text-decoration: underline; }
-        .book-prose strong, .book-prose b { font-weight: bold; color: var(--active-text); }
-        .book-prose em, .book-prose i { font-style: italic; }
-        .book-prose u { text-decoration: underline; }
+        .book-prose strong, .book-prose b, .ql-editor strong, .ql-editor b { font-weight: bold; color: var(--active-text); }
+        .book-prose em, .book-prose i, .ql-editor em, .ql-editor i { font-style: italic; }
+        .book-prose u, .ql-editor u { text-decoration: underline; }
         .book-prose code {
             background-color: var(--bg-color);
             padding: 0.2em 0.4em;
@@ -687,6 +668,7 @@
             let pinComponentId = null;
             let activeEditorForAI = null;
             let geminiApiKey = "";
+            let quillInstances = {};
 
 
             // --- DOM ELEMENTS ---
@@ -846,12 +828,12 @@
                 addComponentModal.classList.remove('flex');
             };
             
-            const openAiModal = (editorElement) => {
+            const openAiModal = (editorInstance) => {
                 if (!geminiApiKey) {
                     openSettingsModal();
                     return;
                 }
-                activeEditorForAI = editorElement;
+                activeEditorForAI = editorInstance;
                 aiModal.classList.remove('hidden');
                 aiModal.classList.add('flex');
                 aiPrompt.focus();
@@ -1015,6 +997,65 @@
                 renderAll();
             };
 
+            const initializeQuill = (key, element, initialContent, onUpdate) => {
+                if (!element) return;
+
+                const toolbarOptions = {
+                    container: [
+                        [{ 'header': [1, 2, 3, 4, false] }],
+                        ['bold', 'italic', 'underline'],
+                        [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                        [{ 'color': [] }, { 'background': [] }],
+                        ['link', 'clean'],
+                        ['ai', 'internalLink']
+                    ],
+                    handlers: {
+                        'ai': function() {
+                            openAiModal(quillInstances[key]);
+                        },
+                        'internalLink': function() {
+                            const range = this.quill.getSelection(true);
+                            if (range && range.length > 0) {
+                                const text = this.quill.getText(range.index, range.length);
+                                this.quill.deleteText(range.index, range.length);
+                                this.quill.insertEmbed(range.index, 'internal-link', text);
+                            }
+                        }
+                    }
+                };
+
+                let Link = Quill.import('formats/link');
+                class InternalLink extends Link {
+                    static create(value) {
+                        let node = super.create(value);
+                        node.setAttribute('class', 'internal-link');
+                        node.removeAttribute('href');
+                        return node;
+                    }
+                }
+                Quill.register(InternalLink, true);
+
+                quillInstances[key] = new Quill(element, {
+                    modules: { toolbar: toolbarOptions },
+                    theme: 'snow'
+                });
+
+                if (initialContent) {
+                    quillInstances[key].clipboard.dangerouslyPasteHTML(initialContent);
+                }
+
+                let debounceTimer;
+                quillInstances[key].on('text-change', (delta, oldDelta, source) => {
+                    if (source === 'user') {
+                        onUpdate(quillInstances[key].root.innerHTML);
+                        clearTimeout(debounceTimer);
+                        debounceTimer = setTimeout(() => {
+                            saveStateToHistory();
+                        }, 500);
+                    }
+                });
+            };
+
             const getTemplateForType = (type) => {
                 const baseTemplate = {
                     description: '',
@@ -1060,7 +1101,7 @@
                 const headerContent = `
                     <div class="editable-content">
                         <input type="text" data-key="title" value="${project.title}" placeholder="Project Title" class="text-4xl w-full bg-transparent border-b-2 border-transparent focus:border-gray-600 outline-none pb-2 transition-colors">
-                        <div data-key="pitch" class="wysiwyg-editor mt-4" contenteditable="true">${project.pitch}</div>
+                        <div id="quill-editor-pitch" class="mt-4"></div>
                     </div>
                     <div class="viewable-content">
                         <h1 class="text-4xl mb-4">${project.title}</h1>
@@ -1068,6 +1109,9 @@
                     </div>
                 `;
                 projectHeader.innerHTML = headerContent;
+                 initializeQuill('pitch', projectHeader.querySelector('#quill-editor-pitch'), project.pitch, (newContent) => {
+                    project.pitch = newContent;
+                });
             };
 
             const renderTableOfContents = () => {
@@ -1179,16 +1223,7 @@
                             <div class="mb-6">
                                 <label class="component-label block text-sm mb-1">${label}</label>
                                 <div class="editable-content">
-                                    <div class="editor-toolbar">
-                                        <button data-command="bold" class="bold" title="Bold (Ctrl+B)">B</button>
-                                        <button data-command="italic" class="italic" title="Italic (Ctrl+I)">I</button>
-                                        <button data-command="underline" class="underline" title="Underline (Ctrl+U)">U</button>
-                                        <button data-command="createLink" title="Create Internal Link (Ctrl+L)">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clip-rule="evenodd" /></svg>
-                                        </button>
-                                        <button data-command="ai" title="Generate with AI">AI</button>
-                                    </div>
-                                    <div data-key="${key}" class="wysiwyg-editor" contenteditable="true">${value}</div>
+                                     <div id="quill-editor-${key}-${component.id}"></div>
                                 </div>
                                 <div class="viewable-content book-prose mt-1">${processTextForDisplay(value)}</div>
                             </div>
@@ -1287,6 +1322,20 @@
                     ${fieldsHTML}
                 `;
                 mainContent.appendChild(card);
+
+                const textAreaKeys = Object.keys(component.data).filter(key =>
+                    ['summary', 'description', 'pitch', 'hook', 'stakes', 'resolution', 'motivation', 'appearance', 'secrets', 'goals', 'ideology', 'key_members', 'setup', 'properties', 'information', 'conclusion', 'plot_hooks', 'key_sights', 'sounds_and_smells', 'potential_encounters', 'history', 'mechanic', 'notes', 'content'].includes(key)
+                );
+
+                textAreaKeys.forEach(key => {
+                    const editorElement = card.querySelector(`#quill-editor-${key}-${component.id}`);
+                    initializeQuill(`${key}-${component.id}`, editorElement, component.data[key], (newContent) => {
+                        component.data[key] = newContent;
+                         if(key === 'name' || key === 'title') {
+                            renderTableOfContents();
+                        }
+                    });
+                });
             };
 
             const renderAllComponentsView = () => {
@@ -1563,23 +1612,6 @@
             });
             confirmCancelButton.addEventListener('click', closeConfirm);
 
-            mainContent.addEventListener('input', (e) => {
-                const target = e.target;
-                if (target.matches('[data-key]')) {
-                    const component = findComponent(activeComponentId);
-                    if (component) {
-                        const key = target.dataset.key;
-                        const value = target.isContentEditable ? target.innerHTML : target.value;
-                        component.data[key] = value;
-
-                        if(key === 'name' || key === 'title') {
-                            renderTableOfContents();
-                        }
-                    }
-                }
-            });
-            mainContent.addEventListener('focusout', (e) => { if (e.target.matches('[data-key]')) saveStateToHistory(); });
-
             projectHeader.addEventListener('input', (e) => {
                 const target = e.target;
                 if (target.matches('[data-key]')) {
@@ -1595,7 +1627,6 @@
             
             mainContent.addEventListener('click', (e) => {
                 const actionTarget = e.target.closest('[data-action]');
-                const commandTarget = e.target.closest('[data-command]');
                 const mapContainer = e.target.closest('.map-container');
 
                 if (isPinning && mapContainer) {
@@ -1636,34 +1667,7 @@
                     }
                 }
 
-                if (commandTarget) {
-                    const command = commandTarget.dataset.command;
-                    const editor = commandTarget.closest('.editable-content').querySelector('.wysiwyg-editor');
-                    
-                    if (command === 'ai') {
-                        openAiModal(editor);
-                        return;
-                    }
-                    
-                    editor.focus();
-                    
-                    if (command === 'createLink') {
-                        const selection = document.getSelection();
-                        if (!selection.rangeCount || selection.isCollapsed) return;
-                        
-                        const range = selection.getRangeAt(0);
-                        const span = document.createElement('span');
-                        span.className = 'internal-link';
-                        span.appendChild(range.extractContents());
-                        range.insertNode(span);
-                        
-                        editor.dispatchEvent(new Event('input', { bubbles: true }));
-
-                    } else {
-                        document.execCommand(command, false, null);
-                    }
-                }
-                else if (actionTarget) {
+                if (actionTarget) {
                     const action = actionTarget.dataset.action;
 
                     if (action === 'deleteComponent') {
@@ -1730,39 +1734,6 @@
                 }
             });
 
-            // --- RTF SHORTCUTS ---
-            mainContent.addEventListener('keydown', (e) => {
-                if (!e.ctrlKey || !e.target.isContentEditable) {
-                    return;
-                }
-
-                const key = e.key.toLowerCase();
-                if (['b', 'i', 'u', 'l'].includes(key)) {
-                    e.preventDefault();
-                    let command;
-                    switch (key) {
-                        case 'b': command = 'bold'; break;
-                        case 'i': command = 'italic'; break;
-                        case 'u': command = 'underline'; break;
-                        case 'l': command = 'createLink'; break;
-                    }
-
-                    if (command === 'createLink') {
-                        const selection = document.getSelection();
-                        if (!selection.rangeCount || selection.isCollapsed) return;
-                        
-                        const range = selection.getRangeAt(0);
-                        const span = document.createElement('span');
-                        span.className = 'internal-link';
-                        span.appendChild(range.extractContents());
-                        range.insertNode(span);
-
-                        e.target.dispatchEvent(new Event('input', { bubbles: true }));
-                    } else {
-                        document.execCommand(command, false, null);
-                    }
-                }
-            });
             
             quickRefList.addEventListener('click', (e) => {
                 if(e.target.matches('.quick-ref-link')) {
@@ -2033,9 +2004,8 @@
                         result.candidates[0].content && result.candidates[0].content.parts &&
                         result.candidates[0].content.parts.length > 0) {
                         const text = result.candidates[0].content.parts[0].text;
-                        activeEditorForAI.innerHTML = text;
-                        // Dispatch an input event to ensure the change is saved
-                        activeEditorForAI.dispatchEvent(new Event('input', { bubbles: true }));
+                        const range = activeEditorForAI.getSelection(true);
+                        activeEditorForAI.insertText(range.index, text);
                         closeAiModal();
                     } else {
                         console.error("AI response format was unexpected:", result);
