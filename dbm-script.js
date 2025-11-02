@@ -320,7 +320,7 @@ const categoryConfig = {
             meta_level: { type: 'select', label: 'Meta Level', options: [0, 1, 2, 3, 4, 5] },
             prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true},
             modifier: { type: 'multiselect', source: 'modifier', manageable: true },
-            cp: { type: 'readonlytext', label: 'TOTAL CP' },
+            cp: { type: 'number', label: 'CP Cost' },
             mechanic: { type: 'textarea' },
             note: { type: 'textarea' },
             multi: { type: 'boolean', label: 'Multi' },
@@ -599,6 +599,19 @@ const categoryConfig = {
                 type: 'multiselect',
                 label: 'Attribute Options',
                 options: ['Strength', 'Agility', 'Constitution', 'Intellect', 'Wisdom', 'Charisma', 'Might', 'Reflex', 'Fortitude', 'Logic', 'Will', 'Etiquette'],
+                hidden: true
+            },
+            skill_bonus_type: {
+                type: 'radio',
+                label: 'Skill Bonus Type',
+                options: ['adjust', 'grant'],
+                hidden: true
+            },
+            granted_skill_id: {
+                type: 'select',
+                source: 'skills',
+                label: 'Grant Skill',
+                manageable: true,
                 hidden: true
             },
             value: { type: 'number' },
@@ -2438,6 +2451,9 @@ async function openModal(collectionKey, docId = null, data = {}, isEditMode = fa
                     toggleField('bonus_feature_categories', scope === 'specific');
                 } else if (selectedAspect === 'skill') {
                     toggleField('bonus_skill_categories', scope === 'specific');
+                    const skillBonusType = formFieldsContainer.querySelector('input[name="skill_bonus_type"]:checked')?.value;
+                    toggleField('granted_skill_id', skillBonusType === 'grant');
+                    toggleField('bonus_scope', skillBonusType === 'adjust');
                 } else if (selectedAspect === 'attribute') {
                     toggleField('bonus_attribute_options', scope === 'specific');
                 }
@@ -2453,7 +2469,7 @@ async function openModal(collectionKey, docId = null, data = {}, isEditMode = fa
             aspectSubtypeContainer.style.display = 'none';
 
                 // Hide all bonus-related fields by default
-                const allBonusFields = ['bonus_scope', 'bonus_feature_categories', 'bonus_skill_categories', 'bonus_attribute_options'];
+                const allBonusFields = ['bonus_scope', 'bonus_feature_categories', 'bonus_skill_categories', 'bonus_attribute_options', 'skill_bonus_type', 'granted_skill_id'];
                 allBonusFields.forEach(field => toggleField(field, false));
 
             let options = [];
@@ -2477,9 +2493,9 @@ async function openModal(collectionKey, docId = null, data = {}, isEditMode = fa
                     toggleField('bonus_scope', true);
                     handleBonusScopeChange(); // Also call it here to set initial state
                 } else if (selectedAspect === 'skill') {
-                options = await skillOptions();
-                    toggleField('bonus_scope', true);
-                    handleBonusScopeChange(); // Also call it here to set initial state
+                    options = await skillOptions();
+                    toggleField('skill_bonus_type', true);
+                    handleBonusScopeChange();
                 } else if (selectedAspect === 'feature') {
                     toggleField('bonus_scope', true);
                     handleBonusScopeChange(); // Also call it here to set initial state
@@ -2502,7 +2518,10 @@ async function openModal(collectionKey, docId = null, data = {}, isEditMode = fa
             aspectSelect.addEventListener('change', updateSubtypeOptions);
 
             const bonusScopeRadios = formFieldsContainer.querySelectorAll('input[name="bonus_scope"]');
-                bonusScopeRadios.forEach(radio => radio.addEventListener('change', handleBonusScopeChange));
+            bonusScopeRadios.forEach(radio => radio.addEventListener('change', handleBonusScopeChange));
+
+            const skillBonusTypeRadios = formFieldsContainer.querySelectorAll('input[name="skill_bonus_type"]');
+            skillBonusTypeRadios.forEach(radio => radio.addEventListener('change', handleBonusScopeChange));
 
             await updateSubtypeOptions();
         }
@@ -2788,6 +2807,10 @@ async function saveCurrentForm() {
 
     if (sanitizedData.parent === '') {
         sanitizedData.parent = null;
+    }
+
+    if (collectionKey === 'features') {
+        sanitizedData.costManuallyAdjusted = true;
     }
 
     const collectionPath = `artifacts/${appId}/public/data/${collectionKey}`;
