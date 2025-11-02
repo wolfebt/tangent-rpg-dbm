@@ -245,6 +245,7 @@
             allSpecies: [],
             allFactions: [],
             allOrigins: [],
+            allSkills: [],
         };
         
         const SESSION_STORAGE_KEY = 'personaFolioData';
@@ -308,6 +309,7 @@
             appState.allSpecies = await getCollectionOptions('species');
             appState.allFactions = await getCollectionOptions('factions');
             appState.allOrigins = await getCollectionOptions('origins');
+            appState.allSkills = await getCollectionOptions('skills');
         }
 
 
@@ -340,6 +342,25 @@
                 }
             });
             return data;
+        }
+
+        async function checkAdjustedFeatureCosts() {
+            if (sessionStorage.getItem('economyBtnClicked') === 'true') {
+                return;
+            }
+            const data = getPersonaFolioFormData();
+            const selectedFeatures = data.features || [];
+            if (selectedFeatures.length === 0) return;
+
+            const hasAdjustedCost = selectedFeatures.some(featureName => {
+                const featureData = appState.allFeatures.find(f => f.name === featureName);
+                return featureData && featureData.costManuallyAdjusted;
+            });
+
+            const economyBtn = document.getElementById('economy-btn');
+            if (hasAdjustedCost && economyBtn) {
+                economyBtn.classList.add('economy-btn-flagged');
+            }
         }
 
         function populatePersonaFolioForm(data) {
@@ -381,6 +402,7 @@
                 headerSpan.textContent = name.toUpperCase();
             }
             updateAllTraits();
+            checkAdjustedFeatureCosts();
         }
 
         function saveLocal() {
@@ -598,7 +620,7 @@
         
         async function recalculateAllModifiers() {
             // Ensure the modifier cache is populated
-            if (!appState.allModifiersCache) {
+            if (!appState.allModifiersCache || !appState.allSkills) {
                 await cacheAllData();
             }
 
@@ -640,11 +662,18 @@
                             // **FIXED LOGIC**: Look up modifier details from the cache
                             const modDetails = appState.allModifiersCache.find(m => m.name === modName);
                             if (modDetails) {
-                                const key = modDetails.aspect_subtype;
-                                if (!modifiers[key]) {
-                                    modifiers[key] = 0;
+                                if (modDetails.skill_bonus_type === 'grant' && modDetails.granted_skill_id) {
+                                    const skillData = appState.allSkills.find(s => s.id === modDetails.granted_skill_id);
+                                    if (skillData) {
+                                        addSkillToSheet(skillData, 0);
+                                    }
+                                } else {
+                                    const key = modDetails.aspect_subtype;
+                                    if (!modifiers[key]) {
+                                        modifiers[key] = 0;
+                                    }
+                                    modifiers[key] += modDetails.value;
                                 }
-                                modifiers[key] += modDetails.value;
                             }
                         }
                     }
@@ -1021,6 +1050,13 @@
         }
         
         function showEconomyModal() {
+            const economyBtn = document.getElementById('economy-btn');
+            if (economyBtn) {
+                economyBtn.classList.remove('economy-btn-flagged');
+                // Use a session flag to prevent re-flagging during this session
+                sessionStorage.setItem('economyBtnClicked', 'true');
+            }
+
             const modal = document.getElementById('economy-modal');
             const detailsContainer = document.getElementById('economy-details');
             const skillPoolsContainer = document.getElementById('skill-point-pools-display');
@@ -1144,6 +1180,24 @@
 
             detailsContainer.innerHTML = countersHtml + detailsHtml;
             modal.classList.remove('hidden');
+
+            // Add pulsing border to adjusted features
+            const featureItems = detailsContainer.querySelectorAll('h4');
+            featureItems.forEach(header => {
+                if(header.textContent === 'Features' || header.textContent === 'Special Abilities' || header.textContent === 'Awakened') {
+                    const featureList = header.nextElementSibling;
+                    if(featureList) {
+                        const listItems = featureList.querySelectorAll('li');
+                        listItems.forEach(li => {
+                            const featureName = li.textContent.split('(')[0].trim();
+                            const featureData = appState.allFeatures.find(f => f.name === featureName);
+                            if (featureData && featureData.costManuallyAdjusted) {
+                                li.classList.add('pulsing-yellow-border');
+                            }
+                        });
+                    }
+                }
+            });
         }
 
         async function initializePersonaFolio(folioData = {}) {
@@ -1227,6 +1281,7 @@
             }
             recalculateAllModifiers();
             updateAbilityCounters();
+            checkAdjustedFeatureCosts();
         }
 
         function populateSkillGroup(container, groupName, groupData) {
@@ -1394,7 +1449,7 @@
             modal.classList.remove('hidden');
         }
 
-        async function addSkillToSheet(skillData, rank) {
+        function addSkillToSheet(skillData, rank) {
             if (skillData.is_specialization) {
                 const baseSkillName = skillData.base_skill;
                 const allSkillRows = document.querySelectorAll('.skill-row:not(.specialization)');
@@ -1441,8 +1496,26 @@
                     container = document.querySelector(`[data-group="${skillData.type}"]`);
                 }
                 
+                // Fallback to the "Other" container if no specific container is found
+                if (!container) {
+                    container = document.getElementById('other-skills-list');
+                    // Ensure the "Other" container has a header if it's the first time we're using it
+                    if (container && !container.querySelector('.skill-row.header')) {
+                        container.innerHTML = `
+                            <h4>Other</h4>
+                            <div class="skill-row header" style="font-weight: bold; border-bottom: 1px solid var(--panel-border); margin-bottom: 0.5rem; padding-bottom: 0.5rem;">
+                                <span>SKILL</span>
+                                <span style="text-align: center;">RANK</span>
+                                <span style="text-align: center;">ATT</span>
+                                <span style="text-align: center;">MOD</span>
+                                <span style="text-align: center;">TTL</span>
+                            </div>
+                        `;
+                    }
+                }
+
                 if (container) {
-                    const newRow = createSkillRow(skillData.name, skillId);
+                    const newRow = createSkillRow(skillData.name, skillId, skillData.type);
                     container.appendChild(newRow);
 
                     const rankInput = newRow.querySelector('.skill-rank');
@@ -2473,6 +2546,7 @@
                                         <div id="skills-col-1"></div>
                                         <div id="skills-col-2"></div>
                                     </div>
+                                    <div id="other-skills-list" class="skill-group"></div>
                                     <button type="button" id="add-skill-btn" class="action-btn" style="width: 100%; margin-top: 1rem;">Add Skill</button>
                                 </section>
                             </div>
