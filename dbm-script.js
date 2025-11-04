@@ -120,6 +120,14 @@ const categoryConfig = {
             bonus_skills: { type: 'json_list', source: 'skills', label: 'Bonus Skills' },
             bonus_skill_options: { type: 'multiselect', source: 'skills', label: 'Bonus Skill Options', manageable: true },
             bonus_skill_choices: { type: 'number', label: 'Bonus Skill Choices' },
+            bonus_skill_points: { type: 'number', label: 'Bonus ANY Skill Points' },
+            bonus_skill_points_physical: { type: 'number', label: 'Bonus Physical Skill Points' },
+            bonus_skill_points_mental: { type: 'number', label: 'Bonus Mental Skill Points' },
+            bonus_skill_points_social: { type: 'number', label: 'Bonus Social Skill Points' },
+            bonus_skill_points_combat: { type: 'number', label: 'Bonus Combat Skill Points' },
+            bonus_skill_points_meta: { type: 'number', label: 'Bonus Meta Skill Points' },
+            bonus_disciplines: { type: 'number', label: 'Bonus Disciplines' },
+            bonus_special_abilities: { type: 'number', label: 'Bonus Special Abilities' },
             bonus_features: { type: 'multiselect', source: 'features', label: 'Bonus Features', manageable: true },
             bonus_feature_options: { type: 'multiselect', source: 'features', label: 'Bonus Feature Options', manageable: true },
             bonus_feature_choices: { type: 'number', label: 'Bonus Feature Choices' },
@@ -194,6 +202,14 @@ const categoryConfig = {
             bonus_skills: { type: 'json_list', source: 'skills', label: 'Bonus Skills' },
             bonus_skill_options: { type: 'multiselect', source: 'skills', label: 'Bonus Skill Options', manageable: true },
             bonus_skill_choices: { type: 'number', label: 'Bonus Skill Choices' },
+            bonus_skill_points: { type: 'number', label: 'Bonus ANY Skill Points' },
+            bonus_skill_points_physical: { type: 'number', label: 'Bonus Physical Skill Points' },
+            bonus_skill_points_mental: { type: 'number', label: 'Bonus Mental Skill Points' },
+            bonus_skill_points_social: { type: 'number', label: 'Bonus Social Skill Points' },
+            bonus_skill_points_combat: { type: 'number', label: 'Bonus Combat Skill Points' },
+            bonus_skill_points_meta: { type: 'number', label: 'Bonus Meta Skill Points' },
+            bonus_disciplines: { type: 'number', label: 'Bonus Disciplines' },
+            bonus_special_abilities: { type: 'number', label: 'Bonus Special Abilities' },
             bonus_features: { type: 'multiselect', source: 'features', label: 'Bonus Features', manageable: true },
             bonus_feature_options: { type: 'multiselect', source: 'features', label: 'Bonus Feature Options', manageable: true },
             bonus_feature_choices: { type: 'number', label: 'Bonus Feature Choices' },
@@ -226,6 +242,14 @@ const categoryConfig = {
             bonus_skills: { type: 'json_list', source: 'skills', label: 'Bonus Skills' },
             bonus_skill_options: { type: 'multiselect', source: 'skills', label: 'Bonus Skill Options', manageable: true },
             bonus_skill_choices: { type: 'number', label: 'Bonus Skill Choices' },
+            bonus_skill_points: { type: 'number', label: 'Bonus ANY Skill Points' },
+            bonus_skill_points_physical: { type: 'number', label: 'Bonus Physical Skill Points' },
+            bonus_skill_points_mental: { type: 'number', label: 'Bonus Mental Skill Points' },
+            bonus_skill_points_social: { type: 'number', label: 'Bonus Social Skill Points' },
+            bonus_skill_points_combat: { type: 'number', label: 'Bonus Combat Skill Points' },
+            bonus_skill_points_meta: { type: 'number', label: 'Bonus Meta Skill Points' },
+            bonus_disciplines: { type: 'number', label: 'Bonus Disciplines' },
+            bonus_special_abilities: { type: 'number', label: 'Bonus Special Abilities' },
             bonus_features: { type: 'multiselect', source: 'features', label: 'Bonus Features', manageable: true },
             bonus_feature_options: { type: 'multiselect', source: 'features', label: 'Bonus Feature Options', manageable: true },
             bonus_feature_choices: { type: 'number', label: 'Bonus Feature Choices' },
@@ -272,6 +296,14 @@ const categoryConfig = {
             bonus_skills: { type: 'json_list', source: 'skills', label: 'Bonus Skills' },
             bonus_skill_options: { type: 'multiselect', source: 'skills', label: 'Bonus Skill Options', manageable: true },
             bonus_skill_choices: { type: 'number', label: 'Bonus Skill Choices' },
+            bonus_skill_points: { type: 'number', label: 'Bonus ANY Skill Points' },
+            bonus_skill_points_physical: { type: 'number', label: 'Bonus Physical Skill Points' },
+            bonus_skill_points_mental: { type: 'number', label: 'Bonus Mental Skill Points' },
+            bonus_skill_points_social: { type: 'number', label: 'Bonus Social Skill Points' },
+            bonus_skill_points_combat: { type: 'number', label: 'Bonus Combat Skill Points' },
+            bonus_skill_points_meta: { type: 'number', label: 'Bonus Meta Skill Points' },
+            bonus_disciplines: { type: 'number', label: 'Bonus Disciplines' },
+            bonus_special_abilities: { type: 'number', label: 'Bonus Special Abilities' },
             bonus_features: { type: 'multiselect', source: 'features', label: 'Bonus Features', manageable: true },
             bonus_feature_options: { type: 'multiselect', source: 'features', label: 'Bonus Feature Options', manageable: true },
             bonus_feature_choices: { type: 'number', label: 'Bonus Feature Choices' },
@@ -298,7 +330,7 @@ const categoryConfig = {
         fields: {
             name: { type:'text', required: true},
             type: { type: 'select', options: ['mental', 'physical', 'social', 'combat', 'meta'], required: true },
-            subtype: { type: 'select' },
+            subtype: { type: 'select', options: ['knowledge', 'vocation', 'manipulation', 'expression', 'archaic', 'modern', 'advanced'] },
             is_specialization: { type: 'boolean', label: 'SPECIALIZATION' },
             base_skill: { type: 'select', source: 'skills', label: 'BASE SKILL' },
             description: { type:'textarea', aiEnabled: true},
@@ -321,6 +353,7 @@ const categoryConfig = {
             prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true},
             modifier: { type: 'multiselect', source: 'modifier', manageable: true },
             cp: { type: 'number', label: 'CP Cost' },
+            costManuallyAdjusted: { type: 'boolean', label: 'Cost Manually Adjusted' },
             mechanic: { type: 'textarea' },
             note: { type: 'textarea' },
             multi: { type: 'boolean', label: 'Multi' },
@@ -2527,6 +2560,31 @@ async function openModal(collectionKey, docId = null, data = {}, isEditMode = fa
         }
     }
 
+    if (collectionKey === 'skills') {
+        const typeSelect = formFieldsContainer.querySelector('#type');
+        const subtypeContainer = formFieldsContainer.querySelector('#subtype')?.parentElement;
+        const isSpecializationContainer = formFieldsContainer.querySelector('input[name="is_specialization"]')?.closest('.form-group');
+        const baseSkillContainer = formFieldsContainer.querySelector('#base_skill')?.parentElement;
+
+        const updateSkillFields = () => {
+            if (!typeSelect || !subtypeContainer || !isSpecializationContainer || !baseSkillContainer) return;
+
+            const selectedType = typeSelect.value;
+            const isChecked = formFieldsContainer.querySelector('input[name="is_specialization"]:checked')?.value === 'true';
+
+            subtypeContainer.style.display = ['mental', 'social', 'combat'].includes(selectedType) ? '' : 'none';
+            baseSkillContainer.style.display = isChecked ? '' : 'none';
+        };
+
+        if (typeSelect && finalEditMode) {
+            typeSelect.addEventListener('change', updateSkillFields);
+            formFieldsContainer.querySelectorAll('input[name="is_specialization"]').forEach(radio => {
+                radio.addEventListener('change', updateSkillFields);
+            });
+        }
+        updateSkillFields();
+    }
+
     if (collectionKey === 'area') {
         const shapeSelect = formFieldsContainer.querySelector('#shape');
         const dimensionsFieldContainer = formFieldsContainer.querySelector('#dimensions')?.parentElement;
@@ -2807,10 +2865,6 @@ async function saveCurrentForm() {
 
     if (sanitizedData.parent === '') {
         sanitizedData.parent = null;
-    }
-
-    if (collectionKey === 'features') {
-        sanitizedData.costManuallyAdjusted = true;
     }
 
     const collectionPath = `artifacts/${appId}/public/data/${collectionKey}`;
