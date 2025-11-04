@@ -346,7 +346,7 @@ const categoryConfig = {
         directory_columns: ['name', 'type', 'description', 'cp'],
         fields: {
             name: { type:'text', required: true},
-            type: { type: 'select', options: ['ability', 'combat', 'meta', 'general', 'karma', 'skill', 'exotic'] },
+            type: { type: 'select', options: ['ability', 'combat', 'meta', 'general', 'karma', 'skill', 'exotic', 'Special Ability'] },
             description: { type:'textarea', aiEnabled: true},
             tech_level: { type: 'select', label: 'Tech Level', options: [0, 1, 2, 3, 4, 5] },
             meta_level: { type: 'select', label: 'Meta Level', options: [0, 1, 2, 3, 4, 5] },
@@ -358,6 +358,20 @@ const categoryConfig = {
             note: { type: 'textarea' },
             multi: { type: 'boolean', label: 'Multi' },
             staged: { type: 'boolean', label: 'Staged' }
+        }
+    },
+    disciplines: {
+        label: 'DISCIPLINES',
+        hideFromMenu: true,
+        directory_columns: ['name', 'description'],
+        fields: {
+            name: { type: 'text', required: true },
+            description: { type: 'textarea' },
+            prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+            discipline_skills: { type: 'multiselect', source: 'skills', label: 'Discipline Skills', manageable: true },
+            mechanic: { type: 'textarea' },
+            note: { type: 'textarea' }
         }
     },
     disadvantages: {
@@ -383,7 +397,7 @@ const categoryConfig = {
         fields: {
             name: { type: 'text', required: true },
             description: { type: 'textarea', aiEnabled: true },
-            discipline: { type: 'select', source: 'discipline', manageable: true },
+            discipline: { type: 'select', source: 'disciplines', manageable: true },
             meta_skill: { type: 'select', source: 'skills_meta', label: 'Meta Skill' },
             area: { type: 'multiselect', source: 'area', manageable: true },
             effect: { type: 'multiselect', source: 'effect', manageable: true },
@@ -398,21 +412,6 @@ const categoryConfig = {
             tech_level: { type: 'select', label: 'Tech Level', options: [0, 1, 2, 3, 4, 5] },
             meta_level: { type: 'select', label: 'Meta Level', options: [0, 1, 2, 3, 4, 5] },
             note: { type: 'textarea' }
-        },
-        subcategories: {
-            discipline: {
-                label: 'DISCIPLINES',
-                directory_columns: ['name', 'description'],
-                fields: {
-                    name: { type: 'text', required: true },
-                    description: { type: 'textarea' },
-                    prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
-                    modifier: { type: 'multiselect', source: 'modifier', manageable: true },
-                    discipline_skills: { type: 'multiselect', source: 'skills', label: 'Discipline Skills', manageable: true },
-                    mechanic: { type: 'textarea' },
-                    note: { type: 'textarea' }
-                }
-            }
         }
     },
     special_abilities: {
@@ -422,7 +421,7 @@ const categoryConfig = {
         fields: {
             name: { type: 'text', required: true },
             description: { type: 'textarea', aiEnabled: true },
-            discipline: { type: 'select', source: 'discipline', manageable: true },
+            discipline: { type: 'select', source: 'disciplines', manageable: true },
             meta_skill: { type: 'select', source: 'skills_meta', label: 'Meta Skill' },
             area: { type: 'multiselect', source: 'area', manageable: true },
             effect: { type: 'multiselect', source: 'effect', manageable: true },
@@ -437,21 +436,6 @@ const categoryConfig = {
             tech_level: { type: 'select', label: 'Tech Level', options: [0, 1, 2, 3, 4, 5] },
             meta_level: { type: 'select', label: 'Meta Level', options: [0, 1, 2, 3, 4, 5] },
             note: { type: 'textarea' }
-        },
-        subcategories: {
-            discipline: {
-                label: 'DISCIPLINES',
-                directory_columns: ['name', 'description'],
-                fields: {
-                    name: { type: 'text', required: true },
-                    description: { type: 'textarea' },
-                    prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
-                    modifier: { type: 'multiselect', source: 'modifier', manageable: true },
-                    discipline_skills: { type: 'multiselect', source: 'skills', label: 'Discipline Skills', manageable: true },
-                    mechanic: { type: 'textarea' },
-                    note: { type: 'textarea' }
-                }
-            }
         }
     },
     augmentations: {
@@ -494,6 +478,14 @@ const categoryConfig = {
                     mechanic: { type: 'textarea' },
                     note: { type: 'textarea' }
                 }
+            },
+            body_location: {
+                label: 'BODY LOCATIONS',
+                directory_columns: ['name', 'description'],
+                fields: {
+                    name: { type: 'text', required: true },
+                    description: { type: 'textarea' }
+                }
             }
         }
     },
@@ -501,7 +493,7 @@ const categoryConfig = {
         label: 'PERSONAL PROPERTY',
         isParent: true,
         viewType: 'landing',
-        subItems: ['gear', 'weaponry', 'armoring', 'mecha'],
+        subItems: ['gear', 'weaponry', 'armoring', 'mecha', 'other'],
     },
     user_guide: {
         label: 'User Guide',
@@ -691,12 +683,12 @@ const categoryConfig = {
             note: { type: 'textarea' }
         },
         subcategories: {
-            availability: { label: 'AVAILABILITY' },
-            material: { label: 'MATERIALS' },
-            resistance: { label: 'RESISTANCES' },
-            creator: { label: 'CREATORS' },
-            design: { label: 'DESIGNS' },
-            classification: { label: 'CLASSIFICATIONS' },
+            availability: { label: 'AVAILABILITY', directory_columns: ['name', 'description'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea' } } },
+            material: { label: 'MATERIALS', directory_columns: ['name', 'description'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea' } } },
+            resistance: { label: 'RESISTANCES', directory_columns: ['name', 'description'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea' } } },
+            creator: { label: 'CREATORS', directory_columns: ['name', 'description'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea' } } },
+            design: { label: 'DESIGNS', directory_columns: ['name', 'description'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea' } } },
+            classification: { label: 'CLASSIFICATIONS', directory_columns: ['name', 'description'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea' } } },
         }
     },
     weaponry: {
@@ -743,16 +735,16 @@ const categoryConfig = {
             note: { type: 'textarea' }
         },
         subcategories: {
-            availability: { label: 'AVAILABILITY' },
-            special: { label: 'SPECIAL' },
-                mode: { label: 'MODES' },
-            critical_effect: { label: 'CRITICAL EFFECTS' },
-            creator: { label: 'CREATORS' },
-            design: { label: 'DESIGNS' },
-            classification: { label: 'CLASSIFICATIONS' },
+            availability: { label: 'AVAILABILITY', directory_columns: ['name', 'description'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea' } } },
+            special: { label: 'SPECIAL', directory_columns: ['name', 'description'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea' } } },
+            mode: { label: 'MODES', directory_columns: ['name', 'description'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea' } } },
+            critical_effect: { label: 'CRITICAL EFFECTS', directory_columns: ['name', 'description'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea' } } },
+            creator: { label: 'CREATORS', directory_columns: ['name', 'description'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea' } } },
+            design: { label: 'DESIGNS', directory_columns: ['name', 'description'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea' } } },
+            classification: { label: 'CLASSIFICATIONS', directory_columns: ['name', 'description'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea' } } },
         }
     },
-        gear: {
+    gear: {
         label: 'Gear',
         viewType: 'table',
         parent: 'personal_property',
@@ -772,8 +764,8 @@ const categoryConfig = {
             note: { type: 'textarea' }
         },
         subcategories: {
-            gear_category: { label: 'CATEGORIES' },
-            availability: { label: 'AVAILABILITY' },
+            gear_category: { label: 'CATEGORIES', directory_columns: ['name', 'description'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea' } } },
+            availability: { label: 'AVAILABILITY', directory_columns: ['name', 'description'], fields: { name: { type: 'text', required: true }, description: { type: 'textarea' } } },
         }
     },
     mecha: {
@@ -814,6 +806,25 @@ const categoryConfig = {
             mechanic: { type: 'textarea' },
             note: { type: 'textarea' }
         }
+    },
+    other: {
+        label: 'Other',
+        viewType: 'table',
+        parent: 'personal_property',
+        directory_columns: ['name', 'description', 'cost', 'weight'],
+        fields: {
+            name: { type: 'text', required: true, label: 'Item Name' },
+            description: { type: 'textarea' },
+            cost: { type: 'number' },
+            weight: { type: 'number' },
+            tl: { type: 'number', label: 'TL' },
+            ml: { type: 'number', label: 'ML' },
+            availability: { type: 'select', source: 'availability', manageable: true },
+            prerequisite: { type: 'multiselect', source: 'prerequisite', manageable: true },
+            modifier: { type: 'multiselect', source: 'modifier', manageable: true },
+            mechanic: { type: 'textarea' },
+            note: { type: 'textarea' }
+        },
     }
 };
 

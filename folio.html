@@ -619,11 +619,15 @@
         }
         
         async function recalculateAllModifiers() {
+            // Clear any skills that were previously granted by modifiers.
+            document.querySelectorAll('[data-granted-by="modifier"]').forEach(row => row.remove());
+
             // Ensure the modifier cache is populated
             if (!appState.allModifiersCache || !appState.allSkills) {
                 await cacheAllData();
             }
 
+            // Reset all modifier values to 0 before recalculating.
             document.querySelectorAll('.attribute-mod, .skill-mod, #initiative-mod').forEach(input => {
                 input.value = 0;
             });
@@ -635,10 +639,14 @@
                 { type: 'multi', collection: 'features', elementId: 'features-data' },
                 { type: 'multi', collection: 'disadvantages', elementId: 'disadvantages-data' },
                 { type: 'multi', collection: 'augmentations', elementId: 'augmentations-data' },
+                 // Add species, origins, factions as they can also grant modifiers implicitly or explicitly
+                { type: 'single', collection: 'species', elementId: 'char-species' },
+                { type: 'single', collection: 'origins', elementId: 'char-origin' },
+                { type: 'single', collection: 'factions', elementId: 'char-faction' },
             ];
 
             for (const source of modifierSources) {
-                const dbItems = await getCollectionOptions(source.collection);
+                const dbItems = appState[`all${source.collection.charAt(0).toUpperCase() + source.collection.slice(1)}`] || await getCollectionOptions(source.collection);
                 let selectedNames = [];
 
                 if (source.type === 'single') {
@@ -659,20 +667,21 @@
                     const itemData = dbItems.find(item => item.name === name);
                     if (itemData && Array.isArray(itemData.modifier)) {
                         for (const modName of itemData.modifier) {
-                            // **FIXED LOGIC**: Look up modifier details from the cache
                             const modDetails = appState.allModifiersCache.find(m => m.name === modName);
                             if (modDetails) {
                                 if (modDetails.skill_bonus_type === 'grant' && modDetails.granted_skill_id) {
                                     const skillData = appState.allSkills.find(s => s.id === modDetails.granted_skill_id);
                                     if (skillData) {
-                                        addSkillToSheet(skillData, 0);
+                                        addSkillToSheet(skillData, 0, true); // Mark as granted
                                     }
                                 } else {
                                     const key = modDetails.aspect_subtype;
-                                    if (!modifiers[key]) {
-                                        modifiers[key] = 0;
+                                    if (key) { // Ensure key exists
+                                        if (!modifiers[key]) {
+                                            modifiers[key] = 0;
+                                        }
+                                        modifiers[key] += modDetails.value;
                                     }
-                                    modifiers[key] += modDetails.value;
                                 }
                             }
                         }
@@ -682,19 +691,23 @@
 
             for (const key in modifiers) {
                 const value = modifiers[key];
+                const lowerKey = key.toLowerCase().replace(/\s+/g, '-');
 
-                const statModInput = document.getElementById(`${key}-mod`);
-                if(statModInput) {
+                // Try to find a direct match for a stat mod (e.g., initiative-mod)
+                const statModInput = document.getElementById(`${lowerKey}-mod`);
+                if (statModInput) {
                     statModInput.value = (parseInt(statModInput.value) || 0) + value;
                     continue;
                 }
 
-                const attrModInput = document.getElementById(`attr-${key}-mod`);
+                // Try to find a match for an attribute mod (e.g., attr-strength-mod)
+                const attrModInput = document.getElementById(`attr-${lowerKey}-mod`);
                 if (attrModInput) {
                     attrModInput.value = (parseInt(attrModInput.value) || 0) + value;
                     continue;
                 }
 
+                // Finally, iterate through skills to find a match
                 document.querySelectorAll('.skill-row:not(.header)').forEach(row => {
                     const label = row.querySelector('label');
                     if (label && label.textContent.toLowerCase() === key.toLowerCase()) {
@@ -706,6 +719,7 @@
                 });
             }
 
+            // Recalculate all totals now that modifiers are applied.
             Object.keys(primaryToSubAttributeMap).forEach(calculateAttributeTotal);
             document.querySelectorAll('.skill-row:not(.header)').forEach(calculateSkillTotal);
             calculateInitiative();
@@ -1903,7 +1917,7 @@
                     dataInput.value = JSON.stringify(currentValues);
 
                     if (targetId === 'awakened') {
-                        const allDisciplines = await getCollectionOptions('discipline');
+                        const allDisciplines = await getCollectionOptions('disciplines');
                         const disciplineData = allDisciplines.find(d => d.name === value);
 
                         if (disciplineData) {
@@ -2064,7 +2078,7 @@
             modal.classList.remove('hidden');
 
             const allFeatures = await getCollectionOptions('features');
-            const specialAbilities = allFeatures.filter(f => f.category === 'Special Ability');
+            const specialAbilities = allFeatures.filter(f => f.type === 'Special Ability');
 
             const specialAbilitiesDataInput = document.getElementById('special_abilities-data');
             let currentAbilities = [];
