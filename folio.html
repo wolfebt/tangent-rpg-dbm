@@ -1204,29 +1204,6 @@
             const sheet = document.getElementById('persona-folio-form');
             if(!sheet) return;
             
-            const skillData = {
-                "Physical": { "skills": ["Acrobatics", "Athletics", "Piloting", "Stealth"] },
-                "Mental": {
-                    "skills": ["Alertness", "Academics"],
-                    "subcategories": {
-                        "Knowledge": ["Appraisal", "Computers", "Culture", "History", "Investigation", "Language", "Medicine", "Nature", "Navigation", "Nobility", "Physics", "Religion", "Science", "Survival", "Tactics", "Technology"],
-                        "Vocation": ["Administrator", "Alchemist", "Ambassador", "Architect", "Archivist", "Armorer", "Artist", "Artificer", "Broker", "Celebrity", "Constable", "Courtesan", "Culinarian", "Demolitionist", "Electrician", "Engineer", "Groundskeeper", "Handler", "Laborer", "Mechanic", "Researcher", "Salvager", "Soldier", "Tailor", "Transporter", "Weaponsmith"]
-                    }
-                },
-                "Social": {
-                    "subcategories": {
-                        "Manipulation": ["Insight", "Bluff", "Diplomacy", "Intimidate", "Streetwise"],
-                        "Expression": ["Acting", "Comedy", "Dancing", "Disguise", "Keyboard", "Legerdemain", "Oratory", "Percussion", "Singing", "String", "Style", "Wind"]
-                    }
-                },
-                "Combat": {
-                    "subcategories": {
-                        "Archaic": ["Defense", "Melee", "Ranged", "Unarmed"],
-                        "Modern": ["Ballistic", "Heavy Weapons"],
-                        "Advanced": ["Energy", "Heavy Energy"]
-                    }
-                }
-            };
             const skillsCol1 = document.getElementById('skills-col-1');
             const skillsCol2 = document.getElementById('skills-col-2');
             
@@ -1243,15 +1220,36 @@
             if(skillsCol1) skillsCol1.innerHTML = headerHtml;
             if(skillsCol2) skillsCol2.innerHTML = headerHtml;
 
+            const allSkills = appState.allSkills;
+            if (!allSkills) {
+                console.error("Skills data not found in appState.");
+                return;
+            }
+
+            const skillData = {};
+            allSkills.forEach(skill => {
+                if (!skillData[skill.type]) {
+                    skillData[skill.type] = { skills: [], subcategories: {} };
+                }
+                if (skill.subtype) {
+                    if (!skillData[skill.type].subcategories[skill.subtype]) {
+                        skillData[skill.type].subcategories[skill.subtype] = [];
+                    }
+                    skillData[skill.type].subcategories[skill.subtype].push(skill.name);
+                } else {
+                    skillData[skill.type].skills.push(skill.name);
+                }
+            });
+
             ['Physical', 'Mental'].forEach(groupName => {
-                const groupData = skillData[groupName];
+                const groupData = skillData[groupName.toLowerCase()];
                 if (groupData) {
                     populateSkillGroup(skillsCol1, groupName, groupData);
                 }
             });
 
             ['Social', 'Combat'].forEach(groupName => {
-                const groupData = skillData[groupName];
+                const groupData = skillData[groupName.toLowerCase()];
                 if (groupData) {
                     populateSkillGroup(skillsCol2, groupName, groupData);
                 }
@@ -1292,7 +1290,7 @@
 
             const header = document.createElement('h4');
             header.className = 'skill-group-header';
-            header.textContent = groupName.trim();
+            header.textContent = groupName.trim().toUpperCase();
             groupDiv.appendChild(header);
 
             if (groupData.skills) {
@@ -1303,7 +1301,7 @@
                     const skillId = `${groupName}-${skillName}`.toLowerCase().replace(/\s+/g, '-');
                     const skillRow = createSkillRow(skillName, skillId, groupName.toLowerCase());
                     skillRowsContainer.appendChild(skillRow);
-                    if (skillName === 'Alertness') {
+                    if (skillName.toLowerCase() === 'alertness') {
                         const baseSelect = skillRow.querySelector('.skill-base-select');
                         if (baseSelect) {
                             baseSelect.outerHTML = `<input type="number" id="skill-${skillId}-base" name="skill-${skillId}-base" class="skill-base-input global-form-input" readonly placeholder="0">`;
