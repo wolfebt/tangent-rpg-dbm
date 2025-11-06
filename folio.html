@@ -194,6 +194,7 @@
         import { 
             getFirestore, collection, getDocs, doc, setDoc, addDoc, getDoc, query, where 
         } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+        import { categoryConfig } from './category-config.js';
 
         // --- Firebase Configuration ---
         const firebaseConfig = typeof __firebase_config !== 'undefined' 
@@ -2737,10 +2738,10 @@
 
                 if (!appState.appInitialized) {
                     // This block runs ONLY ONCE per page load.
-                    appState.appInitialized = true;
-                    await cacheAllData();
+                    await cacheAll_Data();
                     renderPersonaFolioView(document.getElementById('folio-container'), {});
                     setupGlobalEventListeners();
+                    appState.appInitialized = true;
                 }
                 
                 updateUIAfterAuthChange();
