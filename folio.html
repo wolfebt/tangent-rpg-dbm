@@ -217,21 +217,6 @@
         const appId = typeof __app_id !== 'undefined' ? __app_id : firebaseConfig.projectId;
 
 
-        // --- RPG System Configuration (from Database Manager) ---
-        const categoryConfig = {
-            species: { label: 'SPECIES' },
-            factions: { label: 'FACTIONS' },
-            origins: { label: 'ORIGINS' },
-            occupations: { label: 'OCCUPATIONS' },
-            disadvantages: { label: 'DISADVANTAGES' },
-            features: { label: 'FEATURES' },
-            skills: { label: 'SKILLS' },
-            augmentations: { label: 'AUGMENTATIONS' },
-            invocations: { label: 'INVOCATIONS' },
-            equipment: { label: 'EQUIPMENT' },
-            associates: { label: 'ASSOCIATES' },
-        };
-
         // --- Application State ---
         const appState = {
             userId: null,
@@ -2559,6 +2544,7 @@
                                         <div id="skills-col-1"></div>
                                         <div id="skills-col-2"></div>
                                     </div>
+                                    <div id="meta-skills-list" class="skill-group"></div>
                                     <div id="other-skills-list" class="skill-group"></div>
                                     <button type="button" id="add-skill-btn" class="action-btn" style="width: 100%; margin-top: 1rem;">Add Skill</button>
                                 </section>
@@ -2696,8 +2682,6 @@
         async function handleLogout() {
             try {
                 await signOut(auth);
-                // *** FIX: Do not modify appInitialized state here.
-                // onAuthStateChanged will handle the UI update.
                 clearSession();
             } catch (error) {
                 console.error("Error signing out:", error);
@@ -2738,7 +2722,7 @@
 
                 if (!appState.appInitialized) {
                     // This block runs ONLY ONCE per page load.
-                    await cacheAll_Data();
+                    await cacheAllData();
                     renderPersonaFolioView(document.getElementById('folio-container'), {});
                     setupGlobalEventListeners();
                     appState.appInitialized = true;
