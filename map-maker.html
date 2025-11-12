@@ -324,6 +324,21 @@
         .hidden {
             display: none !important;
         }
+
+        /* Asset Manager Modal Styles */
+        .asset-type-tab {
+            width: 100%;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            text-align: left;
+            transition: background-color 0.2s;
+        }
+        .asset-type-tab:hover {
+            background-color: #374151;
+        }
+        .asset-type-tab.active {
+            background-color: #3b82f6;
+        }
     </style>
 </head>
 <body>
@@ -751,6 +766,7 @@
                 renderLayers();
                 updateUndoRedoButtons();
                 updateMapKey();
+                drawAll();
             }
 
             function generateBaseMapGrid(width, height) {
@@ -837,8 +853,10 @@
 
                         if (hexData.objectKey) {
                             const [mainCat, subCat, objKey] = hexData.objectKey.split('.');
-                            const object = objectCategories[mainCat][subCat][objKey];
-                            drawObject(targetCtx, x, y, object.symbol, hexData.size);
+                            if (objectCategories[mainCat] && objectCategories[mainCat][subCat] && objectCategories[mainCat][subCat][objKey]) {
+                                const object = objectCategories[mainCat][subCat][objKey];
+                                drawObject(targetCtx, x, y, object, hexData.size);
+                            }
                         }
                         if (hexData.text) {
                             drawText(targetCtx, x, y, hexData.text, hexData.textSize, hexData.textColor);
@@ -885,11 +903,19 @@
                 targetCtx.stroke();
             }
 
-            function drawObject(targetCtx, x, y, symbol, size = 1) {
-                targetCtx.font = `${baseHexSize * 1.2 * size}px Arial`;
-                targetCtx.textAlign = 'center';
-                targetCtx.textBaseline = 'middle';
-                targetCtx.fillText(symbol, x, y);
+            function drawObject(targetCtx, x, y, object, size = 1) {
+                if (object.isImage) {
+                    const img = new Image();
+                    img.src = object.src;
+                    const imgSize = baseHexSize * 1.5 * size;
+                    // Draw image centered on the hex
+                    targetCtx.drawImage(img, x - imgSize / 2, y - imgSize / 2, imgSize, imgSize);
+                } else {
+                    targetCtx.font = `${baseHexSize * 1.2 * size}px Arial`;
+                    targetCtx.textAlign = 'center';
+                    targetCtx.textBaseline = 'middle';
+                    targetCtx.fillText(object.symbol, x, y);
+                }
             }
 
             function drawText(targetCtx, x, y, text, size, color) {
@@ -1649,8 +1675,16 @@
                                 selectedObjectKey = fullKey;
                                 updateActiveSwatches();
                             });
+
+                            let swatchHTML;
+                            if (item.isImage) {
+                                swatchHTML = `<div class="object-swatch p-0.5"><img src="${item.src}" class="w-full h-full object-cover rounded-md"/></div>`;
+                            } else {
+                                swatchHTML = `<div class="object-swatch">${item.symbol}</div>`;
+                            }
+
                             itemContainer.innerHTML = `
-                                <div class="object-swatch">${item.symbol}</div>
+                                ${swatchHTML}
                                 <div class="item-label">${item.name}</div>
                             `;
                             objectSelector.appendChild(itemContainer);
@@ -1739,7 +1773,7 @@
                 showContentModal("User's Guide", guideHTML);
             }
 
-            function showContentModal(title, content) {
+            function showContentModal(title, content, maxWidth = "max-w-2xl", height = "auto") {
                 const existingModal = document.querySelector('.modal-backdrop');
                 if(existingModal) existingModal.remove();
 
@@ -1747,12 +1781,12 @@
                 modalBackdrop.className = 'modal-backdrop fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4';
 
                 modalBackdrop.innerHTML = `
-                    <div class="bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl text-white flex flex-col" style="max-height: 90vh;">
-                        <div class="flex justify-between items-center p-4 border-b border-gray-700">
+                    <div class="bg-gray-800 rounded-lg shadow-xl w-full ${maxWidth} text-white flex flex-col" style="height: ${height};">
+                        <div class="flex justify-between items-center p-4 border-b border-gray-700 flex-shrink-0">
                             <h3 class="text-xl font-bold">${title}</h3>
                             <button id="modalClose" class="p-2 rounded-full hover:bg-gray-700">&times;</button>
                         </div>
-                        <div class="p-6 overflow-y-auto">
+                        <div class="p-6 overflow-y-auto flex-grow">
                             ${content}
                         </div>
                     </div>
@@ -1992,7 +2026,125 @@
             }
 
             function showCreateAssetModal() {
-                showModal("Asset creation functionality is coming soon!");
+                const assetManagerHTML = `
+                    <div class="flex h-full">
+                        <!-- Left Panel: Asset Type Selection -->
+                        <div class="w-1/4 border-r border-gray-700 p-2 space-y-2">
+                            <h4 class="text-lg font-bold mb-2 p-2">Asset Types</h4>
+                            <button class="asset-type-tab active" data-tab="terrain">Custom Terrain</button>
+                            <button class="asset-type-tab" data-tab="object">Custom Object</button>
+                            <button class="asset-type-tab" data-tab="image">Image Asset</button>
+                        </div>
+
+                        <!-- Right Panel: Content for selected asset type -->
+                        <div class="w-3/4 p-4">
+                            <div id="asset-tab-content">
+                                <!-- Content will be dynamically loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                `;
+                showContentModal("Asset Manager", assetManagerHTML, "max-w-4xl", "70vh");
+
+                const tabContainer = document.querySelector('.modal-backdrop');
+                const tabs = tabContainer.querySelectorAll('.asset-type-tab');
+                const contentArea = tabContainer.querySelector('#asset-tab-content');
+
+                function switchTab(tabName) {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tabContainer.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+
+                    if (tabName === 'terrain') {
+                        contentArea.innerHTML = `<div>Terrain content goes here</div>`;
+                    } else if (tabName === 'object') {
+                        contentArea.innerHTML = `<div>Object content goes here</div>`;
+                    } else if (tabName === 'image') {
+                        contentArea.innerHTML = `
+                            <h5 class="text-xl font-bold mb-4">Create Image Asset</h5>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block mb-1 font-semibold">Asset Name</label>
+                                    <input type="text" id="imageAssetName" class="w-full" placeholder="e.g., Castle Keep">
+                                </div>
+                                <div>
+                                    <label class="block mb-1 font-semibold">Upload Image</label>
+                                    <input type="file" id="imageAssetUpload" accept="image/*" class="w-full">
+                                </div>
+                                <div>
+                                    <label class="block mb-1 font-semibold">Preview</label>
+                                    <div id="imageAssetPreview" class="w-24 h-24 bg-gray-700 rounded flex items-center justify-center text-gray-400">
+                                        <img src="" class="max-w-full max-h-full hidden"/>
+                                        <span>None</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block mb-1 font-semibold">Description</label>
+                                    <textarea id="imageAssetDescription" class="w-full" placeholder="e.g., A mighty fortress overlooking the valley."></textarea>
+                                </div>
+                                <div>
+                                    <label class="block mb-1 font-semibold">Stats</label>
+                                    <textarea id="imageAssetStats" class="w-full" placeholder="e.g., HP: 1000, AC: 20"></textarea>
+                                </div>
+                                <button id="saveImageAssetBtn" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 transition">Save Asset</button>
+                            </div>
+                        `;
+
+                        const uploadInput = tabContainer.querySelector('#imageAssetUpload');
+                        const previewImg = tabContainer.querySelector('#imageAssetPreview img');
+                        const previewText = tabContainer.querySelector('#imageAssetPreview span');
+
+                        uploadInput.addEventListener('change', (e) => {
+                            const file = e.target.files[0];
+                            if (file) {
+                                const reader = new FileReader();
+                                reader.onload = (event) => {
+                                    previewImg.src = event.target.result;
+                                    previewImg.classList.remove('hidden');
+                                    previewText.classList.add('hidden');
+                                };
+                                reader.readAsDataURL(file);
+                            }
+                        });
+
+                        tabContainer.querySelector('#saveImageAssetBtn').addEventListener('click', () => {
+                            const name = tabContainer.querySelector('#imageAssetName').value.trim();
+                            const imgSrc = previewImg.src;
+                            const description = tabContainer.querySelector('#imageAssetDescription').value.trim();
+                            const stats = tabContainer.querySelector('#imageAssetStats').value.trim();
+
+                            if (name && imgSrc) {
+                                const key = name.toLowerCase().replace(/\s+/g, '-');
+
+                                // Check if "Image" category exists, if not create it
+                                if (!objectCategories["Image"]) {
+                                    objectCategories["Image"] = { "Custom": {} };
+                                }
+
+                                objectCategories.Image.Custom[key] = {
+                                    name,
+                                    src: imgSrc,
+                                    isImage: true,
+                                    description,
+                                    stats
+                                };
+
+                                populateSelectors();
+                                showModal(`Asset '${name}' saved successfully!`);
+                                // Optionally, close modal after saving
+                                // document.querySelector('.modal-backdrop #modalClose').click();
+                            } else {
+                                showModal("Please provide a name and upload an image.");
+                            }
+                        });
+                    }
+                }
+
+                tabs.forEach(tab => {
+                    tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+                });
+
+                // Initialize with the first tab
+                switchTab('terrain');
             }
 
             function addEventListeners() {
@@ -2031,7 +2183,10 @@
                                     if(layer.data[key].terrain) content += `&nbsp;&nbsp;Terrain: ${terrains[layer.data[key].terrain].name}<br>`;
                                     if(layer.data[key].objectKey) {
                                         const [mainCat, subCat, objKey] = layer.data[key].objectKey.split('.');
-                                        content += `&nbsp;&nbsp;Object: ${objectCategories[mainCat][subCat][objKey].name}<br>`;
+                                        const object = objectCategories[mainCat][subCat][objKey];
+                                        content += `&nbsp;&nbsp;Object: ${object.name}<br>`;
+                                        if (object.description) content += `&nbsp;&nbsp;&nbsp;&nbsp;<em>${object.description}</em><br>`;
+                                        if (object.stats) content += `&nbsp;&nbsp;&nbsp;&nbsp;<strong>Stats:</strong> ${object.stats}<br>`;
                                     }
                                     if(layer.data[key].text) content += `&nbsp;&nbsp;Text: ${layer.data[key].text}<br>`;
                                 }
@@ -2268,7 +2423,8 @@
                         generateBaseMap();
                     });
                 });
-                graphicsBtn.addEventListener('click', () => {
+                graphicsBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
                     graphicsContent.classList.toggle('hidden');
                     graphicsChevron.classList.toggle('rotate-180');
                 });
