@@ -119,14 +119,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadAssets() {
         assetCache = {};
-        const assetPromises = Object.entries(state.assetManifest).map(([id, asset]) => {
-            return new Promise((resolve) => {
-                const img = new Image();
-                img.onload = () => { assetCache[id] = img; resolve(); };
-                img.onerror = () => { console.error(`Failed to load asset: ${asset.name}`); resolve(); };
-                img.src = asset.src;
-            });
-        });
+        const assetPromises = [];
+
+        function discoverAssets(manifestNode, path) {
+            for (const key in manifestNode) {
+                const currentPath = path ? `${path}.${key}` : key;
+                const node = manifestNode[key];
+                if (node.src && node.name) { // It's an asset
+                    const promise = new Promise((resolve) => {
+                        const img = new Image();
+                        img.onload = () => { assetCache[currentPath] = img; resolve(); };
+                        img.onerror = () => { console.error(`Failed to load asset: ${node.name}`); resolve(); };
+                        img.src = node.src;
+                    });
+                    assetPromises.push(promise);
+                } else { // It's a category, recurse deeper
+                    discoverAssets(node, currentPath);
+                }
+            }
+        }
+
+        discoverAssets(state.assetManifest, '');
 
         if (state.project && state.project.maps) {
             Object.values(state.project.maps).forEach(map => {
@@ -219,8 +232,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!layer.objects) return;
         layer.objects.forEach(obj => {
             if (obj.isGmOnly && !isGmViewActive) return;
-            const asset = assetCache[obj.assetId];
-            if (asset) {
+            const [category, subCategory, assetId] = obj.assetId.split('.');
+            const assetData = state.assetManifest[category]?.[subCategory]?.[assetId];
+            if (assetData) {
+                const img = new Image();
+                img.src = assetData.src;
                 targetCtx.save();
                 targetCtx.translate(obj.x, obj.y);
                 targetCtx.rotate(obj.rotation * Math.PI / 180);
@@ -269,10 +285,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const selection = getSelectedObject();
             if (selection) {
                 const { object } = selection;
-                const asset = assetCache[object.assetId];
-                if (asset) {
-                    const w = (asset.width * object.scale) + 10;
-                    const h = (asset.height * object.scale) + 10;
+                const [category, subCategory, assetId] = object.assetId.split('.');
+                const assetData = state.assetManifest[category]?.[subCategory]?.[assetId];
+                if (assetData) {
+                    const img = new Image();
+                    img.src = assetData.src;
+                    const w = (img.width * object.scale) + 10;
+                    const h = (img.height * object.scale) + 10;
                     uiCtx.save();
                     uiCtx.translate(object.x, object.y);
                     uiCtx.rotate(object.rotation * Math.PI / 180);
@@ -298,13 +317,18 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         
-        if (currentTool === 'object' && selectedObjectAsset && assetCache[selectedObjectAsset]) {
-            const img = assetCache[selectedObjectAsset];
-            uiCtx.globalAlpha = 0.6;
-            const maxDim = Math.max(img.width, img.height);
-            const previewScale = (squareSize / maxDim) * 0.9;
-            uiCtx.drawImage(img, mouseWorldPos.x - (img.width * previewScale) / 2, mouseWorldPos.y - (img.height * previewScale) / 2, img.width * previewScale, img.height * previewScale);
-            uiCtx.globalAlpha = 1.0;
+        if (currentTool === 'object' && selectedObjectAsset) {
+            const [category, subCategory, assetId] = selectedObjectAsset.split('.');
+            const assetData = state.assetManifest[category]?.[subCategory]?.[assetId];
+            if (assetData) {
+                const img = new Image();
+                img.src = assetData.src;
+                uiCtx.globalAlpha = 0.6;
+                const maxDim = Math.max(img.width, img.height);
+                const previewScale = (squareSize / maxDim) * 0.9;
+                uiCtx.drawImage(img, mouseWorldPos.x - (img.width * previewScale) / 2, mouseWorldPos.y - (img.height * previewScale) / 2, img.width * previewScale, img.height * previewScale);
+                uiCtx.globalAlpha = 1.0;
+            }
         }
 
         uiCtx.restore();
@@ -423,11 +447,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function clearSelection() { selectedObjectId = null; elements.assetContextMenu.classList.add('hidden'); }
     
     function handleToolSwitch(newTool) {
+        console.log(`Switching to tool: ${newTool}`);
         currentTool = newTool;
-        Object.values(elements.toolPanels).forEach(p => p.classList.add('hidden'));
-        if (elements.toolPanels[newTool]) {
-            elements.toolPanels[newTool].classList.remove('hidden');
-        }
+        Object.entries(elements.toolPanels).forEach(([key, panel]) => {
+            if (panel) {
+                if (key === newTool) {
+                    panel.classList.remove('hidden');
+                } else {
+                    panel.classList.add('hidden');
+                }
+            }
+        });
         document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
         const btn = document.getElementById(`tool${newTool.charAt(0).toUpperCase() + newTool.slice(1)}Btn`);
         if (btn) btn.classList.add('active');
@@ -599,13 +629,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function populateObjectSelector() {
         elements.objectSelector.innerHTML = '';
-        Object.entries(state.assetManifest).forEach(([id, asset]) => {
-            const item = document.createElement('div');
-            item.className = 'item-container';
-            item.innerHTML = `<div class="object-swatch"><img src="${asset.src}"></div><span class="item-label">${asset.name}</span>`;
-            item.onclick = () => { selectedObjectAsset = id; document.querySelectorAll('#objectSelector .item-container').forEach(i => i.classList.remove('active')); item.classList.add('active'); handleToolSwitch('object'); };
-            elements.objectSelector.appendChild(item);
-        });
+        const manifest = state.assetManifest;
+
+        for (const category in manifest) {
+            const categoryHeader = document.createElement('h4');
+            categoryHeader.textContent = category;
+            categoryHeader.className = 'collapsible-header';
+            elements.objectSelector.appendChild(categoryHeader);
+
+            const categoryContent = document.createElement('div');
+            categoryContent.className = 'collapsible-content';
+            elements.objectSelector.appendChild(categoryContent);
+
+            for (const subCategory in manifest[category]) {
+                const subCategoryHeader = document.createElement('h5');
+                subCategoryHeader.textContent = subCategory;
+                subCategoryHeader.className = 'collapsible-header';
+                categoryContent.appendChild(subCategoryHeader);
+
+                const subCategoryContent = document.createElement('div');
+                subCategoryContent.className = 'collapsible-content';
+                categoryContent.appendChild(subCategoryContent);
+
+                for (const assetId in manifest[category][subCategory]) {
+                    const asset = manifest[category][subCategory][assetId];
+                    const fullId = `${category}.${subCategory}.${assetId}`;
+                    const item = document.createElement('div');
+                    item.className = 'item-container';
+                    item.innerHTML = `<div class="object-swatch"><img src="${asset.src}"></div><span class="item-label">${asset.name}</span>`;
+                    item.onclick = () => {
+                        selectedObjectAsset = fullId;
+                        document.querySelectorAll('#objectSelector .item-container').forEach(i => i.classList.remove('active'));
+                        item.classList.add('active');
+                        handleToolSwitch('object');
+                    };
+                    subCategoryContent.appendChild(item);
+                }
+                 subCategoryHeader.addEventListener('click', () => {
+                    subCategoryContent.classList.toggle('hidden');
+                });
+            }
+
+            categoryHeader.addEventListener('click', () => {
+                categoryContent.classList.toggle('hidden');
+            });
+        }
     }
     
     function handleMouseDown(e) {
@@ -740,20 +808,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
 
             case 'object': 
-                if (eventType === 'start' && selectedObjectAsset) { 
-                    const asset = assetCache[selectedObjectAsset];
-                    if (!asset) return;
-                    const maxDim = Math.max(asset.width, asset.height);
-                    const initialScale = (squareSize / maxDim) * 0.9;
-                    activeLayer.objects.push({ 
-                        id: `obj_${Date.now()}`, 
-                        assetId: selectedObjectAsset, 
-                        x: mouseWorldPos.x, y: mouseWorldPos.y, 
-                        rotation: 0, scale: initialScale, 
-                        isGmOnly: false 
-                    });
-                    markLayerAsDirty(activeLayerId);
-                } 
+                if (eventType === 'start' && selectedObjectAsset) {
+                    const [category, subCategory, assetId] = selectedObjectAsset.split('.');
+                    const assetData = state.assetManifest[category]?.[subCategory]?.[assetId];
+                    if (!assetData) return;
+
+                    const img = new Image();
+                    img.src = assetData.src;
+                    img.onload = () => {
+                        const maxDim = Math.max(img.width, img.height);
+                        const initialScale = (squareSize / maxDim) * 0.9;
+                        activeLayer.objects.push({
+                            id: `obj_${Date.now()}`,
+                            assetId: selectedObjectAsset,
+                            x: mouseWorldPos.x, y: mouseWorldPos.y,
+                            rotation: 0, scale: initialScale,
+                            isGmOnly: false
+                        });
+                        markLayerAsDirty(activeLayerId);
+                    };
+                }
                 break;
             case 'select': 
                 if(eventType === 'start') selectObjectAt(mouseWorldPos.x, mouseWorldPos.y, e.shiftKey); 
@@ -766,8 +840,11 @@ document.addEventListener('DOMContentLoaded', () => {
         let foundObject = null;
         for (const layer of [...activeMap.layers].reverse()) {
             for (const obj of [...layer.objects].reverse()) {
-                const asset = assetCache[obj.assetId];
-                if (asset) {
+                const [category, subCategory, assetId] = obj.assetId.split('.');
+                const assetData = state.assetManifest[category]?.[subCategory]?.[assetId];
+                if (assetData) {
+                    const img = new Image();
+                    img.src = assetData.src;
                     const dx = worldX - obj.x;
                     const dy = worldY - obj.y;
                     const dist = Math.sqrt(dx*dx + dy*dy);
@@ -815,6 +892,37 @@ document.addEventListener('DOMContentLoaded', () => {
         selection.object.scale *= factor;
         markLayerAsDirty(selection.layer.id);
         saveStateForUndo("Scale Object");
+    }
+
+    function generateLandmass() {
+        const activeMap = state.getActiveMap();
+        if (!activeMap) return;
+
+        const noise = new Noise(Math.random());
+        const scale = 0.1; // Adjust for more or less detail
+        const waterThreshold = 0.3; // Adjust for more or less water
+
+        const baseLayer = activeMap.layers[activeMap.layers.length - 1]; // Target the bottom layer
+        if (!baseLayer) return;
+
+        saveStateForUndo("Generate Landmass", "paint");
+
+        const cacheCanvas = layerCache[baseLayer.id];
+        if (!cacheCanvas) return;
+        const cacheCtx = cacheCanvas.getContext('2d');
+
+        for (let y = 0; y < activeMap.height; y++) {
+            for (let x = 0; x < activeMap.width; x++) {
+                const value = noise.perlin2(x * scale, y * scale);
+                const terrainId = (value > waterThreshold) ? 'grass' : 'water';
+                const pattern = terrainPatterns[terrainId];
+                if (pattern) {
+                    cacheCtx.fillStyle = pattern;
+                    cacheCtx.fillRect(x * squareSize, y * squareSize, squareSize, squareSize);
+                }
+            }
+        }
+        requestRender();
     }
 
     function setupAllEventListeners() {
@@ -883,6 +991,9 @@ document.addEventListener('DOMContentLoaded', () => {
         safeListen(elements.rotateRightBtn, 'click', () => rotateSelectedObject(15), 'rotateRightBtn');
         safeListen(elements.scaleUpBtn, 'click', () => scaleSelectedObject(1.1), 'scaleUpBtn');
         safeListen(elements.scaleDownBtn, 'click', () => scaleSelectedObject(0.9), 'scaleDownBtn');
+
+        const proceduralGenBtn = document.getElementById('proceduralGenBtn');
+        safeListen(proceduralGenBtn, 'click', generateLandmass, 'proceduralGenBtn');
 
         makeDraggable(elements.mapKeyWindow, elements.mapKeyHeader);
     }
