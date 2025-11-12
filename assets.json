@@ -1,77 +1,41 @@
 {
-    "fantasy_world_tree": {
-        "name": "Tree",
-        "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M443.8 443.8L320 256l123.8-187.8a16 16 0 00-22.6-22.6L256 233.4 132.2 68.2a16 16 0 00-22.6 22.6L233.4 256 109.6 443.8a16 16 0 0022.6 22.6L256 278.6l123.8 187.8a16 16 0 0022.6-22.6z'/%3E%3Cpath d='M256 512a256 256 0 100-512 256 256 0 000 512zm0-464a208 208 0 110 416 208 208 0 010-416z'/%3E%3C/svg%3E",
-        "tags": ["fantasy", "world", "vegetation"]
+    "Fantasy": {
+        "World": {
+            "tree": { "name": "Tree", "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M443.8 443.8L320 256l123.8-187.8a16 16 0 00-22.6-22.6L256 233.4 132.2 68.2a16 16 0 00-22.6 22.6L233.4 256 109.6 443.8a16 16 0 0022.6 22.6L256 278.6l123.8 187.8a16 16 0 0022.6-22.6z'/%3E%3C/svg%3E", "tags": ["vegetation"]},
+            "mountain": { "name": "Mountain", "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M32 400l109.6-156.5L192 320l96-128 64 64 128-192v288H32z'/%3E%3C/svg%3E", "tags": ["terrain"]},
+            "river": { "name": "River Segment", "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='none' stroke='%23d1d5db' stroke-width='20'%3E%3Cpath d='M64 64s64 128 128 128 128-128 128-128 128 128 128 128'/%3E%3C/svg%3E", "tags": ["terrain", "water"]},
+            "forest": { "name": "Forest", "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M256 32L64 256h384L256 32zm0 128l-96 96h192l-96-96z'/%3E%3Cpath d='M128 480l128-128 128 128H128z'/%3E%3C/svg%3E", "tags": ["vegetation"]}
+        },
+        "City": {
+            "house": { "name": "House", "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M416 174.2V48h-48v58.2L256 64 48 212.2V48H0v212.2L256 32l256 180.2V48h-48v126.2h-48zM256 64L0 276.2V464h512V276.2L256 64zm160 352H96V291.8l160-120 160 120V416z'/%3E%3C/svg%3E", "tags": ["building"]},
+            "tower": { "name": "Tower", "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M224 32h64v448h-64z'/%3E%3Cpath d='M160 96h192v64H160zm-32 128h256v64H128z'/%3E%3C/svg%3E", "tags": ["building"]},
+            "wall": { "name": "Wall Segment", "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M64 64h384v64H64zm0 128h384v64H64zm0 128h384v64H64z'/%3E%3C/svg%3E", "tags": ["building", "fortification"]},
+            "gate": { "name": "Gate", "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M64 64h384v384H64V64zm64 64v256h256V128H128zm64 64h128v128H192v-128z'/%3E%3C/svg%3E", "tags": ["building", "fortification"]}
+        },
+        "Dungeon": {
+            "door": { "name": "Door", "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M352 224V128a96 96 0 00-192 0v96H96v224h320V224h-64zm-32 0H192V128a64 64 0 01128 0v96z'/%3E%3C/svg%3E", "tags": ["object"]},
+            "chest": { "name": "Treasure Chest", "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M80 160h352v112H80zM448 128H64a32 32 0 00-32 32v192a32 32 0 0032 32h384a32 32 0 0032-32V160a32 32 0 00-32-32zm-16 224H80V160h352v192z'/%3E%3C/svg%3E", "tags": ["object"]},
+            "trap": { "name": "Spike Trap", "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M256 32L32 256l224 224 224-224L256 32zm0 64l160 160-160 160-160-160L256 96z'/%3E%3C/svg%3E", "tags": ["object"]},
+            "stairs": { "name": "Stairs", "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M64 416V96h64v64h64v64h64v64h64v64h64v64H64z'/%3E%3C/svg%3E", "tags": ["object"]}
+        }
     },
-    "fantasy_world_mountain": {
-        "name": "Mountain",
-        "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M32 400l109.6-156.5L192 320l96-128 64 64 128-192v288H32z'/%3E%3C/svg%3E",
-        "tags": ["fantasy", "world", "terrain"]
+    "SciFi": {
+        "World": {
+            "crystal": { "name": "Crystal Formation", "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M256 32L32 224l224 192 224-192L256 32zm0 64l160 136-160 136-160-136L256 96z'/%3E%3C/svg%3E", "tags": ["terrain"]},
+            "alien_plant": { "name": "Alien Plant", "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M256 32c-88.4 0-160 71.6-160 160 0 64 32 128 64 160h192c32-32 64-96 64-160 0-88.4-71.6-160-160-160z'/%3E%3C/svg%3E", "tags": ["vegetation"]},
+            "crater": { "name": "Crater", "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M256 512a256 256 0 100-512 256 256 0 000 512zm0-64a192 192 0 110-384 192 192 0 010 384zm-32-160a32 32 0 100-64 32 32 0 000 64z'/%3E%3C/svg%3E", "tags": ["terrain"]}
+        },
+        "Base": {
+            "habitat": { "name": "Habitat Dome", "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M256 64C141.6 64 48 157.6 48 272v176h416V272c0-114.4-93.6-208-208-208zm0 320H96V272c0-88.2 71.8-160 160-160s160 71.8 160 160v112h-64z'/%3E%3C/svg%3E", "tags": ["building"]},
+            "console": { "name": "Computer Console", "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M448 32H64a32 32 0 00-32 32v256a32 32 0 0032 32h160v64H128v32h256v-32H288v-64h160a32 32 0 0032-32V64a32 32 0 00-32-32zm-16 256H80V80h352v208z'/%3E%3C/svg%3E", "tags": ["object"]},
+            "airlock": { "name": "Airlock", "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M256 512a256 256 0 100-512 256 256 0 000 512zm-96-256a96 96 0 11192 0 96 96 0 01-192 0z'/%3E%3C/svg%3E", "tags": ["object"]}
+        }
     },
-    "fantasy_city_house": {
-        "name": "House",
-        "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M416 174.2V48h-48v58.2L256 64 48 212.2V48H0v212.2L256 32l256 180.2V48h-48v126.2h-48zM256 64L0 276.2V464h512V276.2L256 64zm160 352H96V291.8l160-120 160 120V416z'/%3E%3C/svg%3E",
-        "tags": ["fantasy", "city", "building"]
-    },
-    "fantasy_battle_chest": {
-        "name": "Treasure Chest",
-        "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M80 160h352v112H80zM448 128H64a32 32 0 00-32 32v192a32 32 0 0032 32h384a32 32 0 0032-32V160a32 32 0 00-32-32zm-16 224H80V160h352v192z'/%3E%3Cpath d='M224 224h64v64h-64z'/%3E%3C/svg%3E",
-        "tags": ["fantasy", "battle", "location", "object"]
-    },
-    "fantasy_location_door": {
-        "name": "Door",
-        "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M352 224V128a96 96 0 00-192 0v96H96v224h320V224h-64zm-32 0H192V128a64 64 0 01128 0v96z'/%3E%3C/svg%3E",
-        "tags": ["fantasy", "location", "battle", "object"]
-    },
-    "fantasy_location_bed": {
-        "name": "Bed",
-        "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M448 224H64v160h32v-96h320v96h32V224zM160 160h192v64H160z'/%3E%3C/svg%3E",
-        "tags": ["fantasy", "location", "battle", "object", "furniture"]
-    },
-    "fantasy_location_table": {
-        "name": "Table",
-        "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M480 128H32v64h448v-64zM320 224H192v160h128V224z'/%3E%3C/svg%3E",
-        "tags": ["fantasy", "location", "battle", "object", "furniture"]
-    },
-    "fantasy_location_weapon_rack": {
-        "name": "Weapon Rack",
-        "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M496 32L16 496l48 16L512 48 496 32zM224 160L160 96l-64 64 64 64 64-64zM352 288l-64 64-64-64 64-64 64 64z'/%3E%3C/svg%3E",
-        "tags": ["fantasy", "location", "battle", "object"]
-    },
-    "scifi_world_crystal": {
-        "name": "Crystal Formation",
-        "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M256 32L32 224l224 192 224-192L256 32zm0 64l160 136-160 136-160-136L256 96z'/%3E%3C/svg%3E",
-        "tags": ["scifi", "world", "terrain"]
-    },
-    "scifi_city_habitat": {
-        "name": "Habitat Dome",
-        "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M256 64C141.6 64 48 157.6 48 272v176h416V272c0-114.4-93.6-208-208-208zm0 320H96V272c0-88.2 71.8-160 160-160s160 71.8 160 160v112h-64z'/%3E%3C/svg%3E",
-        "tags": ["scifi", "city", "building"]
-    },
-    "scifi_location_console": {
-        "name": "Computer Console",
-        "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M448 32H64a32 32 0 00-32 32v256a32 32 0 0032 32h160v64H128v32h256v-32H288v-64h160a32 32 0 0032-32V64a32 32 0 00-32-32zm-16 256H80V80h352v208z'/%3E%3C/svg%3E",
-        "tags": ["scifi", "location", "object"]
-    },
-    "scifi_battle_robot": {
-        "name": "Sentry Bot",
-        "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M384 128h-64v-32a32 32 0 00-32-32h-64a32 32 0 00-32 32v32h-64a32 32 0 00-32 32v192h320V160a32 32 0 00-32-32zm-48 160h-32v-64h32v64zm-96 0h-32v-64h32v64z'/%3E%3Cpath d='M128 384h256v32H128z'/%3E%3C/svg%3E",
-        "tags": ["scifi", "battle", "creature"]
-    },
-    "modern_city_bldg": {
-        "name": "Skyscraper",
-        "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M128 32h256v448H128zM192 96h128v64H192zm0 128h128v64H192zm0 128h128v64H192z'/%3E%3C/svg%3E",
-        "tags": ["modern", "city", "building"]
-    },
-    "modern_location_desk": {
-        "name": "Office Desk",
-        "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M448 128H64v256h384V128zm-32 32v64H96v-64h320zm-32 160H96v-64h320v64z'/%3E%3C/svg%3E",
-        "tags": ["modern", "location", "object"]
-    },
-    "modern_battle_car": {
-        "name": "Car",
-        "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M128 320a32 32 0 100 64 32 32 0 000-64zm256 0a32 32 0 100 64 32 32 0 000-64z'/%3E%3Cpath d='M480 224H32v96h448v-96zM64 160h384v64H64z'/%3E%3C/svg%3E",
-        "tags": ["modern", "battle", "city", "object"]
+    "Modern": {
+        "City": {
+            "skyscraper": { "name": "Skyscraper", "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M128 32h256v448H128zM192 96h128v64H192zm0 128h128v64H192zm0 128h128v64H192z'/%3E%3C/svg%3E", "tags": ["building"]},
+            "car": { "name": "Car", "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M128 320a32 32 0 100 64 32 32 0 000-64zm256 0a32 32 0 100 64 32 32 0 000-64z'/%3E%3Cpath d='M480 224H32v96h448v-96zM64 160h384v64H64z'/%3E%3C/svg%3E", "tags": ["vehicle", "object"]},
+            "road": { "name": "Road Segment", "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%23d1d5db'%3E%3Cpath d='M64 64h384v384H64z'/%3E%3C/svg%3E", "tags": ["infrastructure"]}
+        }
     }
 }
