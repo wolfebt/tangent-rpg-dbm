@@ -3,7 +3,6 @@ import * as state from './state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- UI Elements ---
-    const aiBottomPanelHeader = document.getElementById('aiBottomPanelHeader');
     const initialPromptInput = document.getElementById('ai-prompt-initial');
     const refinePromptInput = document.getElementById('ai-prompt-refine');
     const drawingStyleSelect = document.getElementById('ai-drawing-style');
@@ -144,7 +143,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Event Listeners Setup ---
-    aiBottomPanelHeader.addEventListener('click', () => document.getElementById('aiBottomPanel').classList.toggle('closed'));
     generateBtn.addEventListener('click', handleInitialGeneration);
     updateBtn.addEventListener('click', handleIterativeUpdate);
     transferBtn.addEventListener('click', handleTransferToLayer);

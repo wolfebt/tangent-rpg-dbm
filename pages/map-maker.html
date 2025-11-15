@@ -229,7 +229,63 @@
 
     <!-- Asset Editor -->
     <div id="asset-editor-overlay" class="hidden">
-        <!-- Asset editor content will be loaded here -->
+        <div class="asset-editor-main">
+            <div class="asset-editor-top-bar">
+                <h2 class="text-2xl font-bold text-gray-100">AI-Assisted Asset Editor</h2>
+                <button id="asset-editor-close-btn" title="Close Editor">&times;</button>
+            </div>
+            <div class="asset-editor-content">
+                <!-- LEFT PANEL -->
+                <div class="asset-editor-left-panel">
+                    <div class="control-panel">
+                        <label for="asset-type-select">Asset Type</label>
+                        <select id="asset-type-select">
+                            <option value="object">Object / Icon</option>
+                            <option value="terrain">Terrain Pattern</option>
+                        </select>
+                    </div>
+                    <div class="control-panel">
+                        <h3>AI Generation</h3>
+                        <label for="asset-prompt">Prompt</label>
+                        <textarea id="asset-prompt" rows="4" placeholder="e.g., A single, stylized fantasy oak tree icon, no background, watercolor style..."></textarea>
+                        <button id="asset-generate-btn">Generate</button>
+                    </div>
+                    <div class="control-panel">
+                        <h3>Manual Tools</h3>
+                        <div class="asset-tool-palette">
+                            <button class="asset-tool active" data-tool="pencil" title="Pencil"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg></button>
+                            <button class="asset-tool" data-tool="eraser" title="Eraser"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg></button>
+                            <input type="color" id="asset-color-picker" value="#FFFFFF" title="Color Picker">
+                        </div>
+                        <label for="asset-brush-size">Brush Size: <span id="asset-brush-size-value">5</span></label>
+                        <input type="range" id="asset-brush-size" min="1" max="50" value="5">
+                    </div>
+                </div>
+                <!-- CENTER PANEL -->
+                <div class="asset-editor-center-panel">
+                    <div id="loading-overlay" class="hidden">Generating...</div>
+                    <div id="asset-canvas-container">
+                        <canvas id="asset-canvas-main" width="512" height="512"></canvas>
+                        <canvas id="asset-canvas-draw" width="512" height="512"></canvas>
+                    </div>
+                </div>
+                <!-- RIGHT PANEL -->
+                <div class="asset-editor-right-panel">
+                    <div id="asset-preview-panel" class="control-panel hidden">
+                        <h3>Tiling Preview</h3>
+                        <canvas id="asset-preview-canvas" width="240" height="240"></canvas>
+                    </div>
+                     <div class="control-panel">
+                        <h3>Save to Library</h3>
+                        <label for="asset-name">Asset Name</label>
+                        <input type="text" id="asset-name" placeholder="e.g., Oak Tree">
+                        <label for="asset-tags">Tags (comma-separated)</label>
+                        <input type="text" id="asset-tags" placeholder="fantasy, world, vegetation">
+                        <button id="asset-export-btn">Save to Library</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
 
