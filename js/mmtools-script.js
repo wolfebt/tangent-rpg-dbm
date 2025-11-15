@@ -1,5 +1,5 @@
 // Version 22.6 - Fully functional and complete implementation.
-import * as state from './state.js';
+import * as state from '../js/state.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- Element Selection ---
@@ -1005,7 +1005,7 @@ document.addEventListener('DOMContentLoaded', () => {
             state.loadApiKey();
             if (state.apiKey) console.log("API Key loaded.");
             
-            const [terrainsRes, assetsRes] = await Promise.all([ fetch('terrains.json'), fetch('assets.json') ]);
+            const [terrainsRes, assetsRes] = await Promise.all([ fetch('../assets/data/terrains.json'), fetch('../assets/data/assets.json') ]);
             if (!terrainsRes.ok || !assetsRes.ok) throw new Error("Network response was not ok.");
             
             state.setState({ terrains: await terrainsRes.json(), assetManifest: await assetsRes.json() });
