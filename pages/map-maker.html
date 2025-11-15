@@ -31,115 +31,157 @@
         <div id="panelWrapper">
             <div class="control-container p-4 flex flex-col">
                 <!-- Header -->
-                <div class="flex justify-between items-center mb-4 flex-shrink-0 relative">
-                    <h2 class="text-2xl font-bold">Map Maker</h2>
-                    <div>
-                        <button id="fileMenuBtn" class="p-2 rounded-md hover:bg-gray-700">File</button>
-                        <div id="fileDropdownMenu" class="file-dropdown hidden">
-                            <button id="saveProjectBtn" class="file-dropdown-item">Save Project</button>
-                            <button id="loadProjectBtn" class="file-dropdown-item">Load Project</button>
-                            <button id="savePngBtn" class="file-dropdown-item">Export as PNG</button>
+                <div class="sidebar-header flex-shrink-0">
+                    <div class="flex justify-between items-center mb-4 relative">
+                        <h2 class="text-2xl font-bold">Map Maker</h2>
+                        <div>
+                            <button id="fileMenuBtn" class="p-2 rounded-md hover:bg-gray-700">File</button>
+                            <div id="fileDropdownMenu" class="file-dropdown hidden">
+                                <button id="saveProjectBtn" class="file-dropdown-item">Save Project</button>
+                                <button id="loadProjectBtn" class="file-dropdown-item">Load Project</button>
+                                <button id="savePngBtn" class="file-dropdown-item">Export as PNG</button>
+                            </div>
+                            <input type="file" id="loadJsonInput" class="hidden" accept=".json">
                         </div>
-                        <input type="file" id="loadJsonInput" class="hidden" accept=".json">
                     </div>
-                </div>
 
-                <!-- Project Name -->
-                <div class="control-panel mb-4">
-                    <label for="projectNameInput">Project Name</label>
-                    <input type="text" id="projectNameInput" value="Untitled Campaign">
-                </div>
-
-                <!-- Tools -->
-                <div class="control-panel mb-4">
-                    <h3>Tools</h3>
-                    <div class="grid grid-cols-3 gap-2">
-                        <button id="toolTerrainBtn" class="tool-btn active">Terrain</button>
-                        <button id="toolObjectBtn" class="tool-btn">Object</button>
-                        <button id="toolPencilBtn" class="tool-btn">Pencil</button>
-                        <button id="toolTokenBtn" class="tool-btn">Token</button>
-                        <button id="toolTextBtn" class="tool-btn">Text</button>
-                        <button id="toolFogBtn" class="tool-btn">Fog</button>
-                        <button id="toolSelectBtn" class="tool-btn">Select</button>
-                        <button id="eraserToolBtn">Eraser</button>
-                    </div>
-                </div>
-
-                <!-- Tool Options -->
-                <div id="terrainContentPanel">
+                    <!-- Project Name -->
                     <div class="control-panel mb-4">
-                        <label for="brushSize">Brush Size: <span id="brushSizeValue">1</span></label>
-                        <input type="range" id="brushSize" min="1" max="10" value="1">
-                        <div id="terrainSelector" class="flex flex-col gap-2 mt-2"></div>
+                        <label for="projectNameInput">Project Name</label>
+                        <input type="text" id="projectNameInput" value="Untitled Campaign">
                     </div>
                 </div>
-                <div id="objectOptionsPanel" class="hidden">
-                     <div class="control-panel mb-4">
-                        <div id="objectSelector" class="flex flex-col gap-2"></div>
-                    </div>
-                </div>
-                <div id="pencilOptionsPanel" class="hidden">
+
+                <div class="sidebar-content flex-grow">
+                    <!-- Tools -->
                     <div class="control-panel mb-4">
-                         <label for="pencilColorPicker">Color</label>
-                         <input type="color" id="pencilColorPicker" value="#FFFFFF">
-                         <label for="pencilWidth">Width: <span id="pencilWidthValue">5</span></label>
-                         <input type="range" id="pencilWidth" min="1" max="50" value="5">
-                         <input type="checkbox" id="pencilGmOnlyCheckbox"> <label for="pencilGmOnlyCheckbox">GM Only</label>
+                        <h3 class="accordion-header">Tools</h3>
+                        <div class="accordion-content">
+                            <div class="grid grid-cols-3 gap-2">
+                                <button id="toolTerrainBtn" class="tool-btn active">Terrain</button>
+                                <button id="toolObjectBtn" class="tool-btn">Object</button>
+                                <button id="toolPencilBtn" class="tool-btn">Pencil</button>
+                                <button id="toolTokenBtn" class="tool-btn">Token</button>
+                                <button id="toolTextBtn" class="tool-btn">Text</button>
+                                <button id="toolFogBtn" class="tool-btn">Fog</button>
+                                <button id="toolSelectBtn" class="tool-btn">Select</button>
+                                <button id="eraserToolBtn">Eraser</button>
+                            </div>
+                            <!-- Tool Options -->
+                            <div id="terrainContentPanel" class="hidden">
+                                <div class="control-panel mb-4">
+                                    <label for="brushSize">Brush Size: <span id="brushSizeValue">1</span></label>
+                                    <input type="range" id="brushSize" min="1" max="10" value="1">
+                                    <div id="terrainSelector" class="flex flex-col gap-2 mt-2"></div>
+                                </div>
+                            </div>
+                            <div id="objectOptionsPanel" class="hidden">
+                                 <div class="control-panel mb-4">
+                                    <div id="objectSelector" class="flex flex-col gap-2"></div>
+                                </div>
+                            </div>
+                            <div id="pencilOptionsPanel" class="hidden">
+                                <div class="control-panel mb-4">
+                                     <label for="pencilColorPicker">Color</label>
+                                     <input type="color" id="pencilColorPicker" value="#FFFFFF">
+                                     <label for="pencilWidth">Width: <span id="pencilWidthValue">5</span></label>
+                                     <input type="range" id="pencilWidth" min="1" max="50" value="5">
+                                     <input type="checkbox" id="pencilGmOnlyCheckbox"> <label for="pencilGmOnlyCheckbox">GM Only</label>
+                                </div>
+                            </div>
+                            <!-- Other tool panels here -->
+                            <div id="selectedObjectPanel" class="hidden">
+                                <div class="control-panel mb-4">
+                                    <h3>Selected Object</h3>
+                                    <button id="asset-delete-btn">Delete</button>
+                                    <button id="asset-rotate-left-btn">Rotate Left</button>
+                                    <button id="asset-rotate-right-btn">Rotate Right</button>
+                                    <button id="asset-scale-up-btn">Scale Up</button>
+                                    <button id="asset-scale-down-btn">Scale Down</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <!-- Other tool panels here -->
-                <div id="selectedObjectPanel" class="hidden">
+
+
+                    <!-- Actions -->
                     <div class="control-panel mb-4">
-                        <h3>Selected Object</h3>
-                        <button id="asset-delete-btn">Delete</button>
-                        <button id="asset-rotate-left-btn">Rotate Left</button>
-                        <button id="asset-rotate-right-btn">Rotate Right</button>
-                        <button id="asset-scale-up-btn">Scale Up</button>
-                        <button id="asset-scale-down-btn">Scale Down</button>
+                        <h3 class="accordion-header">Actions</h3>
+                        <div class="accordion-content">
+                            <button id="addNewMapBtn">New Map</button>
+                            <button id="assetEditorBtn">Asset Editor</button>
+                            <button id="resetViewBtn">Center View</button>
+                            <button id="undoBtn">Undo</button>
+                            <button id="redoBtn">Redo</button>
+                        </div>
                     </div>
-                </div>
 
+                    <!-- AI Assistant -->
+                    <div class="control-panel mb-4">
+                        <h3 class="accordion-header">AI Assistant</h3>
+                        <div class="accordion-content">
+                            <div id="ai-controls" class="ai-controls-column">
+                                <input type="text" id="ai-prompt-initial" placeholder="Describe an asset to generate...">
+                                <select id="ai-drawing-style">
+                                    <option>Watercolor</option>
+                                    <option>Oil Painting</option>
+                                    <option>Pixel Art</option>
+                                </select>
+                                <select id="ai-color-style">
+                                    <option>Vibrant</option>
+                                    <option>Muted</option>
+                                    <option>Sepia</option>
+                                </select>
+                                <button id="ai-generate-btn"><span class="btn-text">Generate</span><span class="spinner hidden"></span></button>
+                                <hr>
+                                <input type="text" id="ai-prompt-refine" placeholder="Describe changes...">
+                                <button id="ai-update-btn" disabled><span class="btn-text">Update</span><span class="spinner hidden"></span></button>
+                                <button id="ai-transfer-btn" disabled>Transfer to Layer</button>
+                            </div>
+                            <div id="ai-render-area">
+                                <span>AI generations will appear here</span>
+                                <img id="ai-image-output" class="hidden"/>
+                            </div>
+                        </div>
+                    </div>
 
-                <!-- Actions -->
-                <div class="control-panel mb-4">
-                    <h3>Actions</h3>
-                    <button id="addNewMapBtn">New Map</button>
-                    <button id="assetEditorBtn">Asset Editor</button>
-                    <button id="resetViewBtn">Center View</button>
-                    <button id="undoBtn">Undo</button>
-                    <button id="redoBtn">Redo</button>
-                </div>
+                    <!-- Layers -->
+                    <div class="control-panel mb-4">
+                        <h3 class="accordion-header">Layers</h3>
+                        <div class="accordion-content">
+                            <div id="layerList" class="flex flex-col gap-2"></div>
+                            <button id="addLayerBtn">Add Layer</button>
+                            <button id="deleteLayerBtn">Delete Layer</button>
+                        </div>
+                    </div>
 
-                <!-- Layers -->
-                <div class="control-panel mb-4">
-                    <h3>Layers</h3>
-                    <div id="layerList" class="flex flex-col gap-2"></div>
-                    <button id="addLayerBtn">Add Layer</button>
-                    <button id="deleteLayerBtn">Delete Layer</button>
-                </div>
+                    <!-- Grid -->
+                    <div class="control-panel mb-4">
+                        <h3 class="accordion-header">Grid</h3>
+                        <div class="accordion-content">
+                            <input type="checkbox" id="gridVisibleCheckbox" checked> <label for="gridVisibleCheckbox">Visible</label>
+                            <input type="color" id="gridColorPicker" value="#000000">
+                        </div>
+                    </div>
 
-                <!-- Grid -->
-                <div class="control-panel mb-4">
-                    <h3>Grid</h3>
-                    <input type="checkbox" id="gridVisibleCheckbox" checked> <label for="gridVisibleCheckbox">Visible</label>
-                    <input type="color" id="gridColorPicker" value="#000000">
-                </div>
+                    <!-- Procedural Generation -->
+                    <div class="control-panel mb-4">
+                        <h3 class="accordion-header">Procedural Generation</h3>
+                        <div class="accordion-content">
+                            <button id="proceduralGenBtn">Generate Landmass</button>
+                        </div>
+                    </div>
 
-                <!-- Procedural Generation -->
-                <div class="control-panel mb-4">
-                    <h3>Procedural Generation</h3>
-                    <button id="proceduralGenBtn">Generate Landmass</button>
-                </div>
-
-                 <!-- General Buttons -->
-                <div class="control-panel">
-                    <button id="userGuideBtn">User Guide</button>
-                    <button id="settingsBtn">Settings</button>
-                    <button id="mapKeyBtn">Map Key</button>
-                    <button id="gmViewToggleBtn">
-                        <span id="gmViewIconOn">GM View ON</span>
-                        <span id="gmViewIconOff" class="hidden">GM View OFF</span>
-                    </button>
+                     <!-- General Buttons -->
+                    <div class="control-panel">
+                        <button id="userGuideBtn">User Guide</button>
+                        <button id="settingsBtn">Settings</button>
+                        <button id="mapKeyBtn">Map Key</button>
+                        <button id="gmViewToggleBtn">
+                            <span id="gmViewIconOn">GM View ON</span>
+                            <span id="gmViewIconOff" class="hidden">GM View OFF</span>
+                        </button>
+                    </div>
                 </div>
 
             </div>
@@ -148,38 +190,6 @@
         <div id="canvas-container">
             <canvas id="mapCanvas"></canvas>
             <canvas id="uiCanvas"></canvas>
-        </div>
-    </div>
-
-    <!-- AI Panel -->
-    <div id="aiBottomPanel" class="closed">
-        <div id="aiBottomPanelHeader">
-            <span>AI Assistant</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z"/></svg>
-        </div>
-        <div id="aiBottomPanelContent">
-            <div class="ai-controls-column">
-                <input type="text" id="ai-prompt-initial" placeholder="Describe an asset to generate...">
-                <select id="ai-drawing-style">
-                    <option>Watercolor</option>
-                    <option>Oil Painting</option>
-                    <option>Pixel Art</option>
-                </select>
-                <select id="ai-color-style">
-                    <option>Vibrant</option>
-                    <option>Muted</option>
-                    <option>Sepia</option>
-                </select>
-                <button id="ai-generate-btn"><span class="btn-text">Generate</span><span class="spinner hidden"></span></button>
-                <hr>
-                <input type="text" id="ai-prompt-refine" placeholder="Describe changes...">
-                <button id="ai-update-btn" disabled><span class="btn-text">Update</span><span class="spinner hidden"></span></button>
-                <button id="ai-transfer-btn" disabled>Transfer to Layer</button>
-            </div>
-            <div id="ai-render-area">
-                <span>AI generations will appear here</span>
-                <img id="ai-image-output" class="hidden"/>
-            </div>
         </div>
     </div>
 
