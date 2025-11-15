@@ -6,7 +6,7 @@ import {
     signInWithCustomToken, signInAnonymously
 } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
 import { getFirestore, doc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, getDocs, getDoc, setDoc, setLogLevel, serverTimestamp, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
-import { categoryConfig } from './category-config.js';
+import { categoryConfig } from '../js/category-config.js';
 
 // --- Firebase Configuration ---
 const firebaseConfig = {

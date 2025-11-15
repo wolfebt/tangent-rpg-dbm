@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Persona Folio</title>
     <link rel="icon" href="data:,">
-    <link rel="stylesheet" href="dbm-style.css">
+    <link rel="stylesheet" href="../css/dbm-style.css">
     <style>
         body > .folio-container {
             padding: 0 1.5rem 1.5rem 0;
@@ -194,7 +194,7 @@
         import { 
             getFirestore, collection, getDocs, doc, setDoc, addDoc, getDoc, query, where 
         } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
-        import { categoryConfig } from './category-config.js';
+        import { categoryConfig } from '../js/category-config.js';
 
         // --- Firebase Configuration ---
         const firebaseConfig = typeof __firebase_config !== 'undefined' 
