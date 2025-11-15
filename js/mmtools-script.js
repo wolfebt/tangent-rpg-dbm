@@ -925,6 +925,22 @@ document.addEventListener('DOMContentLoaded', () => {
         requestRender();
     }
 
+    function setupAccordionListeners() {
+        document.querySelectorAll('.accordion-header').forEach(header => {
+            header.addEventListener('click', () => {
+                header.classList.toggle('active');
+                const content = header.nextElementSibling;
+                if (content && content.classList.contains('accordion-content')) {
+                    if (content.style.display === 'block') {
+                        content.style.display = 'none';
+                    } else {
+                        content.style.display = 'block';
+                    }
+                }
+            });
+        });
+    }
+
     function setupAllEventListeners() {
         const safeListen = (el, evt, fn, name) => {
             if (el) { el.addEventListener(evt, fn); } 
@@ -1023,7 +1039,9 @@ document.addEventListener('DOMContentLoaded', () => {
                  createInitialMap(); // Fallback
             }
             
+            setupAccordionListeners();
             setupAllEventListeners();
+            handleToolSwitch('terrain');
             populateTerrainSelector();
             populateObjectSelector();
             updateLayerList();
