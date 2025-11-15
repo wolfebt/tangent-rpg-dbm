@@ -925,6 +925,22 @@ document.addEventListener('DOMContentLoaded', () => {
         requestRender();
     }
 
+    function setupAccordionListeners() {
+        document.querySelectorAll('.accordion-header').forEach(header => {
+            header.addEventListener('click', () => {
+                header.classList.toggle('active');
+                const content = header.nextElementSibling;
+                if (content && content.classList.contains('accordion-content')) {
+                    if (content.style.display === 'block') {
+                        content.style.display = 'none';
+                    } else {
+                        content.style.display = 'block';
+                    }
+                }
+            });
+        });
+    }
+
     function setupAllEventListeners() {
         const safeListen = (el, evt, fn, name) => {
             if (el) { el.addEventListener(evt, fn); } 
@@ -968,7 +984,10 @@ document.addEventListener('DOMContentLoaded', () => {
         safeListen(elements.loadProjectBtn, 'click', () => elements.loadJsonInput.click(), 'loadProjectBtn');
         safeListen(elements.loadJsonInput, 'change', loadProject, 'loadJsonInput');
         safeListen(elements.savePngBtn, 'click', saveMapAsPng, 'savePngBtn');
-        safeListen(elements.eraserToolBtn, 'click', () => elements.eraserDropdownMenu.classList.toggle('hidden'), 'eraserToolBtn');
+        safeListen(elements.eraserToolBtn, 'click', () => {
+            handleToolSwitch('eraser');
+            elements.eraserDropdownMenu.classList.toggle('hidden');
+        }, 'eraserToolBtn');
         safeListen(elements.eraseTerrainBtn, 'click', () => { eraserMode = 'terrain'; elements.eraserDropdownMenu.classList.add('hidden'); }, 'eraseTerrainBtn');
         safeListen(elements.eraseObjectsBtn, 'click', () => { eraserMode = 'objects'; elements.eraserDropdownMenu.classList.add('hidden'); }, 'eraseObjectsBtn');
         safeListen(elements.saveApiKeyBtn, 'click', saveApiKey, 'saveApiKeyBtn');
@@ -1023,7 +1042,9 @@ document.addEventListener('DOMContentLoaded', () => {
                  createInitialMap(); // Fallback
             }
             
+            setupAccordionListeners();
             setupAllEventListeners();
+            handleToolSwitch('terrain');
             populateTerrainSelector();
             populateObjectSelector();
             updateLayerList();
